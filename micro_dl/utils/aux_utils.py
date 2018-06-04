@@ -16,13 +16,12 @@ def import_class(module_name, cls_name):
     main_module = 'micro_dl'
     try:
         module = importlib.import_module(module_name, main_module)
-        for x in dir(module):
-            obj = getattr(module, cls_name)
+        obj = getattr(module, cls_name)
 
-            if inspect.isclass(obj):
-                return obj
+        if inspect.isclass(obj):
+            return obj
     except ImportError:
-        return None
+        raise
 
 
 def get_row_idx(study_metadata, timepoint_idx,
@@ -61,7 +60,7 @@ def validate_tp_channel(study_metadata, timepoint_ids=None, channel_ids=None):
 
     tp_channels_ids = {}
     if timepoint_ids is not None:
-        if isinstance(timepoint_ids, int):
+        if np.issubdtype(type(timepoint_ids), np.integer):
             if timepoint_ids == -1:
                 timepoint_ids = study_metadata['timepoint'].unique()
             else:
@@ -72,7 +71,7 @@ def validate_tp_channel(study_metadata, timepoint_ids=None, channel_ids=None):
         tp_channels_ids['timepoints'] = timepoint_ids
 
     if channel_ids is not None:
-        if isinstance(channel_ids, int):
+        if np.issubdtype(type(channel_ids), np.integer):
             if channel_ids == -1:
                 channel_ids = study_metadata['channel_num'].unique()
             else:

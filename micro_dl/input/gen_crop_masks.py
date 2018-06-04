@@ -65,13 +65,23 @@ class MaskProcessor:
          (flurophore) channels
         """
 
-        self.mask_channels = mask_channels
-        self.split_dir = split_dir
-        self.timepoint_ids = timepoint_ids
+        meta_fname = os.path.join(split_dir, 'split_images_info.csv')
+        try:
+            volume_metadata = pd.read_csv(meta_fname)
+        except IOError as e:
+            e.args += 'cannot read split image info'
+            raise
 
-        if isinstance(mask_channels, int):
-            mask_channels = [mask_channels]
-        mask_dir_name = '-'.join(map(str, mask_channels))
+        self.volume_metadata = volume_metadata
+        tp_channel_ids = validate_tp_channel(volume_metadata,
+                                             timepoint_ids=timepoint_ids,
+                                             channel_ids=mask_channels)
+        self.timepoint_ids = tp_channel_ids['timepoints']
+        self.mask_channels = tp_channel_ids['channels']
+
+        self.split_dir = split_dir
+
+        mask_dir_name = '-'.join(map(str, self.mask_channels))
         self.mask_dir_name = 'mask_{}'.format(mask_dir_name)
 
     def generate_masks(self, focal_plane_idx=None, correct_flat_field=False):
@@ -83,23 +93,10 @@ class MaskProcessor:
          field or not
         """
 
-        meta_fname = os.path.join(self.split_dir, 'split_images_info.csv')
-        try:
-            volume_metadata = pd.read_csv(meta_fname)
-        except IOError as e:
-            e.args += 'cannot read split image info'
-            raise
-
-        tp_channel_ids = validate_tp_channel(volume_metadata,
-                                             timepoint_ids=self.timepoint_ids,
-                                             channel_ids=self.mask_channels)
-        self.timepoint_ids = tp_channel_ids['timepoints']
-        self.mask_channels = tp_channel_ids['channels']
-
         for tp_idx in self.timepoint_ids:
-            row_idx = get_row_idx(volume_metadata, tp_idx,
+            row_idx = get_row_idx(self.volume_metadata, tp_idx,
                                   self.mask_channels[0], focal_plane_idx)
-            metadata = volume_metadata[row_idx]
+            metadata = self.volume_metadata[row_idx]
             tp_dir = os.path.join(self.split_dir,
                                   'timepoint_{}'.format(tp_idx))
             mask_dir = os.path.join(tp_dir, self.mask_dir_name)
@@ -115,7 +112,8 @@ class MaskProcessor:
                     cur_image = np.load(cur_fname)
                     if correct_flat_field:
                         cur_image = apply_flat_field_correction(
-                            self.split_dir, channel, cur_image
+                            cur_image, split_dir=self.split_dir,
+                            channel_id=channel
                         )
                     if idx == 0:
                         summed_image = cur_image

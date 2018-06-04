@@ -1,6 +1,7 @@
 """Utility functions for processing images"""
 import itertools
 import numpy as np
+import os
 from skimage.transform import resize
 
 
@@ -42,11 +43,11 @@ def apply_flat_field_correction(input_image, **kwargs):
     else:
         msg = 'split_dir and channel_id are required to fetch flat field image'
         assert all (k in kwargs for k in ('split_dir', 'channel_id')), msg
-        flat_field_image = os.path.join(
+        flat_field_image = np.load(os.path.join(
             kwargs['split_dir'], 'flat_field_images',
             'flat-field_channel-{}.npy'.format(kwargs['channel_id'])
-        )
-        corrected_image = input_image / flat_field_image
+        ))
+        corrected_image = input_image.astype('float') / flat_field_image
     return corrected_image
 
 

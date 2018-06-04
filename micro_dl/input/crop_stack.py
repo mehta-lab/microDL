@@ -7,6 +7,7 @@ import pickle
 
 from micro_dl.input.gen_crop_masks import MaskProcessor
 from micro_dl.utils.aux_utils import get_row_idx, validate_tp_channel
+from micro_dl.utils.normalize import hist_clipping, zscore
 from micro_dl.utils.image_utils import (apply_flat_field_correction,
                                         crop_image, crop_at_indices)
 
@@ -115,7 +116,7 @@ class ImageStackCropper:
         cropped_dir_name = 'image_tile_{}_step_{}'.format(str_tile_size,
                                                           str_step_size)
         cropped_dir = os.path.join(base_output_dir, cropped_dir_name)
-        os.makedirs(cropped_dir, exist_ok=True)
+
         self.cropped_dir = cropped_dir
         if isotropic:
             isotropic_shape = [tile_size[0], ] * len(tile_size)
@@ -125,12 +126,16 @@ class ImageStackCropper:
         self.correct_flat_field = correct_flat_field
 
     def crop_stack(self, focal_plane_idx=None):
-        """Crop images in the specified channels
+        """Crop images in the specified channels.
+
+        Currently does histogram clipping [p2, p98] and z-score. May be save
+        histogram (for hist_eq and ?) and [p2, p98] for rescaling dynamic-range
 
         :param int focal_plane_idx: Index of which focal plane acquisition to
          use (2D)
         """
 
+        os.makedirs(self.cropped_dir, exist_ok=True)
         for tp_idx in self.timepoint_ids:
             tp_dir = os.path.join(self.cropped_dir,
                                   'timepoint_{}'.format(tp_idx))
@@ -157,6 +162,7 @@ class ImageStackCropper:
                         cur_image = apply_flat_field_correction(
                             cur_image, flat_field_image=flat_field_image
                         )
+                    cur_image = zscore(hist_clipping(cur_image))
                     cropped_image_data = crop_image(
                         input_image=cur_image, tile_size=self.tile_size,
                         step_size=self.step_size, isotropic=self.isotropic
@@ -190,6 +196,8 @@ class ImageStackCropper:
 
         cropped_dir = '{}_vf-{}'.format(self.cropped_dir, min_fraction)
 
+        os.makedirs(cropped_dir, exist_ok=True)
+
         for tp_idx in self.timepoint_ids:
             tp_dir = os.path.join(cropped_dir,
                                   'timepoint_{}'.format(tp_idx))
@@ -198,16 +206,19 @@ class ImageStackCropper:
             crop_indices_fname = os.path.join(
                 self.base_output_dir, 'split_images',
                 'timepoint_{}'.format(tp_idx),
-                '{}_vf-{}.pkl'.format(mask_dir_name, min_fraction)
+                '{}.pkl'.format(mask_dir_name)
             )
 
             if not os.path.exists(crop_indices_fname):
                 mask_gen_obj = MaskProcessor(
                     os.path.join(self.base_output_dir, 'split_images'),
-                    tp_idx, mask_channels
+                    mask_channels, tp_idx
                 )
-                cropped_mask_dir = os.path.join(self.cropped_dir,
-                                                mask_dir_name)
+                if save_cropped_masks:
+                    cropped_mask_dir = os.path.join(tp_dir, mask_dir_name)
+                    os.makedirs(cropped_mask_dir, exist_ok=True)
+                else:
+                    cropped_mask_dir = None
                 mask_gen_obj.get_crop_indices(min_fraction, self.tile_size,
                                               self.step_size, cropped_mask_dir,
                                               save_cropped_masks, isotropic)
@@ -216,7 +227,7 @@ class ImageStackCropper:
                 crop_indices_dict = pickle.load(f)
 
             for channel in self.crop_channels:
-                row_idx = get_row_idx(volume_metadata, tp_idx, channel,
+                row_idx = get_row_idx(self.volume_metadata, tp_idx, channel,
                                       focal_plane_idx)
                 channel_metadata = self.volume_metadata[row_idx]
                 channel_dir = os.path.join(tp_dir,
@@ -238,6 +249,7 @@ class ImageStackCropper:
                         cur_image = apply_flat_field_correction(
                             cur_image, flat_field_image=flat_field_image
                         )
+                    cur_image = zscore(hist_clipping(cur_image))
                     _, fname = os.path.split(sample_fname)
                     cropped_image_data = crop_at_indices(
                         cur_image, crop_indices_dict[fname], isotropic

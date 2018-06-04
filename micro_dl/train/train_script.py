@@ -127,7 +127,7 @@ def pre_process(config):
             cropper_inst.crop_stack_by_indices(
                 mask_channels=config['dataset']['mask_channels'],
                 min_fraction=config['dataset']['min_fraction'],
-                save_cropped_masks=config['save_cropped_masks'],
+                save_cropped_masks=config['dataset']['save_cropped_masks'],
                 isotropic=isotropic, focal_plane_idx=focal_plane_idx
             )
         else:
