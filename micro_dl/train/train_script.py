@@ -5,14 +5,11 @@ import os
 import pandas as pd
 import yaml
 
-from micro_dl.input.crop_stack import ImageStackCropper
 from micro_dl.input.dataset import BaseDataSet, DataSetWithMask
-from micro_dl.input.gen_crop_masks import MaskProcessor
 from micro_dl.input.training_table import (
     BaseTrainingTable, TrainingTableWithMask
 )
 from micro_dl.train.trainer import BaseKerasTrainer
-from micro_dl.utils.aux_utils import import_class
 from micro_dl.utils.train_utils import check_gpu_availability
 
 
@@ -56,82 +53,6 @@ def read_config(config_fname):
         config = yaml.load(f)
 
     return config
-
-
-def pre_process(config):
-    """Split and crop volumes from lif data
-
-    :param dict config: dict with keys [input_fname, base_output_dir,
-     split_volumes, crop_volumes]
-    """
-
-    if config['dataset']['split_volumes']:
-        stack_splitter_cls = config['dataset']['splitter_class']
-        stack_splitter_cls = import_class('input', stack_splitter_cls)
-        stack_splitter = stack_splitter_cls(
-            lif_fname=config['dataset']['input_fname'],
-            base_output_dir=config['dataset']['base_output_dir'],
-            verbose=config['verbose']
-        )
-        stack_splitter.save_images()
-
-    split_dir = os.path.join(config['dataset']['base_output_dir'],
-                             'split_images')
-
-    if config['dataset']['correct_flat_field']:
-        correct_flat_field = True
-    else:
-        correct_flat_field = False
-
-    if 'focal_plane_idx' in config['dataset']:
-        focal_plane_idx = config['dataset']['focal_plane_idx']
-    else:
-        focal_plane_idx = None
-
-    if correct_flat_field:
-        flat_field_estimator_cls = config['dataset']['flat_field_class']
-        flat_field_estimator_cls = import_class('input',
-                                                flat_field_estimator_cls)
-        flat_field_estimator = flat_field_estimator_cls(split_dir)
-        flat_field_estimator.estimate_flat_field(focal_plane_idx)
-
-    if 'mask_channels' in config['dataset']:
-        if 'timepoints' in config['dataset']:
-            mask_processor_inst = MaskProcessor(
-                split_dir, config['dataset']['mask_channels'],
-                config['dataset']['timepoints']
-            )
-        else:
-            mask_processor_inst = MaskProcessor(
-                split_dir, config['dataset']['mask_channels']
-            )
-
-        mask_processor_inst.generate_masks(
-            focal_plane_idx=focal_plane_idx,
-            correct_flat_field=correct_flat_field
-        )
-
-    if config['dataset']['crop_volumes']:
-        if 'isotropic' in config['dataset']['cropper']:
-            isotropic = ['dataset']['cropper']['isotropic']
-        else:
-            isotropic = False
-
-        cropper_inst = ImageStackCropper(
-            config['dataset']['base_output_dir'],
-            config['dataset']['cropper']['tile_size'],
-            config['dataset']['cropper']['step_size'],
-            correct_flat_field=correct_flat_field, isotropic=isotropic
-        )
-        if 'min_fraction' in config['dataset']:
-            cropper_inst.crop_stack_by_indices(
-                mask_channels=config['dataset']['mask_channels'],
-                min_fraction=config['dataset']['min_fraction'],
-                save_cropped_masks=config['dataset']['save_cropped_masks'],
-                isotropic=isotropic, focal_plane_idx=focal_plane_idx
-            )
-        else:
-            cropper_inst.crop_stack(focal_plane_idx=focal_plane_idx)
 
 
 def train_xy(df_meta, config):
@@ -222,8 +143,6 @@ def run_action(args):
     action = args.action
     config = read_config(args.config)
     if action == 'train':
-        if config['dataset']['preprocess']:
-            pre_process(config)
 
         df_meta_fname = os.path.join(config['dataset']['data_dir'],
                                      'cropped_images_info.csv')

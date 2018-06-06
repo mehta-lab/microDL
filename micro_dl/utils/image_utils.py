@@ -32,7 +32,7 @@ def apply_flat_field_correction(input_image, **kwargs):
     :param np.array input_image: image to be corrected
     Kwargs:
         flat_field_image (np.float): flat_field_image for correction
-        split_dir (str): dir with split images from stack (or individual
+        image_dir (str): dir with split images from stack (or individual
          sample images
         channel_id (int): input image channel
     :return: np.array (float) corrected image
@@ -41,10 +41,10 @@ def apply_flat_field_correction(input_image, **kwargs):
     if 'flat_field_image' in kwargs:
         corrected_image = input_image / kwargs['flat_field_image']
     else:
-        msg = 'split_dir and channel_id are required to fetch flat field image'
-        assert all (k in kwargs for k in ('split_dir', 'channel_id')), msg
+        msg = 'image_dir and channel_id are required to fetch flat field image'
+        assert all(k in kwargs for k in ('image_dir', 'channel_id')), msg
         flat_field_image = np.load(os.path.join(
-            kwargs['split_dir'], 'flat_field_images',
+            kwargs['image_dir'], 'flat_field_images',
             'flat-field_channel-{}.npy'.format(kwargs['channel_id'])
         ))
         corrected_image = input_image.astype('float') / flat_field_image
@@ -93,56 +93,55 @@ def fit_polynomial_surface_2D(sample_coords,
     return poly_surface
 
 
-def crop_image(input_image, tile_size, step_size, isotropic=False):
+def tile_image(input_image, tile_size, step_size, isotropic=False):
     """Crops the image from given crop and step size.
 
-    :param np.array input_image: input image in 3d
+    :param np.array input_image: input image to be tiled
     :param list/tuple/np array tile_size: size of the blocks to be cropped
      from the image
     :param list/tuple/np array step_size: size of the window shift. In case of
      no overlap, the step size is tile_size. If overlap, step_size < tile_size
     :param bool isotropic: if 3D, make the grid/shape isotropic
     :return: a list with tuples of cropped image id of the format
-     xxmin-xmax_yymin-ymax_zzmin-zmax and cropped image
+     rrmin-rmax_ccmin-cmax_slslmin-slmax and cropped image
     """
 
-    assert len(tile_size) == len(step_size)
-    assert np.all(tile_size) > 0
-    if mask_image:
-        assert isinstance(mask_image, bool)
+    check_1 = len(tile_size) == len(step_size)
+    check_2 = np.all(step_size <= tile_size)
+    check_3 = np.all(tile_size) > 0
+    assert check_1 and check_2 and check_3
 
-    size_x = input_image.shape[0]
-    size_y = input_image.shape[1]
+    n_rows = input_image.shape[0]
+    n_cols = input_image.shape[1]
 
     n_dim = len(input_image.shape)
     if n_dim == 3:
-        size_z = input_image.shape[2]
+        n_slices = input_image.shape[2]
 
     if isotropic:
         isotropic_shape = [tile_size[0], ] * len(tile_size)
-        isotropic_cond = list(tile_size) == isotropic_shape
+        isotropic_cond = not(list(tile_size) == isotropic_shape)
     else:
         isotropic_cond = isotropic
 
     cropped_image_list = []
-    for x in range(0, size_x - tile_size[0] + 1, step_size[0]):
-        for y in range(0, size_y - tile_size[1] + 1, step_size[1]):
-            img_id = 'x{}-{}_y{}-{}'.format(x, x + tile_size[0],
-                                            y, y + tile_size[1])
+    for row in range(0, n_rows - tile_size[0] + 1, step_size[0]):
+        for col in range(0, n_cols - tile_size[1] + 1, step_size[1]):
+            img_id = 'r{}-{}_c{}-{}'.format(row, row + tile_size[0],
+                                            col, col + tile_size[1])
             if n_dim == 3:
-                for z in range(0, size_z - tile_size[2] + 1, step_size[2]):
-                    img_id = '{}_z{}-{}'.format(img_id, z, z + tile_size[2])
-                    cropped_img = input_image[x: x + tile_size[0],
-                                              y: y + tile_size[1],
-                                              z: z + tile_size[2]]
+                for sl in range(0, n_slices - tile_size[2] + 1, step_size[2]):
+                    img_id = '{}_sl{}-{}'.format(img_id, sl, sl + tile_size[2])
+                    cropped_img = input_image[row: row + tile_size[0],
+                                              col: col + tile_size[1],
+                                              sl: sl + tile_size[2]]
                     if isotropic_cond:
                         cropped_img = resize_image(cropped_img,
                                                    isotropic_shape)
-                        # tiled_img = np.rollaxis(tiled_img, 2, 0)
                     cropped_image_list.append((img_id, cropped_img))
             else:
-                cropped_img = input_image[x: x + tile_size[0],
-                                          y: y + tile_size[1]]
+                cropped_img = input_image[row: row + tile_size[0],
+                                          col: col + tile_size[1]]
                 cropped_image_list.append((img_id, cropped_img))
     return cropped_image_list
 
@@ -150,20 +149,20 @@ def crop_image(input_image, tile_size, step_size, isotropic=False):
 def crop_at_indices(input_image, crop_indices, isotropic=False):
     """Crop image into tiles at given indices
 
-    :param np.array input_image: input image in 3d
+    :param np.array input_image: input image for cropping
     :param list crop_indices: list of indices for cropping
     :param bool isotropic: if 3D, make the grid/shape isotropic
     :return: a list with tuples of cropped image id of the format
-     xxmin-xmz_yymin-ymax_zzmin-zmax and cropped image
+     rrmin-rmax_ccmin-cmax_slslmin-slmax and cropped image
     """
 
     n_dim = len(input_image.shape)
     cropped_img_list = []
     for cur_idx in crop_indices:
-        img_id = 'x{}-{}_y{}-{}'.format(cur_idx[0], cur_idx[1],
+        img_id = 'r{}-{}_c{}-{}'.format(cur_idx[0], cur_idx[1],
                                         cur_idx[2], cur_idx[3])
         if n_dim == 3:
-            img_id = '{}_z{}-{}'.format(img_id, cur_idx[4], cur_idx[5])
+            img_id = '{}_sl{}-{}'.format(img_id, cur_idx[4], cur_idx[5])
             cropped_img = input_image[cur_idx[0]: cur_idx[1],
                                       cur_idx[2]: cur_idx[3],
                                       cur_idx[4]: cur_idx[5]]

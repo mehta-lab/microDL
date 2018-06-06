@@ -12,13 +12,13 @@ from micro_dl.utils.image_utils import fit_polynomial_surface_2D
 class FlatFieldEstimator(metaclass=ABCMeta):
     """Estimates flat field correction image"""
 
-    def __init__(self, split_dir):
+    def __init__(self, image_dir):
         """Init.
 
-        :param str split_dir: base dir with individual/split images from stack
+        :param str image_dir: base dir with individual/split images from stack
         """
 
-        self.split_dir = split_dir
+        self.image_dir = image_dir
 
     @abstractmethod
     def sample_block_medians(self, im, block_size=32):
@@ -45,7 +45,7 @@ class FlatFieldEstimator(metaclass=ABCMeta):
          along focal plane/axis, this specifies the plane to use
         """
 
-        meta_fname = os.path.join(self.split_dir, 'split_images_info.csv')
+        meta_fname = os.path.join(self.image_dir, 'split_images_info.csv')
         try:
             volume_metadata = pd.read_csv(meta_fname)
         except IOError as e:
@@ -53,7 +53,7 @@ class FlatFieldEstimator(metaclass=ABCMeta):
             raise
 
         all_channels = volume_metadata['channel_num'].unique()
-        flat_field_dir = os.path.join(self.split_dir, 'flat_field_images')
+        flat_field_dir = os.path.join(self.image_dir, 'flat_field_images')
         os.makedirs(flat_field_dir, exist_ok=True)
         tp_idx = 0  # flat_field constant over time
         for channel_idx in all_channels:

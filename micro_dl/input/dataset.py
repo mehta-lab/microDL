@@ -152,10 +152,8 @@ class DataSetWithMask(BaseDataSet):
             cur_target_fnames = self.target_fnames.iloc[self.row_idx[idx]]
             cur_mask_fnames = self.mask_fnames.iloc[self.row_idx[idx]]
             cur_input = super()._get_volume(cur_input_fnames.split(','))
-            #cur_input = (cur_input - np.mean(cur_input)) / np.std(cur_input)
-          
+
             cur_target = super()._get_volume(cur_target_fnames.split(','))
-            #cur_target = (cur_target - np.mean(cur_target)) / np.std(cur_target)
 
             # the mask is based on sum of flurophore images
             cur_mask = super()._get_volume(cur_mask_fnames.split(','))

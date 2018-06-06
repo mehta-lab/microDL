@@ -9,11 +9,12 @@ flat_field_class: FlatFieldEstimator2D
 use_masks: True
 masks:
     mask_channels: [0, 1]
-    save_cropped_masks: True
-    min_fraction: 0.15
-crop_volumes: True
-crop:
+    str_elem_radius: 3
+tile_stack: True
+tile:
     channels: -1
     tile_size: [256, 256]
     step_size: [64, 64]
-
+    save_cropped_masks: True
+    min_fraction: 0.15
+    hist_clip_limits: [2, 98]
