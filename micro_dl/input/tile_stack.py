@@ -1,4 +1,4 @@
-"""Crop images for training"""
+"""Tile images for training"""
 
 import numpy as np
 import os
@@ -91,16 +91,18 @@ class ImageStackTiler:
         df.to_csv(metadata_fname, sep=',')
 
     @staticmethod
-    def _save_cropped_images(cropped_image_info, meta_row,
-                             channel_dir, cropped_meta):
+    def _save_tiled_images(cropped_image_info, meta_row,
+                           channel_dir, cropped_meta):
         """Save cropped images for individual/sample image
 
-        :param list cropped_image_info: a list with tuples of cropped image id
-         of the format xxmin-xmz_yymin-ymax_zzmin-zmax and cropped image
+        :param list cropped_image_info: a list with tuples (cropped image id
+         of the format rrmin-rmax_ccmin-cmax_slslmin-slmax and cropped image)
+         for the current image
         :param pd.DataFrame(row) meta_row: row of metadata from split images
         :param str channel_dir: dir to save cropped images
         :param list cropped_meta: list of tuples with (cropped image id of the
-        format rrmin-rmax_ccmin-cmax_slslmin-slmax, cropped image)
+        format rrmin-rmax_ccmin-cmax_slslmin-slmax, cropped image) for all
+        images in current channel
         """
 
         for id_img_tuple in cropped_image_info:
@@ -162,8 +164,8 @@ class ImageStackTiler:
                 )
             else:
                 raise ValueError('tile function invalid')
-            self._save_cropped_images(cropped_image_data, row,
-                                      channel_dir, metadata)
+            self._save_tiled_images(cropped_image_data, row,
+                                    channel_dir, metadata)
 
     def tile_stack(self, focal_plane_idx=None, hist_clip_limits=None):
         """Tiles images in the specified channels.
