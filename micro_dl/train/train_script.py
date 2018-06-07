@@ -23,7 +23,11 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', type=int, default=0,
                         help=('specify the gpu to use: 0,1,...',
+<<<<<<< HEAD
                               ', -1 for debugging'))
+=======
+                              '-1 for no gpu (debugging'))
+>>>>>>> 3acc79c... testing train
     parser.add_argument('--gpu_mem_frac', type=float, default=1.,
                         help='specify the gpu memory fraction to use')
     parser.add_argument('--action', type=str, default='train',
@@ -173,7 +177,8 @@ def run_action(args):
 
 if __name__ == '__main__':
     args = parse_args()
-    if args.gpu > -1:
+    # Comment (Jenny): gpu_availability is assigned but not used after this?
+    if args.gpu >= 0:
         gpu_availability = check_gpu_availability(
             args.gpu,
             args.gpu_mem_frac)
