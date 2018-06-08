@@ -12,7 +12,7 @@ dataset:
     width: 256
 verbose: 10
 trainer:
-    model_dir: '/Users/jenny.folkesson/Data/models/labelfree_tile256_bs32_mse'
+    model_dir: '/Users/jenny.folkesson/Data/models/labelfree_tile256_bs16_mse'
     batch_size: 16
     max_epochs: 2
     patience: 20
