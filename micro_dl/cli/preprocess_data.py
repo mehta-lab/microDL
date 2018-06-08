@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 import argparse
-import glob
 
 import micro_dl.input.preprocess_images as preprocess_images
 import micro_dl.utils.aux_utils as aux_utils
@@ -16,9 +15,9 @@ def parse_args():
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input', type=str,
-                        help="Path to folder containing all channel subfolders")
+                        help="Path to folder containing all time/channel subfolders")
     parser.add_argument('-o', '--output', type=str,
-                        help=("Path to base directory where preprocessed data",
+                        help=("Path to base directory where preprocessed data ",
                               "and info csv file will be written"))
     parser.add_argument('-d', '--data_split', nargs=3, type=float, default=[.6, .2, .2],
                         help=("Specify fractions of data you want to use for ",
@@ -38,7 +37,7 @@ def preprocess(args):
 
     :param list args:    parsed args containing
         str input_dir:   path to input main directory containing subfolders
-                         for channels
+                         for timepoints containing subfolders for channels
         str output_dir:  base path where processed data will be written
         list data_split: fractions of train, validation and test (must sum to 1)
         list tile_size:  shape of image tiles
@@ -50,7 +49,8 @@ def preprocess(args):
         args.input,
         args.output,
         args.verbose)
-    # Input folder should contain channel folders with channel number (int)
+    # Input folder should contain timepoint folders. Each timepoint should
+    # contain channel folders with channel number (int)
     # in the folder name. Each channel folder should contain unique matching
     # indices. Check and collect indices, then save images as npy
     channel_nbrs, im_indices = preprocessor.channel_validator()

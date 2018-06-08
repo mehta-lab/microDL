@@ -1,7 +1,7 @@
-"""Classes for handling microscopy data in lif format
+"""Classes for handling microscopy data in image file format, NOT LIF!
 
 Uses dir structure:
-base_output_dir
+input_dir
  |-image_volume, image_volumes_info.csv
     |-tp0
         |-channel0
