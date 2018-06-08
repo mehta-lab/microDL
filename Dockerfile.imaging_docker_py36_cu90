@@ -136,4 +136,8 @@ RUN APT_INSTALL="apt-get install -y --no-install-recommends" && \
     ADD requirements.txt /tmp/requirements.txt
     RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
+    RUN git clone git@github.com:czbiohub/microDL.git /microDL
+    WORKDIR /microDL
+    RUN export PYTHONPATH=$(pwd)
+
 EXPOSE 8888 6006

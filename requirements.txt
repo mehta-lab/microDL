@@ -1,11 +1,13 @@
 Cython
 graphviz
+javabridge
 matplotlib
 nose
 numpy
 pandas
 PIMS
 pydot
+python-bioformats
 scikit-image
 scikit-learn
 scipy
