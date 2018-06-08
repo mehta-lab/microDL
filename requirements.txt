@@ -1,5 +1,4 @@
 Cython
-graphviz
 matplotlib
 nose
 numpy

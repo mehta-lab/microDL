@@ -1,6 +1,6 @@
 dataset:
     preprocess: False
-    data_dir: '/Users/jenny.folkesson/Data/processed_data/image_tile_256-256_step_256-256'
+    data_dir: '/data/image_tile_256-256_step_256-256'
     input_channels: [3]
     target_channels: [0]
     split_by_column: sample_num
@@ -12,9 +12,9 @@ dataset:
     width: 256
 verbose: 10
 trainer:
-    model_dir: '/Users/jenny.folkesson/Data/models/labelfree_tile256_bs32_mse'
+    model_dir: '/data/labelfree_tile256_bs16_mse'
     batch_size: 16
-    max_epochs: 2
+    max_epochs: 50
     patience: 20
     metrics: coeff_determination
     loss: mean_squared_error
