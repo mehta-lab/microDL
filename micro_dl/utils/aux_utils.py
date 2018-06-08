@@ -2,7 +2,6 @@
 import inspect
 import importlib
 import numpy as np
-import os
 
 
 def import_class(module_name, cls_name):
