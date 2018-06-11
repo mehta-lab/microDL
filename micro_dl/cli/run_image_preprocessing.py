@@ -1,8 +1,9 @@
 #!/usr/bin/python
 
 import argparse
+import os
 
-import micro_dl.input.preprocess_images as preprocess_images
+import micro_dl.input.image_validator as image_validator
 import micro_dl.input.tile_stack as tile_stack
 
 
@@ -43,43 +44,34 @@ def preprocess(args):
     """
     # Instantiate preprocessor
     meta_name = 'image_volumes_info.csv'
-    preprocessor = preprocess_images.ImagePreprocessor(
-        args.input,
-        args.output,
-        args.verbose,
-        meta_name=meta_name
+    validator = image_validator.ImageValidator(
+        input_dir=args.input,
+        base_output_dir=args.output,
+        meta_name=meta_name,
+        verbose=args.verbose,
     )
     # Check that all indices are unique and write metadata info csv
     # in input base directory
-    preprocessor.folder_validator()
-
-    # # Normalize and tile images
-    preprocessor.tile_images(
-        args.tile_size,
-        args.step_size,
-        channel_ids=-1,
-        mask_channel_ids=None,
-        min_fraction=None)
+    validator.folder_validator()
+    meta_path = os.path.join(args.input, meta_name)
 
     # TODO (Jenny): Add handling of masks and flatfield correction
 
     # Tile all images
-    if pp_config['tile_stack']:
-        # TODO (Jenny): Not dealing with 3D/isotropy for now
-        isotropic = False
-        meta_path = os.path.join(args.input, meta_name)
-        image_tiler = tile_stack.ImageStackTiler(
-            args.output,
-            args.tile_size,
-            args.step_size,
-            correct_flat_field=False,
-            isotropic=isotropic,
-            meta_path=meta_path,
-            is_npy=False
-        )
+    # TODO (Jenny): Not dealing with 3D/isotropy for now
+    isotropic = False
+    image_tiler = tile_stack.ImageStackTiler(
+        base_output_dir=args.output,
+        tile_size=args.tile_size,
+        step_size=args.step_size,
+        correct_flat_field=False,
+        isotropic=isotropic,
+        meta_path=meta_path,
+        is_npy=False,
+    )
 
-        image_tiler.tile_stack(focal_plane_idx=0,
-                               hist_clip_limits=None)
+    image_tiler.tile_stack(focal_plane_idx=0,
+                           hist_clip_limits=None)
 
 
 if __name__ == '__main__':

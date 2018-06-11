@@ -37,7 +37,7 @@ class ImageStackTiler:
          field
         :param bool isotropic: if 3D, make the grid/shape isotropic
         :param meta_path: If none, assume metadata csv is in base_output_dir
-            and is named split_images_info.csv
+            + split_images/ and is named split_images_info.csv
         :param bool is_npy: True if dealing with lifs that get converted tp npy,
             False for images like png, tif
         :return: a list with tuples - (cropped image id of the format
@@ -205,13 +205,17 @@ class ImageStackTiler:
                 channel_dir = os.path.join(tp_dir,
                                            'channel_{}'.format(channel))
                 os.makedirs(channel_dir, exist_ok=True)
-
-                flat_field_image = np.load(
-                    os.path.join(self.base_output_dir, 'split_images',
-                                 'flat_field_images',
-                                 'flat-field_channel-{}.npy'.format(channel)
-                                 )
-                )
+                if self.correct_flat_field:
+                    flat_field_image = np.load(
+                        os.path.join(
+                            self.base_output_dir,
+                            'split_images',
+                            'flat_field_images',
+                            'flat-field_channel-{}.npy'.format(channel)
+                        )
+                    )
+                else:
+                    flat_field_image = None
                 metadata = []
                 self._tile_channel(image_utils.tile_image,
                                    channel_dir, channel_metadata,
