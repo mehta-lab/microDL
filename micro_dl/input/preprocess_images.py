@@ -20,21 +20,17 @@ import numpy as np
 import os
 import pandas as pd
 import re
-from scipy.ndimage.morphology import binary_fill_holes
-from skimage.filters import threshold_otsu
-from skimage.morphology import disk, binary_opening
 
 import micro_dl.utils.image_utils as image_utils
-import micro_dl.input.preprocessor_utils as preproc_utils
 
 
 class ImagePreprocessor(metaclass=ABCMeta):
-    """Base class for volume splitting, cropping and flatfield correction"""
+    """Base class for verifying image folder structure and writing metadata"""
 
-    def __init__(self, input_dir, base_output_dir, verbose=0):
+    def __init__(self, input_dir, base_output_dir, meta_name, verbose=0):
         """
-        :param str input_dir: Input directory,
-            containing all channels (inputs and target) you will use for training
+        :param str input_dir: Input directory, containing time directories,
+            which in turn contain all channels (inputs and target) directories
         :param str base_output_dir: base folder for storing the individual
          image and cropped volumes
         :param int verbose: specifies the logging level: NOTSET:0, DEBUG:10,
@@ -42,13 +38,20 @@ class ImagePreprocessor(metaclass=ABCMeta):
         """
 
         self.input_dir = input_dir
-        self.channel_dirs = glob.glob(self.input_dir + "/*/")
+        self.time_dirs = self._get_subdirectories(self.input_dir)
+        assert len(self.time_dirs) > 0,\
+            "Input dir must contain at least one timepoint folder"
+        self.channel_dirs = self._get_subdirectories(
+            os.path.join(self.input_dir, self.time_dirs[0]))
+        assert len(self.channel_dirs) > 1, \
+            "Must be at least an input and a target channel"
         self.base_output_dir = base_output_dir
         # Create output directory if it doesn't exist already
         os.makedirs(self.base_output_dir, exist_ok=True)
+        self.meta_name = meta_name
         # Create volume dir if it doesn't exist already
-        self.volume_dir = os.path.join(self.base_output_dir, 'image_volumes')
-        os.makedirs(self.volume_dir, exist_ok=True)
+        # self.volume_dir = os.path.join(self.base_output_dir, 'image_volumes')
+        # os.makedirs(self.volume_dir, exist_ok=True)
         # Validate and instantiate logging
         log_levels = [0, 10, 20, 30, 40, 50]
         if verbose in log_levels:
@@ -88,42 +91,91 @@ class ImagePreprocessor(metaclass=ABCMeta):
         if self.verbose > 0:
             self.logger.info(msg)
 
-    def channel_validator(self):
+    def _get_subdirectories(self, dir_name):
+        return [subdir_name
+                for subdir_name in
+                    os.listdir(dir_name)
+                    if os.path.isdir(os.path.join(dir_name, subdir_name))
+                ]
+
+    def folder_validator(self):
         """
-        Input directory should contain subdirectories consisting of channels
-        numbered 0, ...
+        Input directory should contain subdirectories consisting of timepoints,
+        which in turn should contain channel folders numbered 0, ...
         This function makes sure images have matching shapes and unique indices
-        in each channel.
+        in each folder and writes a csv containing relevant image information.
 
         :return list of ints channel_nrbs: Channel numbers determined by searching
             input_dir subfolder names for ints
         :return list of ints im_indices: Unique image indices. Must be matching
             in all the subfolders of input_dir
         """
-        assert len(self.channel_dirs) > 1, "Must be at least an input and a target channel"
         # Make sure all input directories contain images with the same indices and shape
-        im_shapes = []
-        im_indices = []
-        channel_nbrs = []
-        for i in self.channel_dirs:
-            im_shape, im_ind = self.image_validator(i)
-            im_shapes.append(im_shape)
-            im_indices.append(im_ind)
-            channel_nbrs.append(self.get_channel_from_dir(i))
+        # Collect all timepoint indices
+        time_indices = []
+        for dir_name in self.time_dirs:
+            time_indices.append(self.get_idx_from_dir(dir_name))
+        print(time_indices)
+        # Collect all channel indices from first timepoint
+        channel_indices = []
+        for dir_name in self.channel_dirs:
+            channel_indices.append(self.get_idx_from_dir(dir_name))
+        print(channel_indices)
+        # Collect all image indices from first channel directory
+        im_shape, im_indices, _ = self.image_validator(os.path.join(
+            self.input_dir,
+            self.time_dirs[0],
+            self.channel_dirs[0]))
+
+        # Skipping these records for now
+        z_idx = 0
+        size_x_um = 0
+        size_y_um = 0
+        size_z_um = 0
+
         # Make sure image shapes and indices match across channels
-        nbr_idxs = len(im_indices[0])
-        for i in range(1, len(self.channel_dirs)):
-            idx_overlap = set(im_indices[0]).intersection(im_indices[i])
-            assert len(idx_overlap) == nbr_idxs, \
-                "Index mismatch between channels {} and {}".format(
-                    self.channel_dirs[0],
-                    self.channel_dirs[i])
-            assert im_shapes[0] == im_shapes[i], \
-                "Image shape mismatch between channels {} and {}".format(
-                    self.channel_dirs[0],
-                    self.channel_dirs[i])
-        self._log_info("found channels: {}".format(channel_nbrs))
-        return channel_nbrs, im_indices[0]
+        # and write csv containing relevant metadata
+        nbr_idxs = len(im_indices)
+        records = []
+        for time_idx, time_dir in zip(time_indices, self.time_dirs):
+            for channel_idx, channel_dir in zip(channel_indices, self.channel_dirs):
+                print(time_idx, channel_idx)
+                cur_dir = os.path.join(
+                    self.input_dir,
+                    time_dir,
+                    channel_dir)
+                cur_shape, cur_indices, cur_names = self.image_validator(cur_dir)
+                # Assert image shape and indices match
+                idx_overlap = set(im_indices).intersection(cur_indices)
+                assert len(idx_overlap) == nbr_idxs, \
+                    "Index mismatch in folder {}".format(cur_dir)
+                assert im_shape == cur_shape, \
+                    "Image shape mismatch in folder {}".format(cur_dir)
+                for cur_idx, cur_name in zip(cur_indices, cur_names):
+                    full_name = os.path.join(self.input_dir, time_dir, channel_dir, cur_name)
+                    records.append((time_idx,
+                                    channel_idx,
+                                    cur_idx,
+                                    z_idx,
+                                    full_name,
+                                    size_x_um,
+                                    size_y_um,
+                                    size_z_um))
+        # Create pandas dataframe
+        df = pd.DataFrame.from_records(
+            records,
+            columns=['timepoint', 'channel_num', 'sample_num', 'slice_num',
+                     'fname', 'size_x_microns', 'size_y_microns',
+                     'size_z_microns']
+        )
+        metadata_fname = os.path.join(self.input_dir,
+                                      'image_volumes_info.csv')
+        df.to_csv(metadata_fname, sep=',')
+        self._log_info("Writing metadata in: {}".format(self.input_dir,
+                                                        'image_volumes_info.csv'))
+        self._log_info("found timepoints: {}".format(time_indices))
+        self._log_info("found channels: {}".format(channel_indices))
+        self._log_info("found image indices: {}".format(im_indices))
 
     def _get_sorted_names(self, image_dir):
         """
@@ -150,6 +202,7 @@ class ImagePreprocessor(metaclass=ABCMeta):
         :param str image_dir: Directory containing opencv readable images
         :return tuple im_shape: Image shape if all image have the same one
 
+        :return tuple im_shape: image shape if all images have the same shape
         :return list im_indices: Unique indices for the images
 
         :throws IOError: If images can't be read
@@ -183,26 +236,25 @@ class ImagePreprocessor(metaclass=ABCMeta):
             "Images don't have unique indexing"
         msg = '{} contains indices: {}'.format(image_dir, im_indices)
         self._log_info(msg)
-        return im_shape, im_indices
+        return im_shape, im_indices, im_names
 
-    def get_channel_from_dir(self, image_dir):
+    def get_idx_from_dir(self, dir_name):
         """
-        Get channel number, assuming it's the last part of the
+        Get directory index, assuming it's an int in the last part of the
         image directory name.
 
-        :param str image_dir: Image directory
+        :param str dir_name: Directory name containing one int
 
-        :return int channel_nbr: channel number
+        :return int idx_nbr: Directory index
         """
-        strs = image_dir.split("/")
+        strs = dir_name.split("/")
         pos = -1
-        if len(strs[pos]) == 0:
+        if len(strs[pos]) == 0 and len(strs) > 1:
             pos = -2
 
-        channel_nbr = re.findall("\d+", strs[pos])
-        assert len(channel_nbr) == 1, ("Couldn't find channel number in ",
-            image_dir)
-        return int(channel_nbr[0])
+        idx_nbr = re.findall("\d+", strs[pos])
+        assert len(idx_nbr) == 1, ("Couldn't find index in {}".format(dir_name))
+        return int(idx_nbr[0])
 
     def save_images_as_npy(self,
                            channel_nbrs,
@@ -268,13 +320,9 @@ class ImagePreprocessor(metaclass=ABCMeta):
                      'fname', 'size_x_microns', 'size_y_microns',
                      'size_z_microns']
         )
-        metadata_fname = os.path.join(self.volume_dir,
-                                      'image_volumes_info.csv')
+        metadata_fname = os.path.join(self.input_dir,
+                                      self.meta_name)
         df.to_csv(metadata_fname, sep=',')
-
-        # if mask_channels is not None:
-        #     timepoints = [0]
-        #     self.gen_mask(timepoints, mask_channels, 0)
 
     def save_each_image(self,
                         in_channel_dir,
@@ -317,101 +365,12 @@ class ImagePreprocessor(metaclass=ABCMeta):
                    (volume_metadata['slice_num'] == focal_plane_idx))
         return row_idx
 
-    def flat_field_corr(self, focal_plane_idx=None):
-        """Estimates flat field correction image"""
-
-        meta_fname = os.path.join(self.volume_dir, 'image_volumes_info.csv')
-        try:
-            volume_metadata = pd.read_csv(meta_fname)
-        except IOError as e:
-            self.logger.error('cannot read individual image info:' + str(e))
-            raise
-
-        all_channels = volume_metadata['channel_num'].unique()
-        flat_field_dir = os.path.join(self.base_output_dir,
-                                      'flat_field_images')
-        os.makedirs(flat_field_dir, exist_ok=True)
-        for tp_idx in volume_metadata['timepoint'].unique():
-            for channel_idx in all_channels:
-                row_idx = self.get_row_idx(volume_metadata, tp_idx,
-                                           channel_idx, focal_plane_idx)
-                channel_metadata = volume_metadata[row_idx]
-                for idx, row in channel_metadata.iterrows():
-                    sample_fname = row['fname']
-                    cur_image = np.load(sample_fname)
-                    n_dim = len(cur_image.shape)
-                    if n_dim == 3:
-                        cur_image = np.mean(cur_image, axis=2)
-                    if idx == 0:
-                        summed_image = cur_image.astype('float64')
-                    else:
-                        summed_image += cur_image
-                mean_image = summed_image / len(row_idx)
-                # Compute flatfield from from mean image of stack
-                # TODO (Jenny): it currently samples median values
-                # from a mean images, not very statistically meaningful
-                # but easier than computing median of image stack
-                flatfield = image_utils.get_flatfield(mean_image)
-                fname = 'flat-field_tp-{}_channel-{}.npy'.format(tp_idx,
-                                                                 channel_idx)
-                cur_fname = os.path.join(flat_field_dir, fname)
-                np.save(cur_fname, flatfield,
-                        allow_pickle=True, fix_imports=True)
-
-    def save_flat_field_corrected_images(self):
-        """Saves flat field corrected images
-
-        For the current set, no structure in flat field or averaged images,
-        ignore for now
-        """
-        raise NotImplementedError
-
-    def gen_mask(self, timepoint_ids, channel_ids, focal_plane_idx=None):
-        """Generates a binary mask based on summation of channels"""
-
-        meta_fname = os.path.join(self.volume_dir, 'image_volumes_info.csv')
-        try:
-            volume_metadata = pd.read_csv(meta_fname)
-        except IOError as e:
-            self.logger.error('cannot read individual image info:', str(e))
-            raise
-
-        if isinstance(channel_ids, int):
-            channel_ids = [channel_ids]
-        ch_str = '-'.join(map(str, channel_ids))
-
-        for tp_idx in timepoint_ids:
-            row_idx = self.get_row_idx(volume_metadata, tp_idx, channel_ids[0],
-                                       focal_plane_idx)
-            metadata = volume_metadata[row_idx]
-            tp_dir = os.path.join(self.volume_dir,
-                                  'timepoint_{}'.format(tp_idx))
-            mask_dir = os.path.join(tp_dir, 'mask_{}'.format(ch_str))
-            os.makedirs(mask_dir, exist_ok=True)
-
-            fnames = [os.path.split(row['fname'])[1]
-                      for _, row in metadata.iterrows()]
-            for fname in fnames:
-                for idx, channel in enumerate(channel_ids):
-                    cur_fname = os.path.join(
-                        tp_dir, 'channel_{}'.format(channel), fname
-                    )
-                    if idx == 0:
-                        summed_image = np.load(cur_fname)
-                    else:
-                        summed_image += np.load(cur_fname)
-                thr = threshold_otsu(summed_image, nbins=512)
-                str_elem = disk(5)
-                thr_image = binary_opening(summed_image >= thr, str_elem)
-                mask = binary_fill_holes(thr_image)
-                np.save(os.path.join(mask_dir, fname), mask,
-                        allow_pickle=True, fix_imports=True)
-
-    def crop_images(self, tile_size, step_size,
+    def tile_images(self, tile_size, step_size,
                     channel_ids=-1, focal_plane_idx=0,
                     mask_channel_ids=None, min_fraction=None,
                     isotropic=True):
-        """Crop image volumes in the specified channels
+        """
+        Tile image volumes in the specified channels
 
         Isotropic here refers to the same dimension/shape along x,y,z and not
         really isotropic resolution in mm.
@@ -430,8 +389,8 @@ class ImagePreprocessor(metaclass=ABCMeta):
         :param float min_fraction: minimum volume fraction of the ROI to retain
          a tile
         """
-        print(os.path.join(self.volume_dir, 'image_volumes_info.csv'))
-        volume_metadata = pd.read_csv(os.path.join(self.volume_dir,
+        print(os.path.join(self.input_dir, 'image_volumes_info.csv'))
+        volume_metadata = pd.read_csv(os.path.join(self.input_dir,
                                                    'image_volumes_info.csv'))
         available_channels = volume_metadata['channel_num'].unique()
         if isinstance(channel_ids, int) and channel_ids == -1:
@@ -466,7 +425,7 @@ class ImagePreprocessor(metaclass=ABCMeta):
                                         mask_dir_name)
                 cropped_mask_dir = os.path.join(timepoint_dir, mask_dir_name)
                 os.makedirs(cropped_mask_dir, exist_ok=True)
-                crop_indices_dict = preproc_utils.get_crop_indices(
+                crop_indices_dict = image_utils.get_crop_indices(
                     mask_dir, min_fraction, cropped_mask_dir, tile_size,
                     step_size, isotropic
                 )
@@ -485,11 +444,11 @@ class ImagePreprocessor(metaclass=ABCMeta):
                     cur_image = np.load(sample_fname)
                     if mask_channel_ids is not None:
                         _, fname = os.path.split(sample_fname)
-                        cropped_image_data = preproc_utils.crop_at_indices(
+                        cropped_image_data = image_utils.crop_at_indices(
                             cur_image, crop_indices_dict[fname], isotropic
                         )
                     else:
-                        cropped_image_data = preproc_utils.crop_image(
+                        cropped_image_data = image_utils.crop_image(
                             input_image=cur_image, tile_size=tile_size,
                             step_size=step_size, isotropic=isotropic
                         )
