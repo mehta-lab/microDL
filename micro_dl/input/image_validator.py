@@ -109,10 +109,12 @@ class ImageValidator():
         time_indices = []
         for dir_name in self.time_dirs:
             time_indices.append(self.get_idx_from_dir(dir_name))
+        time_indices.sort()
         # Collect all channel indices from first timepoint
         channel_indices = []
         for dir_name in self.channel_dirs:
             channel_indices.append(self.get_idx_from_dir(dir_name))
+        channel_indices.sort()
         # Collect all image indices from first channel directory
         im_shape, im_indices, _ = self.image_validator(os.path.join(
             self.input_dir,

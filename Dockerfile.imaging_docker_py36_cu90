@@ -5,7 +5,7 @@
 # python        3.6    (apt)
 # jupyter       latest (pip)
 # pytorch       0.4.0  (pip)
-# tensorflow    1.7.0  (pip)
+# tensorflow    1.8.0  (pip)
 # keras         2.1.5  (pip)
 # opencv        3.4.1  (git)
 # ==================================================================
@@ -81,7 +81,7 @@ RUN APT_INSTALL="apt-get install -y --no-install-recommends" && \
 # ------------------------------------------------------------------
 
     $PIP_INSTALL \
-        tensorflow-gpu==1.7.0 \
+        tensorflow-gpu \
         && \
 
 # ==================================================================
