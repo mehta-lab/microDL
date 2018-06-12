@@ -23,13 +23,12 @@ import re
 class ImageValidator():
     """Class for verifying image folder structure and writing metadata"""
 
-    def __init__(self, input_dir, base_output_dir, meta_name, verbose=0):
+    def __init__(self, input_dir, meta_name, verbose=0):
         """
         :param str input_dir: Input directory, containing time directories,
             which in turn contain all channels (inputs and target) directories
-        :param str base_output_dir: base folder for storing the individual
-         image and cropped volumes
         :param str meta_name: Name of csv file containing image paths and metadata
+            which will be written in input_dir
         :param int verbose: specifies the logging level: NOTSET:0, DEBUG:10,
          INFO:20, WARNING:30, ERROR:40, CRITICAL:50
         """
@@ -38,14 +37,14 @@ class ImageValidator():
         self.time_dirs = self._get_subdirectories(self.input_dir)
         assert len(self.time_dirs) > 0,\
             "Input dir must contain at least one timepoint folder"
+        # Check to make sure first timepoint folder contains channel folders
         self.channel_dirs = self._get_subdirectories(
             os.path.join(self.input_dir, self.time_dirs[0]))
-        assert len(self.channel_dirs) > 1, \
-            "Must be at least an input and a target channel"
-        self.base_output_dir = base_output_dir
-        # Create output directory if it doesn't exist already
-        os.makedirs(self.base_output_dir, exist_ok=True)
-        self.meta_name = meta_name
+        assert len(self.channel_dirs) > 0, \
+            "Must be at least one channel folder"
+        # Metadata will be written in input folder
+        self.meta_name = os.path.join(self.input_dir,
+                                      meta_name)
         # Validate and instantiate logging
         log_levels = [0, 10, 20, 30, 40, 50]
         if verbose in log_levels:
@@ -69,7 +68,7 @@ class ImageValidator():
         stream_handler.setLevel(self.verbose)
         logger.addHandler(stream_handler)
 
-        logger_fname = os.path.join(self.base_output_dir, 'preprocessing.log')
+        logger_fname = os.path.join(self.input_dir, 'preprocessing.log')
         file_handler = logging.FileHandler(logger_fname)
         file_handler.setLevel(self.verbose)
         formatter = logging.Formatter(
@@ -137,6 +136,8 @@ class ImageValidator():
                     self.input_dir,
                     time_dir,
                     channel_dir)
+                assert os.path.exists(cur_dir), \
+                    "Directory doesn't exist: {}".format(cur_dir)
                 cur_shape, cur_indices, cur_names = self.image_validator(cur_dir)
                 # Assert image shape and indices match
                 idx_overlap = set(im_indices).intersection(cur_indices)
@@ -161,9 +162,7 @@ class ImageValidator():
                      'fname', 'size_x_microns', 'size_y_microns',
                      'size_z_microns']
         )
-        metadata_fname = os.path.join(self.input_dir,
-                                      'image_volumes_info.csv')
-        df.to_csv(metadata_fname, sep=',')
+        df.to_csv(self.meta_name, sep=',')
         self._log_info("Writing metadata in: {}".format(self.input_dir,
                                                         'image_volumes_info.csv'))
         self._log_info("found timepoints: {}".format(time_indices))
@@ -184,8 +183,9 @@ class ImageValidator():
 
     def _read_or_catch(self, dir_name, im_name):
         """
-        Read regular image (png, tif, jpg, see OpenCV for supported files)
-        of any bit depth
+        Checks file extension for npy and load array if true. Otherwise
+        readd regular image (png, tif, jpg, see OpenCV for supported files)
+        of any bit depth.
 
         :param str dir_name: Directory name
         :param str im_name: Image name
@@ -194,10 +194,13 @@ class ImageValidator():
 
         :throws IOError if image can't be opened
         """
-        try:
-            im = cv2.imread(os.path.join(dir_name, im_name), cv2.IMREAD_ANYDEPTH)
-        except IOError as e:
-            print(e)
+        if im_name[-3:] == 'npy':
+            im = np.load(os.path.join(dir_name, im_name))
+        else:
+            try:
+                im = cv2.imread(os.path.join(dir_name, im_name), cv2.IMREAD_ANYDEPTH)
+            except IOError as e:
+                print(e)
         return im
 
     def image_validator(self, image_dir):
@@ -206,10 +209,10 @@ class ImageValidator():
         shape.
 
         :param str image_dir: Directory containing opencv readable images
-        :return tuple im_shape: Image shape if all image have the same one
 
         :return tuple im_shape: image shape if all images have the same shape
         :return list im_indices: Unique indices for the images
+        :return list im_names: list of fnames for images in a channel dir
 
         :throws IOError: If images can't be read
         """

@@ -59,9 +59,12 @@ def preprocess(args):
 
     # Tile all images
     # TODO (Jenny): Not dealing with 3D/isotropy for now
+    base_output_dir = args.output
+    # Create output directory if it doesn't exist already
+    os.makedirs(base_output_dir, exist_ok=True)
     isotropic = False
     image_tiler = tile_stack.ImageStackTiler(
-        base_output_dir=args.output,
+        base_output_dir=base_output_dir,
         tile_size=args.tile_size,
         step_size=args.step_size,
         correct_flat_field=False,
