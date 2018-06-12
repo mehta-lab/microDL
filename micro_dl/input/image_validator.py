@@ -85,11 +85,12 @@ class ImageValidator():
             self.logger.info(msg)
 
     def _get_subdirectories(self, dir_name):
-        return [subdir_name
+        subdirs = [subdir_name
                 for subdir_name in
                     os.listdir(dir_name)
                     if os.path.isdir(os.path.join(dir_name, subdir_name))
                 ]
+        return natsort.natsorted(subdirs)
 
     def folder_validator(self):
         """
@@ -108,12 +109,10 @@ class ImageValidator():
         time_indices = []
         for dir_name in self.time_dirs:
             time_indices.append(self.get_idx_from_dir(dir_name))
-        time_indices.sort()
         # Collect all channel indices from first timepoint
         channel_indices = []
         for dir_name in self.channel_dirs:
             channel_indices.append(self.get_idx_from_dir(dir_name))
-        channel_indices.sort()
         # Collect all image indices from first channel directory
         im_shape, im_indices, _ = self.image_validator(os.path.join(
             self.input_dir,
@@ -224,7 +223,9 @@ class ImageValidator():
         # Determine indexing
         idx0 = re.findall("\d+", im_names[0])
         idx1 = re.findall("\d+", im_names[1])
-        assert len(idx0) == len(idx1), "Different numbers of indices in file names"
+        assert len(idx0) == len(idx1), \
+            "Different numbers of indices in file names {} {}".format(
+                im_names[0], im_names[1])
         potential_idxs = np.zeros(len(idx0))
         for idx, (i, j) in enumerate(zip(idx0, idx1)):
             potential_idxs[idx] = abs(int(j) - int(i))
