@@ -46,7 +46,6 @@ def preprocess(args):
     meta_name = 'image_volumes_info.csv'
     validator = image_validator.ImageValidator(
         input_dir=args.input,
-        base_output_dir=args.output,
         meta_name=meta_name,
         verbose=args.verbose,
     )
