@@ -17,7 +17,7 @@ class ImageStackTiler:
 
     def __init__(self, base_output_dir, tile_size, step_size,
                  timepoint_ids=-1, tile_channels=-1, correct_flat_field=False,
-                 isotropic=False, meta_path=None, is_npy=True):
+                 isotropic=False, meta_path=None):
         """Init
 
         Isotropic here refers to the same dimension/shape along row, col, slice
@@ -38,8 +38,6 @@ class ImageStackTiler:
         :param bool isotropic: if 3D, make the grid/shape isotropic
         :param meta_path: If none, assume metadata csv is in base_output_dir
             + split_images/ and is named split_images_info.csv
-        :param bool is_npy: True if dealing with lifs that get converted tp npy,
-            False for images like png, tif
         :return: a list with tuples - (cropped image id of the format
          rrmin-rmax_ccmin-cmax_slslmin-slmax, cropped image)
         """
@@ -147,7 +145,8 @@ class ImageStackTiler:
 
         for _, row in channel_metadata.iterrows():
             sample_fname = row['fname']
-            if self.is_npy:
+            # Read npy or image
+            if sample_fname[-3:] == 'npy':
                 cur_image = np.load(sample_fname)
             else:
                 cur_image = cv2.imread(sample_fname, cv2.IMREAD_ANYDEPTH)

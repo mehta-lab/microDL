@@ -1,9 +1,9 @@
-base_output_dir: '/Users/jenny.folkesson//Data/debug_lif'
+base_output_dir: '/data/anitha/debug_lif'
 focal_plane_idx: 0
 verbose: 10
 split_volumes: True
 splitter_class: LifStackSplitter2D
-input_fname: '/Users/jenny.folkesson/Data/BlankSlide_DAPI_TxRed_BF_Phase.lif'
+input_fname: '/home/krishnan/mntDir/DeviceData/CZLASX-01/Data/2017/VirtualStaining/20171121_ManuShalin/ZStack1_BF_Clath_Mito_Nuclei.lif'
 correct_flat_field: True
 flat_field_class: FlatFieldEstimator2D
 use_masks: True

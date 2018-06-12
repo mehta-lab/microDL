@@ -69,7 +69,6 @@ def preprocess(args):
         correct_flat_field=False,
         isotropic=isotropic,
         meta_path=meta_path,
-        is_npy=True,
     )
 
     image_tiler.tile_stack(focal_plane_idx=0,
