@@ -131,7 +131,8 @@ class CyclicLearning(Callback):
         else:
             return self.base_lr + scale_factor * self.scale_fn(self.clr_iterations)
 
-    def on_train_begin(self):
+    def on_train_begin(self, logs=None):
+        logs = logs or {}
 
         if self.clr_iterations == 0:
             K.set_value(self.model.optimizer.lr, self.base_lr)
