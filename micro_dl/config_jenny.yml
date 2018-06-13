@@ -19,6 +19,14 @@ trainer:
     metrics: coeff_determination
     loss: mean_squared_error
     callbacks:
+        LearningRateScheduler:
+            base_lr: 0.001
+            max_lr: 0.006
+            step_size: 20.
+            mode: triangular
+            gamma: 1.
+            scale_fn: None
+            scale_mode: cycle
         EarlyStopping:
             mode: min
             monitor: val_loss
@@ -33,7 +41,7 @@ trainer:
             histogram_freq: 0
             verbose: True
     optimizer:
-        lr: 0.0001
+        lr: 0.001
         name: Adam
 network:
     class: UNet2D
