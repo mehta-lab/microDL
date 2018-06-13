@@ -88,7 +88,6 @@ class CyclicLearning(Callback):
         assert scale_mode in {"cycle", "iterations"}, \
             "Scale mode ({}) must be cycle or iterations".format(scale_mode)
         self.scale_mode = scale_mode
-        self.history = {}
         self._reset()
 
     def _reset(self,
@@ -111,13 +110,9 @@ class CyclicLearning(Callback):
         cycle = np.floor(1 + self.clr_iterations / (2 * self.step_size))
         x = np.abs(self.clr_iterations / self.step_size - 2 * cycle + 1)
         scale_factor = (self.max_lr - self.base_lr) * np.maximum(0, (1 - x))
-        print("scale factor", cycle, x, scale_factor)
-        print("mode", self.scale_mode)
         if self.scale_mode == 'cycle':
-            print("in cycle", self.scale_fn(cycle))
             return self.base_lr + scale_factor * (self.gamma ** cycle)
         else:
-            print("else", self.scale_fn(self.clr_iterations))
             return self.base_lr + scale_factor * (self.gamma ** self.clr_iterations)
 
     def on_train_begin(self, logs=None):
@@ -133,12 +128,11 @@ class CyclicLearning(Callback):
 
         self.trn_iterations += 1
         self.clr_iterations += 1
-        print("iterations", self.trn_iterations, self.clr_iterations)
-        print("lr", K.get_value(self.model.optimizer.lr))
-        self.history.setdefault('lr', []).append(K.get_value(self.model.optimizer.lr))
-        self.history.setdefault('iterations', []).append(self.trn_iterations)
         print("clr", self.clr())
         for k, v in logs.items():
             self.history.setdefault(k, []).append(v)
 
         K.set_value(self.model.optimizer.lr, self.clr())
+
+    def on_epoch_end(self, epoch, logs):
+        logs['learning_rate'] = K.get_value(self.model.optimizer.lr)

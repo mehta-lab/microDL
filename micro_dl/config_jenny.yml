@@ -20,9 +20,9 @@ trainer:
     loss: mean_squared_error
     callbacks:
         LearningRateScheduler:
-            base_lr: 0.001
-            max_lr: 0.006
-            step_size: 20.
+            base_lr: 0.0001
+            max_lr: 0.0006
+            step_size: 200.
             gamma: 1.
             scale_mode: iterations
         EarlyStopping:
