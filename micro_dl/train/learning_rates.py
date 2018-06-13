@@ -128,10 +128,7 @@ class CyclicLearning(Callback):
 
         self.trn_iterations += 1
         self.clr_iterations += 1
-        print("clr", self.clr())
-        for k, v in logs.items():
-            self.history.setdefault(k, []).append(v)
-
+        print(" - clr: {:0.5f}", self.clr())
         K.set_value(self.model.optimizer.lr, self.clr())
 
     def on_epoch_end(self, epoch, logs):
