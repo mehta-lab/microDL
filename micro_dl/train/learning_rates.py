@@ -42,18 +42,15 @@ class CyclicLearning(Callback):
                  base_lr=0.001,
                  max_lr=0.006,
                  step_size=20.,
-                 mode='triangular',
                  gamma=1.,
-                 scale_fn=None,
-                 scale_mode='cycle'):
+                 scale_mode='iterations',
+                 ):
         """
 
         :param base_lr:
         :param max_lr:
         :param step_size:
-        :param mode:
         :param gamma:
-        :param scale_fn:
         :param scale_mode:
 
             # Arguments
@@ -85,25 +82,13 @@ class CyclicLearning(Callback):
         self.base_lr = base_lr
         self.max_lr = max_lr
         self.step_size = step_size
-        self.mode = mode
         self.gamma = gamma
-        if scale_fn is None:
-            if self.mode == 'triangular':
-                self.scale_fn = lambda x: 1.
-                self.scale_mode = 'cycle'
-            elif self.mode == 'triangular2':
-                self.scale_fn = lambda x: 1 / (2. ** (x - 1))
-                self.scale_mode = 'cycle'
-            elif self.mode == 'exp_range':
-                self.scale_fn = lambda x: gamma ** (x)
-                self.scale_mode = 'iterations'
-        else:
-            self.scale_fn = scale_fn
-            self.scale_mode = scale_mode
         self.clr_iterations = 0.
         self.trn_iterations = 0.
+        assert scale_mode in {"cycle", "iterations"}, \
+            "Scale mode ({}) must be cycle or iterations".format(scale_mode)
+        self.scale_mode = scale_mode
         self.history = {}
-
         self._reset()
 
     def _reset(self,
@@ -126,10 +111,14 @@ class CyclicLearning(Callback):
         cycle = np.floor(1 + self.clr_iterations / (2 * self.step_size))
         x = np.abs(self.clr_iterations / self.step_size - 2 * cycle + 1)
         scale_factor = (self.max_lr - self.base_lr) * np.maximum(0, (1 - x))
+        print("scale factor", cycle, x, scale_factor)
+        print("mode", self.scale_mode)
         if self.scale_mode == 'cycle':
-            return self.base_lr + scale_factor * self.scale_fn(cycle)
+            print("in cycle", self.scale_fn(cycle))
+            return self.base_lr + scale_factor * (self.gamma ** cycle)
         else:
-            return self.base_lr + scale_factor * self.scale_fn(self.clr_iterations)
+            print("else", self.scale_fn(self.clr_iterations))
+            return self.base_lr + scale_factor * (self.gamma ** self.clr_iterations)
 
     def on_train_begin(self, logs=None):
         logs = logs or {}
@@ -139,15 +128,16 @@ class CyclicLearning(Callback):
         else:
             K.set_value(self.model.optimizer.lr, self.clr())
 
-    def on_batch_end(self, logs=None):
+    def on_batch_end(self, batch, logs=None):
         logs = logs or {}
 
         self.trn_iterations += 1
         self.clr_iterations += 1
-
+        print("iterations", self.trn_iterations, self.clr_iterations)
+        print("lr", K.get_value(self.model.optimizer.lr))
         self.history.setdefault('lr', []).append(K.get_value(self.model.optimizer.lr))
         self.history.setdefault('iterations', []).append(self.trn_iterations)
-
+        print("clr", self.clr())
         for k, v in logs.items():
             self.history.setdefault(k, []).append(v)
 

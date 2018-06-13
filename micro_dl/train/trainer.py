@@ -154,9 +154,7 @@ class BaseKerasTrainer:
                     base_lr=callbacks_config[cb_dict]['base_lr'],
                     max_lr=callbacks_config[cb_dict]['max_lr'],
                     step_size=callbacks_config[cb_dict]['step_size'],
-                    mode=callbacks_config[cb_dict]['mode'],
                     gamma=callbacks_config[cb_dict]['gamma'],
-                    scale_fn=callbacks_config[cb_dict]['scale_fn'],
                     scale_mode=callbacks_config[cb_dict]['scale_mode'],
                 )
             elif cb_dict == 'TensorBoard':
