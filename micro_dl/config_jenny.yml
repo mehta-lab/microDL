@@ -6,7 +6,7 @@ dataset:
     split_by_column: sample_num
     split_ratio:
         train: 0.7
-        val: 0.15
+        val: 0.15cd
         test: 0.15
     height: 256
     width: 256

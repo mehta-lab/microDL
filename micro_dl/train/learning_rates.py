@@ -6,116 +6,65 @@ from keras import backend as K
 
 class CyclicLearning(Callback):
     """
-    This callback implements a cyclical learning rate policy (CLR).
-    The method cycles the learning rate between two boundaries with
-    some constant frequency, as detailed in this paper (https://arxiv.org/abs/1506.01186).
-    The amplitude of the cycle can be scaled on a per-iteration or
-    per-cycle basis.
-    This class has three built-in policies, as put forth in the paper.
-    "triangular":
-        A basic triangular cycle w/ no amplitude scaling.
-    "triangular2":
-        A basic triangular cycle that scales initial amplitude by half each cycle.
-    "exp_range":
-        A cycle that scales initial amplitude by gamma**(cycle iterations) at each
-        cycle iteration.
-    For more detail, please see paper.
+    Custom Callback implementing cyclical learning rate (CLR)
+    as in the paper: https://arxiv.org/abs/1506.01186.
 
-    # Example
-        ```python
-            clr = CyclicLearning(base_lr=0.001, max_lr=0.006,
-                                step_size=2000., mode='triangular')
-            model.fit(X_train, Y_train, callbacks=[clr])
-        ```
-
-    Class also supports custom scaling functions:
-        ```python
-            clr_fn = lambda x: 0.5*(1+np.sin(x*np.pi/2.))
-            clr = CyclicLearning(base_lr=0.001, max_lr=0.006,
-                                step_size=2000., scale_fn=clr_fn,
-                                scale_mode='cycle')
-            model.fit(X_train, Y_train, callbacks=[clr])
-        ```
+    Learning rate is increased then decreased in a repeated
+    triangular pattern over time. One triangle = one cycle.
+    Initial amplitude is scaled by gamma ** iterations.
+    https://keras.io/callbacks/
+    https://github.com/bckenstler/CLR
     """
 
     def __init__(self,
                  base_lr=0.001,
                  max_lr=0.006,
-                 step_size=20.,
+                 step_size=2000.,
                  gamma=1.,
-                 scale_mode='iterations',
+                 scale_mode="cycle",
                  ):
         """
-
-        :param base_lr:
-        :param max_lr:
-        :param step_size:
-        :param gamma:
-        :param scale_mode:
-
-            # Arguments
-        base_lr: initial learning rate which is the
-            lower boundary in the cycle.
-        max_lr: upper boundary in the cycle. Functionally,
-            it defines the cycle amplitude (max_lr - base_lr).
-            The lr at any cycle is the sum of base_lr
-            and some scaling of the amplitude; therefore
-            max_lr may not actually be reached depending on
-            scaling function.
-        step_size: number of training iterations per
-            half cycle. Authors suggest setting step_size
-            2-8 x training iterations in epoch.
-        mode: one of {triangular, triangular2, exp_range}.
-            Default 'triangular'.
-            Values correspond to policies detailed above.
-            If scale_fn is not None, this argument is ignored.
-        gamma: constant in 'exp_range' scaling function:
-            gamma**(cycle iterations)
-        scale_mode: {'cycle', 'iterations'}.
-            Defines whether scale_fn is evaluated on
-            cycle number or cycle iterations (training
-            iterations since start of cycle). Default is 'cycle'.
+        :param float base_lr: Base (minimum) learning rate
+        :param float max_lr: Maximum learning rate
+        :param float step_size: The number of iterations per half cycle
+        :param float gamma: Constant factor for max_lr exponential
+            decrease over time (gamma ** iterations) gamma [0, 1]
+        :param str scale_mode: Evaluate scaling on cycle number
+            ('cycle' - default) or cycle iteration ('iterations')
         """
-
         super(CyclicLearning, self).__init__()
 
         self.base_lr = base_lr
         self.max_lr = max_lr
         self.step_size = step_size
+        assert gamma >= 0. and gamma <=1., \
+            "Gamma is {}, should be [0, 1]".format(gamma)
         self.gamma = gamma
-        self.clr_iterations = 0.
-        self.trn_iterations = 0.
+        self.iterations = 0.
         assert scale_mode in {"cycle", "iterations"}, \
             "Scale mode ({}) must be cycle or iterations".format(scale_mode)
         self.scale_mode = scale_mode
-        self._reset()
-
-    def _reset(self,
-               new_base_lr=None,
-               new_max_lr=None,
-               new_step_size=None):
-        """
-        Resets cycle iterations.
-        Optional boundary/step size adjustment.
-        """
-        if new_base_lr is not None:
-            self.base_lr = new_base_lr
-        if new_max_lr is not None:
-            self.max_lr = new_max_lr
-        if new_step_size is not None:
-            self.step_size = new_step_size
-        self.clr_iterations = 0.
 
     def clr(self):
-        cycle = np.floor(1 + self.clr_iterations / (2 * self.step_size))
+        """
+        Updates the cyclic learning rate with exponential decline.
+
+        :return float clr: Learning rate as a function of iterations
+        """
+        cycle = np.floor(1 + self.iterations / (2 * self.step_size))
         x = np.abs(self.clr_iterations / self.step_size - 2 * cycle + 1)
         scale_factor = (self.max_lr - self.base_lr) * np.maximum(0, (1 - x))
         if self.scale_mode == 'cycle':
             return self.base_lr + scale_factor * (self.gamma ** cycle)
         else:
-            return self.base_lr + scale_factor * (self.gamma ** self.clr_iterations)
+            return self.base_lr + scale_factor * (self.gamma ** self.iterations)
 
     def on_train_begin(self, logs=None):
+        """
+        Set base learning rate at the beginning of training.
+
+        :param logs: Required parameter for logging
+        """
         logs = logs or {}
 
         if self.clr_iterations == 0:
@@ -124,12 +73,25 @@ class CyclicLearning(Callback):
             K.set_value(self.model.optimizer.lr, self.clr())
 
     def on_batch_end(self, batch, logs=None):
+        """
+        Updates the learning rate at the end of each batch. Prints
+        learning rate along with other metrics during training.
+
+        :param batch: Batch number from Callback super class
+        :param logs: Log from super class (required but not used here)
+        """
         logs = logs or {}
 
-        self.trn_iterations += 1
-        self.clr_iterations += 1
+        self.iterations += 1
         print(" - clr: {:0.5f}".format(self.clr()))
         K.set_value(self.model.optimizer.lr, self.clr())
 
     def on_epoch_end(self, epoch, logs):
+        """
+        Log learning rate at the end of each epoch for
+        Tensorboard and CSVLogger.
+
+        :param epoch: Epoch number from Callback super class
+        :param logs: Log from super class
+        """
         logs['learning_rate'] = K.get_value(self.model.optimizer.lr)
