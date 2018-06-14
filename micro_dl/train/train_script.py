@@ -64,7 +64,7 @@ def train_xy(df_meta, config):
                            config['dataset']['split_by_column'],
                            config['dataset']['split_ratio'])
     if 'val' in config['dataset']['split_ratio']:
-        df_train, df_val, df_test = tt.train_test_split()
+        df_train, df_val, df_test, split_idx = tt.train_test_split()
         val_ds_params = {}
         if 'augmentations' in config['trainer']:
             val_ds_params['augmentations'] = (
@@ -77,8 +77,9 @@ def train_xy(df_meta, config):
                              **val_ds_params)
         train_ds_params = val_ds_params.copy()
     else:
-        df_train, df_test = tt.train_test_split()
+        df_train, df_test, split_idx = tt.train_test_split()
         ds_val = None
+        train_ds_params = {}
         if 'augmentations' in config['trainer']:
             train_ds_params['augmentations'] = (
                 config['trainer']['augmentations']
@@ -90,7 +91,7 @@ def train_xy(df_meta, config):
     ds_test = BaseDataSet(input_fnames=df_train['fpaths_input'],
                           target_fnames=df_train['fpaths_target'],
                           batch_size=config['trainer']['batch_size'])
-    return ds_train, ds_val, ds_test
+    return ds_train, ds_val, ds_test, split_idx
 
 
 def train_xyweights(df_meta, config):
@@ -102,7 +103,7 @@ def train_xyweights(df_meta, config):
                                config['dataset']['split_by_column'],
                                config['dataset']['split_ratio'])
     if 'val' in config['dataset']['split_ratio']:
-        df_train, df_val, df_test = tt.train_test_split()
+        df_train, df_val, df_test, split_idx = tt.train_test_split()
         val_ds_params = {}
         if 'augmentations' in config['trainer']:
             val_ds_params['augmentations'] = (
@@ -116,7 +117,7 @@ def train_xyweights(df_meta, config):
                                  **val_ds_params)
         train_ds_params = val_ds_params.copy()
     else:
-        df_train, df_test = tt.train_test_split()
+        df_train, df_test, split_idx = tt.train_test_split()
         ds_val = None
         train_ds_params = {}
         if 'augmentations' in config['trainer']:
@@ -132,8 +133,7 @@ def train_xyweights(df_meta, config):
                               target_fnames=df_train['fpaths_target'],
                               mask_fnames=df_train['fpaths_mask'],
                               batch_size=config['trainer']['batch_size'])
-    return ds_train, ds_val, ds_test
-
+    return ds_train, ds_val, ds_test, split_idx
 
 
 def run_action(args):
@@ -149,10 +149,19 @@ def run_action(args):
         df_meta_fname = os.path.join(config['dataset']['data_dir'],
                                      'tiled_images_info.csv')
         df_meta = pd.read_csv(df_meta_fname)
+
         if 'weighted_loss' in config['trainer']:
-            ds_train, ds_val, ds_test = train_xyweights(df_meta, config)
+            ds_train, ds_val, ds_test, split_indices = train_xyweights(
+                df_meta, config
+            )
         else:
-            ds_train, ds_val, ds_test = train_xy(df_meta, config)
+            ds_train, ds_val, ds_test, split_indices = train_xy(
+                df_meta, config
+            )
+        split_idx_fname = os.path.join(config['trainer']['model_dir'],
+                                       'split_indices.yml')
+        with open(split_idx_fname, 'w') as f:
+            yaml.dump(split_idx_fname, f, default_flow_style=False)
 
         if 'model_name' in config['trainer']:
             model_name = config['trainer']['model_name']
@@ -165,6 +174,7 @@ def run_action(args):
                                    model_name=model_name, gpu_ids=args.gpu,
                                    gpu_mem_frac=args.gpu_mem_frac)
         trainer.train()
+
     elif action == 'tune_hyperparam':
         raise NotImplementedError
     else:
@@ -174,14 +184,12 @@ def run_action(args):
 
 if __name__ == '__main__':
     args = parse_args()
+    gpu_available = False
     if args.gpu > -1:
-        gpu_availability = check_gpu_availability(
+        gpu_available = check_gpu_availability(
             args.gpu,
             args.gpu_mem_frac)
     if not isinstance(args.gpu, int):
         raise NotImplementedError
-    run_action(args)
-
-
-
-
+    if gpu_available:
+        run_action(args)

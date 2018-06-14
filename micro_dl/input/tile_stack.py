@@ -12,7 +12,7 @@ import micro_dl.utils.image_utils as image_utils
 
 
 class ImageStackTiler:
-    """Crops all images images in a stack"""
+    """Crops all images in a stack"""
 
     def __init__(self, base_output_dir, tile_size, step_size,
                  timepoint_ids=-1, tile_channels=-1, correct_flat_field=False,
