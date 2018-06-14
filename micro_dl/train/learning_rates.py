@@ -52,7 +52,7 @@ class CyclicLearning(Callback):
         :return float clr: Learning rate as a function of iterations
         """
         cycle = np.floor(1 + self.iterations / (2 * self.step_size))
-        x = np.abs(self.clr_iterations / self.step_size - 2 * cycle + 1)
+        x = np.abs(self.iterations / self.step_size - 2 * cycle + 1)
         scale_factor = (self.max_lr - self.base_lr) * np.maximum(0, (1 - x))
         if self.scale_mode == 'cycle':
             return self.base_lr + scale_factor * (self.gamma ** cycle)
@@ -63,14 +63,11 @@ class CyclicLearning(Callback):
         """
         Set base learning rate at the beginning of training.
 
-        :param logs: Required parameter for logging
+        :param logs: Logging from super class
         """
         logs = logs or {}
 
-        if self.clr_iterations == 0:
-            K.set_value(self.model.optimizer.lr, self.base_lr)
-        else:
-            K.set_value(self.model.optimizer.lr, self.clr())
+        K.set_value(self.model.optimizer.lr, self.base_lr)
 
     def on_batch_end(self, batch, logs=None):
         """

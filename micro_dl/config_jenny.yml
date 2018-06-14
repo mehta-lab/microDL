@@ -6,13 +6,13 @@ dataset:
     split_by_column: sample_num
     split_ratio:
         train: 0.7
-        val: 0.15cd
+        val: 0.15
         test: 0.15
     height: 256
     width: 256
 verbose: 10
 trainer:
-    model_dir: '/data/labelfree_tile256_bs16_mse_clr'
+    model_dir: '/data/labelfree_tile256_bs16_mse_clr_nadam'
     batch_size: 16
     max_epochs: 50
     patience: 20
@@ -20,10 +20,10 @@ trainer:
     loss: mean_squared_error
     callbacks:
         LearningRateScheduler:
-            base_lr: 0.0001
-            max_lr: 0.0006
+            base_lr: 0.001
+            max_lr: 0.008
             step_size: 200.
-            gamma: 1.
+            gamma: 0.999
             scale_mode: iterations
         EarlyStopping:
             mode: min
@@ -40,7 +40,7 @@ trainer:
             verbose: True
     optimizer:
         lr: 0.001
-        name: Adam
+        name: Nadam
 network:
     class: UNet2D
     num_filters_per_block: [16, 32, 64, 96, 128]
@@ -57,4 +57,4 @@ network:
     num_input_channels: 1
     num_target_channels: 1
     data_format: 'channels_first'
-    final_activation: elu
+    final_activation: linear
