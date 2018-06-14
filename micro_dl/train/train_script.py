@@ -182,10 +182,10 @@ def run_action(args):
                         'tune_hyperparam').format(action))
 
 
-if __name__ == '__main__':
+if __name__ == '__main__'n:
     args = parse_args()
     gpu_available = False
-    if args.gpu > -1:
+    if args.gpu >= 0:
         gpu_available = check_gpu_availability(
             args.gpu,
             args.gpu_mem_frac)
