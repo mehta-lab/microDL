@@ -1,7 +1,8 @@
 """Model inference related functions"""
+from keras import Model
 import numpy as np
 import os
-from keras import Model
+from skimage.io import imsave
 
 import micro_dl.utils.aux_utils as aux_utils
 from micro_dl.utils.image_utils import tile_image
@@ -33,11 +34,13 @@ def load_model(config, model_fname):
 class ModelEvaluator:
     """Evaluates model performance on test set"""
 
-    def __init__(self, config, model_fname, gpu_ids=0, gpu_mem_frac=0.95):
+    def __init__(self, config, model=None, model_fname=None,
+                 gpu_ids=0, gpu_mem_frac=0.95):
         """Init
 
         :param dict config: dict read from a config yaml. Need network related
          parameters for creating the model
+        :param Keras.Model model: trained model
         :param str model_fname: fname with full path of the .hdf5 file
          containing the trained model weights
         :param int/list gpu_ids: gpu to use
@@ -45,9 +48,14 @@ class ModelEvaluator:
          to gpu_ids
         """
 
+        msg = 'either model or model_fname has to be provided but not both'
+        assert np.logical_xor(model is not None,
+                              model_fname is not None), msg
         self.config = config
-        self.model_fname = model_fname
-        self.model = load_model(config, model_fname)
+        if model is not None:
+            self.model = model
+        else:
+            self.model = load_model(config, model_fname)
         if gpu_ids >= 0:
             self.sess = train_utils.set_keras_session(
                 gpu_ids=gpu_ids, gpu_mem_frac=gpu_mem_frac
@@ -77,6 +85,7 @@ class ModelEvaluator:
         :param list channel_ids: list of channels to read from
         :param str fname: fname of the image. Expects the fname to be the same
          in all channels
+        :returns
         """
 
         cur_images = []
@@ -89,21 +98,21 @@ class ModelEvaluator:
         return cur_images
 
     @staticmethod
-    def _get_crop_indices(ip_image_dim, n_dim, cur_index):
+    def _get_crop_indices(ip_image_shape, n_dim, cur_index):
         """Assemble slice indices from the crop_indices
 
-        :param np.array ip_image: input image channel
-        :param int n_dim: dimensionality of the image
+        :param np.array ip_image_shape: shape of input image
+        :param int n_dim: dimensionality of the image (in each channel)
         :param tuple cur_index: tuple of indices
         :return: slice array
         """
 
         cur_index_slice = []
         # for multi-channel input, include all channels
-        if ip_image_dim > n_dim:
+        if len(ip_image_shape) > n_dim:
             cur_index_slice.append(np.s_[:])
-        cur_index_slice.append(np.s_[cur_index[0]:cur_index[1],
-                               cur_index[2]:cur_index[3]])
+        cur_index_slice.append(np.s_[cur_index[0]:cur_index[1]])
+        cur_index_slice.append(np.s_[cur_index[2]:cur_index[3]])
         if n_dim == 3:
             cur_index_slice.append(np.s_[cur_index[4]:cur_index[5]])
         return cur_index_slice
@@ -111,29 +120,27 @@ class ModelEvaluator:
     def _pred_image(self, ip_image, crop_indices, batch_size):
         """Batch images
 
-        :param np.arrray ip_image: input image to be tiled
+        :param np.array ip_image: input image to be tiled
         :param list crop_indices: list of tuples with crop indices
-        :param list tile_size: tile size in pixels
-        :param list overlap_size: overlap size in pixels
         :param int batch_size: number of tiles to batch
+        :return: list of np.array with shape (batch_size, ip_image.shape)
         """
 
         tile_dim = int(len(crop_indices[0]) / 2)
-        input_dim = len(ip_image.shape)
-        num_batches = int(len(crop_indices) / batch_size)
-
+        num_batches = np.ceil(len(crop_indices) / batch_size).astype('int')
         pred_tiles = []
         for batch_idx in range(num_batches):
             start_idx = batch_idx * batch_size
-            end_idx = np.min(batch_idx * batch_size,
-                             len(crop_indices))
+            end_idx = np.min([(batch_idx + 1) * batch_size,
+                             len(crop_indices)])
             ip_batch_list = []
             for cur_index in crop_indices[start_idx:end_idx]:
-                cur_index_slice = self._get_crop_indices(input_dim,
+                cur_index_slice = self._get_crop_indices(ip_image.shape,
                                                          tile_dim,
                                                          cur_index)
                 cropped_image = ip_image[cur_index_slice]
                 ip_batch_list.append(cropped_image)
+
             ip_batch = np.stack(ip_batch_list)
             pred_batch = self.model.predict(ip_batch)
             pred_tiles.append(pred_batch)
@@ -143,8 +150,17 @@ class ModelEvaluator:
                      tile_idx, operation='mean'):
         """Place individual patches on the full image
 
-        Operation in insert, mean, max. Check if full_image is modified
-        in-place
+        Allowed operations are insert, mean and max.
+
+        :param np.array full_image: image with the same shape as input image
+         and initialized with zeros
+        :param np.array tile_image: predicted tile or model inference on the
+         tile
+        :param int input_image_dim: dimensionality of input image
+        :param list full_idx: indices in the full image
+        :param list tile_idx: indices in the tile image
+        :param str operation: operation on the patch [insert, mean, max]
+        :return: np.array modified full_image
         """
 
         n_dim = int(len(full_idx) / 2)
@@ -165,18 +181,18 @@ class ModelEvaluator:
                      batch_size, tile_size, overlap_size):
         """Stiches the full image from predicted tiles
 
-        :param list pred_tiles:
-        :param list crop_indices:
-        :param np.array input_image_shape:
+        :param list pred_tiles: list of predicted np.arrays
+        :param list crop_indices: list of tuples of crop indices
+        :param np.array input_image_shape: shape of the input image
         :param int batch_size:
         :param list tile_size:
-        :param list overlap_size:
+        :param list overlap_size: tile_size - step_size
+        :return: np.array, stiched predicted image
         """
 
         predicted_image = np.zeros(input_image_shape)
-        input_image_dim = len(input_image_shape)
         for b_idx, pred_batch in enumerate(pred_tiles):
-            for i_idx, pred_tile in pred_batch:
+            for i_idx, pred_tile in enumerate(pred_batch):
                 c_idx = b_idx * batch_size + i_idx
                 cur_index = crop_indices[c_idx]
                 n_dim = int(len(cur_index) / 2)
@@ -206,24 +222,33 @@ class ModelEvaluator:
                                              cur_index[4] + overlap_size[2]])
                     full_non_index.extend([cur_index[4] + overlap_size[2],
                                            cur_index[5]])
-                if c_idx == 0:
+                chk_index = np.array(cur_index)[[0, 2]]
+                place_operation = np.empty_like(chk_index, dtype='U8')
+                place_operation[chk_index == 0] = 'insert'
+                place_operation[chk_index != 0] = 'mean'
+                print(chk_index, cur_index, place_operation)
+                self._place_patch(predicted_image, pred_tile,
+                                  input_image_shape, full_top_index,
+                                  tile_top_index,
+                                  operation=place_operation[0])
+
+                self._place_patch(predicted_image, pred_tile,
+                                  input_image_shape, full_left_index,
+                                  tile_left_index,
+                                  operation=place_operation[1])
+
+                self._place_patch(predicted_image, pred_tile,
+                                  input_image_shape, full_non_index,
+                                  tile_non_index, operation='insert')
+                if n_dim == 3:
+                    if cur_index[4] == 0:
+                        place_operation = 'insert'
+                    else:
+                        place_operation = 'mean'
                     self._place_patch(predicted_image, pred_tile,
-                                      input_image_dim, cur_index,
-                                      cur_index, operation='insert')
-                else:
-                    self._place_patch(predicted_image, pred_tile,
-                                      input_image_dim, full_top_index,
-                                      tile_top_index, operation='mean')
-                    self._place_patch(predicted_image, pred_tile,
-                                      input_image_dim, full_left_index,
-                                      tile_left_index, operation='mean')
-                    self._place_patch(predicted_image, pred_tile,
-                                      input_image_dim, full_non_index,
-                                      tile_non_index, operation='insert')
-                    if n_dim == 3:
-                        self._place_patch(predicted_image, pred_tile,
-                                          input_image_dim, full_front_index,
-                                          tile_front_index, operation='mean')
+                                      input_image_shape, full_front_index,
+                                      tile_front_index,
+                                      operation=place_operation)
         return predicted_image
 
     def predict_on_full_image(self, image_meta, test_sample_idx,
@@ -239,6 +264,9 @@ class ModelEvaluator:
          'size_x_microns', 'size_y_microns', 'size_z_microns'
         :param list test_sample_idx: list of sample numbers to be used in the
          test set
+        :param int focal_plane_idx: focal plane to be used
+        :param int depth: if 3D - num of slices used for tiling
+        :param float per_tile_overlap: percent overlap between successive tiles
         """
         if 'timepoints' not in self.config['dataset']:
             timepoint_ids = -1
@@ -254,6 +282,7 @@ class ModelEvaluator:
         tile_size = [self.config['network']['height'],
                      self.config['network']['width']]
 
+        isotropic = False
         if depth is not None:
             assert 'depth' in self.config['network']
             tile_size.insert(0, depth)
@@ -289,7 +318,8 @@ class ModelEvaluator:
             test_image = np.load(test_ip0_fnames[0])
             _, crop_indices = tile_image(test_image, tile_size, step_size,
                                            isotropic, return_index=True)
-
+            pred_dir = os.path.join(self.config['trainer']['model_dir'],
+                                    'predicted_images', 'tp_{}'.format(tp))
             for fname in test_image_fnames:
                 target_image = self._read_one(tp_dir, op_channel_ids, fname)
                 input_image = self._read_one(tp_dir, ip_channel_ids, fname)
@@ -299,9 +329,15 @@ class ModelEvaluator:
                 pred_image = self._stich_image(pred_tiles, crop_indices,
                                                input_image.shape, batch_size,
                                                tile_size, overlap_size)
-                #  save the image
-        return pred_image
-    
+                pred_fname = '{}.tiff'.format(fname.split('.')[0])
+                # in which format to write 3D images - nifti perhaps?
+                for idx, op_ch in enumerate(op_channel_ids):
+                    op_dir = os.path.join(pred_dir, 'channel_{}'.format(op_ch))
+                    imsave(os.path.join(op_dir, pred_fname),
+                           np.squeeze(pred_image[idx]))
+                    save_predicted_images(input_image, target_image,
+                                          pred_image, op_dir, pred_fname)
+
 
 def predict_and_save_images(config, model_fname, ds_test, model_dir):
     """Run inference on images

@@ -3,6 +3,7 @@
 import argparse
 import os
 import pandas as pd
+import pickle
 import yaml
 
 from micro_dl.input.dataset import BaseDataSet, DataSetWithMask
@@ -10,6 +11,7 @@ from micro_dl.input.training_table import (
     BaseTrainingTable, TrainingTableWithMask
 )
 from micro_dl.train.trainer import BaseKerasTrainer
+from micro_dl.train.model_inference import ModelEvaluator
 from micro_dl.utils.train_utils import check_gpu_availability
 
 
@@ -159,9 +161,9 @@ def run_action(args):
                 df_meta, config
             )
         split_idx_fname = os.path.join(config['trainer']['model_dir'],
-                                       'split_indices.yml')
-        with open(split_idx_fname, 'w') as f:
-            yaml.dump(split_idx_fname, f, default_flow_style=False)
+                                       'split_indices.pkl')
+        with open(split_idx_fname, 'wb') as f:
+            pickle.dump(split_indices, f)
 
         if 'model_name' in config['trainer']:
             model_name = config['trainer']['model_name']
