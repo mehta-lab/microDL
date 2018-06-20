@@ -11,7 +11,6 @@ from micro_dl.input.training_table import (
     BaseTrainingTable, TrainingTableWithMask
 )
 from micro_dl.train.trainer import BaseKerasTrainer
-from micro_dl.train.model_inference import ModelEvaluator
 from micro_dl.utils.train_utils import check_gpu_availability
 
 
@@ -78,6 +77,10 @@ def train_xy(df_meta, config):
                              batch_size=config['trainer']['batch_size'],
                              **val_ds_params)
         train_ds_params = val_ds_params.copy()
+        df_val.to_csv(
+            os.path.join(config['trainer']['model_dir'], 'ds_val.csv'),
+            sep=','
+        )
     else:
         df_train, df_test, split_idx = tt.train_test_split()
         ds_val = None
@@ -86,12 +89,15 @@ def train_xy(df_meta, config):
             train_ds_params['augmentations'] = (
                 config['trainer']['augmentations']
             )
+    df_test.to_csv(os.path.join(config['trainer']['model_dir'], 'ds_test.csv'),
+                   sep=',')
+
     ds_train = BaseDataSet(input_fnames=df_train['fpaths_input'],
                            target_fnames=df_train['fpaths_target'],
                            batch_size=config['trainer']['batch_size'],
                            **train_ds_params)
-    ds_test = BaseDataSet(input_fnames=df_train['fpaths_input'],
-                          target_fnames=df_train['fpaths_target'],
+    ds_test = BaseDataSet(input_fnames=df_test['fpaths_input'],
+                          target_fnames=df_test['fpaths_target'],
                           batch_size=config['trainer']['batch_size'])
     return ds_train, ds_val, ds_test, split_idx
 
@@ -118,6 +124,10 @@ def train_xyweights(df_meta, config):
                                  batch_size=config['trainer']['batch_size'],
                                  **val_ds_params)
         train_ds_params = val_ds_params.copy()
+        df_val.to_csv(
+            os.path.join(config['trainer']['model_dir'], 'ds_val.csv'),
+            sep=','
+        )
     else:
         df_train, df_test, split_idx = tt.train_test_split()
         ds_val = None
@@ -126,14 +136,16 @@ def train_xyweights(df_meta, config):
             train_ds_params['augmentations'] = (
                 config['trainer']['augmentations']
             )
+    df_test.to_csv(os.path.join(config['trainer']['model_dir'], 'ds_test.csv'),
+                   sep=',')
     ds_train = DataSetWithMask(input_fnames=df_train['fpaths_input'],
                                target_fnames=df_train['fpaths_target'],
                                mask_fnames=df_train['fpaths_mask'],
                                batch_size=config['trainer']['batch_size'],
                                **train_ds_params)
-    ds_test = DataSetWithMask(input_fnames=df_train['fpaths_input'],
-                              target_fnames=df_train['fpaths_target'],
-                              mask_fnames=df_train['fpaths_mask'],
+    ds_test = DataSetWithMask(input_fnames=df_test['fpaths_input'],
+                              target_fnames=df_test['fpaths_target'],
+                              mask_fnames=df_test['fpaths_mask'],
                               batch_size=config['trainer']['batch_size'])
     return ds_train, ds_val, ds_test, split_idx
 
@@ -162,6 +174,7 @@ def run_action(args):
             )
         split_idx_fname = os.path.join(config['trainer']['model_dir'],
                                        'split_indices.pkl')
+
         with open(split_idx_fname, 'wb') as f:
             pickle.dump(split_indices, f)
 

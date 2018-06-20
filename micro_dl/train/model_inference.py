@@ -2,10 +2,10 @@
 from keras import Model
 import numpy as np
 import os
-from skimage.io import imsave
 
 import micro_dl.utils.aux_utils as aux_utils
-from micro_dl.utils.image_utils import tile_image
+import micro_dl.utils.image_utils as image_utils
+from micro_dl.utils.normalize import zscore
 from micro_dl.plotting.plot_utils import save_predicted_images
 import micro_dl.utils.train_utils as train_utils
 
@@ -52,14 +52,14 @@ class ModelEvaluator:
         assert np.logical_xor(model is not None,
                               model_fname is not None), msg
         self.config = config
-        if model is not None:
-            self.model = model
-        else:
-            self.model = load_model(config, model_fname)
         if gpu_ids >= 0:
             self.sess = train_utils.set_keras_session(
                 gpu_ids=gpu_ids, gpu_mem_frac=gpu_mem_frac
             )
+        if model is not None:
+            self.model = model
+        else:
+            self.model = load_model(config, model_fname)
 
     def evaluate_model(self, ds_test):
         """Evaluate model performance on the test set
@@ -73,19 +73,48 @@ class ModelEvaluator:
         loss = train_utils.get_loss(self.config['trainer']['loss'])
         metrics = train_utils.get_metrics(self.config['trainer']['metrics'])
         # the optimizer here is a dummy and is not used!
-        self.model.compile(loss=loss, optimizer='Adam', metric=metrics)
+        self.model.compile(loss=loss, optimizer='Adam', metrics=metrics)
         test_performance = self.model.evaluate_generator(generator=ds_test)
         return test_performance
 
+    def predict_on_tiles(self, ds_test, nb_batches=None):
+        """Predict on tiles in the test set
+
+        :param BaseDataSet/DataSetWithMask ds_test: generator used for
+         batching test images
+        :param int nb_batches: number of batches for predict and save
+        """
+
+        output_dir = os.path.join(self.config['trainer']['model_dir'],
+                                  'predicted_tiles')
+        os.makedirs(output_dir, exist_ok=True)
+
+        if nb_batches is None:
+            num_batches = ds_test.__len__()
+        else:
+            num_batches = nb_batches
+
+        for batch_idx in range(num_batches):
+            if 'weighted_loss' in self.config['trainer']:
+                cur_input, cur_target, cur_mask = ds_test.__getitem__(
+                    batch_idx)
+            else:
+                cur_input, cur_target = ds_test.__getitem__(batch_idx)
+            pred_batch = self.model.predict(cur_input)
+            save_predicted_images(cur_input, cur_target, pred_batch,
+                                  output_dir, batch_idx)
+
     @staticmethod
-    def _read_one(tp_dir, channel_ids, fname):
+    def _read_one(tp_dir, channel_ids, fname, flat_field_dir=None):
         """Read one image set
 
         :param str tp_dir: timepoint dir
         :param list channel_ids: list of channels to read from
         :param str fname: fname of the image. Expects the fname to be the same
          in all channels
-        :returns
+        :param str flat_field_dir: dir where flat field images are stored
+        :returns: np.array of shape nb_channels, im_size (with or without
+         flat field correction)
         """
 
         cur_images = []
@@ -93,7 +122,15 @@ class ModelEvaluator:
             cur_fname = os.path.join(tp_dir,
                                      'channel_{}'.format(ch),
                                      fname)
-            cur_images.append(np.load(cur_fname))
+            cur_image = np.load(cur_fname)
+            if flat_field_dir is not None:
+                ff_fname = os.path.join(flat_field_dir,
+                                        'flat-field_channel-{}.npy'.format(ch))
+                ff_image = np.load(ff_fname)
+                cur_image = image_utils.apply_flat_field_correction(
+                    cur_image, flat_field_image=ff_image)
+            cur_image = zscore(cur_image)
+            cur_images.append(cur_image)
         cur_images = np.stack(cur_images)
         return cur_images
 
@@ -226,7 +263,6 @@ class ModelEvaluator:
                 place_operation = np.empty_like(chk_index, dtype='U8')
                 place_operation[chk_index == 0] = 'insert'
                 place_operation[chk_index != 0] = 'mean'
-                print(chk_index, cur_index, place_operation)
                 self._place_patch(predicted_image, pred_tile,
                                   input_image_shape, full_top_index,
                                   tile_top_index,
@@ -253,7 +289,9 @@ class ModelEvaluator:
 
     def predict_on_full_image(self, image_meta, test_sample_idx,
                               focal_plane_idx=None, depth=None,
-                              per_tile_overlap=1/8):
+                              per_tile_overlap=1/8,
+                              flat_field_correct=False,
+                              base_image_dir=None):
         """Tile and run inference on tiles and assemble the full image
 
         If 3D and isotropic, it is not possible to find the original
@@ -267,7 +305,11 @@ class ModelEvaluator:
         :param int focal_plane_idx: focal plane to be used
         :param int depth: if 3D - num of slices used for tiling
         :param float per_tile_overlap: percent overlap between successive tiles
+        :param bool flat_field_correct: indicator for applying flat field
+         correction
+        :param str base_image_dir: base directory where images are stored
         """
+
         if 'timepoints' not in self.config['dataset']:
             timepoint_ids = -1
         else:
@@ -298,6 +340,12 @@ class ModelEvaluator:
         overlap_size = tile_size - step_size
         batch_size = self.config['trainer']['batch_size']
 
+        if flat_field_correct:
+            assert base_image_dir is not None
+            ff_dir = os.path.join(base_image_dir, 'flat_field_images')
+        else:
+            ff_dir = None
+
         for tp in tp_idx:
             # get the meta for all images in tp_dir and channel_dir
             row_idx_ip0 = aux_utils.get_row_idx(
@@ -316,47 +364,29 @@ class ModelEvaluator:
             )
             tp_dir = str(os.sep).join(test_ip0_fnames[0].split(os.sep)[:-2])
             test_image = np.load(test_ip0_fnames[0])
-            _, crop_indices = tile_image(test_image, tile_size, step_size,
-                                           isotropic, return_index=True)
+            _, crop_indices = image_utils.tile_image(test_image, tile_size,
+                                                     step_size, isotropic,
+                                                     return_index=True)
             pred_dir = os.path.join(self.config['trainer']['model_dir'],
                                     'predicted_images', 'tp_{}'.format(tp))
             for fname in test_image_fnames:
-                target_image = self._read_one(tp_dir, op_channel_ids, fname)
-                input_image = self._read_one(tp_dir, ip_channel_ids, fname)
+                target_image = self._read_one(tp_dir, op_channel_ids, fname,
+                                              ff_dir)
+                input_image = self._read_one(tp_dir, ip_channel_ids, fname,
+                                             ff_dir)
                 pred_tiles = self._pred_image(input_image,
                                               crop_indices,
                                               batch_size)
                 pred_image = self._stich_image(pred_tiles, crop_indices,
                                                input_image.shape, batch_size,
                                                tile_size, overlap_size)
-                pred_fname = '{}.tiff'.format(fname.split('.')[0])
-                # in which format to write 3D images - nifti perhaps?
+                pred_fname = '{}.npy'.format(fname.split('.')[0])
                 for idx, op_ch in enumerate(op_channel_ids):
                     op_dir = os.path.join(pred_dir, 'channel_{}'.format(op_ch))
-                    imsave(os.path.join(op_dir, pred_fname),
-                           np.squeeze(pred_image[idx]))
-                    save_predicted_images(input_image, target_image,
-                                          pred_image, op_dir, pred_fname)
-
-
-def predict_and_save_images(config, model_fname, ds_test, model_dir):
-    """Run inference on images
-
-    :param yaml config: config used to train the model
-    :param str model_fname: fname with full path for the saved model
-     (.hdf5)
-    :param dataset ds_test: generator for the test set
-    :param str model_dir: dir where model results are to be saved
-    """
-
-    model = load_model(config, model_fname)
-    output_dir = os.path.join(model_dir, 'test_predictions')
-    os.makedirs(output_dir, exist_ok=True)
-    for batch_idx in range(ds_test.__len__()):
-        if 'weighted_loss' in config['trainer']:
-            cur_input, cur_target, cur_mask = ds_test.__getitem__(batch_idx)
-        else:
-            cur_input, cur_target = ds_test.__getitem__(batch_idx)
-        pred_batch = model.predict(cur_input)
-        save_predicted_images(cur_input, cur_target, pred_batch,
-                              output_dir, batch_idx)
+                    if not os.path.exists(op_dir):
+                        os.makedirs(op_dir)
+                    np.save(os.path.join(op_dir, pred_fname), pred_image[idx])
+                    save_predicted_images(
+                        [input_image], [target_image],
+                        [pred_image], os.path.join(op_dir, 'collage'),
+                        output_fname=fname.split('.')[0])

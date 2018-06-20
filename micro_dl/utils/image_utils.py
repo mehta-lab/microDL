@@ -38,6 +38,7 @@ def apply_flat_field_correction(input_image, **kwargs):
     :return: np.array (float) corrected image
     """
 
+    input_image = input_image.astype('float')
     if 'flat_field_image' in kwargs:
         corrected_image = input_image / kwargs['flat_field_image']
     else:
@@ -47,7 +48,7 @@ def apply_flat_field_correction(input_image, **kwargs):
             kwargs['image_dir'], 'flat_field_images',
             'flat-field_channel-{}.npy'.format(kwargs['channel_id'])
         ))
-        corrected_image = input_image.astype('float') / flat_field_image
+        corrected_image = input_image / flat_field_image
     return corrected_image
 
 

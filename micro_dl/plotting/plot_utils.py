@@ -19,13 +19,17 @@ def save_predicted_images(input_batch, target_batch, pred_batch,
     :param str output_fname: fname for saving collage
     """
 
-    batch_size = input_batch.shape[0]
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir, exist_ok=True)
+
+    batch_size = len(input_batch)
     if batch_size == 1:
         assert output_fname is not None, 'need fname for saving image'
         fname = os.path.join(output_dir, '{}.jpg'.format(output_fname))
 
     # 3D images are better saved as movies/gif
-    assert len(input_batch.shape) == 4, 'saves 2D images only'
+    if batch_size != 1:
+        assert len(input_batch.shape) == 4, 'saves 2D images only'
 
     for img_idx in range(batch_size):
         cur_input = input_batch[img_idx]
