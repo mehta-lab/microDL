@@ -23,6 +23,10 @@ dir_name
     |- timepoint_0
         |
         |- channel_0
+            |
+            |- image_n0_z0.png
+            |- image_n1_z0.png
+            |- ...           
         |- channel_1
         |- ...
     |
@@ -41,7 +45,7 @@ you can use the following command to preprocess them:
 
 ```
 python micro_dl/cli/run_image_preprocessing.py -i <dir_name> -o <output_dir>
---tile_size (optional) --step_size (optinal
+--tile_size (optional) --step_size (optinal)
 ```
 
 To train the model using your preprocessed data, you can modify the followin config file and run:
