@@ -51,7 +51,7 @@ def run_inference(args):
     with open(args.config, 'r') as f:
         config = yaml.load(f)
     df_test = pd.read_csv(os.path.join(config['trainer']['model_dir'],
-                                       'df_test.csv'))
+                                       'test_metadata.csv'))
 
     if 'weighted_loss' in config['trainer']:
         ds_test = DataSetWithMask(input_fnames=df_test['fpaths_input'],
@@ -82,6 +82,7 @@ def run_inference(args):
                                   flat_field_correct=args.flat_field_correct,
                                   base_image_dir=args.base_image_dir)
     return test_perf_metrics
+
 
 if __name__ == '__main__':
     args = parse_args()
