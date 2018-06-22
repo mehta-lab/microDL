@@ -59,10 +59,10 @@ class BilinearUpSampling2D(Layer):
         if self.data_format == 'channels_first':
             #  switching back
             input_shape = input_shape[[0, 3, 1, 2]]
-            return tuple(input_shape[0], input_shape[1], width, height)
+            return tuple([input_shape[0], input_shape[1], width, height])
 
         if self.data_format == 'channels_last':
-            return tuple(input_shape[0], width, height, input_shape[3])
+            return tuple([input_shape[0], width, height, input_shape[3]])
 
     def call(self, x, mask=None):
         """Layer's logic
@@ -152,12 +152,14 @@ class BilinearUpSampling3D(Layer):
                     if input_shape[3] is not None else None)
 
         if self.data_format == 'channels_last':
-            return tuple(input_shape[0], width, height, depth, input_shape[4])
+            return tuple([input_shape[0], width, height, depth,
+                          input_shape[4]])
 
         if self.data_format == 'channels_first':
             #  switch back
             input_shape = input_shape[[0, 4, 1, 2, 3]]
-            return tuple(input_shape[0], input_shape[1], width, height, depth)
+            return tuple([input_shape[0], input_shape[1], width, height,
+                          depth])
 
     def call(self, x, mask=None):
         """Layer's logic
