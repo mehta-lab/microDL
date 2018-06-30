@@ -42,7 +42,7 @@ class BaseDataSet(keras.utils.Sequence):
     def __len__(self):
         """Gets the number of batches per epoch"""
 
-        n_batches = int(self.num_samples / self.batch_size)
+        n_batches = np.ceil(self.num_samples / self.batch_size)
         return n_batches
 
     def _augment_image(self, input_image, target_image, mask_image=None):
@@ -72,7 +72,6 @@ class BaseDataSet(keras.utils.Sequence):
             cur_input_fnames = self.input_fnames.iloc[self.row_idx[idx]]
             cur_target_fnames = self.target_fnames.iloc[self.row_idx[idx]]
             cur_input = self._get_volume(cur_input_fnames.split(','))
-            cur_input = (cur_input - np.mean(cur_input)) / np.std(cur_input)
             cur_target = self._get_volume(cur_target_fnames.split(','))
             # If target is boolean (segmentation masks), convert to float
             if cur_target.dtype == bool:
