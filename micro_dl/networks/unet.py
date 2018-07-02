@@ -34,9 +34,13 @@ class BaseUNet(metaclass=ABCMeta):
         msg = 'network depth is incompatible with the input size'
         assert feature_width_at_last_block >= 2, msg
 
+        #  keras upsampling repeats the rows and columns in data. leads to
+        #  checkerboard in upsampled images. repeat - use keras builtin
+        #  nearest_neighbor, bilinear: interpolate using custom layers
         upsampling = config['network']['upsampling']
-        msg = 'invalid upsampling, not in repeat/bilinear'
-        assert upsampling in ['bilinear', 'repeat'], msg
+        msg = 'invalid upsampling, not in repeat/bilinear/nearest_neighbor'
+        assert upsampling in ['bilinear', 'nearest_neighbor', 'repeat'], msg
+        self.upsampling_type = upsampling
 
         self.config = config
         if 'depth' in config['network']:
@@ -46,7 +50,7 @@ class BaseUNet(metaclass=ABCMeta):
                 self.UpSampling = UpSampling3D
             else:
                 self.UpSampling = import_class('networks',
-                                               'BilinearUpSampling3D')
+                                               'InterpUpSampling3D')
         else:
             self.num_dims = 2
             self.Conv = Conv2D
@@ -54,7 +58,7 @@ class BaseUNet(metaclass=ABCMeta):
                 self.UpSampling = UpSampling2D
             else:
                 self.UpSampling = import_class('networks',
-                                               'BilinearUpSampling2D')
+                                               'InterpUpSampling2D')
 
         self._set_pooling_type()
         self.num_down_blocks = num_down_blocks
@@ -186,8 +190,17 @@ class BaseUNet(metaclass=ABCMeta):
         :return: keras.layers after upsampling, merging, conv->BN->activ
         """
 
-        layer_upsampled = self.UpSampling(size=(2, ) * self.num_dims,
-                                          data_format=self.data_format)(layer)
+        if self.upsampling_type == 'repeat':
+            layer_upsampled = self.UpSampling(
+                size=(2, ) * self.num_dims, data_format=self.data_format
+            )(layer)
+        else:
+            layer_upsampled = self.UpSampling(
+                size=(2,) * self.num_dims,
+                data_format=self.data_format,
+                interp_type=self.upsampling_type
+            )(layer)
+
         if self.skip_merge_type == Concatenate:
             layer = self.skip_merge_type(axis=self.channel_axis)(
                 [layer_upsampled, skip_layers]
@@ -196,13 +209,14 @@ class BaseUNet(metaclass=ABCMeta):
             num_upsamp_layers = int(
                 layer_upsampled.get_shape()[self.channel_axis]
             )
-            ##
+
             skip_layers = Lambda(
                 self._pad_channels,
                 arguments={'num_desired_channels': num_upsamp_layers,
                            'final_layer': layer_upsampled,
                            'channel_axis': self.channel_axis})(skip_layers)
             layer = self.skip_merge_type()([layer_upsampled, skip_layers])
+
         input_layer = layer
         for conv_idx in range(num_convs_per_block):
             layer = self.Conv(filters=num_filters, kernel_size=filter_size,
