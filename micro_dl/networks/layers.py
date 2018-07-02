@@ -46,7 +46,10 @@ class InterpUpSampling2D(Layer, metaclass=ABCMeta):
     def build(self, input_shape):
         """Build layer
 
-        There are no weights for bilinear interpolation
+        There are no weights for bilinear interpolation. InputSpec specifies
+        the ndim, dtype and shape of every input to a layer
+
+        :param tuple/list/np.array input_shape: shape of the input tensor
         """
 
         self.input_spec = [InputSpec(shape=input_shape, ndim=4)]
@@ -112,6 +115,7 @@ class InterpUpSampling2D(Layer, metaclass=ABCMeta):
         https://github.com/tensorflow/tensorflow/issues/6720
 
         :param keras.layers x: input layer for upsampling
+        :return: upsampled tensor
         """
 
         original_shape = K.int_shape(x)
@@ -127,7 +131,6 @@ class InterpUpSampling2D(Layer, metaclass=ABCMeta):
             return x
         else:
             x = self._interp_image(x)
-
             return x
 
     def get_config(self):
@@ -164,6 +167,8 @@ class InterpUpSampling3D(InterpUpSampling2D):
         """Build layer
 
         There are no weights for bilinear interpolation
+
+        :param tuple/list/np.array input_shape: shape of the input tensor
         """
 
         self.input_spec = [InputSpec(shape=input_shape, ndim=5)]
@@ -242,6 +247,9 @@ class InterpUpSampling3D(InterpUpSampling2D):
 
         https://niftynet.readthedocs.io/en/dev/_modules/niftynet/layer/linear_resize.html
         https://stackoverflow.com/questions/43814367/resize-3d-data-in-tensorflow-like-tf-image-resize-images
+
+        :param keras.layers x: input layer for upsampling
+        :return: upsampled tensor
         """
 
         if self.data_format == 'channels_last':
