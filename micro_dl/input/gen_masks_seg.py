@@ -6,6 +6,7 @@ import os
 import pandas as pd
 import pickle
 
+from micro_dl.plotting.plot_utils import save_mask_overlay
 from micro_dl.utils.aux_utils import (validate_tp_channel, get_row_idx,
                                       save_tile_meta)
 import micro_dl.utils.image_utils as image_utils
@@ -19,7 +20,22 @@ class MaskCreator:
                  study_meta_fname=None, focal_plane_idx=0):
         """Init
 
-        If a pickle exists, it always uses crop_by_indices with a vf constraint
+        :param str input_dir: base input dir at the level of individual sample
+         images (or the level above timepoint dirs)
+        :param int/list/tuple input_channel_id: channel_ids for which masks
+         have to be generated
+        :param str output_dir: output dir with full path. It is the base dir
+         for tiled images
+        :param int/list/tuple output_channel_id: channel_ids to be assigned to
+         the created masks. Must match the len(input_channel_id), i.e.
+         mask(input_channel_id[0])->output_channel_id[0]
+        :param int/list/tuple timepoint_id: timepoints to consider
+        :param bool correct_flat_field: indicator to apply flat field
+         correction
+        :param str study_meta_fname: fname with full path that contains the
+         meta info at the sample image level. If None, read from the default
+         dir structure
+        :param int focal_plane_idx: focal plane acquisition to use
         """
 
         assert os.path.exists(input_dir), 'input_dir does not exist'
@@ -63,9 +79,10 @@ class MaskCreator:
         self.focal_plane_idx = focal_plane_idx
 
     def create_masks_for_stack(self, str_elem_radius=3):
-        """Create masks
+        """Create masks for sample images and save to disk
 
-        :param...
+        :param int str_elem_radius: size of the disk to be used for
+         morphological operations
         """
 
         for tp_idx in self.timepoint_id:
@@ -73,17 +90,23 @@ class MaskCreator:
                 row_idx = get_row_idx(self.study_metadata, tp_idx,
                                       ch, self.focal_plane_idx)
                 ch_meta = self.study_metadata[row_idx]
+                #  read flat field image
                 cur_flat_field = np.load(os.path.join(
                     self.input_dir, 'flat_field_images',
                     'flat-field_channel-{}.npy'.format(ch)
                 ))
+                #  create mask dir
                 mask_dir = os.path.join(
                     self.input_dir,
                     'timepoint_{}'.format(tp_idx),
                     'channel_{}'.format(self.output_channel_id[ch_idx])
                 )
                 os.makedirs(mask_dir, exist_ok=True)
-                # make a temp dir for storing collages
+                # make a dir for storing collages
+                collage_dir = os.path.join(self.input_dir,
+                                           'timepoint_{}'.format(tp_idx),
+                                           'mask_{}'.format(ch)
+                                           )
                 for _, meta_row in  ch_meta.iterrows():
                     sample_fname = meta_row['fname']
                     if sample_fname[-3:] == 'npy':
@@ -103,13 +126,25 @@ class MaskCreator:
                     mask_fname = os.path.join(mask_dir, fname)
                     np.save(mask_fname, mask,
                             allow_pickle=True, fix_imports=True)
-                    op_fname = .....
-                    save_mask_overlay(cur_image, mask, op_fname):
-
+                    #  save a collage to check the quality of masks for the
+                    #  current set of parameters
+                    op_fname = os.path.join(collage_dir, fname)
+                    save_mask_overlay(cur_image, mask, op_fname)
 
     def tile_mask_stack(self, input_mask_dir, tile_index_fname=None,
                         tile_size=None, step_size=None, isotropic=False):
-        """Tiles a stack of masks"""
+        """Tiles a stack of masks
+
+        :param str/list input_mask_dir: input_mask_dir with full path
+        :param str tile_index_fname: fname with full path for the pickle file
+         which contains a dict with fname as keys and crop indices as values.
+         Needed when tiling using a volume fraction constraint (i.e. check for
+         minimum foreground in tile)
+        :param list/tuple tile_size: as named
+        :param list/tuple step_size: as named
+        :param bool isotropic: indicator for making the tiles have isotropic
+         shape (only for 3D)
+        """
 
         if tile_index_fname:
             msg = 'tile index file does not exist'
@@ -120,16 +155,22 @@ class MaskCreator:
         else:
             msg = 'tile_size and step_size are needed'
             assert tile_size is not None and step_size is not None, msg
+            msg = 'tile and step sizes should have same length'
+            assert len(tile_size) == len(step_size), msg
 
-        for cur_dir in input_mask_dir:
+        if not isinstance(input_mask_dir, list):
+            input_mask_dir = [input_mask_dir]
+
+        for ch_idx, cur_dir in input_mask_dir:
             cur_tp = int((cur_dir.split(os.sep)[-2]).split('_')[-1])
             cur_ch = int((cur_dir.split(os.sep)[-1]).split('_')[-1])
             #  read all mask npy files
             mask_fnames = glob.glob(os.path.join(cur_dir, '*.npy'))
             cropped_meta = []
-            output_dir = os.path.join(self.output_dir,
-                                      'timepoint_{}'.format(cur_tp),
-                                      'channel_{}'.format(cur_ch))
+            output_dir = os.path.join(
+                self.output_dir, 'timepoint_{}'.format(cur_tp),
+                'channel_{}'.format(self.output_channel_id[ch_idx])
+            )
             os.makedirs(output_dir, exist_ok=True)
             for cur_mask_fname in mask_fnames:
                 _, fname = os.path.split(cur_mask_fname)

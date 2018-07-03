@@ -198,6 +198,7 @@ def create_mask(input_image, str_elem_size=3):
 
     :param np.array input_image: generate masks from this image
     :param int str_elem_size: size of the structuring element. typically 3, 5
+    :return: mask of input_image, np.array
     """
 
     thr = threshold_otsu(input_image, nbins=512)
