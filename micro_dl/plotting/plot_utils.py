@@ -62,3 +62,22 @@ def save_predicted_images(input_batch, target_batch, pred_batch,
             )
         fig.savefig(fname, dpi=250)
         plt.close(fig)
+
+
+def save_mask_overlay(input_image, mask, op_fname):
+    """Plot and save a collage of input, mask, overlay"""
+
+    fig, ax = plt.subplots(1, 3)
+    fig.set_size_inches((15, 5))
+    ax[0].imshow(input_image, cmap='gray'); ax[0].axis('off')
+    ax[1].imshow(mask, cmap='gray'); ax[1].axis('off')
+    mask_data = np.ma.masked_where(mask == 0, mask)
+    ax[2].imshow(img, cmap='gray');
+    ax[2].imshow(mask_data, cmap='Blues', alpha=0.7);
+    ax[2].axis('off')
+    fig.savefig(op_fname, dpi=250)
+    plt.close(fig)
+
+
+
+

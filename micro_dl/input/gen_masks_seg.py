@@ -1,12 +1,13 @@
 """Generate masks to be used as target images for segmentation"""
-import cv2
+# import cv2
 import glob
 import numpy as np
 import os
 import pandas as pd
 import pickle
 
-from micro_dl.utils.aux_utils import validate_tp_channel, get_row_idx
+from micro_dl.utils.aux_utils import (validate_tp_channel, get_row_idx,
+                                      save_tile_meta)
 import micro_dl.utils.image_utils as image_utils
 
 
@@ -29,10 +30,10 @@ class MaskCreator:
         self.correct_flat_field = correct_flat_field
 
         if study_meta_fname:
+            study_metadata = pd.read_csv(study_meta_fname)
+        else:
             meta_fname = os.path.join(input_dir, 'split_images_info.csv')
             study_metadata = pd.read_csv(meta_fname)
-        else:
-            study_metadata = pd.read_csv(study_meta_fname)
         self.study_metadata = study_metadata
 
         avail_tp_channels = validate_tp_channel(study_metadata,
@@ -41,18 +42,25 @@ class MaskCreator:
 
         msg = 'timepoint_id is not available'
         assert timepoint_id in avail_tp_channels['timepoints'], msg
+        if isinstance(timepoint_id, int):
+            timepoint_id = [timepoint_id]
         self.timepoint_id = timepoint_id
 
         msg = 'input_channel_id is not available'
         assert input_channel_id in avail_tp_channels['channels'], msg
-        self.input_channel_id = input_channel_id
 
         msg = 'output_channel_id is already present'
         assert output_channel_id not in avail_tp_channels['channels'], msg
-        msg = 'input and output channel ids are not of same length'
-        assert len(input_channel_id) == len(output_channel_id), msg
+        if isinstance(input_channel_id, (list, tuple)):
+            msg = 'input and output channel ids are not of same length'
+            assert len(input_channel_id) == len(output_channel_id), msg
+        else:
+            input_channel_id = [input_channel_id]
+            output_channel_id = [output_channel_id]
+
+        self.input_channel_id = input_channel_id
         self.output_channel_id = output_channel_id
-        self.focal_place_idx = focal_plane_idx
+        self.focal_plane_idx = focal_plane_idx
 
     def create_masks_for_stack(self, str_elem_radius=3):
         """Create masks
@@ -70,10 +78,12 @@ class MaskCreator:
                     'flat-field_channel-{}.npy'.format(ch)
                 ))
                 mask_dir = os.path.join(
-                    self.input_dir, tp_idx,
+                    self.input_dir,
+                    'timepoint_{}'.format(tp_idx),
                     'channel_{}'.format(self.output_channel_id[ch_idx])
                 )
                 os.makedirs(mask_dir, exist_ok=True)
+                # make a temp dir for storing collages
                 for _, meta_row in  ch_meta.iterrows():
                     sample_fname = meta_row['fname']
                     if sample_fname[-3:] == 'npy':
@@ -89,10 +99,13 @@ class MaskCreator:
                     mask = image_utils.create_mask(
                         cur_image, str_elem_size=str_elem_radius
                     )
-                    _, fname = os.path.split
+                    _, fname = os.path.split(sample_fname)
                     mask_fname = os.path.join(mask_dir, fname)
-                    np.save(mask, mask_fname,
+                    np.save(mask_fname, mask,
                             allow_pickle=True, fix_imports=True)
+                    op_fname = .....
+                    save_mask_overlay(cur_image, mask, op_fname):
+
 
     def tile_mask_stack(self, input_mask_dir, tile_index_fname=None,
                         tile_size=None, step_size=None, isotropic=False):
@@ -108,16 +121,20 @@ class MaskCreator:
             msg = 'tile_size and step_size are needed'
             assert tile_size is not None and step_size is not None, msg
 
-        meta_dict = {}
         for cur_dir in input_mask_dir:
             cur_tp = int((cur_dir.split(os.sep)[-2]).split('_')[-1])
             cur_ch = int((cur_dir.split(os.sep)[-1]).split('_')[-1])
             #  read all mask npy files
             mask_fnames = glob.glob(os.path.join(cur_dir, '*.npy'))
             cropped_meta = []
-            for cur_mask in mask_fnames:
-                _, fname = os.path.split(cur_mask)
+            output_dir = os.path.join(self.output_dir,
+                                      'timepoint_{}'.format(cur_tp),
+                                      'channel_{}'.format(cur_ch))
+            os.makedirs(output_dir, exist_ok=True)
+            for cur_mask_fname in mask_fnames:
+                _, fname = os.path.split(cur_mask_fname)
                 sample_num = int(fname.split('_')[1][1:])
+                cur_mask = np.load(cur_mask_fname)
                 if tile_index_fname:
                     cropped_image_data = image_utils.crop_at_indices(
                         input_image=cur_mask,
@@ -136,17 +153,12 @@ class MaskCreator:
                     rcsl_idx = id_img_tuple[0]
                     img_fname = 'n{}_{}.npy'.format(sample_num, rcsl_idx)
                     cropped_img = id_img_tuple[1]
-                    cropped_img_fname = os.path.join(
-                        self.output_dir,
-                        'timepoint_{}'.format(cur_tp),
-                        'channel_{}'.format(cur_ch),
-                        img_fname
-                    )
+                    cropped_img_fname = os.path.join(output_dir, img_fname)
                     np.save(cropped_img_fname, cropped_img,
                             allow_pickle=True, fix_imports=True)
                     cropped_meta.append(
-                            (cur_tp, cur_ch, sample_num, self.focal_place_idx,
+                            (cur_tp, cur_ch, sample_num, self.focal_plane_idx,
                              cropped_img_fname)
                         )
-            meta_dict[cur_dir] = cropped_meta
-        return meta_dict
+            save_tile_meta(cropped_meta, cur_channel=cur_ch,
+                           tiled_dir=self.output_dir)
