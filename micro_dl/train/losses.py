@@ -2,6 +2,8 @@
 from keras import backend as K
 import tensorflow as tf
 
+import micro_dl.train.metrics as metrics
+
 
 def mse_binary_wtd(n_channels):
     """Converts a loss function into weighted loss function
@@ -43,3 +45,14 @@ def mse_binary_wtd(n_channels):
         modified_loss = K.mean(K.sum(loss * mask, axis=1))
         return modified_loss
     return mse_wtd
+
+
+def dice_coeff_loss(y_true, y_pred):
+    """
+    1 - Dice
+
+    :param y_true: true values
+    :param y_pred: predicted values
+    :return: Dice loss
+    """
+    return 1. - metrics.dice_coef(y_true, y_pred)
