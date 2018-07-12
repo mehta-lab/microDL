@@ -71,7 +71,6 @@ class ImageStackTiler:
         self.tiled_dir = tiled_dir
         self.isotropic = isotropic
         self.correct_flat_field = correct_flat_field
-        self.is_npy = is_npy
 
     @staticmethod
     def _save_tiled_images(cropped_image_info, meta_row,

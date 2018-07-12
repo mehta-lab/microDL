@@ -1,5 +1,5 @@
 """Generate masks to be used as target images for segmentation"""
-# import cv2
+import cv2
 import glob
 import numpy as np
 import os
@@ -7,17 +7,21 @@ import pandas as pd
 import pickle
 
 from micro_dl.plotting.plot_utils import save_mask_overlay
-from micro_dl.utils.aux_utils import (validate_tp_channel, get_row_idx,
-                                      save_tile_meta)
+import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.image_utils as image_utils
 
 
 class MaskCreator:
     """Creates masks for segmentation"""
 
-    def __init__(self, input_dir, input_channel_id, output_dir,
-                 output_channel_id, timepoint_id=0, correct_flat_field=True,
-                 study_meta_fname=None, focal_plane_idx=0):
+    def __init__(self,
+                 input_dir,
+                 input_channel_id,
+                 output_dir,
+                 output_channel_id,
+                 timepoint_id=0,
+                 correct_flat_field=True,
+                 focal_plane_idx=0):
         """Init
 
         :param str input_dir: base input dir at the level of individual sample
@@ -32,7 +36,7 @@ class MaskCreator:
         :param int/list/tuple timepoint_id: timepoints to consider
         :param bool correct_flat_field: indicator to apply flat field
          correction
-        :param str study_meta_fname: fname with full path that contains the
+        :param str meta_fname: fname that contains the
          meta info at the sample image level. If None, read from the default
          dir structure
         :param int focal_plane_idx: focal plane acquisition to use
@@ -45,14 +49,14 @@ class MaskCreator:
 
         self.correct_flat_field = correct_flat_field
 
-        if study_meta_fname:
-            study_metadata = pd.read_csv(study_meta_fname)
-        else:
-            meta_fname = os.path.join(input_dir, 'split_images_info.csv')
-            study_metadata = pd.read_csv(meta_fname)
+        meta_fname = glob.glob(input_dir + "*info.csv")
+        assert len(meta_fname) == 1,\
+            "Can't find info.csv file in {}".format(input_dir)
+        study_metadata = pd.read_csv(meta_fname[0])
+
         self.study_metadata = study_metadata
 
-        avail_tp_channels = validate_tp_channel(study_metadata,
+        avail_tp_channels = aux_utils.validate_tp_channel(study_metadata,
                                                 timepoint_ids=timepoint_id,
                                                 channel_ids=input_channel_id)
 
@@ -61,7 +65,10 @@ class MaskCreator:
         if isinstance(timepoint_id, int):
             timepoint_id = [timepoint_id]
         self.timepoint_id = timepoint_id
-
+        # Convert channel to int if there's only one value present
+        if isinstance(input_channel_id, (list, tuple)):
+            if len(input_channel_id) == 1:
+                input_channel_id = input_channel_id[0]
         msg = 'input_channel_id is not available'
         assert input_channel_id in avail_tp_channels['channels'], msg
 
@@ -87,14 +94,19 @@ class MaskCreator:
 
         for tp_idx in self.timepoint_id:
             for ch_idx, ch in enumerate(self.input_channel_id):
-                row_idx = get_row_idx(self.study_metadata, tp_idx,
-                                      ch, self.focal_plane_idx)
+                row_idx = aux_utils.get_row_idx(
+                    self.study_metadata,
+                    tp_idx,
+                    ch,
+                    self.focal_plane_idx,
+                )
                 ch_meta = self.study_metadata[row_idx]
-                #  read flat field image
-                cur_flat_field = np.load(os.path.join(
-                    self.input_dir, 'flat_field_images',
-                    'flat-field_channel-{}.npy'.format(ch)
-                ))
+                if self.correct_flat_field:
+                    #  read flat field image
+                    cur_flat_field = np.load(os.path.join(
+                        self.input_dir, 'flat_field_images',
+                        'flat-field_channel-{}.npy'.format(ch)
+                    ))
                 #  create mask dir
                 mask_dir = os.path.join(
                     self.input_dir,
@@ -107,7 +119,10 @@ class MaskCreator:
                                            'timepoint_{}'.format(tp_idx),
                                            'mask_{}'.format(ch)
                                            )
-                for _, meta_row in  ch_meta.iterrows():
+                # Create collage directory if it doesn't exist
+                os.makedirs(collage_dir, exist_ok=True)
+                # Generate masks for all files in meta csv
+                for _, meta_row in ch_meta.iterrows():
                     sample_fname = meta_row['fname']
                     if sample_fname[-3:] == 'npy':
                         cur_image = np.load(meta_row['fname'])
@@ -131,9 +146,14 @@ class MaskCreator:
                     op_fname = os.path.join(collage_dir, fname)
                     save_mask_overlay(cur_image, mask, op_fname)
 
-    def tile_mask_stack(self, input_mask_dir, tile_index_fname=None,
-                        tile_size=None, step_size=None, isotropic=False):
-        """Tiles a stack of masks
+    def tile_mask_stack(self,
+                        input_mask_dir,
+                        tile_index_fname=None,
+                        tile_size=None,
+                        step_size=None,
+                        isotropic=False):
+        """
+        Tiles a stack of masks
 
         :param str/list input_mask_dir: input_mask_dir with full path
         :param str tile_index_fname: fname with full path for the pickle file
@@ -161,9 +181,13 @@ class MaskCreator:
         if not isinstance(input_mask_dir, list):
             input_mask_dir = [input_mask_dir]
 
-        for ch_idx, cur_dir in input_mask_dir:
-            cur_tp = int((cur_dir.split(os.sep)[-2]).split('_')[-1])
-            cur_ch = int((cur_dir.split(os.sep)[-1]).split('_')[-1])
+        for ch_idx, cur_dir in enumerate(input_mask_dir):
+            # Split dir name and remove last / if present
+            sep_strs = cur_dir.split(os.sep)
+            if len(sep_strs[-1]) == 0:
+                sep_strs.pop(-1)
+            cur_tp = int(sep_strs[-2].split('_')[-1])
+            cur_ch = int(sep_strs[-1].split('_')[-1])
             #  read all mask npy files
             mask_fnames = glob.glob(os.path.join(cur_dir, '*.npy'))
             cropped_meta = []
@@ -195,11 +219,17 @@ class MaskCreator:
                     img_fname = 'n{}_{}.npy'.format(sample_num, rcsl_idx)
                     cropped_img = id_img_tuple[1]
                     cropped_img_fname = os.path.join(output_dir, img_fname)
-                    np.save(cropped_img_fname, cropped_img,
-                            allow_pickle=True, fix_imports=True)
+                    np.save(cropped_img_fname,
+                            cropped_img,
+                            allow_pickle=True,
+                            fix_imports=True,
+                    )
                     cropped_meta.append(
                             (cur_tp, cur_ch, sample_num, self.focal_plane_idx,
                              cropped_img_fname)
                         )
-            save_tile_meta(cropped_meta, cur_channel=cur_ch,
-                           tiled_dir=self.output_dir)
+                    aux_utils.save_tile_meta(
+                        cropped_meta,
+                        cur_channel=cur_ch,
+                        tiled_dir=self.output_dir,
+                    )

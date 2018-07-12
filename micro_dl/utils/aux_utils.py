@@ -1,4 +1,5 @@
 """Auxiliary utility functions"""
+import glob
 import inspect
 import importlib
 import logging
@@ -114,7 +115,9 @@ def init_logger(logger_name, log_fname, log_level):
     return logger
 
 
-def save_tile_meta(cropped_meta, cur_channel, tiled_dir):
+def save_tile_meta(cropped_meta,
+                   cur_channel,
+                   tiled_dir):
     """Save meta data for cropped images
 
     :param list cropped_meta: list of tuples holding meta info for cropped
@@ -129,7 +132,7 @@ def save_tile_meta(cropped_meta, cur_channel, tiled_dir):
         columns=['timepoint', 'channel_num', 'sample_num',
                  'slice_num', fname_header]
     )
-    metadata_fname = os.path.join(tiled_dir, 'tiled_images_info.csv')
+    metadata_fname = glob.glob(tiled_dir + "*info.csv")[0]
     if cur_channel == 0:
         df = cur_df
     else:
