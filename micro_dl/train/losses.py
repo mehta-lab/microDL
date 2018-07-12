@@ -49,7 +49,9 @@ def mse_binary_wtd(n_channels):
 
 def dice_coeff_loss(y_true, y_pred):
     """
-    1 - Dice
+    The Dice loss function is defined by 1 - DSC
+    since the DSC is in the range [0,1] where 1 is perfect overlap
+    and we're looking to minimize the loss.
 
     :param y_true: true values
     :param y_pred: predicted values
