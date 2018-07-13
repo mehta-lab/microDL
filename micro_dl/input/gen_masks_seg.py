@@ -143,7 +143,10 @@ class MaskCreator:
                             allow_pickle=True, fix_imports=True)
                     #  save a collage to check the quality of masks for the
                     #  current set of parameters
-                    op_fname = os.path.join(collage_dir, fname)
+                    if fname[-3:] == 'npy':
+                        op_fname = os.path.join(collage_dir, fname).split('.')[0]
+                    else:
+                        op_fname = os.path.join(collage_dir, fname)
                     save_mask_overlay(cur_image, mask, op_fname)
 
     def tile_mask_stack(self,
