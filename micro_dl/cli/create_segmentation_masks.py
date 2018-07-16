@@ -52,15 +52,20 @@ def create_masks(args):
 
     mask_inst.create_masks_for_stack()
     # Tile mask images and write them to directory containing other tiled data
-    # TODO: This currently assumes there's only one mask dir, create loop
-    mask_dir = os.path.join(args.input_dir,
-                            'timepoint_{}'.format(mask_inst.timepoint_id[0]),
-                            'channel_{}'.format(args.mask_id))
-    print(mask_dir)
-    meta_info = mask_inst.tile_mask_stack(input_mask_dir=mask_dir,
-                                          tile_index_fname=args.tile_index_fname,
-                                          tile_size=args.tile_size,
-                                          step_size=args.step_size)
+    # This assumes there's only one mask ID
+    timepoints = mask_inst.timepoint_id
+    for tp in timepoints:
+        mask_dir = os.path.join(
+            args.input_dir,
+            'timepoint_{}'.format(tp),
+            'channel_{}'.format(args.mask_id),
+        )
+        meta_info = mask_inst.tile_mask_stack(
+            input_mask_dir=mask_dir,
+            tile_index_fname=args.tile_index_fname,
+            tile_size=args.tile_size,
+            step_size=args.step_size,
+        )
 
 
 
