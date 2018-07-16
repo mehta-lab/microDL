@@ -30,10 +30,8 @@ class BaseDataSet(keras.utils.Sequence):
         self.input_fnames = input_fnames
         self.target_fnames = target_fnames
         self.batch_size = batch_size
-
         self.shuffle = shuffle
-        num_samples = len(self.input_fnames)
-        self.num_samples = num_samples
+        self.num_samples = len(self.input_fnames)
         self.augmentations = augmentations
         self.random_seed = random_seed
         np.random.seed(random_seed)
@@ -42,7 +40,7 @@ class BaseDataSet(keras.utils.Sequence):
     def __len__(self):
         """Gets the number of batches per epoch"""
 
-        n_batches = np.ceil(self.num_samples / self.batch_size)
+        n_batches = int(np.ceil(self.num_samples / self.batch_size))
         return n_batches
 
     def _augment_image(self, input_image, target_image, mask_image=None):
@@ -60,7 +58,6 @@ class BaseDataSet(keras.utils.Sequence):
         :return: np.ndarrays input_image and target_image of shape
          [batch_size, num_channels, z, y, x]
         """
-
         start_idx = index * self.batch_size
         end_idx = (index + 1) * self.batch_size
         if end_idx >= self.num_samples:
