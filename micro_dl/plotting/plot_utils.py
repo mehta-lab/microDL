@@ -108,8 +108,8 @@ def save_plot(x, y, fig_name):
     assert len(x) == len(y),\
         "x ({}) and y ({}) must be equal length".format(len(x), len(y))
 
-    fig = plt.figure(figsize=(4, 5))
-    ax = fig.add_subplot(111)
+    fig, ax = plt.subplots(111)
+    fig.set_size_inches((4, 5))
     ax.plot(x, y)
     fig.savefig(fig_name, dpi=250)
     plt.close(fig)
