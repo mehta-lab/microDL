@@ -9,7 +9,8 @@ import tensorflow as tf
 from time import localtime, strftime
 import yaml
 
-from micro_dl.train import learning_rates as custom_learning
+import micro_dl.train.learning_rates as custom_learning
+import micro_dl.train.lr_finder as lr_finder
 from micro_dl.train.model_inference import load_model
 from micro_dl.utils.aux_utils import import_class, init_logger
 from micro_dl.utils.train_utils import set_keras_session, get_loss, get_metrics
@@ -124,7 +125,7 @@ class BaseKerasTrainer:
                 )
             elif cb_dict == 'LearningRateFinder':
                 #TODO: Make sure lr finder and clr aren't both present
-                cur_cb = custom_learning.LRFinder(
+                cur_cb = lr_finder.LRFinder(
                     base_lr=callbacks_config[cb_dict]['base_lr'],
                     max_lr=callbacks_config[cb_dict]['max_lr'],
                     max_epochs=callbacks_config[cb_dict]['max_epochs'],
