@@ -9,9 +9,8 @@ class LRFinder(Callback):
 
     def __init__(
             self,
-            step_size,
-            max_epochs,
             fig_name,
+            max_epochs=3,
             base_lr=0.0001,
             max_lr=0.1,
     ):
@@ -24,18 +23,19 @@ class LRFinder(Callback):
         https://github.com/surmenok/keras_lr_finder
         https://github.com/LucasAnders1/LearningRateFinder
 
-        :param max_epochs: Maximum number of epochs
         :param fig_name: Figure file name for saving
+        :param max_epochs: Maximum number of epochs
         :param base_lr: Base (minimum) learning rate
         :param max_lr: Maximum learning rate
         """
         super(LRFinder, self).__init__()
 
         self.max_epochs = max_epochs
-        self.step_size = 1.
         self.base_lr = base_lr
         self.max_lr = max_lr
+        self.fig_name = fig_name
         self.local_lr = base_lr
+        self.step_size = 1.
         self.iterations = 0
         self.losses = []
         self.lrs = []

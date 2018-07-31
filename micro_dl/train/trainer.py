@@ -122,6 +122,14 @@ class BaseKerasTrainer:
                     gamma=callbacks_config[cb_dict]['gamma'],
                     scale_mode=callbacks_config[cb_dict]['scale_mode'],
                 )
+            elif cb_dict == 'LearningRateFinder':
+                #TODO: Make sure lr finder and clr aren't both present
+                cur_cb = custom_learning.LRFinder(
+                    base_lr=callbacks_config[cb_dict]['base_lr'],
+                    max_lr=callbacks_config[cb_dict]['max_lr'],
+                    max_epochs=callbacks_config[cb_dict]['max_epochs'],
+                    fig_name=callbacks_config[cb_dict]['fig_name'],
+                )
             elif cb_dict == 'TensorBoard':
                 log_dir = os.path.join(self.model_dir, 'tensorboard_logs')
                 os.makedirs(log_dir, exist_ok=True)
