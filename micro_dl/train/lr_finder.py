@@ -1,5 +1,4 @@
 import keras.backend as K
-import matplotlib.pyplot as plt
 from keras.callbacks import Callback
 
 import micro_dl.plotting.plot_utils as plot_utils
@@ -36,6 +35,7 @@ class LRFinder(Callback):
         self.fig_name = fig_name
         self.local_lr = base_lr
         self.step_size = 1.
+        self.total_steps = 1
         self.iterations = 0
         self.losses = []
         self.lrs = []
@@ -50,9 +50,8 @@ class LRFinder(Callback):
         logs = logs or {}
 
         K.set_value(self.model.optimizer.lr, self.base_lr)
-        total_steps = self.max_epochs * self.params['steps']
-        self.step_size = (self.max_lr - self.base_lr) / total_steps
-        print("step", self.step_size)
+        self.total_steps = self.max_epochs * self.params['steps']
+        self.step_size = (self.max_lr - self.base_lr) / self.total_steps
 
     def on_batch_end(self, batch, logs=None):
         """
@@ -64,15 +63,12 @@ class LRFinder(Callback):
         logs = logs or {}
 
         self.iterations += 1
-        print("iter", self.iterations)
-        if self.iterations >= self.max_epochs or self.local_lr >= self.max_lr:
+        if self.iterations >= self.total_steps or self.local_lr >= self.max_lr:
             self.model.stop_training = True
         self.local_lr = self.base_lr + self.iterations * self.step_size
-        print(self.local_lr)
         K.set_value(self.model.optimizer.lr, self.local_lr)
         self.losses.append(logs.get('loss'))
         self.lrs.append(self.local_lr)
-        print("loss", self.local_lr)
 
     def on_train_end(self, logs=None):
         """

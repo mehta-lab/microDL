@@ -20,6 +20,7 @@ trainer:
     loss: dice_coef_loss
     callbacks:
         LearningRateScheduler:
+            lr_find: False
             base_lr: 0.001
             max_lr: 0.008
             step_size: 2
