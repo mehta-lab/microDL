@@ -64,6 +64,7 @@ class LRFinder(Callback):
         logs = logs or {}
 
         self.iterations += 1
+        print("iter", self.iterations)
         if self.iterations >= self.max_epochs or self.local_lr >= self.max_lr:
             self.model.stop_training = True
         self.local_lr = self.base_lr + self.iterations * self.step_size
@@ -71,6 +72,7 @@ class LRFinder(Callback):
         K.set_value(self.model.optimizer.lr, self.local_lr)
         self.losses.append(logs.get('loss'))
         self.lrs.append(self.local_lr)
+        print("loss", self.local_lr)
 
     def on_train_end(self, logs=None):
         """
