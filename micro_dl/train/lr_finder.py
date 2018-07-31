@@ -19,6 +19,9 @@ class LRFinder(Callback):
         Saves a plot of the results from which you can determine learning
         rate bounds from learning rate vs. loss.
         Based on Smith's paper: https://arxiv.org/abs/1506.01186
+        But with the adaptation from fast.ai (http://www.fast.ai/)
+        to plot loss instead of accuracy: https://towardsdatascience.com/
+        estimating-optimal-learning-rate-for-a-deep-neural-network-ce32f2556ce0
         https://github.com/surmenok/keras_lr_finder
         https://github.com/LucasAnders1/LearningRateFinder
 
