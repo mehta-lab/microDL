@@ -95,3 +95,21 @@ def save_mask_overlay(input_image, mask, op_fname, alpha=0.7):
     ax[2].axis('off')
     fig.savefig(op_fname, dpi=250)
     plt.close(fig)
+
+
+def save_plot(x, y, fig_name):
+    """
+    Plot values y = f(x) and save figure.
+
+    :param list x: x values
+    :param list y: y values (same length as x)
+    :param str fig_name: File name including full path
+    """
+    assert len(x) == len(y),\
+        "x ({}) and y ({}) must be equal length".format(len(x), len(y))
+
+    fig = plt.figure(figsize=(4, 5))
+    ax = fig.add_subplot(111)
+    ax.plot(x, y)
+    fig.savefig(fig_name, dpi=250)
+    plt.close(fig)
