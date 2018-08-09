@@ -3,7 +3,7 @@ from keras import backend as K
 import tensorflow as tf
 
 import micro_dl.train.metrics as metrics
-
+import keras.losses as keras_loss
 
 def mse_binary_wtd(n_channels):
     """Converts a loss function into weighted loss function
@@ -25,7 +25,7 @@ def mse_binary_wtd(n_channels):
             y_true, mask_image = tf.split(y_true, [n_channels, 1], axis=1)
         except Exception as e:
             print('cannot separate mask and y_true' + str(e))
-
+        keras_loss.kullback_leibler_divergence()
         y_true = K.batch_flatten(y_true)
         y_pred = K.batch_flatten(y_pred)
         weights = K.batch_flatten(mask_image)
@@ -61,3 +61,13 @@ def dice_coef_loss(y_true, y_pred):
     """
     return 1. - metrics.dice_coef(y_true, y_pred)
 
+
+def mae_kl(loss_wts):
+    """Weighted sum of mae and kl losses"""
+
+    def loss_fn(y_true, y_pred):
+        mae = keras_loss.mean_absolute_error(y_true, y_pred)
+        kl = keras_loss.kullback_leibler_divergence(y_true, y_pred)
+        loss = loss_wts[0] * mae + loss_wts[1] * kl
+        return loss
+    return loss_fn

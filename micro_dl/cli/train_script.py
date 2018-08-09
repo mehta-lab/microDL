@@ -181,7 +181,7 @@ def run_action(args):
                                      'tiled_images_info.csv')
         df_meta = pd.read_csv(df_meta_fname)
 
-        if 'weighted_loss' in config['trainer']:
+        if 'masked_loss' in config['trainer']:
             train_dataset, val_dataset, test_dataset, split_indices = \
                 train_xyweights(df_meta, config)
         else:

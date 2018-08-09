@@ -95,7 +95,7 @@ class ModelEvaluator:
             num_batches = nb_batches
 
         for batch_idx in range(num_batches):
-            if 'weighted_loss' in self.config['trainer']:
+            if 'masked_loss' in self.config['trainer']:
                 cur_input, cur_target, cur_mask = ds_test.__getitem__(
                     batch_idx)
             else:

@@ -170,10 +170,15 @@ class BaseKerasTrainer:
         with open(os.path.join(self.model_dir, 'config.yml'), 'w') as f:
             yaml.dump(self.config, f, default_flow_style=False)
         
-        if 'weighted_loss' in self.config['trainer']:
+        if 'masked_loss' in self.config['trainer']:
             n_output_channels = len(self.config['dataset']['target_channels'])
             model.compile(loss=loss(n_output_channels), optimizer=optimizer,
                           metrics=metrics)
+        # modify the next piece
+        elif 'loss_weights' in self.config['trainer']:
+            model.compile(loss=loss,
+                          loss_weights=self.config['trainer']['loss_weights'],
+                          optimizer=optimizer, metrics=metrics)
         else:
             model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
         return model

@@ -18,7 +18,7 @@ trainer:
     max_epochs: 80
     metrics: coeff_determination
     loss: mse_binary_wtd
-    weighted_loss: True
+    masked_loss: True
     callbacks:
         EarlyStopping:
             mode: min
