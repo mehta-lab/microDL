@@ -25,7 +25,7 @@ def mse_binary_wtd(n_channels):
             y_true, mask_image = tf.split(y_true, [n_channels, 1], axis=1)
         except Exception as e:
             print('cannot separate mask and y_true' + str(e))
-        keras_loss.kullback_leibler_divergence()
+
         y_true = K.batch_flatten(y_true)
         y_pred = K.batch_flatten(y_pred)
         weights = K.batch_flatten(mask_image)
