@@ -6,7 +6,7 @@ import micro_dl.train.metrics as metrics
 import keras.losses as keras_loss
 
 def mse_binary_wtd(n_channels):
-    """Converts a loss function into weighted loss function
+    """Masked loss function
 
     https://github.com/keras-team/keras/blob/master/keras/engine/training_utils.py
     https://github.com/keras-team/keras/issues/3270
@@ -63,11 +63,30 @@ def dice_coef_loss(y_true, y_pred):
 
 
 def mae_kl(loss_wts):
-    """Weighted sum of mae and kl losses"""
+    """Weighted sum of mae and kl losses
+
+    :param list loss_wts: weights for individual losses
+    :return: weighted loss of mae and kl
+    """
 
     def loss_fn(y_true, y_pred):
+        y_true = K.batch_flatten(y_true)
+        y_pred = K.batch_flatten(y_pred)
+        total_count = K.cast(K.shape(y_true)[1], 'float32')
         mae = keras_loss.mean_absolute_error(y_true, y_pred)
-        kl = keras_loss.kullback_leibler_divergence(y_true, y_pred)
-        loss = loss_wts[0] * mae + loss_wts[1] * kl
+
+        y_true_range = [K.min(y_true), K.max(y_true)]
+        y_true_hist = tf.histogram_fixed_width(y_true, y_true_range,
+                                               nbins=256, dtype=tf.int32)
+        y_pred_hist = tf.histogram_fixed_width(y_pred, y_true_range,
+                                               nbins=256, dtype=tf.int32)
+        # KL is for probability distributions, normalize hist
+        y_true_hist = K.cast(y_true_hist, 'float32')
+        y_true_hist = y_true_hist / total_count
+        y_pred_hist = K.cast(y_pred_hist, 'float32')
+        y_pred_hist = y_pred_hist / total_count
+        kl = keras_loss.kullback_leibler_divergence(y_true_hist, y_pred_hist)
+        loss = (K.cast(loss_wts[0], 'float32') * mae +
+                K.cast(loss_wts[1], 'float32') * kl)
         return loss
     return loss_fn

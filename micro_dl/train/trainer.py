@@ -175,9 +175,9 @@ class BaseKerasTrainer:
             model.compile(loss=loss(n_output_channels), optimizer=optimizer,
                           metrics=metrics)
         # modify the next piece
-        elif 'loss_weights' in self.config['trainer']:
-            model.compile(loss=loss,
-                          loss_weights=self.config['trainer']['loss_weights'],
+        elif 'weighted_loss' in self.config['trainer']:
+            loss_wts = self.config['trainer']['weighted_loss']
+            model.compile(loss=loss(loss_wts),
                           optimizer=optimizer, metrics=metrics)
         else:
             model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
