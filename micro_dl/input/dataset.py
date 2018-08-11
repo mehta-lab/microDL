@@ -75,14 +75,18 @@ class BaseDataSet(keras.utils.Sequence):
             cur_target_fnames = self.target_fnames.iloc[self.row_idx[idx]]
             cur_input = self._get_volume(cur_input_fnames.split(','))
             cur_target = self._get_volume(cur_target_fnames.split(','))
+
             # If target is boolean (segmentation masks), convert to float
             if cur_target.dtype == bool:
                 cur_target = cur_target.astype(np.float64)
-                self.normalize = False
+                task = 'segmentation'
             if self.normalize:
+                cur_input = (cur_input - np.mean(cur_input)) /\
+                             np.std(cur_input)
                 # Only normalize target if we're dealing with regression
-                cur_target = (cur_target - np.mean(cur_target)) /\
-                             np.std(cur_target)
+                if task is not 'segmentation':
+                    cur_target = (cur_target - np.mean(cur_target)) /\
+                                 np.std(cur_target)
             # _augment_image(cur_input, cur_target)
             input_image.append(cur_input)
             target_image.append(cur_target)
@@ -118,7 +122,8 @@ class DataSetWithMask(BaseDataSet):
     """DataSet class that returns input, target images and sample weights"""
 
     def __init__(self, input_fnames, target_fnames, mask_fnames, batch_size,
-                 shuffle=True, augmentations=None, random_seed=42):
+                 shuffle=True, augmentations=None, random_seed=42,
+                 normalize=False):
         """Init
 
         https://stackoverflow.com/questions/44747288/keras-sample-weight-array-error
@@ -164,8 +169,21 @@ class DataSetWithMask(BaseDataSet):
 
             cur_target = super()._get_volume(cur_target_fnames.split(','))
 
+            # If target is boolean (segmentation masks), convert to float
+            if cur_target.dtype == bool:
+                cur_target = cur_target.astype(np.float64)
+                task = 'segmentation'
+            if self.normalize:
+                cur_input = (cur_input - np.mean(cur_input)) /\
+                             np.std(cur_input)
+                # Only normalize target if we're dealing with regression
+                if task is not 'segmentation':
+                    cur_target = (cur_target - np.mean(cur_target)) /\
+                                 np.std(cur_target)
+
             # the mask is based on sum of flurophore images
             cur_mask = super()._get_volume(cur_mask_fnames.split(','))
+
             cur_target = np.concatenate((cur_target, cur_mask), axis=0)
 
             input_image.append(cur_input)
