@@ -142,7 +142,7 @@ class DataSetWithMask(BaseDataSet):
         """
 
         super().__init__(input_fnames, target_fnames, batch_size,
-                         shuffle, augmentations, random_seed)
+                         shuffle, augmentations, random_seed, normalize)
         self.mask_fnames = mask_fnames
 
     def __getitem__(self, index):
