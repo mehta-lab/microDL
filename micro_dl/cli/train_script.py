@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Train neural network models in keras"""
 import argparse
+import keras.backend as K
 import os
 import pandas as pd
 import pickle
@@ -57,7 +58,7 @@ def read_config(config_fname):
     return config
 
 
-def train_xy(df_meta, config):
+def init_dataset_xy(df_meta, config):
     """Train using fit_generator"""
 
     tt = BaseTrainingTable(df_meta, config['dataset']['input_channels'],
@@ -105,7 +106,7 @@ def train_xy(df_meta, config):
     return train_dataset, val_dataset, test_dataset, split_idx
 
 
-def train_xyweights(df_meta, config):
+def init_dataset_xymask(df_meta, config):
     """Train using fit_generator"""
 
     if 'min_fraction' in config['dataset']:
@@ -183,10 +184,10 @@ def run_action(args):
 
         if 'masked_loss' in config['trainer']:
             train_dataset, val_dataset, test_dataset, split_indices = \
-                train_xyweights(df_meta, config)
+                init_dataset_xymask(df_meta, config)
         else:
             train_dataset, val_dataset, test_dataset, split_indices = \
-                train_xy(df_meta, config)
+                init_dataset_xy(df_meta, config)
         split_idx_fname = os.path.join(config['trainer']['model_dir'],
                                        'split_indices.pkl')
 
@@ -197,6 +198,7 @@ def run_action(args):
             model_name = config['trainer']['model_name']
         else:
             model_name = None
+        K.set_image_data_format(config['network']['data_format'])
 
         trainer = BaseKerasTrainer(config=config,
                                    model_dir=config['trainer']['model_dir'],
@@ -224,3 +226,5 @@ if __name__ == '__main__':
     # Allow run if gpu_available or debug
     if gpu_available or args.gpu == -1:
         run_action(args)
+    else:
+        print('GPU %s not available'.format(args.gpu))

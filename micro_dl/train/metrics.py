@@ -1,13 +1,29 @@
 """Custom metrics"""
 import keras.backend as K
 
+from micro_dl.train.losses import split_ytrue_mask
+
 
 def coeff_determination(y_true, y_pred):
     """R^2 Goodness of fit, using as a proxy for accuracy in regression"""
 
-    SS_res = K.sum(K.square(y_true - y_pred ))
+    SS_res = K.sum(K.square(y_true - y_pred))
     SS_tot = K.sum(K.square(y_true - K.mean(y_true)))
     return ( 1 - SS_res/(SS_tot + K.epsilon()) )
+
+
+def mask_coeff_determination(n_channels):
+    """split y_true into y_true and mask
+
+    If masked_loss: add a function/method to convert split y_true and pass to
+    loss, metrics and callbacks
+    """
+
+    def coeff_deter(y_true, y_pred):
+        y_true_split, mask = split_ytrue_mask(y_true, n_channels)
+        r2 = coeff_determination(y_true_split, y_pred)
+        return r2
+    return coeff_deter
 
 
 def dice_coef(y_true, y_pred, smooth=1.):

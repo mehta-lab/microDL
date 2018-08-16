@@ -17,7 +17,7 @@ trainer:
     batch_size: 32
     max_epochs: 80
     metrics: coeff_determination
-    loss: mse_binary_wtd
+    loss: mse_masked
     masked_loss: True
     callbacks:
         EarlyStopping:
