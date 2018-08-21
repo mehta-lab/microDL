@@ -150,7 +150,7 @@ def check_if_present(config_dict, params):
     """
 
     param_indicator = np.zeros(len(params), dtype='bool')
-    for idx, exp_param in enumerate(params.keys()):
+    for idx, exp_param in enumerate(params):
         cur_indicator = (exp_param in config_dict) and \
                         (config_dict[exp_param] is not None)
         param_indicator[idx] = cur_indicator

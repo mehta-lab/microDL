@@ -1,7 +1,6 @@
 """Custom metrics"""
 import keras.backend as K
-
-from micro_dl.train.losses import split_ytrue_mask
+import tensorflow as tf
 
 
 def coeff_determination(y_true, y_pred):
@@ -20,7 +19,12 @@ def mask_coeff_determination(n_channels):
     """
 
     def coeff_deter(y_true, y_pred):
-        y_true_split, mask = split_ytrue_mask(y_true, n_channels)
+
+        if K.image_data_format() == "channels_last":
+            split_axis = -1
+        else:
+            split_axis = 1
+        y_true_split, mask = tf.split(y_true, [n_channels, 1], axis=split_axis)
         r2 = coeff_determination(y_true_split, y_pred)
         return r2
     return coeff_deter

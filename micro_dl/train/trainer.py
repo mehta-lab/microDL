@@ -6,19 +6,20 @@ from time import localtime, strftime
 
 from micro_dl.train import learning_rates as custom_learning
 from micro_dl.utils.aux_utils import init_logger
-from micro_dl.utils.train_utils import set_keras_session, get_loss, get_metrics
+from micro_dl.utils.train_utils import get_loss, get_metrics
 
 
 class BaseKerasTrainer:
     """Keras training class"""
 
-    def __init__(self, train_config, train_dataset, val_dataset,
+    def __init__(self, sess, train_config, train_dataset, val_dataset,
                  model, num_target_channels, gpu_ids=0, gpu_mem_frac=0.95):
         """Init
 
         Currently only model weights are stored and not the training state.
         Resume training needs to be modified!
 
+        :param tf.Session sess: keras session
         :param dict train_config: dict read from a config yaml, with parameters
          for training
         :param BaseDataSet/DataSetWithMask train_dataset: generator used for
@@ -34,6 +35,7 @@ class BaseKerasTrainer:
          to gpu_ids
         """
 
+        self.sess = sess
         self.gpu_ids = gpu_ids
         self.gpu_mem_frac = gpu_mem_frac
         self.verbose = 10
@@ -41,29 +43,22 @@ class BaseKerasTrainer:
         self.train_dataset = train_dataset
         self.val_dataset = val_dataset
         self.model = model
-        self.logger = self._init_train_logger()
 
         self.config = train_config
         os.makedirs(train_config['model_dir'], exist_ok=True)
         self.model_dir = train_config['model_dir']
         self.epochs = train_config['max_epochs']
         self.num_target_channels = num_target_channels
+        self.logger = self._init_train_logger()
 
-        if train_config['resume']:
+        self.resume_training = False
+        if 'resume' in train_config and train_config['resume']:
             self.resume_training = True
-        else:
-            self.resume_training = False
-
-        if gpu_ids == -1:
-            self.sess = None
-        else:
-            self.sess = set_keras_session(gpu_ids=gpu_ids,
-                                          gpu_mem_frac=gpu_mem_frac)
 
     def _init_train_logger(self):
         """Initialize logger for training"""
 
-        logger_fname = os.path.join(self.model_dir, 'training.log')
+        logger_fname = os.path.join(self.config['model_dir'], 'training.log')
         logger = init_logger('training', logger_fname, self.verbose)
         return logger
 
@@ -86,8 +81,8 @@ class BaseKerasTrainer:
         for cb_dict in callbacks_config:
             cb_cls = getattr(keras_callbacks, cb_dict)
             if cb_dict == 'ModelCheckpoint':
-                if cb_dict['save_best_only']:
-                    assert cb_dict['monitor'] is 'val_loss', \
+                if callbacks_config[cb_dict]['save_best_only']:
+                    assert callbacks_config[cb_dict]['monitor'] == 'val_loss',\
                         'cannot checkpoint best_model if monitor' \
                         'is not val_loss'
                 timestamp = strftime("%Y-%m-%d-%H-%M-%S", localtime())
@@ -150,10 +145,13 @@ class BaseKerasTrainer:
         :param metrics: a list of metrics instances
         """
 
-        if 'masked_loss' in self.config['trainer']:
+        if 'masked_loss' in self.config:
+            masked_metrics = [metric(self.num_target_channels)
+                              for metric in metrics]
             self.model.compile(loss=loss(self.num_target_channels),
-                               optimizer=optimizer, metrics=metrics)
-        elif 'loss_weights' in self.config['trainer']:
+                               optimizer=optimizer,
+                               metrics=masked_metrics)
+        elif 'loss_weights' in self.config:
             loss_wts = self.config['loss_weights']
             self.model.compile(loss=loss(loss_wts), optimizer=optimizer,
                                metrics=metrics)

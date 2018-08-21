@@ -18,7 +18,7 @@ from micro_dl.input.training_table import (
 from micro_dl.train.model_inference import load_model
 from micro_dl.train.trainer import BaseKerasTrainer
 from micro_dl.utils.aux_utils import import_class, check_if_present
-from micro_dl.utils.train_utils import check_gpu_availability
+from micro_dl.utils.train_utils import check_gpu_availability, set_keras_session
 
 
 def parse_args():
@@ -252,7 +252,16 @@ def run_action(args):
             pickle.dump(split_indices, f)
 
         K.set_image_data_format(network_config['data_format'])
-        if args.model:
+
+        if args.gpu == -1:
+            sess = None
+        else:
+            sess = set_keras_session(gpu_ids=args.gpu,
+                                     gpu_mem_frac=args.gpu_mem_frac)
+
+        if args.model_fname:
+            # load model only loads the weights, have to save intermediate
+            # states of gradients to resume training
             model = load_model(network_config, args.model_fname)
         else:
             model = create_network(network_config, args.gpu)
@@ -270,7 +279,8 @@ def run_action(args):
                 yaml.dump(config, f, default_flow_style=False)
 
         num_target_channels = network_config['num_target_channels']
-        trainer = BaseKerasTrainer(train_config=trainer_config,
+        trainer = BaseKerasTrainer(sess=sess,
+                                   train_config=trainer_config,
                                    train_dataset=train_dataset,
                                    val_dataset=val_dataset,
                                    model=model,
@@ -297,4 +307,4 @@ if __name__ == '__main__':
     if gpu_available or args.gpu == -1:
         run_action(args)
     else:
-        print('GPU %s not available'.format(args.gpu))
+        print('GPU {} not available'.format(args.gpu))

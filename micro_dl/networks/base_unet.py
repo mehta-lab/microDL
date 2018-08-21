@@ -1,5 +1,6 @@
 """Implementation of U-net"""
 from abc import ABCMeta, abstractmethod
+import numpy as np
 import tensorflow as tf
 from keras.layers import (
     Activation, BatchNormalization, Conv2D,
@@ -288,8 +289,8 @@ class BaseUNet(metaclass=ABCMeta):
             input_layer = layer
 
         #------------ output block ------------------------
-        final_activation = self.config['network']['final_activation']
-        num_output_channels = self.config['network']['num_target_channels']
+        final_activation = self.config['final_activation']
+        num_output_channels = self.config['num_target_channels']
         with tf.name_scope('output'):
             layer = self.Conv(filters=num_output_channels,
                               kernel_size=(1, ) * self.num_dims,

@@ -73,17 +73,17 @@ def generate_vf_wtd_mask(mask_image):
      values vf and 1-vf
     """
 
-    weights = K.batch_flatten(mask_image)
-    weights = K.cast(weights, 'float32')
+    mask_flat = K.batch_flatten(mask_image)
+    mask_flat = K.cast(mask_flat, 'float32')
 
-    fg_count = K.sum(weights, axis=1)
-    total_count = K.cast(K.shape(mask_image)[1], 'float32')
+    fg_count = K.sum(mask_flat, axis=1)
+    total_count = K.cast(K.shape(mask_flat)[1], 'float32')
     fg_vol_frac = tf.div(fg_count, total_count)
     bg_vol_frac = 1 - fg_vol_frac
     # fg_vf is a tensor
     fg_weights = tf.where(fg_vol_frac >= 0.5, fg_vol_frac, bg_vol_frac)
-    fg_mask = weights * K.expand_dims(fg_weights, axis=1)
-    bg_mask = (1 - weights) * K.expand_dims(1 - fg_weights, axis=1)
+    fg_mask = mask_flat * K.expand_dims(fg_weights, axis=1)
+    bg_mask = (1 - mask_flat) * K.expand_dims(1 - fg_weights, axis=1)
     mask = fg_mask + bg_mask
     return mask
 
@@ -107,7 +107,7 @@ def mse_masked(n_channels):
         y_true, mask_image = split_ytrue_mask(y_true, n_channels)
         y_true = K.batch_flatten(y_true)
         y_pred = K.batch_flatten(y_pred)
-        loss = mse_loss(y_true, y_pred)
+        loss = K.abs(y_pred - y_true)
         mask = generate_vf_wtd_mask(mask_image)
         modified_loss = K.mean(loss * mask, axis=1)
         # modified_loss = tf.Print(modified_loss, [modified_loss], message='modified_loss', summarize=16)
@@ -151,7 +151,9 @@ def mae_kl(loss_wts):
         y_true_hist = y_true_hist / total_count
         y_pred_hist = K.cast(y_pred_hist, 'float32')
         y_pred_hist = y_pred_hist / total_count
-        kl = kl_divergence_loss(y_true_hist, y_pred_hist)
+        y_true_hist = K.clip(y_true_hist, K.epsilon(), 1.0)
+        y_pred_hist = K.clip(y_pred_hist, K.epsilon(), 1.0)
+        kl = K.sum(y_true_hist * K.log(y_true_hist / y_pred_hist))
         loss = (K.cast(loss_wts[0], 'float32') * mae +
                 K.cast(loss_wts[1], 'float32') * kl)
         return loss
