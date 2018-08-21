@@ -5,7 +5,7 @@ import tensorflow as tf
 import micro_dl.train.metrics as metrics
 
 
-def mae_loss(y_true, y_pred):
+def mae_loss(y_true, y_pred, mean_loss=True):
     """Mean absolute error
 
     Keras losses by default calculate metrics along axis=-1, which works with
@@ -13,14 +13,20 @@ def mae_loss(y_true, y_pred):
     change axis if using 'channels_first
     """
 
+    if not mean_loss:
+        return K.abs(y_pred - y_true)
+
     if K.image_data_format() == 'channels_last':
         return K.mean(K.abs(y_pred - y_true), axis=-1)
     else:
         return K.mean(K.abs(y_pred - y_true), axis=1)
 
 
-def mse_loss(y_true, y_pred):
+def mse_loss(y_true, y_pred, mean_loss=True):
     """Mean squared loss"""
+
+    if not mean_loss:
+        return K.square(y_pred - y_true)
 
     if K.image_data_format() == 'channels_last':
         return K.mean(K.square(y_pred - y_true), axis=-1)
@@ -113,6 +119,34 @@ def mse_masked(n_channels):
         # modified_loss = tf.Print(modified_loss, [modified_loss], message='modified_loss', summarize=16)
         return modified_loss
     return mse_masked_loss
+
+
+def generate_wtd_mask(mask_image, mask_wts):
+    """Create a weighted mask"""
+    return mask
+
+
+def masked_loss(loss_fn, n_channels, mask_wts):
+    """Converts a loss function to mask weighted loss function
+
+    Loss is multiplied by mask. Assumes mask has n_unique values/labels.
+    Length of mask_wts is n_unique. Provides different weighting of loss for
+    different labels / class weighting
+
+    :param Function loss_fn:
+    :param int n_channels:
+    :param list/array mask_wts:
+    """
+
+    def masked_loss_fn(y_true, y_pred):
+        y_true, mask_image = split_ytrue_mask(y_true, n_channels)
+        y_true = K.batch_flatten(y_true)
+        y_pred = K.batch_flatten(y_pred)
+        loss = loss_fn(y_true, y_pred, mean_loss=False)
+        mask = generate_wtd_mask(mask_image, mask_wts)
+        modified_loss = K.mean(loss * mask, axis=1)
+        return modified_loss
+    return masked_loss_fn
 
 
 def dice_coef_loss(y_true, y_pred):
