@@ -25,7 +25,7 @@ def parse_args():
     parser.add_argument('--gpu', type=int, default=0,
                         help=('specify the gpu to use: 0,1,...',
                               ', -1 for debugging'))
-    parser.add_argument('--gpu_mem_frac', type=float, default=0.999,
+    parser.add_argument('--gpu_mem_frac', type=float, default=1.,
                         help='specify the gpu memory fraction to use')
     parser.add_argument('--action', type=str, default='train',
                         choices=('train', 'tune_hyperparam'),
