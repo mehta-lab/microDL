@@ -82,5 +82,6 @@ class LRFinder(Callback):
         plot_utils.save_plot(
             x=self.lrs,
             y=self.losses,
+            xy_labels=["Learning Rate", "Loss"],
             fig_name=self.fig_name,
         )
