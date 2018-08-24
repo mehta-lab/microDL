@@ -83,7 +83,7 @@ def create_masks(args):
         input_dir=args.input_dir,
         input_channel_id=args.channel_id,
         output_dir=args.output_dir,
-        utput_channel_id=args.mask_id,
+        output_channel_id=args.mask_id,
         correct_flat_field=args.flatfield,
         plot_masks=args.plot,
     )

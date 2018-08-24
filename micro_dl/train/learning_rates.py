@@ -38,7 +38,7 @@ class CyclicLearning(Callback):
         :param str scale_mode: Evaluate scaling on 'cycle' (default) or
             'iterations'
         """
-        super(CyclicLearning, self).__init__()
+        super().__init__()
 
         self.base_lr = base_lr
         self.max_lr = max_lr

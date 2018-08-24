@@ -24,7 +24,7 @@ trainer:
             base_lr: 0.0001
             max_lr: 0.01
             max_epochs: 3
-            fig_name: '/data/lr_finder_result.png'
+            fig_fname: '/data/lr_finder_result.png'
     optimizer:
         lr: 0.001
         name: Nadam

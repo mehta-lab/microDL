@@ -52,7 +52,7 @@ class MaskCreator:
 
         self.correct_flat_field = correct_flat_field
 
-        meta_fname = glob.glob(input_dir + "/*info.csv")
+        meta_fname = glob.glob(os.path.join(input_dir, "*info.csv"))
         assert len(meta_fname) == 1,\
             "Can't find info.csv file in {}".format(input_dir)
         study_metadata = pd.read_csv(meta_fname[0])
