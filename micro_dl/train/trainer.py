@@ -5,6 +5,7 @@ import os
 from time import localtime, strftime
 
 from micro_dl.train import learning_rates as custom_learning
+from micro_dl.train.losses import masked_loss
 from micro_dl.utils.aux_utils import init_logger
 from micro_dl.utils.train_utils import get_loss, get_metrics
 
@@ -148,13 +149,10 @@ class BaseKerasTrainer:
         if 'masked_loss' in self.config:
             masked_metrics = [metric(self.num_target_channels)
                               for metric in metrics]
-            self.model.compile(loss=loss(self.num_target_channels),
+            self.model.compile(loss=masked_loss(loss,
+                                                self.num_target_channels),
                                optimizer=optimizer,
                                metrics=masked_metrics)
-        elif 'loss_weights' in self.config:
-            loss_wts = self.config['loss_weights']
-            self.model.compile(loss=loss(loss_wts), optimizer=optimizer,
-                               metrics=metrics)
         else:
             self.model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
 
