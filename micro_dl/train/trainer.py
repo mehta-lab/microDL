@@ -4,8 +4,10 @@ from keras import optimizers as keras_optimizers
 import os
 from time import localtime, strftime
 
-from micro_dl.train import learning_rates as custom_learning
+
+import micro_dl.train.learning_rates as custom_learning
 from micro_dl.train.losses import masked_loss
+import micro_dl.train.lr_finder as lr_finder
 from micro_dl.utils.aux_utils import init_logger
 from micro_dl.utils.train_utils import get_loss, get_metrics
 
@@ -109,13 +111,23 @@ class BaseKerasTrainer:
                     verbose=callbacks_config[cb_dict]['verbose']
                 )
             elif cb_dict == 'LearningRateScheduler':
-                cur_cb = custom_learning.CyclicLearning(
-                    base_lr=callbacks_config[cb_dict]['base_lr'],
-                    max_lr=callbacks_config[cb_dict]['max_lr'],
-                    step_size=callbacks_config[cb_dict]['step_size'],
-                    gamma=callbacks_config[cb_dict]['gamma'],
-                    scale_mode=callbacks_config[cb_dict]['scale_mode'],
-                )
+                # Learning rate scheduler should be used either prior to
+                # training using LR finder, or for CLR during training
+                if callbacks_config[cb_dict]['lr_find']:
+                    cur_cb = lr_finder.LRFinder(
+                        base_lr=callbacks_config[cb_dict]['base_lr'],
+                        max_lr=callbacks_config[cb_dict]['max_lr'],
+                        max_epochs=callbacks_config[cb_dict]['max_epochs'],
+                        fig_name=callbacks_config[cb_dict]['fig_name'],
+                    )
+                else:
+                    cur_cb = custom_learning.CyclicLearning(
+                        base_lr=callbacks_config[cb_dict]['base_lr'],
+                        max_lr=callbacks_config[cb_dict]['max_lr'],
+                        step_size=callbacks_config[cb_dict]['step_size'],
+                        gamma=callbacks_config[cb_dict]['gamma'],
+                        scale_mode=callbacks_config[cb_dict]['scale_mode'],
+                    )
             elif cb_dict == 'TensorBoard':
                 log_dir = os.path.join(self.model_dir, 'tensorboard_logs')
                 os.makedirs(log_dir, exist_ok=True)
