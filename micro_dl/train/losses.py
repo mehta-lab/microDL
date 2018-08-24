@@ -70,33 +70,11 @@ def split_ytrue_mask(y_true, n_channels):
         print('cannot separate mask and y_true' + str(e))
 
 
-def generate_vf_wtd_mask(mask_image):
-    """Mask with values of vf and 1-vf in FG & BG, if vf>=0.5
+def masked_loss(loss_fn, n_channels):
+    """Converts a loss function to mask weighted loss function
 
-    Else 1-vf and vf in FG & BG. FG-foreground, BF-background. binary mask!
-    :param keras.tensor mask_image: with shape [batch_size, 1, y, x]
-    :return keras.tensor mask: flatten mask with shape [batch_size, y*x] with
-     values vf and 1-vf
-    """
-
-    mask_flat = K.batch_flatten(mask_image)
-    mask_flat = K.cast(mask_flat, 'float32')
-
-    fg_count = K.sum(mask_flat, axis=1)
-    total_count = K.cast(K.shape(mask_flat)[1], 'float32')
-    fg_vol_frac = tf.div(fg_count, total_count)
-    bg_vol_frac = 1 - fg_vol_frac
-    # fg_vf is a tensor
-    fg_weights = tf.where(fg_vol_frac >= 0.5, fg_vol_frac, bg_vol_frac)
-    fg_mask = mask_flat * K.expand_dims(fg_weights, axis=1)
-    bg_mask = (1 - mask_flat) * K.expand_dims(1 - fg_weights, axis=1)
-    mask = fg_mask + bg_mask
-    return mask
-
-
-def mse_masked(n_channels):
-    """Masked loss function
-
+    Loss is multiplied by mask. Mask could be binary, discrete or float.
+    Provides different weighting of loss according to the mask.
     https://github.com/keras-team/keras/blob/master/keras/engine/training_utils.py
     https://github.com/keras-team/keras/issues/3270
     https://stackoverflow.com/questions/46858016/keras-custom-loss-function-to-pass-arguments-other-than-y-true-and-y-pred
@@ -104,34 +82,7 @@ def mse_masked(n_channels):
     nested functions -> closures
     A Closure is a function object that remembers values in enclosing
     scopes even if they are not present in memory. Read only access!!
-
-    :mask_image: a binary image (assumes foreground / background classes)
-    :return: weighted loss
-    """
-
-    def mse_masked_loss(y_true, y_pred):
-        y_true, mask_image = split_ytrue_mask(y_true, n_channels)
-        y_true = K.batch_flatten(y_true)
-        y_pred = K.batch_flatten(y_pred)
-        loss = K.abs(y_pred - y_true)
-        mask = generate_vf_wtd_mask(mask_image)
-        modified_loss = K.mean(loss * mask, axis=1)
-        # modified_loss = tf.Print(modified_loss, [modified_loss], message='modified_loss', summarize=16)
-        return modified_loss
-    return mse_masked_loss
-
-
-def generate_wtd_mask(mask_image, mask_wts):
-    """Create a weighted mask"""
-    return mask
-
-
-def masked_loss(loss_fn, n_channels, mask_wts):
-    """Converts a loss function to mask weighted loss function
-
-    Loss is multiplied by mask. Assumes mask has n_unique values/labels.
-    Length of mask_wts is n_unique. Provides different weighting of loss for
-    different labels / class weighting
+    Histogram and logical operators are not differentiable, avoid them in loss
 
     :param Function loss_fn:
     :param int n_channels:
@@ -143,8 +94,10 @@ def masked_loss(loss_fn, n_channels, mask_wts):
         y_true = K.batch_flatten(y_true)
         y_pred = K.batch_flatten(y_pred)
         loss = loss_fn(y_true, y_pred, mean_loss=False)
-        mask = generate_wtd_mask(mask_image, mask_wts)
+        mask = K.batch_flatten(mask_image)
         modified_loss = K.mean(loss * mask, axis=1)
+        # modified_loss = tf.Print(modified_loss, [modified_loss],
+        # message='modified_loss', summarize=16)
         return modified_loss
     return masked_loss_fn
 
@@ -160,35 +113,3 @@ def dice_coef_loss(y_true, y_pred):
     :return: Dice loss
     """
     return 1. - metrics.dice_coef(y_true, y_pred)
-
-
-def mae_kl(loss_wts):
-    """Weighted sum of mae and kl losses
-
-    :param list loss_wts: weights for individual losses
-    :return: weighted loss of mae and kl
-    """
-
-    def mae_kl_loss(y_true, y_pred):
-        y_true = K.batch_flatten(y_true)
-        y_pred = K.batch_flatten(y_pred)
-        total_count = K.cast(K.shape(y_true)[1], 'float32')
-        mae = mae_loss(y_true, y_pred)
-
-        y_true_range = [K.min(y_true), K.max(y_true)]
-        y_true_hist = tf.histogram_fixed_width(y_true, y_true_range,
-                                               nbins=256, dtype=tf.int32)
-        y_pred_hist = tf.histogram_fixed_width(y_pred, y_true_range,
-                                               nbins=256, dtype=tf.int32)
-        # KL is for probability distributions, normalize hist
-        y_true_hist = K.cast(y_true_hist, 'float32')
-        y_true_hist = y_true_hist / total_count
-        y_pred_hist = K.cast(y_pred_hist, 'float32')
-        y_pred_hist = y_pred_hist / total_count
-        y_true_hist = K.clip(y_true_hist, K.epsilon(), 1.0)
-        y_pred_hist = K.clip(y_pred_hist, K.epsilon(), 1.0)
-        kl = K.sum(y_true_hist * K.log(y_true_hist / y_pred_hist))
-        loss = (K.cast(loss_wts[0], 'float32') * mae +
-                K.cast(loss_wts[1], 'float32') * kl)
-        return loss
-    return mae_kl_loss

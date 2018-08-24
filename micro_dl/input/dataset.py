@@ -70,6 +70,7 @@ class BaseDataSet(keras.utils.Sequence):
 
         input_image = []
         target_image = []
+        task = 'regression'
         for idx in range(start_idx, end_idx, 1):
             cur_input_fnames = self.input_fnames.iloc[self.row_idx[idx]]
             cur_target_fnames = self.target_fnames.iloc[self.row_idx[idx]]
@@ -122,8 +123,8 @@ class DataSetWithMask(BaseDataSet):
     """DataSet class that returns input, target images and sample weights"""
 
     def __init__(self, input_fnames, target_fnames, mask_fnames, batch_size,
-                 shuffle=True, augmentations=None, random_seed=42,
-                 normalize=False):
+                 label_weights=None, shuffle=True, augmentations=None,
+                 random_seed=42, normalize=False):
         """Init
 
         https://stackoverflow.com/questions/44747288/keras-sample-weight-array-error
@@ -136,6 +137,7 @@ class DataSetWithMask(BaseDataSet):
         :param pd.Series mask_fnames: pd.Series with each row containing
          mask filenames
         :param int batch_size: num of datasets in each batch
+        :param list label_weights: weight for each label
         :param bool shuffle: shuffle data for each epoch
         :param int random_seed: initialize the random number generator with
          this seed
@@ -144,6 +146,7 @@ class DataSetWithMask(BaseDataSet):
         super().__init__(input_fnames, target_fnames, batch_size,
                          shuffle, augmentations, random_seed, normalize)
         self.mask_fnames = mask_fnames
+        self.label_weights = label_weights
 
     def __getitem__(self, index):
         """Get a batch of data
@@ -161,6 +164,7 @@ class DataSetWithMask(BaseDataSet):
 
         input_image = []
         target_image = []
+        task = 'regression'
         for idx in range(start_idx, end_idx, 1):
             cur_input_fnames = self.input_fnames.iloc[self.row_idx[idx]]
             cur_target_fnames = self.target_fnames.iloc[self.row_idx[idx]]
@@ -183,7 +187,12 @@ class DataSetWithMask(BaseDataSet):
 
             # the mask is based on sum of flurophore images
             cur_mask = super()._get_volume(cur_mask_fnames.split(','))
-
+            if self.label_weights is not None:
+                wtd_mask = np.zeros(cur_mask.shape)
+                for lbl_idx in range(len(self.label_weights)):
+                    wtd_mask += (cur_mask == lbl_idx) * \
+                                self.label_weights[lbl_idx]
+                cur_mask = wtd_mask
             cur_target = np.concatenate((cur_target, cur_mask), axis=0)
 
             input_image.append(cur_input)

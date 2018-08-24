@@ -3,6 +3,7 @@ dataset:
     input_channels: [3]
     target_channels: [0]
     mask_channels: [0, 1]
+    label_weights: [1, 2]
     min_fraction: 0.15
     split_by_column: sample_num
     split_ratio:

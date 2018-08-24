@@ -153,6 +153,8 @@ def init_dataset_xymask(df_meta, dataset_config, trainer_config):
         train_metadata, val_metadata, test_metadata, split_idx = \
             tt.train_test_split()
         val_gen_params = {}
+        if 'label_weights' in dataset_config:
+            val_gen_params['label_weights'] = dataset_config['label_weights']
         if 'augmentations' in trainer_config:
             val_gen_params['augmentations'] = (
                 trainer_config['augmentations']
@@ -174,6 +176,8 @@ def init_dataset_xymask(df_meta, dataset_config, trainer_config):
         train_metadata, test_metadata, split_idx = tt.train_test_split()
         val_dataset = None
         train_gen_params = {}
+        if 'label_weights' in dataset_config:
+            train_gen_params['label_weights'] = dataset_config['label_weights']
         if 'augmentations' in trainer_config:
             train_gen_params['augmentations'] = (
                 trainer_config['augmentations']
@@ -189,11 +193,15 @@ def init_dataset_xymask(df_meta, dataset_config, trainer_config):
         batch_size=trainer_config['batch_size'],
         **train_gen_params
     )
+    test_gen_params = {}
+    if 'label_weights' in dataset_config:
+        test_gen_params['label_weights'] = dataset_config['label_weights']
     test_dataset = DataSetWithMask(
         input_fnames=test_metadata['fpaths_input'],
         target_fnames=test_metadata['fpaths_target'],
         mask_fnames=test_metadata['fpaths_mask'],
-        batch_size=trainer_config['batch_size']
+        batch_size=trainer_config['batch_size'],
+        **test_gen_params
     )
     return train_dataset, val_dataset, test_dataset, split_idx
 
