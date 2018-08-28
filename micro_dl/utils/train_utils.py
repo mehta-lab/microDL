@@ -13,17 +13,14 @@ def check_gpu_availability(gpu_id, gpu_mem_frac):
 
     :param int/list gpu_id: id of the gpu to be used. Int for single GPU
      training, list for distributed training
-    :param float/list gpu_mem_frac: mem fraction for each GPU in gpu_id
+    :param list gpu_mem_frac: mem fraction for each GPU in gpu_id
     :return bool gpu_availability: True if all mem_fracs are greater than
         gpu_mem_frac
     :return list curr_mem_frac: list of current memory fractions available
         for gpus in to gpu_id
     """
     if isinstance(gpu_id, int):
-        gpu_id = [gpu_id]
-
-    if isinstance(gpu_mem_frac, float):
-        gpu_mem_frac = [gpu_mem_frac]
+    gpu_id = [gpu_id]
 
     msg = 'There is no matching memory fraction for all the given gpu_ids'
     assert len(gpu_id) == len(gpu_mem_frac), msg
