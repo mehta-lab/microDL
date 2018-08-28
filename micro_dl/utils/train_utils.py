@@ -20,7 +20,7 @@ def check_gpu_availability(gpu_id, gpu_mem_frac):
         for gpus in to gpu_id
     """
     if isinstance(gpu_id, int):
-    gpu_id = [gpu_id]
+        gpu_id = [gpu_id]
 
     msg = 'There is no matching memory fraction for all the given gpu_ids'
     assert len(gpu_id) == len(gpu_mem_frac), msg
