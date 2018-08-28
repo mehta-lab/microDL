@@ -238,6 +238,6 @@ if __name__ == '__main__':
     else:
         raise ValueError(
             "Not enough memory available. Requested/current fractions:",
-            "\n".join([str(c) + " " + str(m)
+            "\n".join([str(c) + " / " + "{0:.4g}".format(m)
                        for c, m in zip(gpu_mem_frac, curr_mem_frac)]),
         )
