@@ -17,8 +17,9 @@ from micro_dl.input.training_table import (
 )
 from micro_dl.train.model_inference import load_model
 from micro_dl.train.trainer import BaseKerasTrainer
-from micro_dl.utils.aux_utils import import_class, check_if_present
-from micro_dl.utils.train_utils import check_gpu_availability, set_keras_session
+from micro_dl.utils.aux_utils import import_class, validate_config
+from micro_dl.utils.train_utils import check_gpu_availability, \
+    set_keras_session
 
 
 def parse_args():
@@ -64,7 +65,7 @@ def read_config(config_fname):
     return config
 
 
-def init_dataset_xy(df_meta, dataset_config, trainer_config):
+def create_datasets(df_meta, dataset_config, trainer_config):
     """Create train, val and test datasets
 
     Saves val_metadata.csv and test_metadata.csv for checking model performance
@@ -80,7 +81,8 @@ def init_dataset_xy(df_meta, dataset_config, trainer_config):
       numbers as values
     """
 
-    tt = BaseTrainingTable(df_meta, dataset_config['input_channels'],
+    tt = BaseTrainingTable(df_meta,
+                           dataset_config['input_channels'],
                            dataset_config['target_channels'],
                            dataset_config['split_by_column'],
                            dataset_config['split_ratio'])
@@ -125,7 +127,7 @@ def init_dataset_xy(df_meta, dataset_config, trainer_config):
     return train_dataset, val_dataset, test_dataset, split_idx
 
 
-def init_dataset_xymask(df_meta, dataset_config, trainer_config):
+def create_datasets_with_mask(df_meta, dataset_config, trainer_config):
     """Create train, val and test datasets
 
     :param pd.DataFrame df_meta: Dataframe containing info on split tiles
@@ -143,7 +145,8 @@ def init_dataset_xymask(df_meta, dataset_config, trainer_config):
         min_fraction = dataset_config['min_fraction']
     else:
         min_fraction = None
-    tt = TrainingTableWithMask(df_meta, dataset_config['input_channels'],
+    tt = TrainingTableWithMask(df_meta,
+                               dataset_config['input_channels'],
                                dataset_config['target_channels'],
                                dataset_config['mask_channels'],
                                dataset_config['split_by_column'],
@@ -216,7 +219,7 @@ def create_network(network_config, gpu_id):
     params = ['class', 'filter_size', 'activation', 'pooling_type',
               'batch_norm', 'height', 'width', 'data_format',
               'final_activation']
-    param_indicator = check_if_present(network_config, params)
+    param_indicator = validate_config(network_config, params)
     assert np.all(param_indicator), \
         'Params absent in network_config: %s'.format(
             params[param_indicator == 0]
@@ -234,6 +237,9 @@ def create_network(network_config, gpu_id):
 def run_action(args):
     """Performs training or tune hyper parameters
 
+    Lambda layers throw errors when converting to yaml!
+    model_yaml = self.model.to_yaml()
+
     :param Namespace args: namespace containing the arguments passed
     """
 
@@ -249,10 +255,10 @@ def run_action(args):
 
         if 'masked_loss' in trainer_config:
             train_dataset, val_dataset, test_dataset, split_indices = \
-                init_dataset_xymask(df_meta, dataset_config, trainer_config)
+                create_datasets_with_mask(df_meta, dataset_config, trainer_config)
         else:
             train_dataset, val_dataset, test_dataset, split_indices = \
-                init_dataset_xy(df_meta, dataset_config, trainer_config)
+                create_datasets(df_meta, dataset_config, trainer_config)
 
         split_idx_fname = os.path.join(trainer_config['model_dir'],
                                        'split_indices.pkl')
@@ -278,10 +284,6 @@ def run_action(args):
                        to_file=os.path.join(trainer_config['model_dir'],
                                             'model_graph.png'),
                        show_shapes=True, show_layer_names=True)
-            # Lambda layers throw errors when converting to yaml!
-            # model_yaml = self.model.to_yaml()
-            # with open(os.path.join(self.model_dir, 'model.yml'), 'w') as f:
-            #     f.write(model_yaml)
             with open(os.path.join(trainer_config['model_dir'],
                                    'config.yml'), 'w') as f:
                 yaml.dump(config, f, default_flow_style=False)

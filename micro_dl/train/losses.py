@@ -3,6 +3,7 @@ from keras import backend as K
 import tensorflow as tf
 
 import micro_dl.train.metrics as metrics
+from micro_dl.utils.aux_utils import get_channel_axis
 
 
 def mae_loss(y_true, y_pred, mean_loss=True):
@@ -16,10 +17,8 @@ def mae_loss(y_true, y_pred, mean_loss=True):
     if not mean_loss:
         return K.abs(y_pred - y_true)
 
-    if K.image_data_format() == 'channels_last':
-        return K.mean(K.abs(y_pred - y_true), axis=-1)
-    else:
-        return K.mean(K.abs(y_pred - y_true), axis=1)
+    channel_axis = get_channel_axis(K.image_data_format())
+    return K.mean(K.abs(y_pred - y_true), axis=channel_axis)
 
 
 def mse_loss(y_true, y_pred, mean_loss=True):
@@ -28,10 +27,8 @@ def mse_loss(y_true, y_pred, mean_loss=True):
     if not mean_loss:
         return K.square(y_pred - y_true)
 
-    if K.image_data_format() == 'channels_last':
-        return K.mean(K.square(y_pred - y_true), axis=-1)
-    else:
-        return K.mean(K.square(y_pred - y_true), axis=1)
+    channel_axis = get_channel_axis(K.image_data_format())
+    return K.mean(K.square(y_pred - y_true), axis=channel_axis)
 
 
 def kl_divergence_loss(y_true, y_pred):
@@ -45,7 +42,7 @@ def kl_divergence_loss(y_true, y_pred):
         return K.sum(y_true * K.log(y_true / y_pred), axis=1)
 
 
-def split_ytrue_mask(y_true, n_channels):
+def _split_ytrue_mask(y_true, n_channels):
     """Split the mask concatenated with y_true
 
     :param keras.tensor y_true: if channels_first, ytrue has shape [batch_size,
@@ -58,11 +55,7 @@ def split_ytrue_mask(y_true, n_channels):
     """
 
     try:
-        if K.image_data_format() == 'channels_first':
-            split_axis = 1
-        else:
-            split_axis = -1
-
+        split_axis = get_channel_axis(K.image_data_format())
         y_true_split, mask_image = tf.split(y_true, [n_channels, 1],
                                             axis=split_axis)
         return y_true_split, mask_image
@@ -83,21 +76,22 @@ def masked_loss(loss_fn, n_channels):
     A Closure is a function object that remembers values in enclosing
     scopes even if they are not present in memory. Read only access!!
     Histogram and logical operators are not differentiable, avoid them in loss
-
-    :param Function loss_fn:
-    :param int n_channels:
-    :param list/array mask_wts:
+    modified_loss = tf.Print(modified_loss, [modified_loss],
+                             message='modified_loss', summarize=16)
+    :param Function loss_fn: a loss function that returns a loss image to be
+     multiplied by mask
+    :param int n_channels: number of channels in y_true. The mask is added as
+     the last channel in y_true
+    :return function masked_loss_fn
     """
 
     def masked_loss_fn(y_true, y_pred):
-        y_true, mask_image = split_ytrue_mask(y_true, n_channels)
+        y_true, mask_image = _split_ytrue_mask(y_true, n_channels)
         y_true = K.batch_flatten(y_true)
         y_pred = K.batch_flatten(y_pred)
         loss = loss_fn(y_true, y_pred, mean_loss=False)
         mask = K.batch_flatten(mask_image)
         modified_loss = K.mean(loss * mask, axis=1)
-        # modified_loss = tf.Print(modified_loss, [modified_loss],
-        # message='modified_loss', summarize=16)
         return modified_loss
     return masked_loss_fn
 

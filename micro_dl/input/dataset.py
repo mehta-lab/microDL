@@ -12,8 +12,14 @@ class BaseDataSet(keras.utils.Sequence):
     https://github.com/aleju/imgaug
     """
 
-    def __init__(self, input_fnames, target_fnames, batch_size, shuffle=True,
-                 augmentations=None, random_seed=42, normalize=False):
+    def __init__(self,
+                 input_fnames,
+                 target_fnames,
+                 batch_size,
+                 shuffle=True,
+                 augmentations=None,
+                 random_seed=42,
+                 normalize=False):
         """Init
 
         The images could be normalized at the image level during tiling
@@ -122,9 +128,16 @@ class BaseDataSet(keras.utils.Sequence):
 class DataSetWithMask(BaseDataSet):
     """DataSet class that returns input, target images and sample weights"""
 
-    def __init__(self, input_fnames, target_fnames, mask_fnames, batch_size,
-                 label_weights=None, shuffle=True, augmentations=None,
-                 random_seed=42, normalize=False):
+    def __init__(self,
+                 input_fnames,
+                 target_fnames,
+                 mask_fnames,
+                 batch_size,
+                 label_weights=None,
+                 shuffle=True,
+                 augmentations=None,
+                 random_seed=42,
+                 normalize=False):
         """Init
 
         https://stackoverflow.com/questions/44747288/keras-sample-weight-array-error
@@ -143,8 +156,13 @@ class DataSetWithMask(BaseDataSet):
          this seed
         """
 
-        super().__init__(input_fnames, target_fnames, batch_size,
-                         shuffle, augmentations, random_seed, normalize)
+        super().__init__(input_fnames,
+                         target_fnames,
+                         batch_size,
+                         shuffle,
+                         augmentations,
+                         random_seed,
+                         normalize)
         self.mask_fnames = mask_fnames
         self.label_weights = label_weights
 
@@ -185,13 +203,13 @@ class DataSetWithMask(BaseDataSet):
                     cur_target = (cur_target - np.mean(cur_target)) /\
                                  np.std(cur_target)
 
-            # the mask is based on sum of flurophore images
+            # the mask is based on sum of channel images
             cur_mask = super()._get_volume(cur_mask_fnames.split(','))
             if self.label_weights is not None:
                 wtd_mask = np.zeros(cur_mask.shape)
-                for lbl_idx in range(len(self.label_weights)):
-                    wtd_mask += (cur_mask == lbl_idx) * \
-                                self.label_weights[lbl_idx]
+                for label_idx in range(len(self.label_weights)):
+                    wtd_mask += (cur_mask == label_idx) * \
+                                self.label_weights[label_idx]
                 cur_mask = wtd_mask
             cur_target = np.concatenate((cur_target, cur_mask), axis=0)
 

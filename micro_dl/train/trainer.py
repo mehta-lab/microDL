@@ -202,6 +202,7 @@ class BaseKerasTrainer:
                                      validation_data=self.val_dataset,
                                      epochs=self.epochs,
                                      callbacks=callbacks,
-                                     workers=4, verbose=1)
+                                     workers=4,
+                                     verbose=1)
         except Exception as e:
             self.logger.error('problems with fit_generator: ' + str(e))

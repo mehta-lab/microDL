@@ -10,7 +10,7 @@ from keras.layers import (
 )
 from keras.layers.merge import Add, Concatenate
 
-from micro_dl.utils.aux_utils import import_class, check_if_present
+from micro_dl.utils.aux_utils import import_class, validate_config
 
 
 class BaseUNet(metaclass=ABCMeta):
@@ -28,10 +28,13 @@ class BaseUNet(metaclass=ABCMeta):
         :param yaml network_config: yaml with all network associated parameters
         """
 
-        req_params = ['num_filters_per_block', 'num_convs_per_block',
-                      'skip_merge_type', 'upsampling', 'num_input_channels',
+        req_params = ['num_filters_per_block',
+                      'num_convs_per_block',
+                      'skip_merge_type',
+                      'upsampling',
+                      'num_input_channels',
                       'num_target_channels']
-        param_indicator = check_if_present(network_config, req_params)
+        param_indicator = validate_config(network_config, req_params)
         assert np.all(param_indicator), \
             'Params absent in network_config: %s'.format(
                 req_params[param_indicator == 0]

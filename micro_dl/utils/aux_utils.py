@@ -141,7 +141,7 @@ def save_tile_meta(cropped_meta,
     df.to_csv(metadata_fname, sep=',')
 
 
-def check_if_present(config_dict, params):
+def validate_config(config_dict, params):
     """Check if the required params are present in config
 
     :param dict config_dict: dictionary with params as keys
@@ -155,3 +155,19 @@ def check_if_present(config_dict, params):
                         (config_dict[exp_param] is not None)
         param_indicator[idx] = cur_indicator
     return param_indicator
+
+
+def get_channel_axis(data_format):
+    """Get the channel axis given the data format
+
+    :param str data_format: as named. [channels_last, channel_first]
+    :return int channel_axis
+    """
+
+    assert data_format in ['channels_first', 'channels_last'], \
+        'Invalid data format %s' % data_format
+    if data_format == 'channel_first':
+        channel_axis = 1
+    else:
+        channel_axis = -1
+    return channel_axis

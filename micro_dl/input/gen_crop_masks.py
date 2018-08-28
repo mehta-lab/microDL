@@ -24,11 +24,8 @@ class MaskProcessor:
          (flurophore) channels
         """
 
-        if image_dir.endswith(os.sep):
-            meta_fname = glob.glob(image_dir + '*info.csv')
-        else:
-            meta_fname = glob.glob(image_dir + os.sep + '*info.csv')
-            assert len(meta_fname) == 1, \
+        meta_fname = glob.glob(os.path.join(image_dir, '*info.csv'))
+        assert len(meta_fname) == 1, \
             "Can't find info.csv file in {}".format(image_dir)
 
         try:
