@@ -159,3 +159,19 @@ def validate_config(config_dict, params):
     msg = 'Params absent in network_config: {}'.\
         format(params[param_indicator == 0])
     return check, msg
+
+
+def get_channel_axis(data_format):
+    """Get the channel axis given the data format
+
+    :param str data_format: as named. [channels_last, channel_first]
+    :return int channel_axis
+    """
+
+    assert data_format in ['channels_first', 'channels_last'], \
+        'Invalid data format %s' % data_format
+    if data_format == 'channel_first':
+        channel_axis = 1
+    else:
+        channel_axis = -1
+    return channel_axis
