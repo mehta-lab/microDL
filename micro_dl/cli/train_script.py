@@ -218,9 +218,19 @@ if __name__ == '__main__':
     args = parse_args()
     gpu_available = False
     if args.gpu >= 0:
-        gpu_available = check_gpu_availability(args.gpu, args.gpu_mem_frac)
+        gpu_available, curr_mem_frac = check_gpu_availability(
+            args.gpu,
+            args.gpu_mem_frac
+        )
     if not isinstance(args.gpu, int):
         raise NotImplementedError
+
     # Allow run if gpu_available or debug
     if gpu_available or args.gpu == -1:
         run_action(args)
+    else:
+        raise ValueError(
+            "Not enough memory available. Requested/current fractions:",
+            "\n".join([str(c) + " " + str(m)
+                       for c, m in zip(args.gpu_mem_frac, curr_mem_frac)]),
+        )
