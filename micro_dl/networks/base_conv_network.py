@@ -37,6 +37,8 @@ class BaseConvNet(metaclass=ABCMeta):
             network_config['init'] = 'he_normal'
         if 'num_convs_per_block' not in network_config:
             network_config['num_convs_per_block'] = 2
+        if 'dropout' not in network_config:
+            network_config['dropout'] = 0.0
 
     @abstractmethod
     def build_net(self):
