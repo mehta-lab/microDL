@@ -10,11 +10,12 @@ class BaseConvNet(metaclass=ABCMeta):
     @abstractmethod
     def __init__(self, network_config):
         """Init
-        :param yaml network_config: yaml with all network associated parameters
+
+        :param dict network_config: dict with all network associated parameters
         """
 
         req_params = ['batch_norm', 'pooling_type', 'height', 'width',
-                      'data_format', 'num_input_channels']
+                      'data_format', 'num_input_channels', 'final_activation']
         param_check, msg = validate_config(network_config, req_params)
 
         if not param_check:
@@ -35,8 +36,6 @@ class BaseConvNet(metaclass=ABCMeta):
             network_config['padding'] = 'same'
         if 'init' not in network_config:
             network_config['init'] = 'he_normal'
-        if 'num_convs_per_block' not in network_config:
-            network_config['num_convs_per_block'] = 2
         if 'dropout' not in network_config:
             network_config['dropout'] = 0.0
 

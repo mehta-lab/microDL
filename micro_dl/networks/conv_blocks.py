@@ -1,12 +1,12 @@
 """Collection of different conv blocks typically used in conv nets"""
 import keras.backend as K
-from keras.layers import BatchNormalization, Conv2D, Conv3D, Dropout, Lambda
+from keras.layers import BatchNormalization, Dropout, Lambda
 from keras.layers.merge import Add, Concatenate
 import tensorflow as tf
 
 from micro_dl.utils.aux_utils import get_channel_axis
-from micro_dl.utils.network_utils import create_activation_layer,\
-    create_layer_sequence, get_keras_layer
+from micro_dl.utils.network_utils import create_activation_layer, \
+    get_keras_layer
 
 
 def conv_block(layer, network_config, block_idx):
@@ -38,32 +38,29 @@ def conv_block(layer, network_config, block_idx):
     """
 
     conv = get_keras_layer(type='conv', num_dims=network_config['num_dims'])
-    activation_layer_instance = create_activation_layer(
-        network_config['activation']
-    )
-    bn_instance = BatchNormalization(axis=get_channel_axis(
-                network_config['data_format']
-    ))
-    block_sequence = create_layer_sequence(network_config['block_sequence'],
-                                           conv,
-                                           bn_instance,
-                                           activation_layer_instance)
+    block_sequence = network_config['block_sequence'].split('-')
     for _ in range(network_config['num_convs_per_block']):
-        for cur_layer in block_sequence:
-            if isinstance(cur_layer, (Conv2D, Conv3D)):
-                layer = conv(filters=network_config['num_filters'][block_idx],
-                             kernel_size=network_config['filter_size'],
-                             padding=network_config['padding'],
-                             kernel_initializer=network_config['init'],
-                             data_format=network_config['data_format'])(layer)
-            elif isinstance(cur_layer, BatchNormalization) and \
-                    network_config['batch_norm']:
-                layer = bn_instance(layer)
+        for cur_layer_type in block_sequence:
+            if cur_layer_type == 'conv':
+                layer = conv(
+                    filters=network_config['num_filters_per_block'][block_idx],
+                    kernel_size=network_config['filter_size'],
+                    padding=network_config['padding'],
+                    kernel_initializer=network_config['init'],
+                    data_format=network_config['data_format'])(layer)
+            elif cur_layer_type == 'bn' and network_config['batch_norm']:
+                layer = BatchNormalization(
+                    axis=get_channel_axis(network_config['data_format'])
+                )(layer)
             else:
+                activation_layer_instance = create_activation_layer(
+                    network_config['activation']
+                )
                 layer = activation_layer_instance(layer)
 
         if network_config['dropout']:
             layer = Dropout(network_config['dropout'])(layer)
+
     return layer
 
 
@@ -77,33 +74,29 @@ def downsample_conv_block(layer, network_config, block_idx):
     """
 
     conv = get_keras_layer(type='conv', num_dims=network_config['num_dims'])
-    activation_layer_instance = create_activation_layer(
-        network_config['activation']
-    )
-    bn_instance = BatchNormalization(axis=get_channel_axis(
-                network_config['data_format']
-    ))
-    block_sequence = create_layer_sequence(network_config['block_sequence'],
-                                           conv,
-                                           bn_instance,
-                                           activation_layer_instance)
+    block_sequence = network_config['block_sequence'].split('-')
     for conv_idx in range(network_config['num_convs_per_block']):
-        for cur_layer in block_sequence:
-            if isinstance(cur_layer, (Conv2D, Conv3D)):
+        for cur_layer_type in block_sequence:
+            if cur_layer_type == 'conv':
                 if block_idx > 0 and conv_idx == 0:
                     stride = (2, ) * network_config['num_dims']
                 else:
                     stride = (1, ) * network_config['num_dims']
-                layer = conv(filters=network_config['num_filters'][block_idx],
-                             kernel_size=network_config['filter_size'],
-                             strides=stride,
-                             padding=network_config['padding'],
-                             kernel_initializer=network_config['init'],
-                             data_format=network_config['data_format'])(layer)
-            elif isinstance(cur_layer, BatchNormalization) and \
-                    network_config['batch_norm']:
-                layer = bn_instance(layer)
+                layer = conv(
+                    filters=network_config['num_filters_per_block'][block_idx],
+                    kernel_size=network_config['filter_size'],
+                    strides=stride,
+                    padding=network_config['padding'],
+                    kernel_initializer=network_config['init'],
+                    data_format=network_config['data_format'])(layer)
+            elif cur_layer_type == 'bn' and network_config['batch_norm']:
+                layer = BatchNormalization(
+                    axis=get_channel_axis(network_config['data_format'])
+                )(layer)
             else:
+                activation_layer_instance = create_activation_layer(
+                    network_config['activation']
+                )
                 layer = activation_layer_instance(layer)
 
         if network_config['dropout']:
@@ -111,7 +104,7 @@ def downsample_conv_block(layer, network_config, block_idx):
     return layer
 
 
-def _pad_channels(input_layer, final_layer, channel_axis):
+def pad_channels(input_layer, final_layer, channel_axis):
     """Zero pad along channels before residual/skip merge
 
     :param keras.layers input_layer:
@@ -177,9 +170,8 @@ def _merge_residual(final_layer,
     elif num_input_layers < num_final_layers:
         # padding with zeros along channels
         input_layer = Lambda(
-                      _pad_channels,
-                      arguments={'num_desired_channels': num_final_layers,
-                                 'final_layer': final_layer,
+                      pad_channels,
+                      arguments={'final_layer': final_layer,
                                  'channel_axis': channel_axis})(input_layer)
     layer = Add()([final_layer, input_layer])
     return layer
@@ -213,18 +205,18 @@ def residual_downsample_conv_block(layer, network_config, block_idx):
     :return: keras.layers after conv-block and residual merge
     """
 
-    input_layer = layer
     if block_idx == 0:
+        input_layer = layer
         final_layer = conv_block(layer, network_config, block_idx)
     else:
         final_layer = downsample_conv_block(layer, network_config, block_idx)
         pool_layer = get_keras_layer(type=network_config['pooling_type'],
                                      num_dims=network_config['num_dims'])
-        pool_size = (2,) * network_config['num_dims']
+        pool_size = (2, ) * network_config['num_dims']
         downsampled_input_layer = pool_layer(
             pool_size=pool_size,
             data_format=network_config['data_format']
-        )
+        )(layer)
         input_layer = downsampled_input_layer
 
     layer = _merge_residual(final_layer=final_layer,

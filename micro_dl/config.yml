@@ -15,18 +15,17 @@ trainer:
     model_dir: '/home/krishnan/models_labelfree/tile256_bs16_mse'
     batch_size: 32
     max_epochs: 200
-    patience: 20
     metrics: coeff_determination
     loss: mean_squared_error
     callbacks:
         EarlyStopping:
             mode: min
             monitor: val_loss
-            patience: 10
+            patience: 50
             verbose: True
         ModelCheckpoint:
             mode: min
-            monitor: train_loss
+            monitor: val_loss
             save_best_only: True
             verbose: True
         TensorBoard:
@@ -36,20 +35,23 @@ trainer:
         lr: 0.0001
         name: Adam
 network:
-    class: UNet2D
-    num_filters_per_block: [16, 32, 64, 96, 128]
-    num_convs_per_block: 2
-    filter_size: 3
-    batch_norm: True
-    activation: relu
-    pooling_type: max
-    skip_merge_type: concat
-    upsampling: bilinear
-    dropout: 0.2
-    residual: True
+    class: UNet3D
+    num_input_channels: 1
+    data_format: 'channels_first'
     height: 256
     width: 256
-    num_input_channels: 1
+    depth: 64
+    batch_norm: True
+    pooling_type: max
+    filter_size: 3
+    activation:
+        type: relu
+    dropout: 0.2
+    num_filters_per_block: [16, 32]
+    num_convs_per_block: 2
+    block_sequence: conv-activation-bn
+    skip_merge_type: concat
+    upsampling: bilinear
+    residual: True
     num_target_channels: 1
-    data_format: 'channels_first'
-    final_activation: elu
+    final_activation: linear

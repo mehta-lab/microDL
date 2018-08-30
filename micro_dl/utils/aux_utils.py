@@ -170,7 +170,7 @@ def get_channel_axis(data_format):
 
     assert data_format in ['channels_first', 'channels_last'], \
         'Invalid data format %s' % data_format
-    if data_format == 'channel_first':
+    if data_format == 'channels_first':
         channel_axis = 1
     else:
         channel_axis = -1
