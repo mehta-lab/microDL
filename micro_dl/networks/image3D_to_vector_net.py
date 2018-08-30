@@ -1,9 +1,9 @@
-"""Unet 2D"""
-from micro_dl.networks.base_unet import BaseUNet
+"""Image 3D to vector / scalar conv net"""
+from micro_dl.networks.base_image_to_vector_net import BaseImageToVectorNet
 
 
-class UNet2D(BaseUNet):
-    """2D UNet"""
+class Image3DToVectorNet(BaseImageToVectorNet):
+    """Uses 3D images as input"""
 
     @property
     def _get_input_shape(self):
@@ -12,9 +12,11 @@ class UNet2D(BaseUNet):
         if self.config['data_format'] == 'channels_first':
             shape = (self.config['num_input_channels'],
                      self.config['width'],
-                     self.config['height'])
+                     self.config['height'],
+                     self.config['depth'])
         else:
             shape = (self.config['width'],
                      self.config['height'],
+                     self.config['depth'],
                      self.config['num_input_channels'])
         return shape
