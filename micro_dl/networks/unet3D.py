@@ -14,10 +14,14 @@ class UNet3D(BaseUNet):
     def _get_input_shape(self):
         """Return shape of input"""
 
-        shape = (
-            self.config['num_input_channels'],
-            self.config['depth'],
-            self.config['height'],
-            self.config['width']
-        )
+        if self.config['data_format'] == 'channels_first':
+            shape = (self.config['num_input_channels'],
+                     self.config['width'],
+                     self.config['height'],
+                     self.config['depth'])
+        else:
+            shape = (self.config['width'],
+                     self.config['height'],
+                     self.config['depth'],
+                     self.config['num_input_channels'])
         return shape

@@ -72,7 +72,11 @@ class BaseUNet(BaseConvNet):
 
         self.num_down_blocks = num_down_blocks
 
-    def _upsampling_block(self, input_layers, skip_layers, block_idx):
+    def _upsampling_block(self,
+                          input_layers,
+                          skip_layers,
+                          block_idx,
+                          upsampling_shape=None):
         """Upsampling blocks of U net
 
         The skip layers could be either concatenated or added
@@ -81,18 +85,22 @@ class BaseUNet(BaseConvNet):
         :param keras.layers skip_layers: skip layers from the downsampling path
         :param int block_idx: block in the downsampling path to be used for
          skip connection
+        :param tuple upsampling_shape: allows for anisotropic upsampling
         :return: keras.layers after upsampling, skip-merge, conv block
         """
+
+        if upsampling_shape is None:
+            upsampling_shape = (2, ) * self.config['num_dims']
 
         # upsampling
         if self.config['upsampling'] == 'repeat':
             layer_upsampled = self.UpSampling(
-                size=(2, ) * self.config['num_dims'],
+                size=upsampling_shape,
                 data_format=self.config['data_format']
             )(input_layers)
         else:
             layer_upsampled = self.UpSampling(
-                size=(2,) * self.config['num_dims'],
+                size=upsampling_shape,
                 data_format=self.config['data_format'],
                 interp_type=self.config['upsampling']
             )(input_layers)
@@ -120,13 +128,25 @@ class BaseUNet(BaseConvNet):
                                block_idx=block_idx)
         return layer
 
-    def build_net(self):
-        """Assemble the network"""
+    def _downsampling_branch(self,
+                             input_layer,
+                             filter_shape=None,
+                             downsample_shape=None):
+        """Downsampling half of U-net
 
-        with tf.name_scope('input'):
-            input_layer = inputs = Input(shape=self._get_input_shape)
+        :param keras.layer input_layer: must be the output of Input layer
+        :param tuple filter_shape: filter size is an int for most cases.
+         filter_shape enables passing anisotropic filter shapes
+        :return keras.layer layer: output layer of bridge/middle block
+         skip_layers_list: list of all skip layers
+        """
 
-        # ---------- Downsampling + middle blocks ---------
+        if filter_shape is not None:
+            self.config['filter_size'] = filter_shape
+
+        if downsample_shape is None:
+            downsample_shape = (2,) * self.config['num_dims']
+
         skip_layers_list = []
         for block_idx in range(self.num_down_blocks + 1):
             block_name = 'down_block_{}'.format(block_idx + 1)
@@ -135,7 +155,8 @@ class BaseUNet(BaseConvNet):
                     layer = residual_downsample_conv_block(
                         layer=input_layer,
                         network_config=self.config,
-                        block_idx=block_idx
+                        block_idx=block_idx,
+                        downsample_shape=downsample_shape
                     )
                     skip_layers_list.append(layer)
                 else:
@@ -149,13 +170,23 @@ class BaseUNet(BaseConvNet):
                             num_dims=self.config['num_dims']
                         )
                         layer = pool_object(
-                            pool_size=(2, ) * self.config['num_dims'],
+                            pool_size=downsample_shape,
                             data_format=self.config['data_format']
                         )(layer)
-                        print('layer after pooling', layer.get_shape())
             input_layer = layer
         del skip_layers_list[-1]
+        return layer, skip_layers_list
 
+    def build_net(self):
+        """Assemble the network"""
+
+        with tf.name_scope('input'):
+            input_layer = inputs = Input(shape=self._get_input_shape)
+
+        # ---------- Downsampling + middle blocks ---------
+        input_layer, skip_layers_list = self._downsampling_branch(
+            input_layer=input_layer
+        )
 
         # ------------- Upsampling / decoding blocks -------------
         for block_idx in reversed(range(self.num_down_blocks)):

@@ -30,6 +30,8 @@ class BaseConvNet(metaclass=ABCMeta):
             'invalid data format. Not in [channels_first or channels_last]'
 
         # fill in default values
+        if 'filter_size' not in network_config:
+            network_config['filter_size'] = 3
         if 'activation' not in network_config:
             network_config['activation']['type'] = 'relu'
         if 'padding' not in network_config:
@@ -38,6 +40,10 @@ class BaseConvNet(metaclass=ABCMeta):
             network_config['init'] = 'he_normal'
         if 'dropout' not in network_config:
             network_config['dropout'] = 0.0
+
+        dropout_prob = network_config['dropout']
+        assert 0.0 <= dropout_prob < 0.7, 'invalid dropout probability'
+        self.dropout_prob = dropout_prob
 
     @abstractmethod
     def build_net(self):

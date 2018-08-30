@@ -64,12 +64,16 @@ def conv_block(layer, network_config, block_idx):
     return layer
 
 
-def downsample_conv_block(layer, network_config, block_idx):
+def downsample_conv_block(layer,
+                          network_config,
+                          block_idx,
+                          downsample_shape=None):
     """Conv-BN-activation block
 
     :param keras.layers layer: current input layer
     :param dict network_config: please check conv_block()
     :param int block_idx: block index in the network
+    :param tuple downsample_shape: anisotropic downsampling kernel shape
     :return: keras.layers after downsampling and conv_block
     """
 
@@ -79,7 +83,10 @@ def downsample_conv_block(layer, network_config, block_idx):
         for cur_layer_type in block_sequence:
             if cur_layer_type == 'conv':
                 if block_idx > 0 and conv_idx == 0:
-                    stride = (2, ) * network_config['num_dims']
+                    if downsample_shape is None:
+                        stride = (2, ) * network_config['num_dims']
+                    else:
+                        stride = downsample_shape
                 else:
                     stride = (1, ) * network_config['num_dims']
                 layer = conv(
@@ -196,25 +203,33 @@ def residual_conv_block(layer, network_config, block_idx):
     return layer
 
 
-def residual_downsample_conv_block(layer, network_config, block_idx):
+def residual_downsample_conv_block(layer, network_config, block_idx,
+                                   downsample_shape=None):
     """Convolution block where the last layer is merged (+) with input layer
 
     :param keras.layers layer: current input layer
     :param dict network_config: please check conv_block()
     :param int block_idx: block index in the network
+    :param tuple downsample_shape: anisotropic downsampling kernel shape
     :return: keras.layers after conv-block and residual merge
     """
+
+    if downsample_shape is None:
+        downsample_shape = (2, ) * network_config['num_dims']
 
     if block_idx == 0:
         input_layer = layer
         final_layer = conv_block(layer, network_config, block_idx)
     else:
-        final_layer = downsample_conv_block(layer, network_config, block_idx)
+        final_layer = downsample_conv_block(layer=layer,
+                                            network_config=network_config,
+                                            block_idx=block_idx,
+                                            downsample_shape=downsample_shape)
+
         pool_layer = get_keras_layer(type=network_config['pooling_type'],
                                      num_dims=network_config['num_dims'])
-        pool_size = (2, ) * network_config['num_dims']
         downsampled_input_layer = pool_layer(
-            pool_size=pool_size,
+            pool_size=downsample_shape,
             data_format=network_config['data_format']
         )(layer)
         input_layer = downsampled_input_layer

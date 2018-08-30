@@ -9,15 +9,17 @@ class UNet2D(BaseUNet):
         """Init"""
 
         super().__init__(network_config=network_config)
-        print('init', self.UpSampling)
 
     @property
     def _get_input_shape(self):
         """Return shape of input"""
 
-        shape = (
-            self.config['num_input_channels'],
-            self.config['height'],
-            self.config['width']
-        )
+        if self.config['data_format'] == 'channels_first':
+            shape = (self.config['num_input_channels'],
+                     self.config['width'],
+                     self.config['height'])
+        else:
+            shape = (self.config['width'],
+                     self.config['height'],
+                     self.config['num_input_channels'])
         return shape
