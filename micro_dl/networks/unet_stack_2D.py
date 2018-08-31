@@ -1,10 +1,9 @@
 """Predict the center slice from a stack of 3-5 slices"""
 import tensorflow as tf
 import warnings
-from keras.layers import Activation, Conv3D, Input, UpSampling3D
+from keras.layers import Activation, Conv3D, Input
 
 from micro_dl.networks.base_unet import BaseUNet
-from micro_dl.utils.aux_utils import import_class, validate_config
 
 
 class UNetStackTo2D(BaseUNet):
@@ -16,21 +15,11 @@ class UNetStackTo2D(BaseUNet):
         :param dict network_config: dict with all network associated parameters
         """
 
+        assert 'depth' in network_config, 'depth is missing in network config'
         super().__init__(network_config)
-        req_params = ['depth']
-        param_check, msg = validate_config(network_config, req_params)
-        if not param_check:
-            raise ValueError(msg)
-
         if network_config['depth'] > 5:
             warnings.warn('using more than 5 slices to predict center slice',
                           Warning)
-        self.config['num_dims'] = 3
-        if self.config['upsampling'] == 'repeat':
-            self.UpSampling = UpSampling3D
-        else:
-            self.UpSampling = import_class('networks',
-                                           'InterpUpSampling3D')
 
     def _skip_block(self, input_layer, num_slices, num_filters):
         """Converts skip layers from 3D to 2D: 1x1 along Z
@@ -66,11 +55,19 @@ class UNetStackTo2D(BaseUNet):
         num_slices = self.config['depth']
         filter_shape = (filter_size, filter_size, num_slices)
 
-        input_layer, skip_layers_list = super()._downsampling_branch(
-            input_layer=input_layer,
-            filter_shape=filter_shape,
-            downsample_shape=(2, 2, 1)
-        )
+        skip_layers_list = []
+        for block_idx in range(self.num_down_blocks + 1):
+            block_name = 'down_block_{}'.format(block_idx + 1)
+            with tf.name_scope(block_name):
+                layer, cur_skip_layers = super()._downsampling_block(
+                    input_layer=input_layer,
+                    block_idx=block_idx,
+                    filter_shape=filter_shape,
+                    downsample_shape=(2, 2, 1)
+                )
+            skip_layers_list.append(cur_skip_layers)
+            input_layer = layer
+        del skip_layers_list[-1]
 
         #  ---------- skip block before upsampling ---------
         block_name = 'skip_block_{}'.format(

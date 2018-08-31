@@ -40,14 +40,14 @@ network:
     data_format: 'channels_first'
     height: 256
     width: 256
-    depth: 64
+    depth: 8
     batch_norm: True
     pooling_type: max
     filter_size: 3
     activation:
         type: relu
     dropout: 0.2
-    num_filters_per_block: [16, 32]
+    num_filters_per_block: [16, 32, 48]
     num_convs_per_block: 2
     block_sequence: conv-activation-bn
     skip_merge_type: concat

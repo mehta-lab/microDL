@@ -45,7 +45,6 @@ class BaseImageToVectorNet(BaseConvNet):
 
         max_num_conv_blocks = int(np.log2(self.config['height'])) + 1
         self.max_num_conv_blocks = max_num_conv_blocks
-        print(max_num_conv_blocks)
 
         if 'num_initial_filters' in self.config:
             assert 'num_filters_per_block' not in self.config, \
