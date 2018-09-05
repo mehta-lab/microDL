@@ -16,6 +16,8 @@ class UNetStackTo2D(BaseUNet):
         """
 
         assert 'depth' in network_config, 'depth is missing in network config'
+        assert network_config['depth'] % 2 != 0, \
+            'depth is even. Expecting an odd value to predict center slice'
         super().__init__(network_config)
         if network_config['depth'] > 5:
             warnings.warn('using more than 5 slices to predict center slice',
@@ -118,11 +120,11 @@ class UNetStackTo2D(BaseUNet):
 
         if self.config['data_format'] == 'channels_first':
             shape = (1,
-                     self.config['width'],
+                     self.config['depth'],
                      self.config['height'],
-                     self.config['depth'])
+                     self.config['width'])
         else:
-            shape = (self.config['width'],
+            shape = (self.config['depth'],
                      self.config['height'],
-                     self.config['depth'], 1)
+                     self.config['width'], 1)
         return shape

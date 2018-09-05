@@ -55,7 +55,7 @@ class BaseUNet(BaseConvNet):
         assert upsampling in ['bilinear', 'nearest_neighbor', 'repeat'], msg
 
         self.config = network_config
-        if 'depth' in network_config:
+        if 'depth' in network_config and self.config['depth'] > 1:
             self.config['num_dims'] = 3
             if upsampling == 'repeat':
                 self.UpSampling = UpSampling3D

@@ -15,18 +15,16 @@ from micro_dl.utils.network_utils import get_keras_layer, \
 
 
 class BaseImageToVectorNet(BaseConvNet):
-    """Network for regression/classification from a set if images"""
+    """Network for regression/classification from a set of images"""
 
     def __init__(self, network_config):
         """Init
 
-        This network resembles the downsampling half of a (res-)Unet rather
+        This network resembles the down-sampling half of a (res-)Unet rather
         than VGG or res-net or inception. Config can be tweaked to get
         VGG-like (num_convs_per_block=3, residual=False) or
         res-net like (num_convs_per_block=1, residual=True) networks.
         No Inception module!!
-        Prefer to add dropout to convolution blocks and l1 or l2 regularizer
-        for weights in FC layers
 
         :param dict network_config: dict with all network associated parameters
         """
@@ -53,6 +51,9 @@ class BaseImageToVectorNet(BaseConvNet):
                           'image. If not, provide num_filters_per_block'
                           'instead of num_initial_filters', Warning)
 
+            assert network_config['width'] == network_config['height'], \
+                'Expecting a square image for receptive field = full image'
+
             num_init_filters = self.config['num_initial_filters']
             num_filters_per_block = (
                 [int(num_init_filters * 2 ** block_idx)
@@ -70,7 +71,7 @@ class BaseImageToVectorNet(BaseConvNet):
         self.config['num_filters_per_block'] = num_filters_per_block
         self.num_conv_blocks = num_conv_blocks
 
-        if 'depth' in self.config:
+        if 'depth' in self.config and self.config['depth'] > 1:
             self.config['num_dims'] = 3
         else:
             self.config['num_dims'] = 2
@@ -131,14 +132,15 @@ class BaseImageToVectorNet(BaseConvNet):
         num_units = np.prod(num_units)
         regression_length = self.config['regression_length']
 
-        if 'num_dense_units' in self.config:
+        if 'num_dense_units' in self.config and \
+                len(self.config['num_dense_units']) > 1:
             dense_units = self.config['num_dense_units']
         else:
             if self.num_conv_blocks == self.max_num_conv_blocks:
                 if num_units / 16 > regression_length:
                     dense_units = np.array([num_units / 2, num_units / 4,
                                             num_units / 8, num_units / 16],
-                                            dtype='int')
+                                           dtype='int')
                 elif num_units / 8 > regression_length:
                     dense_units = np.array([num_units / 2, num_units / 4,
                                             num_units / 8], dtype='int')
@@ -149,8 +151,6 @@ class BaseImageToVectorNet(BaseConvNet):
                     raise ValueError(
                         'num features extracted < 4 * regression_length'
                     )
-            else:
-                raise ValueError('num_dense_units not provided')
 
         prev_dense_layer = Flatten()(layer)
         for dense_idx in range(len(dense_units)):

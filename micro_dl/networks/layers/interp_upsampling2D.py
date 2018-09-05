@@ -56,16 +56,16 @@ class InterpUpSampling2D(Layer, metaclass=ABCMeta):
         super().build(input_shape)
 
     def _get_output_shape(self, input_shape):
-        """Compute shape of input in channels_last format
+        """Compute shape of output in channels_last format
 
         :param tuple/list/np.array input_shape: shape of the input tensor
         :return: width and height of the upsampled image
         """
 
         width = int(self.size[0] * input_shape[1]
-                    if input_shape[2] is not None else None)
+                    if input_shape[1] is not None else None)
         height = int(self.size[1] * input_shape[2]
-                     if input_shape[3] is not None else None)
+                     if input_shape[2] is not None else None)
         return width, height
 
     def compute_output_shape(self, input_shape):

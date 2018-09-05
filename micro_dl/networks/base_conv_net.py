@@ -12,6 +12,31 @@ class BaseConvNet(metaclass=ABCMeta):
         """Init
 
         :param dict network_config: dict with all network associated parameters
+         str class: class of the network to be used
+         int num_input_channels: as named
+         str data_format: as named. [channels_last, channels_first]
+         int height: as named
+         int width: as named
+         int depth: as named (only for 3D networks)
+         str padding: default is 'same'. [same, valid]
+         str init: method used for initializing weights. default 'he_normal'
+         dict activation: keys: type: activation type (default: relu), and
+          params: other advanced activation related params
+         bool batch_norm: indicator for batch norm
+         str pooling_type: ['max', 'average']
+         int/tuple filter_size: tuple for anisotropic filters. default = 3
+         float dropout: as named. default=0.0
+         str block_sequence: order of conv, BN and activation
+         int num_filters_per_block: as named
+         int num_convs_per_block: as named.
+         int num_dims: dimensionality of the filter
+         bool residual: make the blocks residual
+         str skip_merge_type: [add, concat] for Unet variants
+         str upsampling: [repeat, bilinear, nearest_neighbor] for Unet variants
+         int num_target_channels: for unet variants
+         str kernel_regularizer: for networks with dense layers. Instace of
+          keras.regularizers [l1, l2 or l1l2]
+         float dropout_dense: dropout probability for dense layers
         """
 
         req_params = ['batch_norm', 'pooling_type', 'height', 'width',
@@ -21,9 +46,6 @@ class BaseConvNet(metaclass=ABCMeta):
         if not param_check:
             raise ValueError(msg)
         self.config = network_config
-
-        assert network_config['height'] == network_config['width'], \
-            'The network expects a square image'
 
         assert network_config['data_format'] in ['channels_first',
                                                  'channels_last'], \

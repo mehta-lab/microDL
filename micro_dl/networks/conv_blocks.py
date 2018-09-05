@@ -16,22 +16,11 @@ def conv_block(layer, network_config, block_idx):
      BN-activation-conv]
     To accommodate params of advanced activations, activation is a dict with
      keys 'type' and 'params'.
+    For a complete list of keys in network_config, refer to
+    BaseConvNet.__init__() in base_conv_net.py
 
     :param keras.layers layer: current input layer
-    :param dict network_config: dict with the following keys
-     int num_convs_per_block: as named
-     int num_filters: as named
-     tuple filter_size: as named
-     dict activation: keys: type: activation type, and params: other advanced
-      activation related params
-     str init: method used for initializing weights
-     str padding: as named
-     bool batch_norm: indicator for batch norm
-     float dropout_prob: as named
-     str data_format: as named. [channels_last, channels_first]
-     int num_dims: dimensionality of the filter
-     str block_sequence: order of conv, BN and activation
-     float dropout: dropout probablility ...
+    :param dict network_config: dict with network related keys
     :param int block_idx: block index in the network
     :return: keras.layers after performing operations in block-sequence
      repeated for num_convs_per_block times
@@ -127,18 +116,16 @@ def pad_channels(input_layer, final_layer, channel_axis):
                                [num_zero_channels, num_input_layers],
                                axis=channel_axis)
     if num_zero_channels % 2 == 0:
-        top_block, bottom_block = tf.split(
-            tensor_zeros,
-            [int(num_zero_channels/2), int(num_zero_channels/2)],
-            axis=channel_axis
-        )
+        delta = 0
     else:
-        top_block, bottom_block = tf.split(
-            tensor_zeros,
-            [int((num_zero_channels + 1) / 2),
-             int((num_zero_channels - 1) / 2)],
-            axis=channel_axis
-        )
+        delta = 1
+
+    top_block, bottom_block = tf.split(
+        tensor_zeros,
+        [int((num_zero_channels + delta) / 2),
+         int((num_zero_channels - delta) / 2)],
+        axis=channel_axis
+    )
     layer_padded = Concatenate(axis=channel_axis)(
         [top_block, input_layer, bottom_block]
     )

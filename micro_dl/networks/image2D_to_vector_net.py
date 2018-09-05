@@ -11,10 +11,10 @@ class Image2DToVectorNet(BaseImageToVectorNet):
 
         if self.config['data_format'] == 'channels_first':
             shape = (self.config['num_input_channels'],
-                     self.config['width'],
-                     self.config['height'])
-        else:
-            shape = (self.config['width'],
                      self.config['height'],
+                     self.config['width'])
+        else:
+            shape = (self.config['height'],
+                     self.config['width'],
                      self.config['num_input_channels'])
         return shape
