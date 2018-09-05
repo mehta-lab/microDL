@@ -151,6 +151,8 @@ class BaseImageToVectorNet(BaseConvNet):
                     raise ValueError(
                         'num features extracted < 4 * regression_length'
                     )
+            else:
+                raise ValueError('Invalid num_dense_units in config')
 
         prev_dense_layer = Flatten()(layer)
         for dense_idx in range(len(dense_units)):
