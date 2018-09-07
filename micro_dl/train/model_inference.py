@@ -10,7 +10,7 @@ from micro_dl.plotting.plot_utils import save_predicted_images
 import micro_dl.utils.train_utils as train_utils
 
 
-def load_model(network_config, model_fname):
+def load_model(network_config, model_fname, predict=False):
     """Load the model from model_dir
 
     Due to the lambda layer only model weights are saved and not the model
@@ -18,17 +18,55 @@ def load_model(network_config, model_fname):
     :param yaml network_config: a yaml file with all the required parameters
     :param str model_fname: fname with full path of the .hdf5 file with saved
      weights
+    :param bool predict: load model for predicting / training. predict skips
+     checks on input shape
     :return: Keras.Model instance
     """
 
     network_cls = network_config['class']
     # not ideal as more networks get added
     network_cls = aux_utils.import_class('networks', network_cls)
-    network = network_cls(network_config)
+    network = network_cls(network_config, predict)
     inputs, outputs = network.build_net()
     model = Model(inputs=inputs, outputs=outputs)
     model.load_weights(model_fname)
     return model
+
+
+def predict_on_larger_image(network_config, model_fname, input_image):
+    """Predict on an image larger than the one it was trained on
+
+    :param dict network_config: a dict with all the required parameters
+    :param str model_fname: fname with full path of the .hdf5 file with saved
+     weights
+    :param np.array input_image: as named
+    :return np.array predicted image: as named
+    """
+
+    network_config['width'] = None
+    network_config['height'] = None
+    if 'depth' in network_config:
+        network_config['depth'] = None
+    model = load_model(network_config, model_fname, predict=True)
+    input_image = zscore(input_image)
+    im_size = input_image.shape
+    num_dims = len(im_size)
+    if num_dims == 2:
+        if network_config['data_format'] == 'channels_first':
+            im_shape = [1, 1, im_size[0], im_size[1]]
+        else:
+            im_shape = [1, im_size[0], im_size[1], 1]
+
+    elif num_dims == 3:
+        if network_config['data_format'] == 'channels_first':
+            im_shape = [1, 1, im_size[0], im_size[1], im_size[2]]
+        else:
+            im_shape = [1, im_size[0], im_size[1], im_size[2], 1]
+    else:
+        raise ValueError('Invalid image shape: only 2D and 3D images')
+
+    predicted_image = model.predict(np.reshape(input_image, im_shape))
+    return np.squeeze(predicted_image)
 
 
 class ModelEvaluator:
