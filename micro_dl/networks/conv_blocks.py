@@ -103,6 +103,8 @@ def downsample_conv_block(layer,
 def pad_channels(input_layer, final_layer, channel_axis):
     """Zero pad along channels before residual/skip merge
 
+    Works only with padding=same. Have to crop for valid padding
+
     :param keras.layers input_layer:
     :param keras.layers final_layer:
     :param int channel_axis: dimension along which to pad
