@@ -31,7 +31,8 @@ def parse_args():
     parser.add_argument('--num_batches', type=int, default=2,
                         help='run prediction on tiles for num_batches')
 
-    parser.add_argument('--flat_field_correct', type=bool, default=True,
+    parser.add_argument('--flat_field_correct', type=str_to_bool, default=False,
+                        const=True, nargs='?', 
                         help='boolean indicator to correct for flat field')
     parser.add_argument('--focal_plane_idx', type=int, default=0,
                         help='idx for focal plane')
@@ -43,6 +44,14 @@ def parse_args():
 
     args = parser.parse_args()
     return args
+
+def str_to_bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
 def run_inference(args):
