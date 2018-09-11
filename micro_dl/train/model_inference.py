@@ -36,11 +36,18 @@ def load_model(network_config, model_fname, predict=False):
 def predict_on_larger_image(network_config, model_fname, input_image):
     """Predict on an image larger than the one it was trained on
 
+    All networks with U-net like architecture in this repo, use downsampling of
+    2, which is only conducive for images with shapes in powers of 2. If
+    different, please crop / resize accordingly to avoid shape mismatches.
+
     :param dict network_config: a dict with all the required parameters
     :param str model_fname: fname with full path of the .hdf5 file with saved
      weights
-    :param np.array input_image: as named
-    :return np.array predicted image: as named
+    :param np.array input_image: as named. expected shape:
+     [num_channels, (depth,) height, width] or
+     [(depth,) height, width, num_channels]
+    :return np.array predicted image: as named. Batch axis removed (and channel
+     axis if num_channels=1)
     """
 
     network_config['width'] = None
@@ -51,19 +58,13 @@ def predict_on_larger_image(network_config, model_fname, input_image):
     input_image = zscore(input_image)
     im_size = input_image.shape
     num_dims = len(im_size)
-    if num_dims == 2:
-        if network_config['data_format'] == 'channels_first':
-            im_shape = [1, 1, im_size[0], im_size[1]]
-        else:
-            im_shape = [1, im_size[0], im_size[1], 1]
-
-    elif num_dims == 3:
-        if network_config['data_format'] == 'channels_first':
-            im_shape = [1, 1, im_size[0], im_size[1], im_size[2]]
-        else:
-            im_shape = [1, im_size[0], im_size[1], im_size[2], 1]
+    if num_dims == 3:
+        im_shape = [1, im_size[0], im_size[1], im_size[2]]
+    elif num_dims == 4:
+        im_shape = [1, im_size[0], im_size[1], im_size[2], im_size[3]]
     else:
-        raise ValueError('Invalid image shape: only 2D and 3D images')
+        raise ValueError('Invalid image shape: only 3D and 4D inputs - 2D / 3D'
+                         'images with channel dim allowed')
 
     predicted_image = model.predict(np.reshape(input_image, im_shape))
     return np.squeeze(predicted_image)
@@ -245,7 +246,7 @@ class ModelEvaluator:
             full_image[full_slice] = (full_image[full_slice] +
                                       tile_image[tile_slice]) / 2
         elif operation == 'max':
-            #  check if np.max does pixelwise comparison
+            #  check if np.max does pixel-wise comparison
             full_image[full_slice] = np.maximum(full_image[full_slice],
                                                 tile_image[tile_slice])
         elif operation == 'insert':
@@ -253,7 +254,8 @@ class ModelEvaluator:
         return full_image
 
     def _stich_image(self, pred_tiles, crop_indices, input_image_shape,
-                     batch_size, tile_size, overlap_size):
+                     batch_size, tile_size, overlap_size,
+                     place_type='mean'):
         """Stiches the full image from predicted tiles
 
         :param list pred_tiles: list of predicted np.arrays
@@ -262,6 +264,8 @@ class ModelEvaluator:
         :param int batch_size:
         :param list tile_size:
         :param list overlap_size: tile_size - step_size
+        :param str place_type: in ['mean', 'max']. mean for regression tasks,
+         max for segmentation tasks
         :return: np.array, stiched predicted image
         """
 
@@ -300,7 +304,7 @@ class ModelEvaluator:
                 chk_index = np.array(cur_index)[[0, 2]]
                 place_operation = np.empty_like(chk_index, dtype='U8')
                 place_operation[chk_index == 0] = 'insert'
-                place_operation[chk_index != 0] = 'mean'
+                place_operation[chk_index != 0] = place_type
                 self._place_patch(predicted_image, pred_tile,
                                   input_image_shape, full_top_index,
                                   tile_top_index,
@@ -318,7 +322,7 @@ class ModelEvaluator:
                     if cur_index[4] == 0:
                         place_operation = 'insert'
                     else:
-                        place_operation = 'mean'
+                        place_operation = place_type
                     self._place_patch(predicted_image, pred_tile,
                                       input_image_shape, full_front_index,
                                       tile_front_index,
@@ -329,7 +333,8 @@ class ModelEvaluator:
                               focal_plane_idx=None, depth=None,
                               per_tile_overlap=1/8,
                               flat_field_correct=False,
-                              base_image_dir=None):
+                              base_image_dir=None,
+                              place_operation='mean'):
         """Tile and run inference on tiles and assemble the full image
 
         If 3D and isotropic, it is not possible to find the original
@@ -346,6 +351,8 @@ class ModelEvaluator:
         :param bool flat_field_correct: indicator for applying flat field
          correction
         :param str base_image_dir: base directory where images are stored
+        :param str place_operation: in ['mean', 'max']. mean for regression tasks,
+         max for segmentation tasks
         """
 
         if 'timepoints' not in self.config['dataset']:
@@ -417,7 +424,8 @@ class ModelEvaluator:
                                               batch_size)
                 pred_image = self._stich_image(pred_tiles, crop_indices,
                                                input_image.shape, batch_size,
-                                               tile_size, overlap_size)
+                                               tile_size, overlap_size,
+                                               place_operation)
                 pred_fname = '{}.npy'.format(fname.split('.')[0])
                 for idx, op_ch in enumerate(op_channel_ids):
                     op_dir = os.path.join(pred_dir, 'channel_{}'.format(op_ch))

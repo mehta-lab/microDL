@@ -76,11 +76,13 @@ def run_inference(args):
         split_samples = pickle.load(f)
 
     image_meta = pd.read_csv(args.image_meta_fname)
+    # for regression tasks please change place_operation to 'mean'
     ev_inst.predict_on_full_image(image_meta=image_meta,
                                   test_samples=split_samples['test'],
                                   focal_plane_idx=args.focal_plane_idx,
                                   flat_field_correct=args.flat_field_correct,
-                                  base_image_dir=args.base_image_dir)
+                                  base_image_dir=args.base_image_dir,
+                                  place_operation='max')
     return test_perf_metrics
 
 
