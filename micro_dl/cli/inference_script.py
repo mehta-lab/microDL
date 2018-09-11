@@ -34,7 +34,7 @@ def parse_args():
     parser.add_argument('--flat_field', dest='flat_field', action='store_true',
                         help='Indicator to correct for flat field')
 
-    parser.add_argument('--no_flat_field', dest='flat_field', action='store_true')
+    parser.add_argument('--no_flat_field', dest='flat_field', action='store_false')
     
     parser.set_defaults(flat_field=True)
     
