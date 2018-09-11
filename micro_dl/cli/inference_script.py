@@ -31,9 +31,11 @@ def parse_args():
     parser.add_argument('--num_batches', type=int, default=2,
                         help='run prediction on tiles for num_batches')
 
-    parser.add_argument('--flat_field_correct', type=str_to_bool, default=False,
-                        const=True, nargs='?', 
-                        help='boolean indicator to correct for flat field')
+    parser.add_argument('--flat_field', action='store_true',
+                        help='Indicator to correct for flat field')
+
+    parser.add_argument('--no_flat_field', action='store_true')
+    
     parser.add_argument('--focal_plane_idx', type=int, default=0,
                         help='idx for focal plane')
     parser.add_argument('--base_image_dir', type=str, default=None,
@@ -44,14 +46,6 @@ def parse_args():
 
     args = parser.parse_args()
     return args
-
-def str_to_bool(v):
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
-        return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-        return False
-    else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
 def run_inference(args):
@@ -88,7 +82,7 @@ def run_inference(args):
     ev_inst.predict_on_full_image(image_meta=image_meta,
                                   test_samples=split_samples['test'],
                                   focal_plane_idx=args.focal_plane_idx,
-                                  flat_field_correct=args.flat_field_correct,
+                                  flat_field=args.flat_field,
                                   base_image_dir=args.base_image_dir)
     return test_perf_metrics
 
