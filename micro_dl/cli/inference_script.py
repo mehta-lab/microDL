@@ -82,7 +82,7 @@ def run_inference(args):
     ev_inst.predict_on_full_image(image_meta=image_meta,
                                   test_samples=split_samples['test'],
                                   focal_plane_idx=args.focal_plane_idx,
-                                  flat_field=args.flat_field,
+                                  flat_field_correct=args.flat_field,
                                   base_image_dir=args.base_image_dir)
     return test_perf_metrics
 
