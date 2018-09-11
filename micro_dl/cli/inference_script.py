@@ -31,10 +31,12 @@ def parse_args():
     parser.add_argument('--num_batches', type=int, default=2,
                         help='run prediction on tiles for num_batches')
 
-    parser.add_argument('--flat_field', action='store_true',
+    parser.add_argument('--flat_field', dest='flat_field', action='store_true',
                         help='Indicator to correct for flat field')
 
-    parser.add_argument('--no_flat_field', action='store_true')
+    parser.add_argument('--no_flat_field', dest='flat_field', action='store_true')
+    
+    parser.set_defaults(flat_field=True)
     
     parser.add_argument('--focal_plane_idx', type=int, default=0,
                         help='idx for focal plane')
