@@ -31,8 +31,14 @@ def parse_args():
     parser.add_argument('--num_batches', type=int, default=2,
                         help='run prediction on tiles for num_batches')
 
-    parser.add_argument('--flat_field_correct', type=bool, default=True,
-                        help='boolean indicator to correct for flat field')
+    parser.add_argument('--flat_field', dest='flat_field', action='store_true',
+                        help='Indicator to correct for flat field')
+
+    parser.add_argument('--no_flat_field', dest='flat_field',
+                        action='store_false')
+    
+    parser.set_defaults(flat_field=True)
+    
     parser.add_argument('--focal_plane_idx', type=int, default=0,
                         help='idx for focal plane')
     parser.add_argument('--base_image_dir', type=str, default=None,
@@ -76,11 +82,11 @@ def run_inference(args):
         split_samples = pickle.load(f)
 
     image_meta = pd.read_csv(args.image_meta_fname)
-    # for regression tasks please change place_operation to 'mean'
+    # for regression tasks change place_operation to 'mean'
     ev_inst.predict_on_full_image(image_meta=image_meta,
                                   test_samples=split_samples['test'],
                                   focal_plane_idx=args.focal_plane_idx,
-                                  flat_field_correct=args.flat_field_correct,
+                                  flat_field_correct=args.flat_field,
                                   base_image_dir=args.base_image_dir,
                                   place_operation='max')
     return test_perf_metrics
