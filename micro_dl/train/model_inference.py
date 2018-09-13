@@ -355,6 +355,8 @@ class ModelEvaluator:
          max for segmentation tasks
         """
 
+        assert place_operation in ['mean', 'max'],\
+            'only mean and max are allowed: %s' % place_operation
         if 'timepoints' not in self.config['dataset']:
             timepoint_ids = -1
         else:

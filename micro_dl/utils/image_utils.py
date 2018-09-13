@@ -114,6 +114,14 @@ def tile_image(input_image, tile_size, step_size,
     """
 
     def check_in_range(cur_value, max_value, tile_size):
+        """Get the start index for edge tiles
+
+        :param int cur_value: cur index in row / col / slice
+        :param int max_value: n_rows, n_cols or n_slices
+        :param int tile_size: size of tile along one dimension (row, col,
+         slice)
+        :return: int start_value - adjusted start_index to fit the edge tile
+        """
         cur_length = max_value - cur_value
         miss_length = tile_size - cur_length
         start_value = cur_value - miss_length
