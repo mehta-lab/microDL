@@ -6,19 +6,21 @@ import os
 import pandas as pd
 
 from micro_dl.utils.aux_utils import get_row_idx
-from micro_dl.utils.image_utils import fit_polynomial_surface_2D
+from micro_dl.utils.image_utils import fit_polynomial_surface_2D, read_image
 
 
 class FlatFieldEstimator(metaclass=ABCMeta):
     """Estimates flat field correction image"""
 
-    def __init__(self, image_dir):
-        """Init.
+    def __init__(self, input_dir, flat_field_dir):
+        """Initialize flatfield estimator class.
 
-        :param str image_dir: base dir with individual/split images from stack
+        :param str input_dir: Directory with 2D image frames from dataset
+        :param str flat_field_dir: Directory where flatfield images will be
+            stored
         """
-
-        self.image_dir = image_dir
+        self.input_dir = input_dir
+        self.flat_field_dir = flat_field_dir
 
     @abstractmethod
     def sample_block_medians(self, im, block_size=32):
@@ -39,30 +41,29 @@ class FlatFieldEstimator(metaclass=ABCMeta):
         raise NotImplementedError
 
     def estimate_flat_field(self, focal_plane_idx=None):
-        """Estimates flat field correction image.
+        """
+        Estimates flat field correction image.
 
         :param int focal_plane_idx: for 2D acquisitions with multiple images
          along focal plane/axis, this specifies the plane to use
         """
 
-        meta_fname = os.path.join(self.image_dir, 'split_images_info.csv')
+        meta_fname = os.path.join(self.input_dir, 'frames_meta.csv')
         try:
             volume_metadata = pd.read_csv(meta_fname)
         except IOError as e:
-            e.args += 'cannot read split image info'
+            e.args += 'cannot read frames metadata file'
             raise
 
         all_channels = volume_metadata['channel_num'].unique()
-        flat_field_dir = os.path.join(self.image_dir, 'flat_field_images')
-        os.makedirs(flat_field_dir, exist_ok=True)
         tp_idx = 0  # flat_field constant over time
         for channel_idx in all_channels:
             row_idx = get_row_idx(volume_metadata, tp_idx,
                                   channel_idx, focal_plane_idx)
             channel_metadata = volume_metadata[row_idx]
             for idx, row in channel_metadata.iterrows():
-                sample_fname = row['fname']
-                cur_image = np.load(sample_fname)
+                file_path = os.path.join(self.input_dir, row['file_name'])
+                cur_image = read_image(file_path)
                 n_dim = len(cur_image.shape)
                 if n_dim == 3:
                     cur_image = np.mean(cur_image, axis=2)
@@ -76,7 +77,7 @@ class FlatFieldEstimator(metaclass=ABCMeta):
             # computing median of image stack
             flatfield = self.get_flatfield(mean_image)
             fname = 'flat-field_channel-{}.npy'.format(channel_idx)
-            cur_fname = os.path.join(flat_field_dir, fname)
+            cur_fname = os.path.join(self.flat_field_dir, fname)
             np.save(cur_fname, flatfield, allow_pickle=True, fix_imports=True)
 
 
@@ -90,7 +91,6 @@ class FlatFieldEstimator2D(FlatFieldEstimator):
 
         :param np.array im:         2D image
         :param int block_size:      Size of blocks image will be divided into
-
         :return np.array(float) sample_coords: Image coordinates for block
                                                centers
         :return np.array(float) sample_values: Median intensity values for
@@ -132,9 +132,17 @@ class FlatFieldEstimator2D(FlatFieldEstimator):
         :return np.array flatfield:    Flatfield image
         """
 
-        coords, values = self.sample_block_medians(im, block_size=block_size)
-        flatfield = fit_polynomial_surface_2D(coords, values, im.shape,
-                                              order=order, normalize=normalize)
+        coords, values = self.sample_block_medians(
+            im=im,
+            block_size=block_size,
+        )
+        flatfield = fit_polynomial_surface_2D(
+            sample_coords=coords,
+            sample_values=values,
+            im_shape=im.shape,
+            order=order,
+            normalize=normalize,
+        )
         # Flatfields can't contain zeros or negative values
         if flatfield.min() <= 0:
             raise ValueError(

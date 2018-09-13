@@ -1,4 +1,5 @@
 """Utility functions for processing images"""
+import cv2
 import itertools
 import numpy as np
 import os
@@ -234,3 +235,24 @@ def create_mask(input_image, str_elem_size=3):
     thr_image = binary_opening(input_image > thr, str_elem)
     mask = binary_fill_holes(thr_image)
     return mask
+
+
+def read_image(file_path):
+    """
+    Read 2D grayscale image from file.
+    Checks file extension for npy and load array if true. Otherwise
+    reads regular image using OpenCV (png, tif, jpg, see OpenCV for supported
+    files) of any bit depth.
+
+    :param str file_path: Full path to image
+    :return array im: 2D image
+    :raise IOError if image can't be opened
+    """
+    if file_path[-3:] == 'npy':
+        im = np.load(file_path)
+    else:
+        try:
+            im = cv2.imread(file_path, cv2.IMREAD_ANYDEPTH)
+        except IOError as e:
+            print(e)
+    return im

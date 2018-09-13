@@ -52,32 +52,28 @@ and then run
 python micro_dl/input/preprocess_script.py --config micro_dl/config_preprocess.yml
 ```
 
-To run preprocessing on images, they need to be in the following folder structure
+To train directly on datasets that have already been split into 2D frames, the dataset
+should have the following structure:
 
 ```buildoutcfg
 dir_name
     |
-    |- timepoint_0
-        |
-        |- channel_0
-            |
-            |- image_n0_z0.png
-            |- image_n1_z0.png
-            |- ...           
-        |- channel_1
-        |- ...
-    |
-    |- timepoint_1
-        |
-        |- channel_0
-        |- channel_1
-        |- ...
-    |
+    |- frames_meta.csv
+    |- global_metadata.csv
+    |- im_c***_t***_p***_z***.png
+    |- im_c***_t***_p***_z***.png
     |- ...
 ```
-That is the same structure that a Lif file will be decomposed into when converting it to
-npy arrays, which is the first step in the Lif-file specific CLI preprocess_script.
-If your starting point is images readable by OpenCV or numpy (e.g. png, tif, npy, ...)
+The image naming convention is (parenthesis is their name in frames_meta.csv)
+* **c** = channel index     (channel_idx)
+* **t** = timepoint index   (time_idx)
+* **p** = position (field of view) index (pos_idx)
+* **z** = slice index in z stack (slice_idx)
+
+If you download your dataset from the imaging database [imagingDB](https://github.com/czbiohub/imagingDB)
+you will get your dataset correctly formatted and can directly input that into microDL.
+
+If your starting point is images readable by OpenCV or numpy
 you can use the following command to preprocess them:
 
 ```buildoutcfg

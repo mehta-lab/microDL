@@ -1,14 +1,14 @@
-base_output_dir: '/data/anitha/debug_lif'
+output_dir: '/Users/jenny.folkesson/Data/SMS-2018-07-03-18-35-00-0010_train_data'
 focal_plane_idx: 0
 verbose: 10
-split_volumes: True
-splitter_class: LifStackSplitter2D
-input_fname: '/home/krishnan/mntDir/DeviceData/CZLASX-01/Data/2017/VirtualStaining/20171121_ManuShalin/ZStack1_BF_Clath_Mito_Nuclei.lif'
+split_volumes: False
+splitter_class: None
+input_dir: '/Users/jenny.folkesson/Data/SMS-2018-07-03-18-35-00-0010'
 correct_flat_field: True
 flat_field_class: FlatFieldEstimator2D
 use_masks: True
 masks:
-    mask_channels: [0, 1]
+    mask_channels: [5]
     str_elem_radius: 3
 tile_stack: True
 tile:
