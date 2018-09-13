@@ -73,6 +73,8 @@ def get_layer_shape(layer_shape, data_format):
 
     :param list layer_shape: output of layer.get_output_shape.as_list()
     :param str data_format: in [channels_first, channels_last]
+    :return: np.array layer_shape_xyz - layer shape without batch and channel
+     dimensions
     """
 
     if data_format == 'channels_first':

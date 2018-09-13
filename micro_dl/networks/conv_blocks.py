@@ -104,9 +104,12 @@ def downsample_conv_block(layer,
 def pad_channels(input_layer, final_layer, channel_axis):
     """Zero pad along channels before residual/skip merge
 
-    :param keras.layers input_layer:
-    :param keras.layers final_layer:
+    :param keras.layers input_layer: input layer to be padded with zeros / 1x1
+    to match shape of final layer
+    :param keras.layers final_layer: layer whose shape has to be matched
     :param int channel_axis: dimension along which to pad
+    :return: keras.layer layer_padded - layer with the same shape as final
+     layer
     """
 
     num_input_layers = int(input_layer.get_shape()[channel_axis])
@@ -136,10 +139,15 @@ def pad_channels(input_layer, final_layer, channel_axis):
 def _crop_layer(input_layer, final_layer, data_format, num_dims):
     """Crop input layer to match shape of final layer
 
-    :param keras.layers final_layer: last layer
-    :param keras.layers input_layer: input_layer
+    ONLY SYMMETRIC CROPPING IS HANDLED HERE!
+
+    :param keras.layers final_layer: last layer of conv block or skip layers
+     in Unet
+    :param keras.layers input_layer: input_layer to the block
     :param str data_format: [channels_first, channels_last]
     :param int num_dims: as named
+    :return: keras.layer, input layer cropped if shape is different than final
+     layer, else input layer as is
     """
 
     input_layer_shape = get_layer_shape(input_layer.get_shape().as_list(),
@@ -149,6 +157,7 @@ def _crop_layer(input_layer, final_layer, data_format, num_dims):
 
     if not np.array_equal(input_layer_shape, final_layer_shape):
         num_crop_pixels = (input_layer_shape - final_layer_shape) / 2
+        assert np.any(num_crop_pixels < 0), 'num of pixels to crop is -ve'
         num_crop_pixels = tuple(num_crop_pixels.astype('int32'))
         num_crop_pixels = tuple([(val, ) * 2 for val in num_crop_pixels])
         # num_crop_pixels = (num_crop_pixels, ) * num_dims
