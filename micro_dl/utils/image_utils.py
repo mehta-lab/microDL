@@ -36,9 +36,9 @@ def apply_flat_field_correction(input_image, **kwargs):
     :param np.array input_image: image to be corrected
     Kwargs:
         flat_field_image (np.float): flat_field_image for correction
-        image_dir (str): dir with split images from stack (or individual
+        flat_field_dir (str): dir with split images from stack (or individual
          sample images
-        channel_id (int): input image channel
+        channel_idx (int): input image channel index
     :return: np.array (float) corrected image
     """
 
@@ -46,12 +46,14 @@ def apply_flat_field_correction(input_image, **kwargs):
     if 'flat_field_image' in kwargs:
         corrected_image = input_image / kwargs['flat_field_image']
     else:
-        msg = 'image_dir and channel_id are required to fetch flat field image'
-        assert all(k in kwargs for k in ('image_dir', 'channel_id')), msg
-        flat_field_image = np.load(os.path.join(
-            kwargs['image_dir'], 'flat_field_images',
-            'flat-field_channel-{}.npy'.format(kwargs['channel_id'])
-        ))
+        msg = 'flat_field_dir and channel_id are required to fetch flat field image'
+        assert all(k in kwargs for k in ('flat_field_dir', 'channel_idx')), msg
+        flat_field_image = np.load(
+            os.path.join(
+                kwargs['flat_field_dir'],
+                'flat-field_channel-{}.npy'.format(kwargs['channel_idx']),
+            )
+        )
         corrected_image = input_image / flat_field_image
     return corrected_image
 
@@ -98,8 +100,11 @@ def fit_polynomial_surface_2D(sample_coords,
     return poly_surface
 
 
-def tile_image(input_image, tile_size, step_size,
-               isotropic=False, return_index=False):
+def tile_image(input_image,
+               tile_size,
+               step_size,
+               isotropic=False,
+               return_index=False):
     """Crops the image from given crop and step size.
 
     :param np.array input_image: input image to be tiled

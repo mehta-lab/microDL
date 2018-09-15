@@ -50,17 +50,21 @@ class FlatFieldEstimator(metaclass=ABCMeta):
 
         meta_fname = os.path.join(self.input_dir, 'frames_meta.csv')
         try:
-            volume_metadata = pd.read_csv(meta_fname)
+            frames_metadata = pd.read_csv(meta_fname)
         except IOError as e:
             e.args += 'cannot read frames metadata file'
             raise
 
-        all_channels = volume_metadata['channel_num'].unique()
-        tp_idx = 0  # flat_field constant over time
+        all_channels = frames_metadata['channel_idx'].unique()
+        time_idx = 0  # flat_field constant over time
         for channel_idx in all_channels:
-            row_idx = get_row_idx(volume_metadata, tp_idx,
-                                  channel_idx, focal_plane_idx)
-            channel_metadata = volume_metadata[row_idx]
+            row_idx = get_row_idx(
+                frames_metadata,
+                time_idx,
+                channel_idx,
+                focal_plane_idx,
+            )
+            channel_metadata = frames_metadata[row_idx]
             for idx, row in channel_metadata.iterrows():
                 file_path = os.path.join(self.input_dir, row['file_name'])
                 cur_image = read_image(file_path)

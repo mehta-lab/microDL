@@ -6,62 +6,74 @@ import os
 import pandas as pd
 import pickle
 
-from micro_dl.utils.aux_utils import get_row_idx, validate_tp_channel
-from micro_dl.utils.image_utils import (apply_flat_field_correction,
-                                        create_mask, resize_mask)
+import micro_dl.utils.aux_utils as aux_utils
+import micro_dl.utils.image_utils as image_utils
 
 
 class MaskProcessor:
     """Generate masks and get crop indices based on min vol fraction"""
 
-    def __init__(self, image_dir, mask_channels, timepoint_ids=-1):
+    def __init__(self,
+                 input_dir,
+                 output_dir,
+                 mask_channels,
+                 flat_field_dir=None,
+                 timepoint_ids=-1,
+                 int2str_len=3):
         """Init.
 
-        :param str image_dir: dir with split images from stack (or individual
-         sample images)
-        :param list/int timepoint_ids: timepoints to consider
+        :param str input_dir: Directory with image frames
+        :param str output_dir: Directory where masks will be saved
+        :param str flatfield_dir: Directory with flatfield images if flatfield correction
+            is applied
         :param int/list mask_channels: generate mask from the sum of these
          (flurophore) channels
+        :param list/int timepoint_ids: timepoints to consider
+        :param int int2str_len: Length of str when converting ints
         """
 
-        meta_fname = glob.glob(os.path.join(image_dir, '*info.csv'))
+        meta_fname = glob.glob(os.path.join(input_dir, 'frames_meta.csv'))
         assert len(meta_fname) == 1, \
-            "Can't find info.csv file in {}".format(image_dir)
+            "Can't find info.csv file in {}".format(input_dir)
 
         try:
-            volume_metadata = pd.read_csv(meta_fname[0])
+            frames_metadata = pd.read_csv(meta_fname[0])
         except IOError as e:
             e.args += 'cannot read split image info'
             raise
 
-        self.volume_metadata = volume_metadata
-        tp_channel_ids = validate_tp_channel(volume_metadata,
-                                             timepoint_ids=timepoint_ids,
-                                             channel_ids=mask_channels)
-        self.timepoint_ids = tp_channel_ids['timepoints']
-        self.mask_channels = tp_channel_ids['channels']
+        self.frames_metadata = frames_metadata
+        metadata_ids = aux_utils.validate_metadata_indices(
+            frames_metadata=frames_metadata,
+            time_ids=timepoint_ids,
+            channel_ids=mask_channels)
+        self.timepoint_ids = metadata_ids['timepoints']
+        self.mask_channels = metadata_ids['channels']
 
-        self.image_dir = image_dir
-
-        mask_dir_name = '-'.join(map(str, self.mask_channels))
-        self.mask_dir_name = 'mask_{}'.format(mask_dir_name)
+        self.input_dir = input_dir
+        self.mask_dir_name = output_dir
+        self.flat_field_dir = flat_field_dir
+        self.int2str_len = int2str_len
 
     @staticmethod
-    def _process_cropped_masks(cropped_mask, min_fraction,
-                               sample_index_list, crop_index,
-                               sample_idx, op_dir,
+    def _process_cropped_masks(cropped_mask,
+                               min_fraction,
+                               sample_index_list,
+                               crop_index,
+                               sample_idx,
+                               output_dir,
                                save_cropped_mask=False,
                                isotropic=False):
-        """Saves the cropped mask to op_dir.
+        """Saves the cropped masks to output_dir.
 
-        :param np.array cropped_mask: cropped mask with shape = tile_size
+        :param np.array cropped_mask: cropped mask same shape as images
         :param float min_fraction: threshold for using a cropped image for
          training. minimum volume fraction / percent occupied in cropped image
         :param list sample_index_list: list that holds crop indices for the
          current image
         :param list crop_index: indices used for cropping
         :param int sample_idx: sample number
-        :param str op_dir: dir to save cropped images
+        :param str output_dir: dir to save cropped images
         :param bool save_cropped_mask: bool indicator for saving cropped masks
         :param bool isotropic: bool indicator for isotropic resolution (if 3D)
         """
@@ -78,21 +90,22 @@ class MaskProcessor:
                     img_id = '{}_sl{}-{}.npy'.format(img_id, crop_index[4],
                                                      crop_index[5])
                     if isotropic:
-                        cropped_mask = resize_mask(
+                        cropped_mask = image_utils.resize_mask(
                             cropped_mask, [cropped_mask.shape[0], ] * 3
                         )
                 else:
                     img_id = '{}.npy'.format(img_id)
 
-                cropped_mask_fname = os.path.join(op_dir, img_id)
+                cropped_mask_fname = os.path.join(output_dir, img_id)
                 np.save(cropped_mask_fname, cropped_mask,
                         allow_pickle=True, fix_imports=True)
 
-    def generate_masks(self, focal_plane_idx=None,
+    def generate_masks(self,
+                       focal_plane_idx=None,
                        correct_flat_field=False,
                        str_elem_radius=5):
-        """Generate masks from flat-field corrected flurophore images.
-
+        """
+        Generate masks from flat-field corrected flurophore images.
         The sum of flurophore channels is thresholded to generate a foreground
         mask.
 
@@ -100,41 +113,65 @@ class MaskProcessor:
          use
         :param bool correct_flat_field: bool indicator to correct for flat
          field or not
+        :param int str_elem_radius: Radius of structuring element for morphological
+            operations
         """
+        # Get only the focal plane if specified
+        if focal_plane_idx is not None:
+            focal_plane_ids = [focal_plane_idx]
+        else:
+            focal_plane_ids = self.frames_metadata['slice_idx'].unique()
 
-        for tp_idx in self.timepoint_ids:
-            row_idx = get_row_idx(self.volume_metadata, tp_idx,
-                                  self.mask_channels[0], focal_plane_idx)
-            metadata = self.volume_metadata[row_idx]
-            tp_dir = os.path.join(self.image_dir,
-                                  'timepoint_{}'.format(tp_idx))
-            mask_dir = os.path.join(tp_dir, self.mask_dir_name)
-            os.makedirs(mask_dir, exist_ok=True)
-
-            fnames = [os.path.split(row['fname'])[1]
-                      for _, row in metadata.iterrows()]
-            for fname in fnames:
-                mask_images = []
-                for channel in self.mask_channels:
-                    cur_fname = os.path.join(
-                        tp_dir, 'channel_{}'.format(channel), fname
-                    )
-                    cur_image = np.load(cur_fname)
-                    if correct_flat_field:
-                        cur_image = apply_flat_field_correction(
-                            cur_image, image_dir=self.image_dir,
-                            channel_id=channel
+        # Loop through all the indices and create masks
+        for slice_idx in focal_plane_ids:
+            for time_idx in self.timepoint_ids:
+                for pos_idx in np.unique(self.frames_metadata["pos_idx"]):
+                    mask_images = []
+                    for channel_idx in self.mask_channels:
+                        frame_idx = aux_utils.get_meta_idx(
+                            self.frames_metadata,
+                            time_idx,
+                            channel_idx,
+                            slice_idx,
+                            pos_idx,
                         )
-                    mask_images.append(cur_image)
-                summed_image = np.sum(np.stack(mask_images), axis=0)
-                summed_image = summed_image.astype('float32')
-                mask = create_mask(summed_image, str_elem_radius)
+                        file_path = os.path.join(
+                            self.input_dir,
+                            self.frames_metadata.loc[frame_idx, "file_name"],
+                        )
+                        cur_image = image_utils.read_image(file_path)
+                        if correct_flat_field:
+                            cur_image = image_utils.apply_flat_field_correction(
+                                cur_image,
+                                flat_field_dir=self.flat_field_dir,
+                                channel_idx=channel_idx,
+                            )
+                        mask_images.append(cur_image)
+                    # Combine channel images and generate mask
+                    summed_image = np.sum(np.stack(mask_images), axis=0)
+                    summed_image = summed_image.astype('float32')
+                    mask = image_utils.create_mask(summed_image, str_elem_radius)
+                    # Create mask name for given slice, time and position
+                    file_name = aux_utils.get_im_name(
+                        time_idx=time_idx,
+                        channel_idx=None,
+                        slice_idx=slice_idx,
+                        pos_idx=pos_idx,
 
-                np.save(os.path.join(mask_dir, fname), mask,
-                        allow_pickle=True, fix_imports=True)
+                    )
+                    # Save mask for given channels
+                    np.save(os.path.join(self.mask_dir_name, file_name),
+                            mask,
+                            allow_pickle=True,
+                            fix_imports=True)
 
-    def get_crop_indices(self, min_fraction, tile_size, step_size,
-                         cropped_mask_dir=None, save_cropped_masks=False,
+
+    def get_crop_indices(self,
+                         min_fraction,
+                         tile_size,
+                         step_size,
+                         cropped_mask_dir=None,
+                         save_cropped_masks=False,
                          isotropic=False):
         """Get crop indices and save mask for tiles with roi_vf >= min_fraction
 
@@ -169,7 +206,7 @@ class MaskProcessor:
             assert list(tile_size) == isotropic_shape, msg
 
         for tp_idx in self.timepoint_ids:
-            mask_ip_dir = os.path.join(self.image_dir,
+            mask_ip_dir = os.path.join(self.input_dir,
                                        'timepoint_{}'.format(tp_idx),
                                        self.mask_dir_name)
             masks_in_dir = glob.glob(os.path.join(mask_ip_dir, '*.npy'))
@@ -214,7 +251,7 @@ class MaskProcessor:
                             )
                 index_dict[fname] = cur_index_list
             dict_fname = os.path.join(
-                self.image_dir, 'timepoint_{}'.format(tp_idx),
+                self.input_dir, 'timepoint_{}'.format(tp_idx),
                 '{}_vf-{}.pkl'.format(self.mask_dir_name, min_fraction)
             )
             with open(dict_fname, 'wb') as f:

@@ -27,64 +27,124 @@ def import_class(module_name, cls_name):
         raise
 
 
-def get_row_idx(study_metadata, timepoint_idx,
+def get_row_idx(frames_metadata, time_idx,
                 channel_idx, focal_plane_idx=None):
     """Get the indices for images with timepoint_idx and channel_idx
 
-    :param pd.DataFrame study_metadata: DF with columns timepoint,
-     channel_num, sample_num, slice_num, fname, size_x_microns, size_y_microns,
-     size_z_microns]
-    :param int timepoint_idx: get info for this tp
+    :param pd.DataFrame frames_metadata: DF with columns time_idx,
+     channel_idx, slice_idx, file_name]
+    :param int time_idx: get info for this timepoint
     :param int channel_idx: get info for this channel
-    :param int focal_plane: get info for this focal plane (2D)
+    :param int focal_plane_idx: get info for this focal plane (2D)
     """
-
     if focal_plane_idx is not None:
-        row_idx = ((study_metadata['timepoint'] == timepoint_idx) &
-                   (study_metadata['channel_num'] == channel_idx) &
-                   (study_metadata['slice_num'] == focal_plane_idx))
+        row_idx = ((frames_metadata['time_idx'] == time_idx) &
+                   (frames_metadata['channel_idx'] == channel_idx) &
+                   (frames_metadata['slice_idx'] == focal_plane_idx))
     else:
-        row_idx = ((study_metadata['timepoint'] == timepoint_idx) &
-                   (study_metadata['channel_num'] == channel_idx))
+        row_idx = ((frames_metadata['time_idx'] == time_idx) &
+                   (frames_metadata['channel_idx'] == channel_idx))
     return row_idx
 
 
-def validate_tp_channel(study_metadata, timepoint_ids=None, channel_ids=None):
-    """Check the availability of provided tp and channels
+def get_meta_idx(metadata_df,
+                 time_idx,
+                 channel_idx,
+                 slice_idx,
+                 pos_idx):
+    """
+    Get row index in metadata dataframe given variable indices
 
-    :param pd.DataFrame study_metadata: DF with columns timepoint,
-     channel_num, sample_num, slice_num, fname, size_x_microns, size_y_microns,
-     size_z_microns]
-    :param int/list timepoint_ids: check availability of these tps in
-     study_metadata
+    :param dataframe metadata_df: Dataframe with column names given below
+    :param int time_idx: Timepoint index
+    :param int channel_idx: Channel index
+    :param int slice_idx: Slize (z) index
+    :param int pos_idx: Position (FOV) index
+    :return: int pos_idx: Row position matching indices above
+    """
+    frame_idx = metadata_df.index[
+        (metadata_df['channel_idx'] == channel_idx) &
+        (metadata_df['time_idx'] == time_idx) &
+        (metadata_df["slice_idx"] == slice_idx) &
+        (metadata_df["pos_idx"] == pos_idx)].tolist()
+    return frame_idx[0]
+
+
+def get_im_name(time_idx=None,
+                channel_idx=None,
+                slice_idx=None,
+                pos_idx=None,
+                extra_field=None,
+                int2str_len=3):
+    im_name = "im"
+    if channel_idx is not None:
+        im_name += "_c" + str(channel_idx).zfill(int2str_len)
+    if slice_idx is not None:
+        im_name += "_z" + str(slice_idx).zfill(int2str_len)
+    if time_idx is not None:
+        im_name += "_t" + str(time_idx).zfill(int2str_len)
+    if pos_idx is not None:
+        im_name += "_p" + str(pos_idx).zfill(int2str_len)
+    if extra_field is not None:
+        im_name += "_" + extra_field
+    im_name += ".npy"
+    return im_name
+
+
+def validate_metadata_indices(frames_metadata,
+                              time_ids=None,
+                              channel_ids=None,
+                              pos_ids=None):
+    """
+    Check the availability of provided timepoints and channels
+
+    :param pd.DataFrame frames_metadata: DF with columns time_idx,
+     channel_idx, slice_idx, pos_idx, file_name]
+    :param int/list time_ids: check availability of these timepoints in
+     frames_metadata
     :param int/list channel_ids: check availability of these channels in
-     study_metadata
+     frames_metadata
+    :param int/list pos_ids: Check availability of positions in metadata
+    :param dict metadata_ids: All time and channel indices
+    :raise AssertionError: If not all channels, timepoints or positions
+        are present
     """
 
-    tp_channels_ids = {}
-    if timepoint_ids is not None:
-        if np.issubdtype(type(timepoint_ids), np.integer):
-            if timepoint_ids == -1:
-                timepoint_ids = study_metadata['timepoint'].unique()
+    metadata_ids = {}
+    if time_ids is not None:
+        if np.issubdtype(type(time_ids), np.integer):
+            if time_ids == -1:
+                time_ids = frames_metadata['time_idx'].unique()
             else:
-                timepoint_ids = [timepoint_ids]
-        all_tps = study_metadata['timepoint'].unique()
-        tp_indicator = [tp in all_tps for tp in timepoint_ids]
-        assert np.all(tp_indicator), 'timepoint not available'
-        tp_channels_ids['timepoints'] = timepoint_ids
+                time_ids = [time_ids]
+        all_tps = frames_metadata['time_idx'].unique()
+        tp_indicator = [tp in all_tps for tp in time_ids]
+        assert np.all(tp_indicator), 'time not available'
+        metadata_ids['timepoints'] = time_ids
 
     if channel_ids is not None:
         if np.issubdtype(type(channel_ids), np.integer):
             if channel_ids == -1:
-                channel_ids = study_metadata['channel_num'].unique()
+                channel_ids = frames_metadata['channel_idx'].unique()
             else:
                 channel_ids = [channel_ids]
-        all_channels = study_metadata['channel_num'].unique()
+        all_channels = frames_metadata['channel_idx'].unique()
         channel_indicator = [c in all_channels for c in channel_ids]
         assert np.all(channel_indicator), 'channel not available'
-        tp_channels_ids['channels'] = channel_ids
+        metadata_ids['channels'] = channel_ids
 
-    return tp_channels_ids
+    if pos_ids is not None:
+        if np.issubdtype(type(pos_ids), np.integer):
+            if pos_ids == -1:
+                pos_ids = frames_metadata['pos_idx'].unique()
+            else:
+                pos_ids = [pos_ids]
+        all_pos = frames_metadata['pos_idx'].unique()
+        pos_indicator = [c in all_pos for c in pos_ids]
+        assert np.all(pos_indicator), 'position not available'
+        metadata_ids['positions'] = pos_ids
+
+    return metadata_ids
 
 
 def init_logger(logger_name, log_fname, log_level):
@@ -114,24 +174,25 @@ def init_logger(logger_name, log_fname, log_level):
     return logger
 
 
-def save_tile_meta(cropped_meta,
+def save_tile_meta(tiles_meta,
                    cur_channel,
                    tiled_dir):
-    """Save meta data for cropped images
+    """
+    Save meta data for tiled images
 
-    :param list cropped_meta: list of tuples holding meta info for cropped
-     images
-    :param int cur_channel: channel being cropped
-    :param str tiled_dir: dir to save meta data
+    :param list tiles_meta: List of tuples holding meta info for tiled
+        images
+    :param int cur_channel: Channel being tiled
+    :param str tiled_dir: Directory to save meta data in
     """
 
     fname_header = 'fname_{}'.format(cur_channel)
     cur_df = pd.DataFrame.from_records(
-        cropped_meta,
-        columns=['timepoint', 'channel_num', 'sample_num',
-                 'slice_num', fname_header]
+        tiles_meta,
+        columns=['time_idx', 'channel_idx', 'pos_idx',
+                 'slice_idx', fname_header]
     )
-    metadata_fname = os.path.join(tiled_dir, 'tiled_images_info.csv')
+    metadata_fname = os.path.join(tiled_dir, 'tiles_meta.csv')
     if cur_channel == 0:
         df = cur_df
     else:
