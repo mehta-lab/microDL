@@ -5,7 +5,7 @@ import json
 import os
 import yaml
 
-from micro_dl.input.gen_crop_masks import MaskProcessor
+from micro_dl.input.generate_masks import MaskProcessor
 from micro_dl.input.tile_stack import ImageStackTiler
 from micro_dl.utils.aux_utils import import_class
 
@@ -77,6 +77,9 @@ def pre_process(pp_config):
     focal_plane_idx = None
     if 'focal_plane_idx' in pp_config:
         focal_plane_idx = pp_config['focal_plane_idx']
+    timepoint_ids = -1
+    if 'timepoints' in pp_config:
+        timepoint_ids = pp_config['timepoints']
 
     # estimate flat_field images
     correct_flat_field = True if pp_config['correct_flat_field'] else False
@@ -101,20 +104,19 @@ def pre_process(pp_config):
     mask_dir = None
     if pp_config['use_masks']:
         # Create mask_dir as a subdirectory of output_dir
-        mask_channels = pp_config['masks']['mask_channels']
-        mask_dir = os.path.join(output_dir,
-                                'mask_channels' + '-'.join(map(str, mask_channels)))
+        channel_ids = pp_config['masks']['mask_channels']
+        mask_dir = os.path.join(
+            output_dir,
+            'mask_channels' + '-'.join(map(str, channel_ids)),
+        )
         os.makedirs(mask_dir, exist_ok=True)
-        timepoints = -1
-        if 'timepoints' in pp_config:
-            timepoints = pp_config['timepoints']
 
         mask_processor_inst = MaskProcessor(
             input_dir=input_dir,
             output_dir=mask_dir,
-            mask_channels=mask_channels,
+            channel_ids=channel_ids,
             flat_field_dir=flat_field_dir,
-            timepoint_ids=timepoints,
+            timepoint_ids=timepoint_ids,
         )
         str_elem_radius = 5
         if 'str_elem_radius' in pp_config['masks']:
@@ -128,6 +130,7 @@ def pre_process(pp_config):
 
     # tile all frames, after flatfield correction if flatfields are generated
     tile_dir = None
+    tile_mask_dir = None
     if pp_config['tile_stack']:
         tile_size = pp_config['tile']['tile_size']
         step_size = pp_config['tile']['step_size']
@@ -140,42 +143,55 @@ def pre_process(pp_config):
         isotropic = False
         if 'isotropic' in pp_config['tile']:
             isotropic = pp_config['tile']['isotropic']
-
-        cropper_inst = ImageStackTiler(
-            input_dir=input_dir,
-            output_dir=tile_dir,
-            tile_size=tile_size,
-            step_size=step_size,
-            flat_field_dir=flat_field_dir,
-            isotropic=isotropic,
-        )
+        channel_ids = -1
+        if "channels" in pp_config['tile']:
+            channel_ids = pp_config['tile']['channels']
         hist_clip_limits = None
         if 'hist_clip_limits' in pp_config['tile']:
             hist_clip_limits = pp_config['tile']['hist_clip_limits']
 
-        if 'min_fraction' in pp_config['tile']:
-            cropper_inst.tile_stack_with_vf_constraint(
-                tile_channels=pp_config['tile']['channels'],
+        tile_inst = ImageStackTiler(
+            input_dir=input_dir,
+            output_dir=tile_dir,
+            tile_size=tile_size,
+            step_size=step_size,
+            timepoint_ids=timepoint_ids,
+            channel_ids=channel_ids,
+            focal_plane_idx=focal_plane_idx,
+            hist_clip_limits=hist_clip_limits,
+            flat_field_dir=flat_field_dir,
+            isotropic=isotropic,
+        )
+        # If you're using min fraction, it assumes you've generated masks
+        # and want to tile only the ones with a minimum amount of foreground
+        if 'min_fraction' in pp_config['tile'] and pp_config['use_masks']:
+            if pp_config['tile']['save_cropped_masks']:
+                tile_mask_dir = 'mask_tiles_{}_step_{}'.format(str_tile_size,
+                                                               str_step_size)
+                tile_mask_dir = os.path.join(output_dir, tile_mask_dir)
+                os.makedirs(tile_mask_dir, exist_ok=True)
+            tile_inst.tile_mask_stack(
                 min_fraction=pp_config['tile']['min_fraction'],
-                save_cropped_masks=pp_config['tile']['save_cropped_masks'],
-                isotropic=isotropic, focal_plane_idx=focal_plane_idx,
-                hist_clip_limits=hist_clip_limits
+                mask_dir=mask_dir,
+                tile_mask_dir=tile_mask_dir,
             )
         else:
-            cropper_inst.tile_stack(focal_plane_idx=focal_plane_idx,
-                                    hist_clip_limits=hist_clip_limits)
+            tile_inst.tile_stack()
 
-        processing_paths = {
-            "input_dir": input_dir,
-            "output_dir": output_dir,
-            "flat_field_dir": flat_field_dir,
-            "mask_dir": mask_dir,
-            "tile_dir": tile_dir,
-        }
-        json_dump = json.dumps(processing_paths)
-        meta_path = os.path.join(output_dir, "processing_paths.json")
-        with open(meta_path, "w") as write_file:
-            write_file.write(json_dump)
+    # Write in/out/mask/tile paths and config to json in output directory
+    processing_info = {
+        "input_dir": input_dir,
+        "output_dir": output_dir,
+        "flat_field_dir": flat_field_dir,
+        "mask_dir": mask_dir,
+        "tile_dir": tile_dir,
+        "tile_mask_dir": tile_mask_dir,
+        "config": pp_config,
+    }
+    json_dump = json.dumps(processing_info)
+    meta_path = os.path.join(output_dir, "preprocessing_info.json")
+    with open(meta_path, "w") as write_file:
+        write_file.write(json_dump)
 
 
 if __name__ == '__main__':

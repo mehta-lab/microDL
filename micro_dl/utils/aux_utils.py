@@ -6,6 +6,15 @@ import numpy as np
 import os
 import pandas as pd
 
+META_COL_NAMES = [
+    "channel_idx",
+    "slice_idx",
+    "time_idx",
+    "channel_name",
+    "file_name",
+    "pos_idx",
+]
+
 
 def import_class(module_name, cls_name):
     """Imports a class specified in yaml dynamically
@@ -94,9 +103,11 @@ def get_im_name(time_idx=None,
 def validate_metadata_indices(frames_metadata,
                               time_ids=None,
                               channel_ids=None,
+                              slice_ids=None,
                               pos_ids=None):
     """
-    Check the availability of provided timepoints and channels
+    Check the availability of provided timepoints, channels, positions
+    and slices for all data
 
     :param pd.DataFrame frames_metadata: DF with columns time_idx,
      channel_idx, slice_idx, pos_idx, file_name]
@@ -105,44 +116,42 @@ def validate_metadata_indices(frames_metadata,
     :param int/list channel_ids: check availability of these channels in
      frames_metadata
     :param int/list pos_ids: Check availability of positions in metadata
-    :param dict metadata_ids: All time and channel indices
-    :raise AssertionError: If not all channels, timepoints or positions
-        are present
+    :param int/list slice_ids: Check availability of z slices in metadata
+    :return dict metadata_ids: All time and channel indices
+    :raise AssertionError: If not all channels, timepoints, positions
+        or slices are present
     """
-
+    meta_id_names = [
+        "channel_ids",
+        "slice_ids",
+        "timepoint_ids",
+        "position_ids",
+    ]
+    id_list = [
+        channel_ids,
+        slice_ids,
+        time_ids,
+        pos_ids,
+    ]
+    col_names = [
+        "channel_idx",
+        "slice_idx",
+        "time_idx",
+        "pos_idx",
+    ]
     metadata_ids = {}
-    if time_ids is not None:
-        if np.issubdtype(type(time_ids), np.integer):
-            if time_ids == -1:
-                time_ids = frames_metadata['time_idx'].unique()
-            else:
-                time_ids = [time_ids]
-        all_tps = frames_metadata['time_idx'].unique()
-        tp_indicator = [tp in all_tps for tp in time_ids]
-        assert np.all(tp_indicator), 'time not available'
-        metadata_ids['timepoints'] = time_ids
-
-    if channel_ids is not None:
-        if np.issubdtype(type(channel_ids), np.integer):
-            if channel_ids == -1:
-                channel_ids = frames_metadata['channel_idx'].unique()
-            else:
-                channel_ids = [channel_ids]
-        all_channels = frames_metadata['channel_idx'].unique()
-        channel_indicator = [c in all_channels for c in channel_ids]
-        assert np.all(channel_indicator), 'channel not available'
-        metadata_ids['channels'] = channel_ids
-
-    if pos_ids is not None:
-        if np.issubdtype(type(pos_ids), np.integer):
-            if pos_ids == -1:
-                pos_ids = frames_metadata['pos_idx'].unique()
-            else:
-                pos_ids = [pos_ids]
-        all_pos = frames_metadata['pos_idx'].unique()
-        pos_indicator = [c in all_pos for c in pos_ids]
-        assert np.all(pos_indicator), 'position not available'
-        metadata_ids['positions'] = pos_ids
+    for meta_id_name, ids, col_name in zip(meta_id_names, id_list, col_names):
+        if ids is not None:
+            if np.issubdtype(type(ids), np.integer):
+                if ids == -1:
+                    ids = frames_metadata[col_name].unique()
+                else:
+                    ids = [ids]
+            all_ids = frames_metadata[col_name].unique()
+            id_indicator = [i in all_ids for i in ids]
+            assert np.all(id_indicator),\
+                'Indices for {} available'.format(col_name)
+            metadata_ids[meta_id_name] = ids
 
     return metadata_ids
 
@@ -155,7 +164,6 @@ def init_logger(logger_name, log_fname, log_level):
     :param int log_level: specifies the logging level: NOTSET:0, DEBUG:10,
     INFO:20, WARNING:30, ERROR:40, CRITICAL:50
     """
-
     logger = logging.getLogger(logger_name)
     logger.setLevel(log_level)
     logger.propagate = False
@@ -185,7 +193,6 @@ def save_tile_meta(tiles_meta,
     :param int cur_channel: Channel being tiled
     :param str tiled_dir: Directory to save meta data in
     """
-
     fname_header = 'fname_{}'.format(cur_channel)
     cur_df = pd.DataFrame.from_records(
         tiles_meta,
@@ -208,7 +215,6 @@ def validate_config(config_dict, params):
     :param list params: list of strings with expected params
     :return: list with bool values indicating if param is present or not
     """
-
     params = np.array(params)
     param_indicator = np.zeros(len(params), dtype='bool')
     for idx, exp_param in enumerate(params):
@@ -227,7 +233,6 @@ def get_channel_axis(data_format):
     :param str data_format: as named. [channels_last, channel_first]
     :return int channel_axis
     """
-
     assert data_format in ['channels_first', 'channels_last'], \
         'Invalid data format %s' % data_format
     if data_format == 'channels_first':

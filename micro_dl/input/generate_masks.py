@@ -16,7 +16,7 @@ class MaskProcessor:
     def __init__(self,
                  input_dir,
                  output_dir,
-                 mask_channels,
+                 channel_ids,
                  flat_field_dir=None,
                  timepoint_ids=-1,
                  int2str_len=3):
@@ -26,8 +26,8 @@ class MaskProcessor:
         :param str output_dir: Directory where masks will be saved
         :param str flatfield_dir: Directory with flatfield images if flatfield correction
             is applied
-        :param int/list mask_channels: generate mask from the sum of these
-         (flurophore) channels
+        :param int/list channel_ids: generate mask from the sum of these
+         (flurophore) channel indices
         :param list/int timepoint_ids: timepoints to consider
         :param int int2str_len: Length of str when converting ints
         """
@@ -46,9 +46,9 @@ class MaskProcessor:
         metadata_ids = aux_utils.validate_metadata_indices(
             frames_metadata=frames_metadata,
             time_ids=timepoint_ids,
-            channel_ids=mask_channels)
-        self.timepoint_ids = metadata_ids['timepoints']
-        self.mask_channels = metadata_ids['channels']
+            channel_ids=channel_ids)
+        self.timepoint_ids = metadata_ids['timepoint_ids']
+        self.mask_channels = metadata_ids['channel_ids']
 
         self.input_dir = input_dir
         self.mask_dir_name = output_dir
@@ -164,7 +164,6 @@ class MaskProcessor:
                             mask,
                             allow_pickle=True,
                             fix_imports=True)
-
 
     def get_crop_indices(self,
                          min_fraction,

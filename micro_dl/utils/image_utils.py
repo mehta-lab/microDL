@@ -104,18 +104,20 @@ def tile_image(input_image,
                tile_size,
                step_size,
                isotropic=False,
-               return_index=False):
-    """Crops the image from given crop and step size.
+               return_index=False,
+               min_fraction=None):
+    """
+     Tiles the image based on given tile and step size.
 
     :param np.array input_image: input image to be tiled
-    :param list/tuple/np array tile_size: size of the blocks to be cropped
+    :param list/tuple/np array tile_size: size of the blocks to be tiled
      from the image
     :param list/tuple/np array step_size: size of the window shift. In case of
      no overlap, the step size is tile_size. If overlap, step_size < tile_size
     :param bool isotropic: if 3D, make the grid/shape isotropic
-    :param bool return_index: indicator for returning crop indices
-    :return: a list with tuples of cropped image id of the format
-     rrmin-rmax_ccmin-cmax_slslmin-slmax and cropped image
+    :param bool return_index: indicator for returning tile indices
+    :return: a list with tuples of tiled image id of the format
+     rrmin-rmax_ccmin-cmax_slslmin-slmax and tiled image
      if return_index=True: return a list with tuples of crop indices
     """
 
@@ -133,14 +135,28 @@ def tile_image(input_image,
         start_value = cur_value - miss_length
         return start_value
 
+    def use_tile(im, min_fraction):
+        """
+        Determine if tile should be used given minimum image foreground fraction
+        :param np.array im: 2D image tile
+        :param float min_fraction: Minimum fraction of image being foreground
+        :return bool use_tile: Indicator if tile should be used
+        """
+        use_tile = True
+        if min_fraction is not None:
+            mask_fraction = np.mean(cropped_img)
+            if mask_fraction < min_fraction:
+                use_tile = False
+        return use_tile
+
     check_1 = len(tile_size) == len(step_size)
     check_2 = np.all(step_size <= tile_size)
     check_3 = np.all(tile_size) > 0
-    assert check_1 and check_2 and check_3
+    assert check_1 and check_2 and check_3,\
+        "Tiling not valid with tile size {} and step {}".format(tile_size, step_size)
 
     n_rows = input_image.shape[0]
     n_cols = input_image.shape[1]
-
     n_dim = len(input_image.shape)
     if n_dim == 3:
         n_slices = input_image.shape[2]
@@ -176,14 +192,16 @@ def tile_image(input_image,
                     if isotropic_cond:
                         cropped_img = resize_image(cropped_img,
                                                    isotropic_shape)
-                    cropped_image_list.append((img_id, cropped_img))
-                    cropping_index.append(cur_index)
+                    if use_tile(cropped_img, min_fraction):
+                        cropped_image_list.append((img_id, cropped_img))
+                        cropping_index.append(cur_index)
             else:
                 cur_index = (row, row + tile_size[0], col, col + tile_size[1])
                 cropped_img = input_image[row: row + tile_size[0],
                                           col: col + tile_size[1]]
-                cropped_image_list.append((img_id, cropped_img))
-                cropping_index.append(cur_index)
+                if use_tile(cropped_img, min_fraction):
+                    cropped_image_list.append((img_id, cropped_img))
+                    cropping_index.append(cur_index)
     if return_index:
         return cropped_image_list, cropping_index
     return cropped_image_list
