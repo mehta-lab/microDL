@@ -192,6 +192,26 @@ class ImageStackTiler:
             )
         return flat_field_im
 
+    def _get_dataframe(self):
+        """
+        Creates an empty dataframe with metadata column names for tiels. It's
+        the same names as for frames, but with channel_name removed and with
+        the addition of row_start and col_start.
+        TODO: Should I also save row_end and col_end while I'm at it?
+        Might be useful if we want to recreate tiles from a previous preprocessing
+        with mask run... Or just retrieve tile_size from preprocessing_info...
+
+        :return dataframe tiled_metadata
+        """
+        return pd.DataFrame(columns=[
+            "channel_idx",
+            "slice_idx",
+            "time_idx",
+            "file_name",
+            "pos_idx",
+            "row_start",
+            "col_start"])
+
     def tile_stack(self):
         """
         Tiles images in the specified channels.
@@ -200,14 +220,7 @@ class ImageStackTiler:
         ['time_idx', 'channel_idx', 'pos_idx','slice_idx', 'file_name']
         for all the tiles
         """
-        tiled_metadata = pd.DataFrame(columns=[
-            "channel_idx",
-            "slice_idx",
-            "time_idx",
-            "file_name",
-            "pos_idx",
-            "row_start",
-            "col_start"])
+        tiled_metadata = self._get_dataframe()
         tile_indices = None
         for channel_idx in self.channels_ids:
             # Perform flatfield correction if flatfield dir is specified
@@ -274,14 +287,7 @@ class ImageStackTiler:
         :param float min_fraction: Minimum fraction of foreground in tiled masks
         :param bool isotropic: Indicator of isotropy
         """
-        tiled_metadata = pd.DataFrame(columns=[
-            "channel_idx",
-            "slice_idx",
-            "time_idx",
-            "file_name",
-            "pos_idx",
-            "row_start",
-            "col_start"])
+        tiled_metadata = self._get_dataframe()
         # Load flatfield images if flatfield dir is specified
         flat_field_im = None
         if self.flat_field_dir is not None:
@@ -313,14 +319,7 @@ class ImageStackTiler:
                         return_index=True,
                     )
                     # Loop through all the mask tiles, write tiled masks
-                    mask_metadata = pd.DataFrame(columns=[
-                        "channel_idx",
-                        "slice_idx",
-                        "time_idx",
-                        "file_name",
-                        "pos_idx",
-                        "row_start",
-                        "col_start"])
+                    mask_metadata = self._get_dataframe()
                     mask_metadata = self._write_tiled_data(
                         tiled_data=tiled_mask_data,
                         save_dir=tile_mask_dir,

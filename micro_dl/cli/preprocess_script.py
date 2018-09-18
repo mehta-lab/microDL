@@ -49,6 +49,9 @@ def pre_process(pp_config):
     correct_flat_field: Perform flatfield correction (2D only currently)
     use_masks: Generate binary masks from given input channels
     tile_stack: Split frames into smaller tiles with tile_size and step_size
+    This script will preprocess your dataset, save tiles and associated
+    metadata. Then in the train_script, a dataframe for training data
+    will be assembled based on the inputs and target you specify.
 
     :param dict pp_config: dict with keys [input_fname, base_output_dir,
      split_volumes, crop_volumes]
