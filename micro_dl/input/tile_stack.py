@@ -200,6 +200,8 @@ class ImageStackTiler:
         TODO: Should I also save row_end and col_end while I'm at it?
         Might be useful if we want to recreate tiles from a previous preprocessing
         with mask run... Or just retrieve tile_size from preprocessing_info...
+        This is one of the functions that will have to be adapted once tested on
+        3D data.
 
         :return dataframe tiled_metadata
         """
@@ -287,6 +289,7 @@ class ImageStackTiler:
         :param float min_fraction: Minimum fraction of foreground in tiled masks
         :param bool isotropic: Indicator of isotropy
         """
+        print("min fraction", min_fraction)
         tiled_metadata = self._get_dataframe()
         # Load flatfield images if flatfield dir is specified
         flat_field_im = None
@@ -299,7 +302,8 @@ class ImageStackTiler:
             for time_idx in self.timepoint_ids:
                 for pos_idx in np.unique(self.frames_metadata["pos_idx"]):
                     # Since masks are generated across channels, we only need
-                    # load them once across channels
+                    # load them once across channels (masks have no channel info
+                    # in file name)
                     file_name = aux_utils.get_im_name(
                         time_idx=time_idx,
                         slice_idx=slice_idx,

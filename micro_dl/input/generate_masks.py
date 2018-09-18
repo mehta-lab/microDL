@@ -11,7 +11,7 @@ import micro_dl.utils.image_utils as image_utils
 
 
 class MaskProcessor:
-    """Generate masks and get crop indices based on min vol fraction"""
+    """Generate masks from channels"""
 
     def __init__(self,
                  input_dir,
@@ -21,8 +21,7 @@ class MaskProcessor:
                  timepoint_ids=-1,
                  focal_plane_idx=-1,
                  int2str_len=3):
-        """Init.
-
+        """
         :param str input_dir: Directory with image frames
         :param str output_dir: Directory where masks will be saved
         :param str flat_field_dir: Directory with flatfield images if
@@ -112,7 +111,6 @@ class MaskProcessor:
                         channel_idx=None,
                         slice_idx=slice_idx,
                         pos_idx=pos_idx,
-
                     )
                     # Save mask for given channels
                     np.save(os.path.join(self.mask_dir_name, file_name),

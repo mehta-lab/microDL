@@ -110,7 +110,7 @@ def pre_process(pp_config):
         channel_ids = pp_config['masks']['mask_channels']
         mask_dir = os.path.join(
             output_dir,
-            'mask_channels' + '-'.join(map(str, channel_ids)),
+            'mask_channels_' + '-'.join(map(str, channel_ids)),
         )
         os.makedirs(mask_dir, exist_ok=True)
 
