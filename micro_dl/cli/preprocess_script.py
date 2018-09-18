@@ -45,7 +45,6 @@ def read_config(config_fname):
 def pre_process(pp_config):
     """
     Preprocess data. Possible options are:
-    split_volumes: Split .lif file into individual 2D frames
     correct_flat_field: Perform flatfield correction (2D only currently)
     use_masks: Generate binary masks from given input channels
     tile_stack: Split frames into smaller tiles with tile_size and step_size
@@ -58,24 +57,6 @@ def pre_process(pp_config):
     """
     input_dir = pp_config['input_dir']
     output_dir = pp_config['output_dir']
-
-    # split images (if input is a lif file)
-    if pp_config['split_volumes']:
-        stack_splitter_cls = pp_config['splitter_class']
-        stack_splitter_cls = import_class(
-            'input.split_lif_stack',
-            stack_splitter_cls,
-        )
-        stack_splitter = stack_splitter_cls(
-            lif_fname=pp_config['input_dir'],
-            base_output_dir=pp_config['output_dir'],
-            verbose=pp_config['verbose']
-        )
-        stack_splitter.save_images()
-        input_dir = os.path.join(
-            pp_config['output_dir'],
-            'split_images',
-        )
 
     focal_plane_idx = -1
     if 'focal_plane_idx' in pp_config:

@@ -45,13 +45,6 @@ You will need to copy/paste the token generated in your Docker container.
 
 ### Basic CLIs
 
-To run preprocessing on a Lif file, see config_preprocess.yml file
-and then run
-
-```buildoutcfg
-python micro_dl/input/preprocess_script.py --config micro_dl/config_preprocess.yml
-```
-
 To train directly on datasets that have already been split into 2D frames, the dataset
 should have the following structure:
 
@@ -109,8 +102,6 @@ for model inference run:
 * scikit-learn
 * scipy
 * testfixtures
-* python-bioformats (for Lif)
-* javabridge (for Lif)
 
 
 ## Preprocessing
@@ -119,8 +110,6 @@ The following settings can be adjusted in preprocessing:
 * base_output_dir: (str) folder name
 * focal_plane_idx: (int) if more than one z-index present (3D image), select oen focal plane (for 2D analysis)
 * verbose: (int) Logging verbosity levels: NOTSET:0, DEBUG:10, INFO:20, WARNING:30, ERROR:40, CRITICAL:50
-* split_volumes: (bool) split Lif file into 
-* splitter_class: LifStackSplitter2D or LifStackSplitter3D
 * input_fname: (str) full path to lif file
 * correct_flat_field: (bool) perform flatfield correction (2D data only)
 * flat_field_class: FlatFieldEstimator2D
