@@ -74,7 +74,7 @@ def pre_process(pp_config):
             'split_images',
         )
 
-    focal_plane_idx = None
+    focal_plane_idx = -1
     if 'focal_plane_idx' in pp_config:
         focal_plane_idx = pp_config['focal_plane_idx']
     timepoint_ids = -1
@@ -117,13 +117,13 @@ def pre_process(pp_config):
             channel_ids=channel_ids,
             flat_field_dir=flat_field_dir,
             timepoint_ids=timepoint_ids,
+            focal_plane_idx=focal_plane_idx,
         )
         str_elem_radius = 5
         if 'str_elem_radius' in pp_config['masks']:
             str_elem_radius = pp_config['masks']['str_elem_radius']
 
         mask_processor_inst.generate_masks(
-            focal_plane_idx=focal_plane_idx,
             correct_flat_field=correct_flat_field,
             str_elem_radius=str_elem_radius,
         )

@@ -40,7 +40,7 @@ class FlatFieldEstimator(metaclass=ABCMeta):
 
         raise NotImplementedError
 
-    def estimate_flat_field(self, focal_plane_idx=None):
+    def estimate_flat_field(self, focal_plane_idx=-1):
         """
         Estimates flat field correction image.
 

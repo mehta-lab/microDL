@@ -59,10 +59,6 @@ class ImageStackTiler:
         else:
             frames_metadata = pd.read_csv(meta_path)
         self.frames_metadata = frames_metadata
-
-        # Make focal plane index match rest of preprocessing script
-        if focal_plane_idx is None:
-            focal_plane_idx = -1
         # Get metadata indices
         metadata_ids = aux_utils.validate_metadata_indices(
             frames_metadata=self.frames_metadata,
@@ -133,7 +129,7 @@ class ImageStackTiler:
                           channel_idx=None,
                           slice_idx=None,
                           pos_idx=None,
-                          channel_name=None,
+                          tile_indices=None,
                           tiled_metadata=None,
                           ):
         """
@@ -146,11 +142,12 @@ class ImageStackTiler:
         :param int channel_idx: Channel index
         :param int slice_idx: Slice (z) index
         :param int pos_idx: Position (FOV) index
-        :param str channel_name: Channel name
+        :param list of tuples tile_indices: Tile indices
         :param dataframe tiled_metadata: Dataframe containing metadata for all
          tiles
+        :return dataframe tiled_metadata: Metadata with rows added to it
         """
-        for data_tuple in tiled_data:
+        for i, data_tuple in enumerate(tiled_data):
             rcsl_idx = data_tuple[0]
             file_name = aux_utils.get_im_name(
                 time_idx=time_idx,
@@ -163,17 +160,20 @@ class ImageStackTiler:
                     data_tuple[1],
                     allow_pickle=True,
                     fix_imports=True)
+            tile_idx = tile_indices[i]
             if tiled_metadata is not None:
                 tiled_metadata = tiled_metadata.append(
                     {"channel_idx": channel_idx,
                      "slice_idx": slice_idx,
                      "time_idx": time_idx,
-                     "channel_name": channel_name,
                      "file_name": file_name,
                      "pos_idx": pos_idx,
+                     "row_start": tile_idx[0],
+                     "col_start": tile_idx[2],
                      },
                     ignore_index=True,
                 )
+        return tiled_metadata
 
     def _get_flat_field(self, channel_idx):
         """
@@ -200,8 +200,15 @@ class ImageStackTiler:
         ['time_idx', 'channel_idx', 'pos_idx','slice_idx', 'file_name']
         for all the tiles
         """
-        # TODO: preallocating dataframe shape would save some time
-        tiled_metadata = pd.DataFrame(columns=aux_utils.META_COL_NAMES)
+        tiled_metadata = pd.DataFrame(columns=[
+            "channel_idx",
+            "slice_idx",
+            "time_idx",
+            "file_name",
+            "pos_idx",
+            "row_start",
+            "col_start"])
+        tile_indices = None
         for channel_idx in self.channels_ids:
             # Perform flatfield correction if flatfield dir is specified
             flat_field_im = self._get_flat_field(channel_idx=channel_idx)
@@ -218,21 +225,28 @@ class ImageStackTiler:
                             hist_clip_limits=self.hist_clip_limits,
                         )
                         # Now to the actual tiling
-                        # TODO: Only comput indices once for all channels
-                        tiled_image_data = image_utils.tile_image(
-                            input_image=im,
-                            tile_size=self.tile_size,
-                            step_size=self.step_size,
-                            isotropic=self.isotropic,
-                        )
-                        self._write_tiled_data(
+                        if tile_indices is None:
+                            tiled_image_data, tile_indices =\
+                                image_utils.tile_image(
+                                    input_image=im,
+                                    tile_size=self.tile_size,
+                                    step_size=self.step_size,
+                                    isotropic=self.isotropic,
+                                )
+                        else:
+                            tiled_image_data = image_utils.crop_at_indices(
+                                input_image=im,
+                                crop_indices=tile_indices,
+                                isotropic=self.isotropic,
+                            )
+                        tiled_metadata = self._write_tiled_data(
                             tiled_image_data,
                             save_dir=self.output_dir,
                             time_idx=time_idx,
                             channel_idx=channel_idx,
                             slice_idx=slice_idx,
                             pos_idx=pos_idx,
-                            channel_name=channel_name,
+                            tile_indices=tile_indices,
                             tiled_metadata=tiled_metadata,
                         )
         # Finally, save all the metadata
@@ -260,8 +274,14 @@ class ImageStackTiler:
         :param float min_fraction: Minimum fraction of foreground in tiled masks
         :param bool isotropic: Indicator of isotropy
         """
-        # TODO: preallocating dataframe shape would save some time
-        tiled_metadata = pd.DataFrame(columns=aux_utils.META_COL_NAMES)
+        tiled_metadata = pd.DataFrame(columns=[
+            "channel_idx",
+            "slice_idx",
+            "time_idx",
+            "file_name",
+            "pos_idx",
+            "row_start",
+            "col_start"])
         # Load flatfield images if flatfield dir is specified
         flat_field_im = None
         if self.flat_field_dir is not None:
@@ -284,7 +304,6 @@ class ImageStackTiler:
                         file_name,
                     )
                     mask_image = image_utils.read_image(file_path)
-                    # TODO: Save tile indices?
                     tiled_mask_data, tile_indices = image_utils.tile_image(
                         input_image=mask_image,
                         min_fraction=min_fraction,
@@ -294,12 +313,26 @@ class ImageStackTiler:
                         return_index=True,
                     )
                     # Loop through all the mask tiles, write tiled masks
-                    self._write_tiled_data(
-                         tiled_data=tiled_mask_data,
-                         save_dir=tile_mask_dir,
-                         time_idx=time_idx,
-                         slice_idx=slice_idx,
-                         pos_idx=pos_idx,
+                    mask_metadata = pd.DataFrame(columns=[
+                        "channel_idx",
+                        "slice_idx",
+                        "time_idx",
+                        "file_name",
+                        "pos_idx",
+                        "row_start",
+                        "col_start"])
+                    mask_metadata = self._write_tiled_data(
+                        tiled_data=tiled_mask_data,
+                        save_dir=tile_mask_dir,
+                        time_idx=time_idx,
+                        slice_idx=slice_idx,
+                        pos_idx=pos_idx,
+                        tile_indices=tile_indices,
+                        tiled_metadata=mask_metadata,
+                    )
+                    mask_metadata.to_csv(
+                        os.path.join(tile_mask_dir, "frames_meta.csv"),
+                        sep=",",
                     )
                     # Loop through all channels and tile from indices
                     for i, channel_idx in enumerate(self.channels_ids):
@@ -321,14 +354,14 @@ class ImageStackTiler:
                             isotropic=self.isotropic,
                         )
                         # Loop through all the tiles, write and add to metadata
-                        self._write_tiled_data(
+                        tiled_metadata = self._write_tiled_data(
                             tiled_data=tiled_image_data,
                             save_dir=self.output_dir,
                             time_idx=time_idx,
                             channel_idx=channel_idx,
                             slice_idx=slice_idx,
                             pos_idx=pos_idx,
-                            channel_name=channel_name,
+                            tile_indices=tile_indices,
                             tiled_metadata=tiled_metadata,
                         )
 

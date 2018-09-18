@@ -6,15 +6,6 @@ import numpy as np
 import os
 import pandas as pd
 
-META_COL_NAMES = [
-    "channel_idx",
-    "slice_idx",
-    "time_idx",
-    "channel_name",
-    "file_name",
-    "pos_idx",
-]
-
 
 def import_class(module_name, cls_name):
     """Imports a class specified in yaml dynamically
@@ -37,7 +28,7 @@ def import_class(module_name, cls_name):
 
 
 def get_row_idx(frames_metadata, time_idx,
-                channel_idx, focal_plane_idx=None):
+                channel_idx, focal_plane_idx=-1):
     """Get the indices for images with timepoint_idx and channel_idx
 
     :param pd.DataFrame frames_metadata: DF with columns time_idx,
@@ -46,7 +37,7 @@ def get_row_idx(frames_metadata, time_idx,
     :param int channel_idx: get info for this channel
     :param int focal_plane_idx: get info for this focal plane (2D)
     """
-    if focal_plane_idx is not None:
+    if focal_plane_idx > -1:
         row_idx = ((frames_metadata['time_idx'] == time_idx) &
                    (frames_metadata['channel_idx'] == channel_idx) &
                    (frames_metadata['slice_idx'] == focal_plane_idx))
