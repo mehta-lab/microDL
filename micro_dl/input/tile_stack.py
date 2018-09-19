@@ -18,13 +18,12 @@ class ImageStackTiler:
                  output_dir,
                  tile_size,
                  step_size,
-                 timepoint_ids=-1,
+                 time_ids=-1,
                  channel_ids=-1,
-                 focal_plane_idx=-1,
+                 slice_ids=-1,
                  hist_clip_limits=None,
                  flat_field_dir=None,
-                 isotropic=False,
-                 meta_path=None):
+                 isotropic=False):
         """
         Normalizes images using z-score, then tiles them.
         Isotropic here refers to the same dimension/shape along row, col, slice
@@ -37,37 +36,30 @@ class ImageStackTiler:
         :param list/tuple/np array step_size: size of the window shift. In case
          of no overlap, the step size is tile_size. If overlap, step_size <
          tile_size
-        :param list/int timepoint_ids: Tile given timepoint indices
+        :param list/int time_ids: Tile given timepoint indices
         :param list/int tile_channels: Tile images in the given channel indices
          default=-1, tile all channels
-        :param int focal_plane_idx: Index of which focal plane acquisition to
+        :param int slice_ids: Index of which focal plane acquisition to
          use (for 2D). default=-1 for the whole z-stack
         :param list hist_clip_limits: lower and upper percentiles used for
          histogram clipping.
-        :param str flat_field_dir: Flatfield directory. None if no flatfield correction
+        :param str flat_field_dir: Flatfield directory. None if no flatfield
+            correction
         :param bool isotropic: if 3D, make the grid/shape isotropic
-        :param meta_path: If none, assume metadata csv is in output_dir
-            + split_images/ and is named split_images_info.csv
         """
         self.input_dir = input_dir
         self.output_dir = output_dir
         self.flat_field_dir = flat_field_dir
-        if meta_path is None:
-            frames_metadata = pd.read_csv(os.path.join(
-                self.input_dir, 'frames_meta.csv'
-            ))
-        else:
-            frames_metadata = pd.read_csv(meta_path)
-        self.frames_metadata = frames_metadata
+        self.frames_metadata = aux_utils.read_meta(self.input_dir)
         # Get metadata indices
         metadata_ids = aux_utils.validate_metadata_indices(
             frames_metadata=self.frames_metadata,
-            time_ids=timepoint_ids,
+            time_ids=time_ids,
             channel_ids=channel_ids,
-            slice_ids=focal_plane_idx,
+            slice_ids=slice_ids,
         )
         self.channels_ids = metadata_ids['channel_ids']
-        self.timepoint_ids = metadata_ids['timepoint_ids']
+        self.time_ids = metadata_ids['time_ids']
         self.slice_ids = metadata_ids['slice_ids']
 
         self.tile_size = tile_size
@@ -229,7 +221,7 @@ class ImageStackTiler:
             flat_field_im = self._get_flat_field(channel_idx=channel_idx)
 
             for slice_idx in self.slice_ids:
-                for time_idx in self.timepoint_ids:
+                for time_idx in self.time_ids:
                     for pos_idx in np.unique(self.frames_metadata["pos_idx"]):
                         im, channel_name = self._preprocess_im(
                             time_idx,
@@ -274,8 +266,7 @@ class ImageStackTiler:
                         mask_dir=None,
                         tile_mask_dir=None,
                         min_fraction=None,
-                        isotropic=False,
-                        ):
+                        isotropic=False):
         """
         Tiles images in the specified channels assuming there are masks
         already created in mask_dir. Only tiles above a certain fraction
@@ -289,7 +280,6 @@ class ImageStackTiler:
         :param float min_fraction: Minimum fraction of foreground in tiled masks
         :param bool isotropic: Indicator of isotropy
         """
-        print("min fraction", min_fraction)
         tiled_metadata = self._get_dataframe()
         # Load flatfield images if flatfield dir is specified
         flat_field_im = None
@@ -299,7 +289,7 @@ class ImageStackTiler:
                 flat_field_ims.append(self._get_flat_field(channel_idx))
 
         for slice_idx in self.slice_ids:
-            for time_idx in self.timepoint_ids:
+            for time_idx in self.time_ids:
                 for pos_idx in np.unique(self.frames_metadata["pos_idx"]):
                     # Since masks are generated across channels, we only need
                     # load them once across channels (masks have no channel info

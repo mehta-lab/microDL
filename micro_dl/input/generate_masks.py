@@ -1,10 +1,7 @@
 """Generate masks from sum of flurophore channels"""
 
-import glob
 import numpy as np
 import os
-import pandas as pd
-import pickle
 
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.image_utils as image_utils
@@ -18,8 +15,8 @@ class MaskProcessor:
                  output_dir,
                  channel_ids,
                  flat_field_dir=None,
-                 timepoint_ids=-1,
-                 focal_plane_idx=-1,
+                 time_ids=-1,
+                 slice_ids=-1,
                  int2str_len=3):
         """
         :param str input_dir: Directory with image frames
@@ -28,36 +25,26 @@ class MaskProcessor:
             flatfield correction is applied
         :param int/list channel_ids: generate mask from the sum of these
          (flurophore) channel indices
-        :param list/int timepoint_ids: timepoints to consider
-        :param int focal_plane_idx: Index of which focal plane (z)
+        :param list/int time_ids: timepoints to consider
+        :param int slice_ids: Index of which focal plane (z)
             acquisition to use (default -1 includes all slices)
         :param int int2str_len: Length of str when converting ints
         """
+        self.input_dir = input_dir
+        self.output_dir = output_dir
+        self.flat_field_dir = flat_field_dir
 
-        meta_fname = glob.glob(os.path.join(input_dir, 'frames_meta.csv'))
-        assert len(meta_fname) == 1, \
-            "Can't find info.csv file in {}".format(input_dir)
-
-        try:
-            frames_metadata = pd.read_csv(meta_fname[0])
-        except IOError as e:
-            e.args += 'cannot read split image info'
-            raise
-
-        self.frames_metadata = frames_metadata
+        self.frames_metadata = aux_utils.read_meta(self.input_dir)
         metadata_ids = aux_utils.validate_metadata_indices(
-            frames_metadata=frames_metadata,
-            time_ids=timepoint_ids,
+            frames_metadata=self.frames_metadata,
+            time_ids=time_ids,
             channel_ids=channel_ids,
-            slice_ids=focal_plane_idx,
+            slice_ids=slice_ids,
         )
-        self.timepoint_ids = metadata_ids['timepoint_ids']
+        self.time_ids = metadata_ids['time_ids']
         self.channel_ids = metadata_ids['channel_ids']
         self.slice_ids = metadata_ids['slice_ids']
 
-        self.input_dir = input_dir
-        self.mask_dir_name = output_dir
-        self.flat_field_dir = flat_field_dir
         self.int2str_len = int2str_len
 
     def generate_masks(self,
@@ -75,7 +62,7 @@ class MaskProcessor:
         """
         # Loop through all the indices and create masks
         for slice_idx in self.slice_ids:
-            for time_idx in self.timepoint_ids:
+            for time_idx in self.time_ids:
                 for pos_idx in np.unique(self.frames_metadata["pos_idx"]):
                     mask_images = []
                     for channel_idx in self.channel_ids:
@@ -113,7 +100,7 @@ class MaskProcessor:
                         pos_idx=pos_idx,
                     )
                     # Save mask for given channels
-                    np.save(os.path.join(self.mask_dir_name, file_name),
+                    np.save(os.path.join(self.output_dir, file_name),
                             mask,
                             allow_pickle=True,
                             fix_imports=True)

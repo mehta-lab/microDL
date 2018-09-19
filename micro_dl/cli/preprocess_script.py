@@ -5,6 +5,7 @@ import json
 import os
 import yaml
 
+from micro_dl.input.estimate_flat_field import FlatFieldEstimator2D
 from micro_dl.input.generate_masks import MaskProcessor
 from micro_dl.input.tile_stack import ImageStackTiler
 from micro_dl.utils.aux_utils import import_class
@@ -52,18 +53,19 @@ def pre_process(pp_config):
     metadata. Then in the train_script, a dataframe for training data
     will be assembled based on the inputs and target you specify.
 
-    :param dict pp_config: dict with keys [input_fname, base_output_dir,
-     split_volumes, crop_volumes]
+    :param dict pp_config: dict with key options:
+    [input_dir, output_dir, slice_ids, time_ids,
+    correct_flat_field, use_masks, masks, tile_stack, tile]
     """
     input_dir = pp_config['input_dir']
     output_dir = pp_config['output_dir']
 
-    focal_plane_idx = -1
-    if 'focal_plane_idx' in pp_config:
-        focal_plane_idx = pp_config['focal_plane_idx']
-    timepoint_ids = -1
-    if 'timepoints' in pp_config:
-        timepoint_ids = pp_config['timepoints']
+    slice_ids = -1
+    if 'slice_ids' in pp_config:
+        slice_ids = pp_config['slice_ids']
+    time_ids = -1
+    if 'time_ids' in pp_config:
+        time_ids = pp_config['time_ids']
 
     # estimate flat_field images
     correct_flat_field = True if pp_config['correct_flat_field'] else False
@@ -73,22 +75,18 @@ def pre_process(pp_config):
         flat_field_dir = os.path.join(output_dir, 'flat_field_images')
         os.makedirs(flat_field_dir, exist_ok=True)
 
-        flat_field_estimator_cls = pp_config['flat_field_class']
-        flat_field_estimator_cls = import_class(
-            'input.estimate_flat_field',
-            flat_field_estimator_cls,
-        )
-        flat_field_estimator = flat_field_estimator_cls(
+        flat_field_inst = FlatFieldEstimator2D(
             input_dir=input_dir,
             flat_field_dir=flat_field_dir,
+            slice_ids=slice_ids,
         )
-        flat_field_estimator.estimate_flat_field(focal_plane_idx)
+        flat_field_inst.estimate_flat_field()
 
-    # generate masks
+    # Generate masks
     mask_dir = None
     if pp_config['use_masks']:
         # Create mask_dir as a subdirectory of output_dir
-        channel_ids = pp_config['masks']['mask_channels']
+        channel_ids = pp_config['masks']['channels']
         mask_dir = os.path.join(
             output_dir,
             'mask_channels_' + '-'.join(map(str, channel_ids)),
@@ -100,8 +98,8 @@ def pre_process(pp_config):
             output_dir=mask_dir,
             channel_ids=channel_ids,
             flat_field_dir=flat_field_dir,
-            timepoint_ids=timepoint_ids,
-            focal_plane_idx=focal_plane_idx,
+            time_ids=time_ids,
+            slice_ids=slice_ids,
         )
         str_elem_radius = 5
         if 'str_elem_radius' in pp_config['masks']:
@@ -112,7 +110,7 @@ def pre_process(pp_config):
             str_elem_radius=str_elem_radius,
         )
 
-    # tile all frames, after flatfield correction if flatfields are generated
+    # Tile frames
     tile_dir = None
     tile_mask_dir = None
     if pp_config['tile_stack']:
@@ -139,9 +137,9 @@ def pre_process(pp_config):
             output_dir=tile_dir,
             tile_size=tile_size,
             step_size=step_size,
-            timepoint_ids=timepoint_ids,
+            time_ids=time_ids,
             channel_ids=channel_ids,
-            focal_plane_idx=focal_plane_idx,
+            slice_ids=slice_ids,
             hist_clip_limits=hist_clip_limits,
             flat_field_dir=flat_field_dir,
             isotropic=isotropic,

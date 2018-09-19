@@ -1,4 +1,5 @@
 """Auxiliary utility functions"""
+import glob
 import inspect
 import importlib
 import logging
@@ -28,19 +29,19 @@ def import_class(module_name, cls_name):
 
 
 def get_row_idx(frames_metadata, time_idx,
-                channel_idx, focal_plane_idx=-1):
+                channel_idx, slice_idx=-1):
     """Get the indices for images with timepoint_idx and channel_idx
 
     :param pd.DataFrame frames_metadata: DF with columns time_idx,
      channel_idx, slice_idx, file_name]
     :param int time_idx: get info for this timepoint
     :param int channel_idx: get info for this channel
-    :param int focal_plane_idx: get info for this focal plane (2D)
+    :param int slice_idx: get info for this focal plane (2D)
     """
-    if focal_plane_idx > -1:
+    if slice_idx > -1:
         row_idx = ((frames_metadata['time_idx'] == time_idx) &
                    (frames_metadata['channel_idx'] == channel_idx) &
-                   (frames_metadata['slice_idx'] == focal_plane_idx))
+                   (frames_metadata['slice_idx'] == slice_idx))
     else:
         row_idx = ((frames_metadata['time_idx'] == time_idx) &
                    (frames_metadata['channel_idx'] == channel_idx))
@@ -97,8 +98,11 @@ def validate_metadata_indices(frames_metadata,
                               slice_ids=None,
                               pos_ids=None):
     """
-    Check the availability of provided timepoints, channels, positions
-    and slices for all data
+    Check the availability of indices provided timepoints, channels, positions
+    and slices for all data.
+    If input ids are None, the indices for that parameter will not be
+    evaluated. If input ids are -1, all indices for that parameter will
+    be returned.
 
     :param pd.DataFrame frames_metadata: DF with columns time_idx,
      channel_idx, slice_idx, pos_idx, file_name]
@@ -108,15 +112,15 @@ def validate_metadata_indices(frames_metadata,
      frames_metadata
     :param int/list pos_ids: Check availability of positions in metadata
     :param int/list slice_ids: Check availability of z slices in metadata
-    :return dict metadata_ids: All time and channel indices
+    :return dict metadata_ids: All indices found given input
     :raise AssertionError: If not all channels, timepoints, positions
         or slices are present
     """
     meta_id_names = [
         "channel_ids",
         "slice_ids",
-        "timepoint_ids",
-        "position_ids",
+        "time_ids",
+        "pos_ids",
     ]
     id_list = [
         channel_ids,
@@ -171,6 +175,26 @@ def init_logger(logger_name, log_fname, log_level):
     file_handler.setLevel(log_level)
     logger.addHandler(file_handler)
     return logger
+
+
+def read_meta(input_dir, meta_fname='frames_meta.csv'):
+    """
+    Read metadata file, which is assumed to be named 'frames_meta.csv'
+    in given directory
+
+    :param str input_dir: Directory containing data and metadata
+    :return dataframe frames_metadata: Metadata for all frames
+    :raise IOError: If metadata file isn't present
+    """
+    meta_fname = glob.glob(os.path.join(input_dir, meta_fname))
+    assert len(meta_fname) == 1, \
+        "Can't find info.csv file in {}".format(input_dir)
+    try:
+        frames_metadata = pd.read_csv(meta_fname[0])
+    except IOError as e:
+        e.args += 'cannot read split image info'
+        raise
+    return frames_metadata
 
 
 def save_tile_meta(tiles_meta,
