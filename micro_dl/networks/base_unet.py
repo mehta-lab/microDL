@@ -43,11 +43,11 @@ class BaseUNet(BaseConvNet):
             if not param_check:
                 raise ValueError(msg)
             width = network_config['width']
-            feature_width_at_last_block = width / (2 ** num_down_blocks)
+            feature_width_at_last_block = width // (2 ** num_down_blocks)
             assert feature_width_at_last_block >= 2, \
                 'network depth is incompatible with width'
             feature_height_at_last_block = \
-                network_config['height'] / (2 ** num_down_blocks)
+                network_config['height'] // (2 ** num_down_blocks)
             assert feature_height_at_last_block >= 2, \
                 'network depth is incompatible with height'
 
@@ -73,7 +73,11 @@ class BaseUNet(BaseConvNet):
             else:
                 self.UpSampling = import_class('networks',
                                                'InterpUpSampling2D')
-
+        if not predict and self.config['num_dims'] == 3:
+            depth = self.config['depth']
+            feature_depth_at_last_block = depth // (2 ** num_down_blocks)
+            assert feature_depth_at_last_block >= 2, \
+                'network depth is incompatible with input depth'
         self.num_down_blocks = num_down_blocks
 
     def _downsampling_block(self,
