@@ -107,12 +107,11 @@ for model inference run:
 ## Preprocessing
 
 The following settings can be adjusted in preprocessing:
-* base_output_dir: (str) folder name
-* focal_plane_idx: (int) if more than one z-index present (3D image), select oen focal plane (for 2D analysis)
+* input_dir: (str) Directory where data to be preprocessed is located
+* output_dir: (str) folder name where all processed data will be written
+* slice_ids: (int/list) Value(s) of z-index to be processed
 * verbose: (int) Logging verbosity levels: NOTSET:0, DEBUG:10, INFO:20, WARNING:30, ERROR:40, CRITICAL:50
-* input_fname: (str) full path to lif file
 * correct_flat_field: (bool) perform flatfield correction (2D data only)
-* flat_field_class: FlatFieldEstimator2D
 * use_masks: (bool) whether to generate binary masks from images
 * masks:
     * mask_channels: (list of ints) which channels should be used for masks
@@ -126,18 +125,16 @@ The following settings can be adjusted in preprocessing:
     * min_fraction: (float) minimum fraction of image occupied by foreground in masks
     * hist_clip_limits: (list of ints) lower and upper intensity percentiles for histogram clipping
 
-During preprocessing, a csv file named tiled_images_info.csv will be generated, which
+During preprocessing, a csv file named frames_csv.csv will be generated, which
 will be used for further processing. The csv contains the following fields for each image tile:
 
-* 'timepoint': the timepoint it came from
-* 'channel_num': its channel
-* 'sample_num': the image index 
-* 'slice_num': the z index in case of 3D data (currently supported in Lif files)
-* 'fname': file name
-* 'size_x_microns': pixel size in x (microns) (currently supported in Lif)
-* 'size_y_microns': pixel size in y (microns) (currently supported in Lif)
-* 'size_z_microns': pixel size in z (microns) (currently supported in Lif)
-
+* 'time_idx': the timepoint it came from
+* 'channel_idx': its channel
+* 'slice_idx': the z index in case of 3D data
+* 'pos_idx': the field of view index
+* 'file_name': file name
+* 'row_start': starting row for tile (add tile_size for endpoint)
+* 'col_idx': start column (add tile_size for endpoint)
 
 ## Modeling
 
