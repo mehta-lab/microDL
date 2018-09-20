@@ -186,7 +186,7 @@ class ImageStackTiler:
 
     def _get_dataframe(self):
         """
-        Creates an empty dataframe with metadata column names for tiels. It's
+        Creates an empty dataframe with metadata column names for tiles. It's
         the same names as for frames, but with channel_name removed and with
         the addition of row_start and col_start.
         TODO: Should I also save row_end and col_end while I'm at it?
