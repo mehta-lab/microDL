@@ -9,8 +9,9 @@ from micro_dl.networks import UNet3D
 
 
 class TestUNet3D(unittest.TestCase):
+
     def setUp(self):
-        """Set up input shapes for both 2D and 3D and network_config"""
+        """Set up network_config, model and model layers"""
 
         self.network_config = {'num_dims': 3,
                                'num_input_channels': 1,
@@ -60,7 +61,7 @@ class TestUNet3D(unittest.TestCase):
         self.network_config['upsampling'] = 'bilinear'
 
     def test_UNet3D_get_input_shape(self):
-        """Test shape of network"""
+        """Test input and output shape of network"""
 
         exp_in_shape = (self.network_config['num_input_channels'],
                         self.network_config['depth'],

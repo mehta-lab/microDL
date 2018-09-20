@@ -104,9 +104,7 @@ class InterpUpSampling3D(InterpUpSampling2D):
         reoriented = tf.transpose(resume_b_z, [0, 3, 2, 1, 4])
         #   squeeze and 2d resize
         squeeze_b_x = tf.reshape(reoriented, [-1, y_size_new, z_size, c_size])
-        # print('squeeze_b_x:', squeeze_b_x.get_shape())
         resize_b_x = super()._interp_image(squeeze_b_x, (1, self.size[0]))
-        # print('resize_b_x:', resize_b_x.get_shape())
         resume_b_x = tf.reshape(
             tensor=resize_b_x,
             shape=tf.convert_to_tensor((-1, x_size_new,
