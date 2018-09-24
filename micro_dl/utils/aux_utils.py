@@ -2,10 +2,12 @@
 import glob
 import inspect
 import importlib
+import json
 import logging
 import numpy as np
 import os
 import pandas as pd
+import yaml
 
 
 def import_class(module_name, cls_name):
@@ -26,6 +28,21 @@ def import_class(module_name, cls_name):
             return obj
     except ImportError:
         raise
+
+
+def read_config(config_fname):
+    """Read the config file in yml format
+
+    TODO: validate config!
+
+    :param str config_fname: fname of config yaml with its full path
+    :return: dict config: Configuration parameters
+    """
+
+    with open(config_fname, 'r') as f:
+        config = yaml.load(f)
+
+    return config
 
 
 def get_row_idx(frames_metadata, time_idx,
@@ -90,6 +107,29 @@ def get_im_name(time_idx=None,
         im_name += "_" + extra_field
     im_name += ".npy"
     return im_name
+
+
+def sort_meta_by_channel(frames_metadata):
+
+    metadata_ids = validate_metadata_indices(
+        frames_metadata,
+        time_ids=-1,
+        channel_ids=-1,
+        slice_ids=-1,
+        pos_ids=-1)
+
+    col_names = [
+        "slice_idx",
+        "time_idx",
+        "pos_idx",
+        "row_start",
+        "col_start",
+    ]
+    for c in metadata_ids["channel_ids"]:
+        col_names.append("file_name_{}".format(c))
+    sorted_metadata = pd.DataFrame(columns=col_names)
+    # Loop through first channel, add to dataframe
+    # Loop through consecutive channels, check that row exists
 
 
 def validate_metadata_indices(frames_metadata,
@@ -255,3 +295,37 @@ def get_channel_axis(data_format):
     else:
         channel_axis = -1
     return channel_axis
+
+
+def read_json(json_filename):
+    """
+    Read  JSON file and validate schema
+
+    :param str json_filename: json file name
+    :return: dict json_object: JSON object
+    :raise FileNotFoundError: if file can't be read
+    :raise JSONDecodeError: if file is not in json format
+    """
+    try:
+        with open(json_filename, "r") as read_file:
+            try:
+                json_object = json.load(read_file)
+            except json.JSONDecodeError as jsone:
+                print(jsone)
+                raise
+    except FileNotFoundError as e:
+        print(e)
+        raise
+    return json_object
+
+
+def write_json(json_dict, json_filename):
+    """
+    Writes dict as json file.
+
+    :param dict json_dict: Dictionary to be written
+    :param str json_filename: Full path file name of json
+    """
+    json_dump = json.dumps(json_dict)
+    with open(json_filename, "w") as write_file:
+        write_file.write(json_dump)

@@ -13,7 +13,7 @@ class BaseTrainingTable:
         """Init
 
         :param pd.DataFrame df_metadata: Dataframe with columns: [channel_num,
-         sample_num, timepoint, fname_0, fname_1, ......, fname_n]
+         sample_num, timepoint, file_name_0, file_name_1, ......, file_name_n]
         :param list input_channels: list of input channels
         :param list target_channels: list of target channels
         :param str split_by_column: column to be used for train-val-test split
@@ -31,7 +31,7 @@ class BaseTrainingTable:
     def _get_col_name(channel_ids):
         column_names = []
         for c_name in channel_ids:
-            cur_fname = 'fname_{}'.format(c_name)
+            cur_fname = 'file_name_{}'.format(c_name)
             column_names.append(cur_fname)
         return column_names
 
@@ -47,11 +47,12 @@ class BaseTrainingTable:
         """
 
         input_column_names = self._get_col_name(self.input_channels)
+        print("input", input_column_names)
         cur_df = self.df_metadata[row_idx].copy(deep=True)
-        cur_df['fpaths_input'] = (
+        cur_df['file_name'] = (
             cur_df[input_column_names].apply(lambda x: ','.join(x), axis=1)
         )
-
+        cur_df['file_name']
         target_column_names = self._get_col_name(self.target_channels)
         cur_df['fpaths_target'] = (
             cur_df[target_column_names].apply(lambda x: ','.join(x), axis=1)
@@ -66,18 +67,16 @@ class BaseTrainingTable:
         """
 
         unique_values = self.df_metadata[self.split_by_column].unique()
-        # DOESNOT HANDLE NON-INTEGER VALUES. map to int if string
+        # DOES NOT HANDLE NON-INTEGER VALUES. map to int if string
         # the sample_idxs are required for evaluating performance on test set
         assert np.issubdtype(unique_values.dtype, np.integer)
         split_idx = split_train_val_test(
             unique_values, self.split_ratio['train'],
             self.split_ratio['test'], self.split_ratio['val']
         )
-
         train_set = split_idx['train']
         train_idx = self.df_metadata[self.split_by_column].isin(train_set)
-        retain_columns = ['channel_num', 'sample_num', 'timepoint',
-                          'fpaths_input', 'fpaths_target']
+        retain_columns = ['channel_idx', 'pos_idx', 'time_idx', 'file_name']
         df_train = self._get_df(train_idx, retain_columns)
 
         test_set = split_idx['test']

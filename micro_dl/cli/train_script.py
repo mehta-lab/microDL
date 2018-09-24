@@ -4,7 +4,6 @@ import argparse
 from keras import Model
 import keras.backend as K
 from keras.utils import plot_model
-import numpy as np
 import os
 import pandas as pd
 import pickle
@@ -17,7 +16,7 @@ from micro_dl.input.training_table import (
 )
 from micro_dl.train.model_inference import load_model
 from micro_dl.train.trainer import BaseKerasTrainer
-from micro_dl.utils.aux_utils import import_class, validate_config
+import micro_dl.utils.aux_utils as aux_utils
 from micro_dl.utils.train_utils import check_gpu_availability, \
     set_keras_session
 
@@ -48,21 +47,6 @@ def parse_args():
                         help='port to use for the tensorboard callback')
     args = parser.parse_args()
     return args
-
-
-def read_config(config_fname):
-    """Read the config file in yml format
-
-    TODO: validate config!
-
-    :param str config_fname: fname of config yaml with its full path
-    :return: dict config
-    """
-
-    with open(config_fname, 'r') as f:
-        config = yaml.load(f)
-
-    return config
 
 
 def create_datasets(df_meta, dataset_config, trainer_config):
@@ -219,12 +203,12 @@ def create_network(network_config, gpu_id):
     params = ['class', 'filter_size', 'activation', 'pooling_type',
               'batch_norm', 'height', 'width', 'data_format',
               'final_activation']
-    param_check, msg = validate_config(network_config, params)
+    param_check, msg = aux_utils.validate_config(network_config, params)
     if not param_check:
         raise ValueError(msg)
 
     network_cls = network_config['class']
-    network_cls = import_class('networks', network_cls)
+    network_cls = aux_utils.import_class('networks', network_cls)
     network = network_cls(network_config)
     # assert if network shape matches dataset shape?
     inputs, outputs = network.build_net()
@@ -243,27 +227,38 @@ def run_action(args):
     """
 
     action = args.action
-    config = read_config(args.config)
+    config = aux_utils.read_config(args.config)
     dataset_config = config['dataset']
     trainer_config = config['trainer']
     network_config = config['network']
+
+    # The data directory should contain a json with directory names
+    json_fname = os.path.join(dataset_config['data_dir'],
+                              'preprocessing_info.json')
+    preprocessing_info = aux_utils.read_json(json_filename=json_fname)
+
     if action == 'train':
+        # Create directory where model will be saved
         if not os.path.exists(trainer_config['model_dir']):
             os.makedirs(trainer_config['model_dir'], exist_ok=True)
-
-        df_meta_fname = os.path.join(dataset_config['data_dir'],
-                                     'tiled_images_info.csv')
-        df_meta = pd.read_csv(df_meta_fname)
-
+        # Get tile directory from preprocessing info and load metadata
+        tiles_meta = pd.read_csv(
+            os.path.join(preprocessing_info['tile_dir'],
+                         'frames_meta.csv'),
+        )
+        masked_loss = False
         if 'masked_loss' in trainer_config:
+            masked_loss = trainer_config["masked_loss"]
+        if masked_loss:
+            print("in mask data")
             train_dataset, val_dataset, test_dataset, split_samples = \
-                create_datasets_with_mask(df_meta,
+                create_datasets_with_mask(tiles_meta,
                                           dataset_config,
                                           trainer_config)
         else:
             train_dataset, val_dataset, test_dataset, split_samples = \
-                create_datasets(df_meta, dataset_config, trainer_config)
-
+                create_datasets(tiles_meta, dataset_config, trainer_config)
+        assert 0 == 1
         split_idx_fname = os.path.join(trainer_config['model_dir'],
                                        'split_samples.pkl')
         with open(split_idx_fname, 'wb') as f:
