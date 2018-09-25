@@ -279,6 +279,7 @@ class ImageStackTiler:
                             tiled_metadata=tiled_metadata,
                         )
         # Finally, save all the metadata
+        tiled_metadata = tiled_metadata.sort_values(by=['file_name'])
         tiled_metadata.to_csv(
             os.path.join(self.tile_dir, "frames_meta.csv"),
             sep=",",
@@ -405,6 +406,7 @@ class ImageStackTiler:
                 os.path.join(self.tile_mask_dir, "frames_meta.csv"),
                 sep=",",
             )
+        tiled_metadata = tiled_metadata.sort_values(by=['file_name'])
         tiled_metadata.to_csv(
             os.path.join(self.tile_dir, "frames_meta.csv"),
             sep=",",
