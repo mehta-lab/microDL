@@ -49,10 +49,10 @@ class BaseTrainingTable:
         input_column_names = self._get_col_name(self.input_channels)
         print("input", input_column_names)
         cur_df = self.df_metadata[row_idx].copy(deep=True)
-        cur_df['file_name'] = (
+        cur_df['fpaths_input'] = (
             cur_df[input_column_names].apply(lambda x: ','.join(x), axis=1)
         )
-        cur_df['file_name']
+        print(cur_df['fpaths_input'])
         target_column_names = self._get_col_name(self.target_channels)
         cur_df['fpaths_target'] = (
             cur_df[target_column_names].apply(lambda x: ','.join(x), axis=1)

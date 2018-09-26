@@ -118,18 +118,28 @@ def sort_meta_by_channel(frames_metadata):
         slice_ids=-1,
         pos_ids=-1)
 
-    col_names = [
-        "slice_idx",
-        "time_idx",
-        "pos_idx",
-        "row_start",
-        "col_start",
-    ]
-    for c in metadata_ids["channel_ids"]:
-        col_names.append("file_name_{}".format(c))
-    sorted_metadata = pd.DataFrame(columns=col_names)
-    # Loop through first channel, add to dataframe
-    # Loop through consecutive channels, check that row exists
+    channel_ids = metadata_ids["channel_ids"]
+    # Get all metadata for first channel
+    sorted_metadata = frames_metadata[
+        frames_metadata["channel_idx"] == channel_ids[0]
+    ].reset_index()
+
+    # Loop through the rest of the channels and concat filenames
+    for c in channel_ids[1:]:
+        col_name = "file_name_{}".format(c)
+        channel_meta = frames_metadata[frames_metadata["channel_idx"] == c]
+        # Assert that all indices are the same for safety here?
+        channel_meta = pd.Series(channel_meta["file_name"].tolist(),
+                                 name=col_name)
+        sorted_metadata = pd.concat([sorted_metadata, channel_meta], axis=1)
+
+    # Cleanup
+    # Rename file name
+    sorted_metadata = sorted_metadata.rename(
+        index=str,
+        columns={"file_name": "file_name_{}".format(channel_ids[0])})
+    sorted_metadata = sorted_metadata.drop(["index", "Unnamed: 0"], axis=1)
+    return sorted_metadata
 
 
 def validate_metadata_indices(frames_metadata,

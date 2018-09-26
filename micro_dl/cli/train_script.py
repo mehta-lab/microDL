@@ -246,6 +246,8 @@ def run_action(args):
             os.path.join(preprocessing_info['tile_dir'],
                          'frames_meta.csv'),
         )
+        tiles_meta = aux_utils.sort_meta_by_channel(tiles_meta)
+
         masked_loss = False
         if 'masked_loss' in trainer_config:
             masked_loss = trainer_config["masked_loss"]

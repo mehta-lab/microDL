@@ -113,6 +113,7 @@ def pre_process(pp_config):
             flat_field_dir=flat_field_dir,
             isotropic=isotropic,
         )
+        tile_dir = tile_inst.get_tile_dir()
         # If you're using min fraction, it assumes you've generated masks
         # and want to tile only the ones with a minimum amount of foreground
         if 'min_fraction' in pp_config['tile'] and pp_config['use_masks']:
