@@ -11,9 +11,7 @@ import tensorflow as tf
 import yaml
 
 from micro_dl.input.dataset import BaseDataSet, DataSetWithMask
-from micro_dl.input.training_table import (
-    BaseTrainingTable, TrainingTableWithMask
-)
+from micro_dl.input.training_table import BaseTrainingTable
 from micro_dl.train.model_inference import load_model
 from micro_dl.train.trainer import BaseKerasTrainer
 import micro_dl.utils.aux_utils as aux_utils
@@ -49,12 +47,17 @@ def parse_args():
     return args
 
 
-def create_datasets(df_meta, dataset_config, trainer_config):
+def create_datasets(df_meta,
+                    tile_dir,
+                    dataset_config,
+                    trainer_config,
+                    model_task):
     """Create train, val and test datasets
 
     Saves val_metadata.csv and test_metadata.csv for checking model performance
 
     :param pd.DataFrame df_meta: Dataframe containing info on split tiles
+    :param str tile_dir: directory containing training image tiles
     :param dict dataset_config: dict with dataset related params
     :param dict trainer_config: dict with params related to training
     :return:
@@ -65,11 +68,13 @@ def create_datasets(df_meta, dataset_config, trainer_config):
       numbers as values
     """
 
-    tt = BaseTrainingTable(df_meta,
-                           dataset_config['input_channels'],
-                           dataset_config['target_channels'],
-                           dataset_config['split_by_column'],
-                           dataset_config['split_ratio'])
+    tt = BaseTrainingTable(
+        df_metadata=df_meta,
+        input_channels=dataset_config['input_channels'],
+        target_channels=dataset_config['target_channels'],
+        split_by_column=dataset_config['split_by_column'],
+        split_ratio=dataset_config['split_ratio'],
+    )
     if 'val' in dataset_config['split_ratio']:
         train_metadata, val_metadata, test_metadata, split_samples = \
             tt.train_test_split()
@@ -79,10 +84,14 @@ def create_datasets(df_meta, dataset_config, trainer_config):
                 trainer_config['augmentations']
             )
 
-        val_dataset = BaseDataSet(input_fnames=val_metadata['fpaths_input'],
-                                  target_fnames=val_metadata['fpaths_target'],
-                                  batch_size=trainer_config['batch_size'],
-                                  **val_gen_params)
+        val_dataset = BaseDataSet(
+            tile_dir=tile_dir,
+            input_fnames=val_metadata['fpaths_input'],
+            target_fnames=val_metadata['fpaths_target'],
+            batch_size=trainer_config['batch_size'],
+            model_task=model_task,
+            **val_gen_params,
+        )
         train_gen_params = val_gen_params.copy()
         val_metadata.to_csv(
             os.path.join(trainer_config['model_dir'], 'val_metadata.csv'),
@@ -101,20 +110,33 @@ def create_datasets(df_meta, dataset_config, trainer_config):
         sep=','
     )
 
-    train_dataset = BaseDataSet(input_fnames=train_metadata['fpaths_input'],
-                                target_fnames=train_metadata['fpaths_target'],
-                                batch_size=trainer_config['batch_size'],
-                                **train_gen_params)
-    test_dataset = BaseDataSet(input_fnames=test_metadata['fpaths_input'],
-                               target_fnames=test_metadata['fpaths_target'],
-                               batch_size=trainer_config['batch_size'])
+    train_dataset = BaseDataSet(
+        tile_dir=tile_dir,
+        input_fnames=train_metadata['fpaths_input'],
+        target_fnames=train_metadata['fpaths_target'],
+        batch_size=trainer_config['batch_size'],
+        model_task=model_task,
+        **train_gen_params,
+    )
+    test_dataset = BaseDataSet(
+        tile_dir=tile_dir,
+        input_fnames=test_metadata['fpaths_input'],
+        target_fnames=test_metadata['fpaths_target'],
+        batch_size=trainer_config['batch_size'],
+        model_task=model_task,
+    )
     return train_dataset, val_dataset, test_dataset, split_samples
 
 
-def create_datasets_with_mask(df_meta, dataset_config, trainer_config):
+def create_datasets_with_mask(df_meta,
+                              tile_dir,
+                              dataset_config,
+                              trainer_config,
+                              model_task):
     """Create train, val and test datasets
 
     :param pd.DataFrame df_meta: Dataframe containing info on split tiles
+    :param str tile_dir: directory containing training image tiles
     :param dict dataset_config: dict with dataset related params
     :param dict trainer_config: dict with params related to training
     :return:
@@ -125,17 +147,14 @@ def create_datasets_with_mask(df_meta, dataset_config, trainer_config):
       numbers as values
     """
 
-    if 'min_fraction' in dataset_config:
-        min_fraction = dataset_config['min_fraction']
-    else:
-        min_fraction = None
-    tt = TrainingTableWithMask(df_meta,
-                               dataset_config['input_channels'],
-                               dataset_config['target_channels'],
-                               dataset_config['mask_channels'],
-                               dataset_config['split_by_column'],
-                               dataset_config['split_ratio'],
-                               min_fraction)
+    tt = BaseTrainingTable(
+        df_metadata=df_meta,
+        input_channels=dataset_config['input_channels'],
+        target_channels=dataset_config['target_channels'],
+        split_by_column=dataset_config['split_by_column'],
+        split_ratio=dataset_config['split_ratio'],
+        mask_channels=dataset_config['mask_channels'],
+    )
     if 'val' in dataset_config['split_ratio']:
         train_metadata, val_metadata, test_metadata, split_samples = \
             tt.train_test_split()
@@ -148,11 +167,13 @@ def create_datasets_with_mask(df_meta, dataset_config, trainer_config):
             )
 
         val_dataset = DataSetWithMask(
+            tile_dir=tile_dir,
             input_fnames=val_metadata['fpaths_input'],
             target_fnames=val_metadata['fpaths_target'],
             mask_fnames=val_metadata['fpaths_mask'],
             batch_size=trainer_config['batch_size'],
-            **val_gen_params
+            model_task=model_task,
+            **val_gen_params,
         )
         train_gen_params = val_gen_params.copy()
         val_metadata.to_csv(
@@ -169,26 +190,31 @@ def create_datasets_with_mask(df_meta, dataset_config, trainer_config):
             train_gen_params['augmentations'] = (
                 trainer_config['augmentations']
             )
-    test_metadata.to_csv(os.path.join(trainer_config['model_dir'],
-                                      'test_metadata.csv'),
-                         sep=',')
+    test_metadata.to_csv(
+        os.path.join(trainer_config['model_dir'], 'test_metadata.csv'),
+        sep=',',
+    )
 
     train_dataset = DataSetWithMask(
+        tile_dir=tile_dir,
         input_fnames=train_metadata['fpaths_input'],
         target_fnames=train_metadata['fpaths_target'],
         mask_fnames=train_metadata['fpaths_mask'],
         batch_size=trainer_config['batch_size'],
-        **train_gen_params
+        model_task=model_task,
+        **train_gen_params,
     )
     test_gen_params = {}
     if 'label_weights' in dataset_config:
         test_gen_params['label_weights'] = dataset_config['label_weights']
     test_dataset = DataSetWithMask(
+        tile_dir=tile_dir,
         input_fnames=test_metadata['fpaths_input'],
         target_fnames=test_metadata['fpaths_target'],
         mask_fnames=test_metadata['fpaths_mask'],
         batch_size=trainer_config['batch_size'],
-        **test_gen_params
+        model_task=model_task,
+        **test_gen_params,
     )
     return train_dataset, val_dataset, test_dataset, split_samples
 
@@ -232,37 +258,60 @@ def run_action(args):
     trainer_config = config['trainer']
     network_config = config['network']
 
+    # Check if model task (regression or segmentation) is specified
+    model_task = 'regression'
+    if 'model_task' in dataset_config:
+        model_task = dataset_config['model_task']
+        assert model_task in {'regression', 'segmentation'}, \
+            "Model task must be either 'segmentation' or 'regression'"
+    # Check if masked loss exists
+    masked_loss = False
+    if 'masked_loss' in trainer_config:
+        masked_loss = trainer_config["masked_loss"]
+
     # The data directory should contain a json with directory names
     json_fname = os.path.join(dataset_config['data_dir'],
                               'preprocessing_info.json')
+
     preprocessing_info = aux_utils.read_json(json_filename=json_fname)
+    tile_dir_name = 'tile_dir'
+    # If a tile (training data) dir is specified and exists in info json,
+    # use that instead of default 'tile_dir'
+    if 'tile_dir' in dataset_config:
+        if hasattr(preprocessing_info, preprocessing_info['tile_dir']):
+            tile_dir_name = preprocessing_info['tile_dir']
+    tile_dir = preprocessing_info[tile_dir_name]
 
     if action == 'train':
         # Create directory where model will be saved
         if not os.path.exists(trainer_config['model_dir']):
             os.makedirs(trainer_config['model_dir'], exist_ok=True)
         # Get tile directory from preprocessing info and load metadata
-        tiles_meta = pd.read_csv(
-            os.path.join(preprocessing_info['tile_dir'],
-                         'frames_meta.csv'),
-        )
+        tiles_meta = pd.read_csv(os.path.join(tile_dir, 'frames_meta.csv'))
         tiles_meta = aux_utils.sort_meta_by_channel(tiles_meta)
-
-        masked_loss = False
-        if 'masked_loss' in trainer_config:
-            masked_loss = trainer_config["masked_loss"]
+        # Generate training, validation and test data sets
         if masked_loss:
-            print("in mask data")
             train_dataset, val_dataset, test_dataset, split_samples = \
-                create_datasets_with_mask(tiles_meta,
-                                          dataset_config,
-                                          trainer_config)
+                create_datasets_with_mask(
+                    tiles_meta,
+                    tile_dir,
+                    dataset_config,
+                    trainer_config,
+                    model_task,
+                )
         else:
             train_dataset, val_dataset, test_dataset, split_samples = \
-                create_datasets(tiles_meta, dataset_config, trainer_config)
-        assert 0 == 1
+                create_datasets(
+                    tiles_meta,
+                    tile_dir,
+                    dataset_config,
+                    trainer_config,
+                    model_task,
+                )
+
+        # Save train, validation and test indices
         split_idx_fname = os.path.join(trainer_config['model_dir'],
-                                       'split_samples.pkl')
+                                       'split_samples.json')
         with open(split_idx_fname, 'wb') as f:
             pickle.dump(split_samples, f)
 

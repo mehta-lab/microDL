@@ -66,7 +66,7 @@ class ImageStackTiler:
             channel_ids=channel_ids,
             slice_ids=slice_ids,
         )
-        self.channels_ids = metadata_ids['channel_ids']
+        self.channel_ids = metadata_ids['channel_ids']
         self.time_ids = metadata_ids['time_ids']
         self.slice_ids = metadata_ids['slice_ids']
 
@@ -238,7 +238,7 @@ class ImageStackTiler:
         """
         tiled_metadata = self._get_dataframe()
         tile_indices = None
-        for channel_idx in self.channels_ids:
+        for channel_idx in self.channel_ids:
             # Perform flatfield correction if flatfield dir is specified
             flat_field_im = self._get_flat_field(channel_idx=channel_idx)
 
@@ -326,7 +326,7 @@ class ImageStackTiler:
         flat_field_im = None
         if self.flat_field_dir is not None:
             flat_field_ims = []
-            for channel_idx in self.channels_ids:
+            for channel_idx in self.channel_ids:
                 flat_field_ims.append(self._get_flat_field(channel_idx))
 
         for slice_idx in self.slice_ids:
@@ -365,7 +365,7 @@ class ImageStackTiler:
                         tiled_metadata=mask_metadata,
                     )
                     # Loop through all channels and tile from indices
-                    for i, channel_idx in enumerate(self.channels_ids):
+                    for i, channel_idx in enumerate(self.channel_ids):
                         if self.flat_field_dir is not None:
                             flat_field_im = flat_field_ims[i]
 

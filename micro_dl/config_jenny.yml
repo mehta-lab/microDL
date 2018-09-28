@@ -1,10 +1,10 @@
 dataset:
     data_dir: '/Users/jenny.folkesson/Data/SMS-2018-07-03-18-35-00-0010_train_data'
-    tiles_steps: 'tiles_256-256_step_64-64'
     input_channels: [0]
-    target_channels: [5]
-    mask_channels: [5]
+    target_channels: [6]
+    mask_channels: [6]
     split_by_column: slice_idx
+    model_task: 'segmentation'
     split_ratio:
         train: 0.6
         val: 0.2
@@ -13,14 +13,13 @@ dataset:
     width: 256
 verbose: 10
 trainer:
-    output_type: 'continuous'
     model_dir: '/Users/jenny.folkesson/Data/models/refactor_labelfree_bs16_mse'
     batch_size: 16
     max_epochs: 50
     patience: 20
     masked_loss: False
-    metrics: mask_coeff_determination
-    loss: mean_squared_error
+    metrics: dice_coef
+    loss: dice_coef_loss
     callbacks:
         LearningRateScheduler:
             lr_find: False
@@ -49,10 +48,12 @@ network:
     class: UNet2D
     num_filters_per_block: [16, 32, 64, 96, 128]
     num_convs_per_block: 2
+    block_sequence: conv-activation-bn
     filter_size: 3
     batch_norm: True
-    activation: relu
-    pooling_type: mean
+    activation:
+        type: relu
+    pooling_type: average
     skip_merge_type: concat
     upsampling: nearest_neighbor
     dropout: 0.3
