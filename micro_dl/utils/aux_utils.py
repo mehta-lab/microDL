@@ -110,6 +110,14 @@ def get_im_name(time_idx=None,
 
 
 def sort_meta_by_channel(frames_metadata):
+    """
+    Rearrange metadata dataframe from all channels being listed in the same column
+    to moving file names for each channel to separate columns.
+
+    :param dataframe frames_metadata: Metadata with one column named 'file_name'
+    :return dataframe sorted_metadata: Metadata with separate file_name_X for
+        channel X.
+    """
 
     metadata_ids = validate_metadata_indices(
         frames_metadata,
@@ -128,12 +136,13 @@ def sort_meta_by_channel(frames_metadata):
     for c in channel_ids[1:]:
         col_name = "file_name_{}".format(c)
         channel_meta = frames_metadata[frames_metadata["channel_idx"] == c]
-        # Assert that all indices are the same for safety here?
+        # TODO: Assert that all indices are the same for safety here
+        # It should be taken care of by preprocessing, unless someone runs it
+        # several times with different settings
         channel_meta = pd.Series(channel_meta["file_name"].tolist(),
                                  name=col_name)
         sorted_metadata = pd.concat([sorted_metadata, channel_meta], axis=1)
 
-    # Cleanup
     # Rename file name
     sorted_metadata = sorted_metadata.rename(
         index=str,
