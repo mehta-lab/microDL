@@ -3,8 +3,8 @@ dataset:
     input_channels: [0]
     target_channels: [6]
     mask_channels: [6]
-    split_by_column: slice_idx
-    model_task: 'segmentation'
+    split_by_column: pos_idx
+    model_task: 'regression'
     split_ratio:
         train: 0.6
         val: 0.2
@@ -13,16 +13,16 @@ dataset:
     width: 256
 verbose: 10
 trainer:
-    model_dir: '/Users/jenny.folkesson/Data/models/refactor_labelfree_bs16_mse'
+    model_dir: '/Users/jenny.folkesson/Data/models/stack_2d_labelfree_bs16_mse'
     batch_size: 16
     max_epochs: 50
     patience: 20
-    masked_loss: False
-    metrics: dice_coef
-    loss: dice_coef_loss
+    masked_loss: True
+    metrics: coeff_determination
+    loss: mean_squared_error
     callbacks:
         LearningRateScheduler:
-            lr_find: False
+            lr_find: True
             base_lr: 0.001
             max_lr: 0.01
             step_size: 2
@@ -45,8 +45,9 @@ trainer:
         lr: 0.001
         name: Nadam
 network:
-    class: UNet2D
-    num_filters_per_block: [16, 32, 64, 96, 128]
+    depth: 3
+    class: UNetStackTo2D
+    num_filters_per_block: [16, 32, 64, 96]
     num_convs_per_block: 2
     block_sequence: conv-activation-bn
     filter_size: 3
@@ -63,4 +64,6 @@ network:
     num_input_channels: 1
     num_target_channels: 1
     data_format: 'channels_first'
+    regression_length: 32
+    dropout_dense: 0.4
     final_activation: linear
