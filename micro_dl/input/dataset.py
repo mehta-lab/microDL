@@ -89,22 +89,22 @@ class BaseDataSet(keras.utils.Sequence):
             raise ValueError(msg)
         return trans_image
 
-    def _get_volume(self, fname_list):
+    def _get_volume(self, fname_list, aug_idx=0):
         """Read a volume from fname_list
 
         :param list fname_list: list of file names of input/target images
+        :param int aug_idx: type of augmentation to be applied (if any)
         :return: np.ndarray of stacked images
         """
+
         image_volume = []
         for fname in fname_list:
             cur_channel = np.load(os.path.join(self.tile_dir, fname))
-            if self.augmentations:
-                aug_idx = np.random.choice([0, 1, 2, 3, 4, 5], 1)
-                cur_channel = self._augment_image(aug_idx, cur_channel)
+            cur_channel = self._augment_image(cur_channel, aug_idx)
             image_volume.append(cur_channel)
 
         image_volume = np.stack(image_volume)
-        return image_volume
+        return image_volume, aug_idx
 
     def __getitem__(self, index):
         """Get a batch of data
@@ -123,11 +123,16 @@ class BaseDataSet(keras.utils.Sequence):
 
         input_image = []
         target_image = []
+        aug_idx = 0
         for idx in range(start_idx, end_idx, 1):
             cur_input_fnames = self.input_fnames.iloc[self.row_idx[idx]]
             cur_target_fnames = self.target_fnames.iloc[self.row_idx[idx]]
-            cur_input = self._get_volume(cur_input_fnames.split(','))
-            cur_target = self._get_volume(cur_target_fnames.split(','))
+            if self.augmentations:
+                aug_idx = np.random.choice([0, 1, 2, 3, 4, 5], 1)
+            cur_input = self._get_volume(cur_input_fnames.split(','),
+                                         aug_idx)
+            cur_target = self._get_volume(cur_target_fnames.split(','),
+                                          aug_idx)
             # If target is boolean (segmentation masks), convert to float
             if cur_target.dtype == bool:
                 cur_target = cur_target.astype(np.float64)
@@ -166,7 +171,7 @@ class DataSetWithMask(BaseDataSet):
                  model_task='regression',
                  label_weights=None,
                  shuffle=True,
-                 augmentations=None,
+                 augmentations=False,
                  random_seed=42,
                  normalize=False):
         """Init
@@ -217,13 +222,18 @@ class DataSetWithMask(BaseDataSet):
 
         input_image = []
         target_image = []
+        aug_idx = 0
         for idx in range(start_idx, end_idx, 1):
             cur_input_fnames = self.input_fnames.iloc[self.row_idx[idx]]
             cur_target_fnames = self.target_fnames.iloc[self.row_idx[idx]]
             cur_mask_fnames = self.mask_fnames.iloc[self.row_idx[idx]]
-            cur_input = super()._get_volume(cur_input_fnames.split(','))
 
-            cur_target = super()._get_volume(cur_target_fnames.split(','))
+            if self.augmentations:
+                aug_idx = np.random.choice([0, 1, 2, 3, 4, 5], 1)
+            cur_input = super()._get_volume(cur_input_fnames.split(','),
+                                            aug_idx)
+            cur_target = super()._get_volume(cur_target_fnames.split(','),
+                                             aug_idx)
 
             # If target is boolean (segmentation masks), convert to float
             if cur_target.dtype == bool:
@@ -237,7 +247,8 @@ class DataSetWithMask(BaseDataSet):
                                  np.std(cur_target)
 
             # the mask is based on sum of channel images
-            cur_mask = super()._get_volume(cur_mask_fnames.split(','))
+            cur_mask = super()._get_volume(cur_mask_fnames.split(','),
+                                           aug_idx)
             if self.label_weights is not None:
                 wtd_mask = np.zeros(cur_mask.shape)
                 for label_idx in range(len(self.label_weights)):
