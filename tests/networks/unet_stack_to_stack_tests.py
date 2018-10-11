@@ -1,14 +1,15 @@
-"""Tests for UNetStackTo2D"""
+"""Tests for UNetStackToStack"""
+
 import keras.backend as K
 from keras import Model
 import nose.tools
 import numpy as np
 import unittest
 
-from micro_dl.networks import UNetStackTo2D
+from micro_dl.networks import UNetStackToStack
 
 
-class TestUNetStackTo2D(unittest.TestCase):
+class TestUNetStackToStack(unittest.TestCase):
 
     def setUp(self):
         """Set up network_config, model and model layers"""
@@ -16,47 +17,47 @@ class TestUNetStackTo2D(unittest.TestCase):
         self.network_config = {'num_dims': 3,
                                'num_input_channels': 1,
                                'data_format': 'channels_first',
-                               'depth': 3,
+                               'depth': 8,
                                'height': 64,
                                'width': 64,
                                'batch_norm': True,
                                'dropout': 0.2,
                                'pooling_type': 'average',
                                'block_sequence': 'conv-bn-activation',
-                               'num_filters_per_block': [8, 16, 32],
+                               'num_filters_per_block': [8, 16, 32, 48],
                                'num_convs_per_block': 2,
                                'residual': True,
                                'num_target_channels': 1,
                                'upsampling': 'bilinear',
                                'skip_merge_type': 'concat',
                                'final_activation': 'linear'}
-        self.net = UNetStackTo2D(self.network_config)
+        self.net = UNetStackToStack(self.network_config)
         inputs, outputs = self.net.build_net()
         self.model = Model(inputs, outputs)
         self.model_layers = self.model.layers
 
-    def test_UNetStackTo2D_init(self):
+    def test_UNetStackToStack_init(self):
         """Test initialization"""
 
         # check for network depth
         self.network_config['depth'] = 0
         nose.tools.assert_raises(AssertionError,
-                                 UNetStackTo2D,
+                                 UNetStackToStack,
                                  self.network_config)
-        self.network_config['depth'] = 2
-        nose.tools.assert_raises(AssertionError,
-                                 UNetStackTo2D,
+        self.network_config['depth'] = 6
+        nose.tools.assert_raises(ValueError,
+                                 UNetStackToStack,
                                  self.network_config)
-        self.network_config['depth'] = 3
+        self.network_config['depth'] = 8
         self.network_config['padding'] = 'valid'
         nose.tools.assert_raises(AssertionError,
-                                 UNetStackTo2D,
+                                 UNetStackToStack,
                                  self.network_config)
         self.network_config['padding'] = 'same'
         nose.tools.assert_equal(self.net.num_down_blocks,
                                 len(self.net.config['num_filters_per_block']))
 
-    def test_UNetStackTo2D_get_input_shape(self):
+    def test_UNetStackToStack_get_input_shape(self):
         """Test input and output shape of network"""
 
         """Test input and output shape of network"""
@@ -67,7 +68,7 @@ class TestUNetStackTo2D(unittest.TestCase):
                         self.network_config['width'])
 
         exp_out_shape = (self.network_config['num_target_channels'],
-                         1,
+                         self.network_config['depth'],
                          self.network_config['height'],
                          self.network_config['width'])
         in_shape = self.model_layers[0].output_shape[1:]
@@ -75,7 +76,7 @@ class TestUNetStackTo2D(unittest.TestCase):
         nose.tools.assert_equal(in_shape, exp_in_shape)
         nose.tools.assert_equal(out_shape, exp_out_shape)
 
-    def test_UNetStackTo2D_intermediate_shapes(self):
+    def test_UNetStackToStack_intermediate_shapes(self):
         """Test the shape of intermediate layers"""
 
         # conv-act-bn-do x 2 + lambda_pad + add + (avg for res)
@@ -84,10 +85,9 @@ class TestUNetStackTo2D(unittest.TestCase):
                              self.network_config['depth'],
                              self.network_config['height'],
                              self.network_config['width']]
-        down_block_idx = [[1, 12], [12, 23], [23, 34]]
-        skip_idx = [62, 49, 36]
-        upsamp_idx = [61, 48, 35]
-        concat_idx = [63, 50, 37]
+        down_block_idx = [[1, 12], [12, 23], [23, 34], [34, 45]]
+        upsamp_idx = [81, 69, 57, 45]
+        concat_idx = [82, 70, 58, 46]
 
         for idx, down_idx in enumerate(down_block_idx):
             # conv layers
@@ -107,17 +107,8 @@ class TestUNetStackTo2D(unittest.TestCase):
             nose.tools.assert_equal(cur_down_block[-2].output_shape[1:],
                                     tuple(cur_feature_shape))
 
-            # skip layer
-            nose.tools.assert_equal(
-                self.model_layers[skip_idx[idx]].output_shape[1:],
-                (self.network_config['num_filters_per_block'][idx],
-                 1,
-                 cur_feature_shape[2],
-                 cur_feature_shape[3])
-            )
-
             # upsamp and merge layers
-            if idx == 2:
+            if idx == self.net.num_down_blocks - 1:
                 num_features = (
                     2 * self.network_config['num_filters_per_block'][idx]
                 )
@@ -126,27 +117,24 @@ class TestUNetStackTo2D(unittest.TestCase):
                     self.network_config['num_filters_per_block'][idx] +
                     self.network_config['num_filters_per_block'][idx + 1]
                 )
-            if idx == 0:
-                nose.tools.assert_equal(
-                    self.model_layers[upsamp_idx[idx]].output_shape[1:],
-                    (self.network_config['num_filters_per_block'][-2],
-                     1,
-                     cur_feature_shape[2],
-                     cur_feature_shape[3])
-                )
-            else:
-                nose.tools.assert_equal(
-                    self.model_layers[upsamp_idx[idx]].output_shape[1:],
-                    (self.network_config['num_filters_per_block'][-1],
-                     1,
-                     cur_feature_shape[2],
-                     cur_feature_shape[3])
-                )
             nose.tools.assert_equal(
                 self.model_layers[concat_idx[idx]].output_shape[1],
                 num_features
             )
 
+            if idx <= 1:
+                filter_idx = idx + 1
+            else:
+                filter_idx = -1
+            nose.tools.assert_equal(
+                self.model_layers[upsamp_idx[idx]].output_shape[1:],
+                (self.network_config['num_filters_per_block'][filter_idx],
+                 cur_feature_shape[1],
+                 cur_feature_shape[2],
+                 cur_feature_shape[3])
+            )
+
+            cur_feature_shape[1] = max(1, cur_feature_shape[1] // 2)
             cur_feature_shape[2] = cur_feature_shape[2] // 2
             cur_feature_shape[3] = cur_feature_shape[3] // 2
 
@@ -168,8 +156,8 @@ class TestUNetStackTo2D(unittest.TestCase):
         https://medium.com/@keeper6928/how-to-unit-test-machine-learning-code-57cf6fd81765
         """
 
-        image = np.ones((1, 1, 3, 64, 64), dtype='float')
-        target = np.random.random((1, 1, 1, 64, 64)).astype('float')
+        image = np.ones((1, 1, 8, 64, 64), dtype='float')
+        target = np.random.random((1, 1, 8, 64, 64)).astype('float')
         weight_tensors = self.model.trainable_weights
         sess = K.get_session()
         weight_arrays_b4 = sess.run(weight_tensors)
