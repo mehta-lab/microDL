@@ -17,7 +17,7 @@ class UNet3D(BaseUNet):
         super().__init__(network_config, predict)
         if not predict and self.config['num_dims'] == 3:
             depth = self.config['depth']
-            feature_depth_at_last_block = depth // (2 ** num_down_blocks)
+            feature_depth_at_last_block = depth // (2 ** self.num_down_blocks)
             assert feature_depth_at_last_block >= 2, \
                 'network depth is incompatible with input depth'
 
