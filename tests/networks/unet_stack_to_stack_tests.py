@@ -85,9 +85,9 @@ class TestUNetStackToStack(unittest.TestCase):
                              self.network_config['depth'],
                              self.network_config['height'],
                              self.network_config['width']]
-        down_block_idx = [[1, 12], [12, 23], [23, 34], [34, 45]]
-        upsamp_idx = [81, 69, 57, 45]
-        concat_idx = [82, 70, 58, 46]
+        down_block_idx = [[1, 12], [12, 23], [23, 34], [34, 44]]
+        upsamp_idx = [68, 56, 44]
+        concat_idx = [69, 57, 45]
 
         for idx, down_idx in enumerate(down_block_idx):
             # conv layers
@@ -108,47 +108,37 @@ class TestUNetStackToStack(unittest.TestCase):
                                     tuple(cur_feature_shape))
 
             # upsamp and merge layers
-            if idx == self.net.num_down_blocks - 1:
-                num_features = (
-                    2 * self.network_config['num_filters_per_block'][idx]
-                )
-            else:
+            if idx < 3:
                 num_features = (
                     self.network_config['num_filters_per_block'][idx] +
                     self.network_config['num_filters_per_block'][idx + 1]
                 )
-            nose.tools.assert_equal(
-                self.model_layers[concat_idx[idx]].output_shape[1],
-                num_features
-            )
+                nose.tools.assert_equal(
+                    self.model_layers[concat_idx[idx]].output_shape[1],
+                    num_features
+                )
 
-            if idx <= 1:
-                filter_idx = idx + 1
-            else:
-                filter_idx = -1
-            nose.tools.assert_equal(
-                self.model_layers[upsamp_idx[idx]].output_shape[1:],
-                (self.network_config['num_filters_per_block'][filter_idx],
-                 cur_feature_shape[1],
-                 cur_feature_shape[2],
-                 cur_feature_shape[3])
-            )
+                nose.tools.assert_equal(
+                    self.model_layers[upsamp_idx[idx]].output_shape[1:],
+                    (self.network_config['num_filters_per_block'][idx + 1],
+                     cur_feature_shape[1],
+                     cur_feature_shape[2],
+                     cur_feature_shape[3])
+                )
 
-            cur_feature_shape[1] = max(1, cur_feature_shape[1] // 2)
-            cur_feature_shape[2] = cur_feature_shape[2] // 2
-            cur_feature_shape[3] = cur_feature_shape[3] // 2
+                cur_feature_shape[1] = max(1, cur_feature_shape[1] // 2)
+                cur_feature_shape[2] = cur_feature_shape[2] // 2
+                cur_feature_shape[3] = cur_feature_shape[3] // 2
 
-            pool_feature_shape = (
-                self.network_config['num_filters_per_block'][idx],
-                cur_feature_shape[1],
-                cur_feature_shape[2],
-                cur_feature_shape[3]
-            )
-            # pool layer
-            nose.tools.assert_equal(
-                cur_down_block[-1].output_shape[1:],
-                pool_feature_shape
-            )
+                pool_feature_shape = (
+                     self.network_config['num_filters_per_block'][idx],
+                     cur_feature_shape[1],
+                     cur_feature_shape[2],
+                     cur_feature_shape[3]
+                )
+                # pool layer
+                nose.tools.assert_equal(cur_down_block[-1].output_shape[1:],
+                                        pool_feature_shape)
 
     def test_all_weights_trained(self):
         """Test if all weights are getting trained

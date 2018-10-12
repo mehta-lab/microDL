@@ -19,6 +19,7 @@ class UNetStackToStack(BaseUNet):
 
         assert 'depth' in network_config and network_config['depth'] > 1, \
             'depth is missing in network_config'
+
         num_slices = network_config['depth']
         msg = 'Depth of the input has to be in powers of 2 as this network' \
               'upsamples and downsamples in factors of 2'
@@ -83,10 +84,11 @@ class UNetStackToStack(BaseUNet):
                                network_config=self.config,
                                block_idx=block_idx)
         skip_layers = layer
-        pool_object = get_keras_layer(type=self.config['pooling_type'],
-                                      num_dims=self.config['num_dims'])
-        layer = pool_object(pool_size=downsample_shape,
-                            data_format=self.config['data_format'])(layer)
+        if block_idx < self.num_down_blocks - 1:
+            pool_object = get_keras_layer(type=self.config['pooling_type'],
+                                          num_dims=self.config['num_dims'])
+            layer = pool_object(pool_size=downsample_shape,
+                                data_format=self.config['data_format'])(layer)
         return layer, skip_layers
 
     def build_net(self):
@@ -115,7 +117,7 @@ class UNetStackToStack(BaseUNet):
             input_layer = layer
 
         # ------------- Upsampling / decoding blocks -------------
-        for block_idx in reversed(range(self.num_down_blocks)):
+        for block_idx in reversed(range(self.num_down_blocks - 1)):
             cur_skip_layers = skip_layers_list[block_idx]
             block_name = 'up_block_{}'.format(block_idx)
             filter_shape, upsample_shape = self._get_filter_shape(

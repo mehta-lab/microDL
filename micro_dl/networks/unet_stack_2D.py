@@ -82,10 +82,11 @@ class UNetStackTo2D(BaseUNet):
                                network_config=self.config,
                                block_idx=block_idx)
         skip_layers = layer
-        pool_object = get_keras_layer(type=self.config['pooling_type'],
-                                      num_dims=self.config['num_dims'])
-        layer = pool_object(pool_size=downsample_shape,
-                            data_format=self.config['data_format'])(layer)
+        if block_idx < self.num_down_blocks - 1:
+            pool_object = get_keras_layer(type=self.config['pooling_type'],
+                                          num_dims=self.config['num_dims'])
+            layer = pool_object(pool_size=downsample_shape,
+                                data_format=self.config['data_format'])(layer)
 
         return layer, skip_layers
 
@@ -109,7 +110,7 @@ class UNetStackTo2D(BaseUNet):
         filter_shape = (num_slices, filter_size, filter_size)
 
         skip_layers_list = []
-        for block_idx in range(self.num_down_blocks ):
+        for block_idx in range(self.num_down_blocks):
             block_name = 'down_block_{}'.format(block_idx + 1)
             with tf.name_scope(block_name):
                 layer, cur_skip_layers = self._downsampling_block(
@@ -136,7 +137,7 @@ class UNetStackTo2D(BaseUNet):
         # ------------- Upsampling / decoding blocks -------------
         upsampling_shape = (1, 2, 2)
         self.config['filter_size'] = (1, filter_size, filter_size)
-        for block_idx in reversed(range(self.num_down_blocks)):
+        for block_idx in reversed(range(self.num_down_blocks - 1)):
             cur_skip_layers = skip_layers_list[block_idx]
             cur_skip_layers = self._skip_block(
                 input_layer=cur_skip_layers,
