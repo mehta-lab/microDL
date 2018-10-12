@@ -3,7 +3,7 @@ dataset:
     input_channels: [0]
     target_channels: [6]
     mask_channels: [6]
-    split_by_column: pos_idx
+    split_by_column: slice_idx
     model_task: 'regression'
     split_ratio:
         train: 0.6
