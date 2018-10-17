@@ -16,11 +16,13 @@ class ImageStackTiler:
     def __init__(self,
                  input_dir,
                  output_dir,
-                 tile_size,
-                 step_size,
+                 tile_dict,
+                 tile_size=256,
+                 step_size=64,
                  time_ids=-1,
                  channel_ids=-1,
                  slice_ids=-1,
+                 pos_ids=-1,
                  hist_clip_limits=None,
                  flat_field_dir=None,
                  isotropic=False):
@@ -49,13 +51,29 @@ class ImageStackTiler:
         """
         self.input_dir = input_dir
         self.output_dir = output_dir
+
+        if 'tile_size' in tile_dict:
+            tile_size = tile_dict['tile_size']
+        if 'step_size' in tile_dict:
+            step_size = tile_dict['step_size']
+        if 'isotropic' in tile_dict:
+            isotropic = tile_dict['isotropic']
+        if 'channels' in tile_dict:
+            channel_ids = tile_dict['channels']
+        if 'positions' in tile_dict:
+            pos_ids = tile_dict['positions']
+        if 'hist_clip_limits' in tile_dict:
+            hist_clip_limits = tile_dict['hist_clip_limits']
+
         self.str_tile_size = '-'.join([str(val) for val in tile_size])
         self.str_step_size = '-'.join([str(val) for val in step_size])
         self.tile_dir = os.path.join(
             output_dir,
             'tiles_{}_step_{}'.format(self.str_tile_size, self.str_step_size),
         )
-        os.makedirs(self.tile_dir, exist_ok=True)
+        # If tile dir already exist, things could get messy because we don't
+        # have any checks in place for how to add to existing tiles
+        os.makedirs(self.tile_dir, exist_ok=False)
         self.tile_mask_dir = None
         self.flat_field_dir = flat_field_dir
         self.frames_metadata = aux_utils.read_meta(self.input_dir)
@@ -65,10 +83,16 @@ class ImageStackTiler:
             time_ids=time_ids,
             channel_ids=channel_ids,
             slice_ids=slice_ids,
+            pos_ids=pos_ids,
         )
         self.channel_ids = metadata_ids['channel_ids']
         self.time_ids = metadata_ids['time_ids']
         self.slice_ids = metadata_ids['slice_ids']
+        self.pos_ids = metadata_ids['pos_ids']
+        print("channels", self.channel_ids)
+        print("time", self.time_ids)
+        print("slices", self.slice_ids)
+        print("pos", self.pos_ids)
 
         self.tile_size = tile_size
         self.step_size = step_size
@@ -241,7 +265,7 @@ class ImageStackTiler:
         for channel_idx in self.channel_ids:
             # Perform flatfield correction if flatfield dir is specified
             flat_field_im = self._get_flat_field(channel_idx=channel_idx)
-
+            assert 0==1
             for slice_idx in self.slice_ids:
                 for time_idx in self.time_ids:
                     for pos_idx in np.unique(self.frames_metadata["pos_idx"]):

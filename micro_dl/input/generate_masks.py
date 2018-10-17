@@ -86,6 +86,7 @@ class MaskProcessor:
         # Loop through all the indices and create masks
         for slice_idx in self.slice_ids:
             for time_idx in self.time_ids:
+                print("positions", np.unique(self.frames_metadata["pos_idx"]))
                 for pos_idx in np.unique(self.frames_metadata["pos_idx"]):
                     mask_images = []
                     for channel_idx in self.channel_ids:

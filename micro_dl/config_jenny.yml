@@ -1,8 +1,8 @@
 dataset:
     data_dir: '/Users/jenny.folkesson/Data/SMS-2018-07-03-18-35-00-0010_train_data'
     input_channels: [0]
-    target_channels: [6]
-    mask_channels: [6]
+    target_channels: [5]
+    mask_channels: None
     split_by_column: slice_idx
     model_task: 'regression'
     split_ratio:
@@ -17,12 +17,14 @@ trainer:
     batch_size: 16
     max_epochs: 50
     patience: 20
-    masked_loss: True
+    masked_loss: False
     metrics: coeff_determination
     loss: mean_squared_error
     callbacks:
         LearningRateScheduler:
             lr_find: True
+            max_epochs: 3
+            fig_fname: '/Users/jenny.folkesson/Data/models/stack_2d_labelfree_bs16_mse/lr_finder.png'
             base_lr: 0.001
             max_lr: 0.01
             step_size: 2
@@ -45,8 +47,11 @@ trainer:
         lr: 0.001
         name: Nadam
 network:
+    height: 256
+    width: 256
     depth: 3
     class: UNetStackTo2D
+    data_format: 'channels_first'
     num_filters_per_block: [16, 32, 64, 96]
     num_convs_per_block: 2
     block_sequence: conv-activation-bn
@@ -59,11 +64,8 @@ network:
     upsampling: nearest_neighbor
     dropout: 0.3
     residual: True
-    height: 256
-    width: 256
     num_input_channels: 1
     num_target_channels: 1
-    data_format: 'channels_first'
     regression_length: 32
     dropout_dense: 0.4
     final_activation: linear
