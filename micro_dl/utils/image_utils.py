@@ -279,4 +279,5 @@ def read_image(file_path):
             im = cv2.imread(file_path, cv2.IMREAD_ANYDEPTH)
         except IOError as e:
             print(e)
+            raise
     return im

@@ -100,7 +100,8 @@ class BaseDataSet(keras.utils.Sequence):
         image_volume = []
         for fname in fname_list:
             cur_channel = np.load(os.path.join(self.tile_dir, fname))
-            cur_channel = self._augment_image(cur_channel, aug_idx)
+            if self.augmentations:
+                cur_channel = self._augment_image(cur_channel, aug_idx)
             image_volume.append(cur_channel)
 
         image_volume = np.stack(image_volume)
