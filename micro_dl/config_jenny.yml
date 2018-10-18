@@ -6,9 +6,9 @@ dataset:
     split_by_column: slice_idx
     model_task: 'regression'
     split_ratio:
-        train: 0.6
-        val: 0.2
-        test: 0.2
+        train: 0.5
+        val: 0.5
+        test: 0.0
     height: 256
     width: 256
 verbose: 10
