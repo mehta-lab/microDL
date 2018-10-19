@@ -202,6 +202,6 @@ class TestImage2DToVectorNet(unittest.TestCase):
                                      cur_feature_shape[1],
                                      cur_feature_shape[2]))
 
-    # TO DO: fix the test for all weights getting trained. The weights
+    # TODO: fix the test for all weights getting trained. The weights
     # don't seem to budge when trying to predict random vectors or vector of
     # ones at various learning rates and lambdas
