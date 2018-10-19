@@ -76,7 +76,7 @@ class BaseImageToVectorNet(BaseConvNet):
                     'Expecting a square image for receptive field = full image'
                 assert (np.mod(np.log2(network_config['width']), 1) <= 0 and
                         np.mod(np.log2(network_config['height']), 1) <= 0), msg
-                warnings.warn('Assuming the network receptive field is the'
+                warnings.warn('Assuming the network receptive field is the '
                               'entire image. If not, provide num_filters_per_'
                               'block instead of num_initial_filters', Warning)
 
@@ -209,9 +209,10 @@ class BaseImageToVectorNet(BaseConvNet):
                         kernel_regularizer=kernel_reg_inst
                     )(prev_dense_layer)
                 else:
+                    kernel_shape = (1, ) * self.config['num_dims']
                     layer = self.conv(
                         filters=dense_units[dense_idx],
-                        kernel_size=(1, 1),
+                        kernel_size=kernel_shape,
                         padding='same',
                         kernel_initializer='he_normal',
                         data_format=self.config['data_format']
@@ -234,10 +235,11 @@ class BaseImageToVectorNet(BaseConvNet):
                                 kernel_initializer='he_normal',
                                 activation=final_activation)(prev_dense_layer)
             else:
+                kernel_shape = (1,) * self.config['num_dims']
                 outputs = self.conv(
                     filters=regression_length,
-                    kernel_size=(1, 1),
                     padding='same',
+                    kernel_size=kernel_shape,
                     kernel_initializer='he_normal',
                     data_format=self.config['data_format']
                 )(prev_dense_layer)
