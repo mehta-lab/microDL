@@ -82,7 +82,6 @@ class ImageStackTiler:
             assert data_format in {'channels_first', 'channels_last'},\
                 "Data format must be channels_first or channels_last"
         self.depths = depths
-        print("depths", depths)
         self.mask_depth = mask_depth
         self.tile_size = tile_size
         self.step_size = step_size
@@ -135,7 +134,7 @@ class ImageStackTiler:
                 self.channel_ids,
                 [self.depths] * len(self.channel_ids)),
             )
-        print(self.depths)
+
         self.margin = 0
         if max_depth > 1:
             margin = max_depth // 2
@@ -184,9 +183,7 @@ class ImageStackTiler:
         :return str channel_name: Channel name
         """
         depth = self.channel_depth[channel_idx]
-        print(depth)
         margin = 0 if depth == 1 else depth // 2
-        print("channel", channel_idx, "margin", margin)
         im_stack = []
         for z in range(slice_idx - margin, slice_idx + margin + 1):
             meta_idx = aux_utils.get_meta_idx(
@@ -209,8 +206,7 @@ class ImageStackTiler:
                 )
             im_stack.append(im)
         # Stack images
-        im_stack = np.squeeze(np.stack(im_stack, axis=2))
-        print(im_stack.shape)
+        im_stack = np.stack(im_stack, axis=2)
         # normalize
         if hist_clip_limits is not None:
             im_stack = normalize.hist_clipping(
@@ -385,7 +381,6 @@ class ImageStackTiler:
         :return np.array im_stack: Mask image/stack
         """
         margin = self.mask_depth // 2
-        print("mask margin", margin)
         im_stack = []
         for z in range(slice_idx - margin, slice_idx + margin + 1):
             file_name = aux_utils.get_im_name(
@@ -400,7 +395,7 @@ class ImageStackTiler:
             )
             im_stack.append(image_utils.read_image(file_path))
         # Stack images
-        return np.squeeze(np.stack(im_stack, axis=2))
+        return np.stack(im_stack, axis=2)
 
     def tile_mask_stack(self,
                         mask_dir=None,
