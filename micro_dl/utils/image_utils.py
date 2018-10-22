@@ -237,9 +237,7 @@ def crop_at_indices(input_image, crop_indices, isotropic=False):
         cropped_img = input_image[cur_idx[0]: cur_idx[1],
                       cur_idx[2]: cur_idx[3], ...]
         if n_dim == 3 and len(cur_idx) == 6:
-            # Make sure we handle tiles with different depths
-            depth = cur_idx[5] if cur_idx[5] == im_depth else im_depth
-            img_id = '{}_sl{}-{}'.format(img_id, cur_idx[4], depth)
+            img_id = '{}_sl{}-{}'.format(img_id, 0, im_depth)
 
             if isotropic:
                 img_shape = cropped_img.shape
