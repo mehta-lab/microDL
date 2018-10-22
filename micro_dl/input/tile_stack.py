@@ -57,6 +57,8 @@ class ImageStackTiler:
             correction
         :param bool isotropic: if 3D, make the grid/shape isotropic
         :param str data_format: Channels first or last
+        TODO: It's unclear how this will work for 3D datasets
+        TODO: ADD TESTS!!!
         """
         self.input_dir = input_dir
         self.output_dir = output_dir
