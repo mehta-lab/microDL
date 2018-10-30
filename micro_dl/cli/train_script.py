@@ -51,7 +51,8 @@ def create_datasets(df_meta,
                     tile_dir,
                     dataset_config,
                     trainer_config,
-                    model_task):
+                    model_task,
+                    data_format):
     """Create train, val and test datasets
 
     Saves val_metadata.csv and test_metadata.csv for checking model performance
@@ -60,6 +61,7 @@ def create_datasets(df_meta,
     :param str tile_dir: directory containing training image tiles
     :param dict dataset_config: dict with dataset related params
     :param dict trainer_config: dict with params related to training
+    :param str data_format: Data format: channels_first or channels_last
     :return:
      :BaseDataSet train_dataset
      :BaseDataSet val_dataset
@@ -75,6 +77,12 @@ def create_datasets(df_meta,
         split_by_column=dataset_config['split_by_column'],
         split_ratio=dataset_config['split_ratio'],
     )
+    # Get normalize
+    normalize = False
+    if 'normalize' in dataset_config:
+        normalize = dataset_config['normalize']
+    assert isinstance(normalize, bool), "normalize should be boolean"
+
     if 'val' in dataset_config['split_ratio']:
         train_metadata, val_metadata, test_metadata, split_samples = \
             tt.train_test_split()
@@ -89,6 +97,8 @@ def create_datasets(df_meta,
             target_fnames=val_metadata['fpaths_target'],
             batch_size=trainer_config['batch_size'],
             model_task=model_task,
+            normalize=normalize,
+            data_format=data_format,
             **val_gen_params,
         )
         train_gen_params = val_gen_params.copy()
@@ -115,6 +125,8 @@ def create_datasets(df_meta,
         target_fnames=train_metadata['fpaths_target'],
         batch_size=trainer_config['batch_size'],
         model_task=model_task,
+        normalize=normalize,
+        data_format=data_format,
         **train_gen_params,
     )
     test_dataset = BaseDataSet(
@@ -123,6 +135,8 @@ def create_datasets(df_meta,
         target_fnames=test_metadata['fpaths_target'],
         batch_size=trainer_config['batch_size'],
         model_task=model_task,
+        normalize=normalize,
+        data_format=data_format,
     )
     return train_dataset, val_dataset, test_dataset, split_samples
 
@@ -131,13 +145,16 @@ def create_datasets_with_mask(df_meta,
                               tile_dir,
                               dataset_config,
                               trainer_config,
-                              model_task):
+                              model_task,
+                              normalize,
+                              data_format):
     """Create train, val and test datasets
 
     :param pd.DataFrame df_meta: Dataframe containing info on split tiles
     :param str tile_dir: directory containing training image tiles
     :param dict dataset_config: dict with dataset related params
     :param dict trainer_config: dict with params related to training
+    :param str data_format: Data format: channels_first or channels_last
     :return:
      :BaseDataSet train_dataset: y_true has mask concatenated at the end
      :BaseDataSet val_dataset
@@ -154,6 +171,12 @@ def create_datasets_with_mask(df_meta,
         split_ratio=dataset_config['split_ratio'],
         mask_channels=dataset_config['mask_channels'],
     )
+    # Get normalize
+    normalize = False
+    if 'normalize' in dataset_config:
+        normalize = dataset_config['normalize']
+    assert isinstance(normalize, bool), "normalize should be boolean"
+
     if 'val' in dataset_config['split_ratio']:
         train_metadata, val_metadata, test_metadata, split_samples = \
             tt.train_test_split()
@@ -172,6 +195,8 @@ def create_datasets_with_mask(df_meta,
             mask_fnames=val_metadata['fpaths_mask'],
             batch_size=trainer_config['batch_size'],
             model_task=model_task,
+            normalize=normalize,
+            data_format=data_format,
             **val_gen_params,
         )
         train_gen_params = val_gen_params.copy()
@@ -201,6 +226,8 @@ def create_datasets_with_mask(df_meta,
         mask_fnames=train_metadata['fpaths_mask'],
         batch_size=trainer_config['batch_size'],
         model_task=model_task,
+        normalize=normalize,
+        data_format=data_format,
         **train_gen_params,
     )
     test_gen_params = {}
@@ -213,6 +240,8 @@ def create_datasets_with_mask(df_meta,
         mask_fnames=test_metadata['fpaths_mask'],
         batch_size=trainer_config['batch_size'],
         model_task=model_task,
+        normalize=normalize,
+        data_format=data_format,
         **test_gen_params,
     )
     return train_dataset, val_dataset, test_dataset, split_samples
@@ -256,6 +285,12 @@ def run_action(args):
     dataset_config = config['dataset']
     trainer_config = config['trainer']
     network_config = config['network']
+    # Get data format
+    data_format = 'channels_first'
+    if 'data_format' in network_config:
+        data_format = network_config['data_format']
+    assert data_format in {'channels_first', 'channels_last'}, \
+        "Data format must be channels_first or channels_last"
 
     # Check if model task (regression or segmentation) is specified
     model_task = 'regression'
@@ -297,6 +332,7 @@ def run_action(args):
                     dataset_config,
                     trainer_config,
                     model_task,
+                    data_format,
                 )
         else:
             train_dataset, val_dataset, test_dataset, split_samples = \
@@ -306,6 +342,7 @@ def run_action(args):
                     dataset_config,
                     trainer_config,
                     model_task,
+                    data_format,
                 )
 
         # Save train, validation and test indices

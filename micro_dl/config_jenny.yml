@@ -5,6 +5,7 @@ dataset:
     mask_channels: None
     split_by_column: slice_idx
     model_task: 'regression'
+    normalize: False
     split_ratio:
         train: 0.5
         val: 0.5

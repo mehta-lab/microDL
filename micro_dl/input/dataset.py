@@ -22,7 +22,8 @@ class BaseDataSet(keras.utils.Sequence):
                  shuffle=True,
                  augmentations=False,
                  random_seed=42,
-                 normalize=False):
+                 normalize=False,
+                 data_format='channels_first'):
         """Init
 
         The images could be normalized at the image level during tiling
@@ -40,6 +41,8 @@ class BaseDataSet(keras.utils.Sequence):
         :param dict augmentations: options for image augmentation
         :param int random_seed: initialize the random number generator with
          this seed
+        :param bool normalize: Whether to zscore normalize tiles
+        :param str data_format: Data format: channels_first or channels_last
         """
         self.tile_dir = tile_dir
         self.input_fnames = input_fnames
@@ -52,6 +55,7 @@ class BaseDataSet(keras.utils.Sequence):
         self.random_seed = random_seed
         np.random.seed(random_seed)
         self.normalize = normalize
+        self.data_format = data_format
         self.on_epoch_end()
 
     def __len__(self):
@@ -69,9 +73,6 @@ class BaseDataSet(keras.utils.Sequence):
          5 - rot 270
         :return np.array image after transformation is applied
         """
-
-        assert len(input_image.shape) == 2, 'current implementation works' \
-                                            'for 2D images only'
         if aug_idx == 0:
             return input_image
         elif aug_idx == 1:
@@ -142,7 +143,7 @@ class BaseDataSet(keras.utils.Sequence):
                 cur_input = (cur_input - np.mean(cur_input)) /\
                              np.std(cur_input)
                 # Only normalize target if we're dealing with regression
-                if self.model_task is not 'segmentation':
+                if self.model_task is not 'segmentation' and self.normalize:
                     cur_target = (cur_target - np.mean(cur_target)) /\
                                  np.std(cur_target)
             input_image.append(cur_input)
@@ -174,7 +175,8 @@ class DataSetWithMask(BaseDataSet):
                  shuffle=True,
                  augmentations=False,
                  random_seed=42,
-                 normalize=False):
+                 normalize=False,
+                 data_format='channels_first'):
         """Init
 
         https://stackoverflow.com/questions/44747288/keras-sample-weight-array-error
@@ -193,6 +195,8 @@ class DataSetWithMask(BaseDataSet):
         :param bool shuffle: shuffle data for each epoch
         :param int random_seed: initialize the random number generator with
          this seed
+        :param bool normalize: Whether to zscore normalize tiles
+        :param str data_format: Data format: channels_first or channels_last
         """
 
         super().__init__(tile_dir,
@@ -203,7 +207,8 @@ class DataSetWithMask(BaseDataSet):
                          shuffle,
                          augmentations,
                          random_seed,
-                         normalize)
+                         normalize,
+                         data_format)
         self.mask_fnames = mask_fnames
         self.label_weights = label_weights
 
@@ -213,7 +218,8 @@ class DataSetWithMask(BaseDataSet):
         :param int index: batch index
         :return: np.ndarrays input_image and target_image of shape
          [batch_size, num_channels, z, y, x] and mask_image of shape
-         [batch_size, z, y, x]
+         [batch_size, z, y, x] for data format channels_first,
+         otherwise [..., y, x, z]
         """
 
         start_idx = index * self.batch_size
