@@ -73,18 +73,35 @@ class BaseDataSet(keras.utils.Sequence):
          5 - rot 270
         :return np.array image after transformation is applied
         """
+        # We need to flip over different dimensions depending on data format
+        add_dim = 0
+        if self.data_format == 'channels_first':
+            add_dim = 1
+
         if aug_idx == 0:
             return input_image
         elif aug_idx == 1:
-            trans_image = np.fliplr(input_image)
+            trans_image = np.flip(input_image, 1 + add_dim)
         elif aug_idx == 2:
-            trans_image = np.flipud(input_image)
+            trans_image = np.flip(input_image, 0 + add_dim)
         elif aug_idx == 3:
-            trans_image = np.rot90(input_image, 1)
+            trans_image = np.rot90(
+                input_image,
+                k=1,
+                axes=(0 + add_dim, 1 + add_dim),
+            )
         elif aug_idx == 4:
-            trans_image = np.rot90(input_image, 2)
+            trans_image = np.rot90(
+                input_image,
+                k=1,
+                axes=(0 + add_dim, 1 + add_dim),
+            )
         elif aug_idx == 5:
-            trans_image = np.rot90(input_image, 3)
+            trans_image = np.rot90(
+                input_image,
+                k=3,
+                axes=(0 + add_dim, 1 + add_dim),
+            )
         else:
             msg = '{} not in allowed aug_idx: 0-5'.format(aug_idx)
             raise ValueError(msg)
