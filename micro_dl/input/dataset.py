@@ -21,7 +21,7 @@ class BaseDataSet(keras.utils.Sequence):
                  model_task='regression',
                  shuffle=True,
                  augmentations=False,
-                 random_seed=42,
+                 random_seed=None,
                  normalize=False,
                  data_format='channels_first'):
         """Init
@@ -77,6 +77,7 @@ class BaseDataSet(keras.utils.Sequence):
         add_dim = 0
         if self.data_format == 'channels_first':
             add_dim = 1
+        print(add_dim)
 
         if aug_idx == 0:
             return input_image
@@ -93,7 +94,7 @@ class BaseDataSet(keras.utils.Sequence):
         elif aug_idx == 4:
             trans_image = np.rot90(
                 input_image,
-                k=1,
+                k=2,
                 axes=(0 + add_dim, 1 + add_dim),
             )
         elif aug_idx == 5:
