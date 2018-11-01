@@ -347,7 +347,7 @@ def run_action(args):
 
         # Save train, validation and test indices
         split_idx_fname = os.path.join(trainer_config['model_dir'],
-                                       'split_samples.json')
+                                       'split_samples.pkl')
         with open(split_idx_fname, 'wb') as f:
             pickle.dump(split_samples, f)
 
