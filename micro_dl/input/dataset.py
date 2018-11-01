@@ -77,7 +77,6 @@ class BaseDataSet(keras.utils.Sequence):
         add_dim = 0
         if self.data_format == 'channels_first':
             add_dim = 1
-        print(add_dim)
 
         if aug_idx == 0:
             return input_image

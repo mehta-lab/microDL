@@ -1,7 +1,6 @@
 import cv2
 import nose.tools
 import numpy as np
-import numpy.testing
 import os
 import pandas as pd
 from testfixtures import TempDirectory
@@ -138,6 +137,103 @@ class TestBaseDataSet(unittest.TestCase):
     def test_augment_image_m1(self):
         self.data_inst._augment_image(self.im, -1)
 
+    def test_augment_image_lr_channels_first(self):
+        im_test = np.swapaxes(self.im, 0, 2)
+        self.data_inst.data_format = 'channels_first'
+        trans_im = self.data_inst._augment_image(im_test, 1)
+        for i in range(2):
+            np.testing.assert_array_equal(
+                trans_im[i, ...],
+                np.fliplr(im_test[i, ...]),
+            )
+
+    def test_augment_image_ud_channels_first(self):
+        im_test = np.swapaxes(self.im, 0, 2)
+        self.data_inst.data_format = 'channels_first'
+        trans_im = self.data_inst._augment_image(im_test, 2)
+        for i in range(2):
+            np.testing.assert_array_equal(
+                trans_im[i, ...],
+                np.flipud(im_test[i, ...]),
+            )
+
+    def test_augment_image_rot90_channels_first(self):
+        im_test = np.swapaxes(self.im, 0, 2)
+        self.data_inst.data_format = 'channels_first'
+        trans_im = self.data_inst._augment_image(im_test, 3)
+        for i in range(2):
+            np.testing.assert_array_equal(
+                trans_im[i, ...],
+                np.rot90(im_test[i, ...], k=1),
+            )
+
+    def test_augment_image_rot180_channels_first(self):
+        im_test = np.swapaxes(self.im, 0, 2)
+        self.data_inst.data_format = 'channels_first'
+        trans_im = self.data_inst._augment_image(im_test, 4)
+        for i in range(2):
+            np.testing.assert_array_equal(
+                trans_im[i, ...],
+                np.rot90(im_test[i, ...], k=2),
+            )
+
+    def test_augment_image_rot270_channels_first(self):
+        im_test = np.swapaxes(self.im, 0, 2)
+        self.data_inst.data_format = 'channels_first'
+        trans_im = self.data_inst._augment_image(im_test, 5)
+        for i in range(2):
+            np.testing.assert_array_equal(
+                trans_im[i, ...],
+                np.rot90(im_test[i, ...], k=3),
+            )
+
     def test_get_volume(self):
-        image_volume = self.data_inst._get_volume(self.input_fnames[0:2])
-        print(image_volume.shape)
+        image_volume = self.data_inst._get_volume(self.input_fnames)
+        # There are 4 input images of shape (3, 5, 2)
+        self.assertTupleEqual(image_volume.shape, (4, 3, 5, 2))
+        # Check image content (normalize is false)
+        for i in range(4):
+            im_test = np.squeeze(image_volume[i, ...])
+            np.testing.assert_array_equal(im_test, self.im + i)
+
+    def test__getitem__(self):
+        im_in, im_target = self.data_inst.__getitem__(0)
+        # Batch size is 2, input images of shape (3, 5, 2)
+        # stack adds singleton dimension
+        self.assertTupleEqual(im_in.shape, (2, 1, 3, 5, 2))
+        self.assertTupleEqual(im_target.shape, (2, 1, 3, 5, 2))
+        # With a fixed random seed, augmentations and shuffles are the same
+        augmentations = [2, 4]
+        shuf_ids = [1, 3]
+        for i in range(2):
+            # im in and target are the same, only compare one
+            im_test = np.squeeze(im_target[i, ...])
+            im_expected = self.data_inst._augment_image(
+                self.im + shuf_ids[i],
+                augmentations[i],
+            )
+            np.testing.assert_array_equal(im_test, im_expected)
+
+    def test__getitem__normalized(self):
+        self.data_inst.normalize = True
+        im_in, im_target = self.data_inst.__getitem__(0)
+        # Batch size is 2, input images of shape (3, 5, 2)
+        # stack adds singleton dimension
+        self.assertTupleEqual(im_in.shape, (2, 1, 3, 5, 2))
+        self.assertTupleEqual(im_target.shape, (2, 1, 3, 5, 2))
+        # Just test normalization this time
+        for i in range(2):
+            im_test = np.squeeze(im_in[i, ...])
+            nose.tools.assert_almost_equal(im_test.mean(), 0, 2)
+            nose.tools.assert_almost_equal(im_test.std(), 1, 2)
+            im_test = np.squeeze(im_target[i, ...])
+            nose.tools.assert_almost_equal(im_test.mean(), 0, 2)
+            nose.tools.assert_almost_equal(im_test.std(), 1, 2)
+
+    def test_on_epoch_end(self):
+        row_idx = self.data_inst.row_idx
+        # Random seed 42 results in same order as before...
+        np.random.seed(1)
+        self.data_inst.on_epoch_end()
+        new_idx = self.data_inst.row_idx
+        self.assertFalse((row_idx == new_idx).all())
