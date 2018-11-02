@@ -17,12 +17,8 @@ class BaseDataSet(keras.utils.Sequence):
                  tile_dir,
                  input_fnames,
                  target_fnames,
+                 dataset_config,
                  batch_size,
-                 model_task='regression',
-                 shuffle=True,
-                 augmentations=False,
-                 random_seed=None,
-                 normalize=False,
                  data_format='channels_first'):
         """Init
 
@@ -35,27 +31,51 @@ class BaseDataSet(keras.utils.Sequence):
          filenames for one input
         :param pd.Series target_fnames: pd.Series with each row containing
          filenames for one target
+        :param dict dataset_config: Dataset part of the main config file
         :param int batch_size: num of datasets in each batch
-        :param str model_task: Can be 'regression' or 'segmentation'
         :param bool shuffle: shuffle data for each epoch
-        :param dict augmentations: options for image augmentation
         :param int random_seed: initialize the random number generator with
          this seed
-        :param bool normalize: Whether to zscore normalize tiles
-        :param str data_format: Data format: channels_first or channels_last
         """
         self.tile_dir = tile_dir
         self.input_fnames = input_fnames
         self.target_fnames = target_fnames
-        self.batch_size = batch_size
-        self.shuffle = shuffle
         self.num_samples = len(self.input_fnames)
-        self.augmentations = augmentations
-        self.model_task = model_task
+        self.batch_size = batch_size
+        self.data_format = data_format
+
+        # Check if model task (regression or segmentation) is specified
+        self.model_task = 'regression'
+        if 'model_task' in dataset_config:
+            self.model_task = dataset_config['model_task']
+            assert self.model_task in {'regression', 'segmentation'}, \
+                "Model task must be either 'segmentation' or 'regression'"
+
+        self.augmentations = False
+        if 'augmentations' in dataset_config:
+            self.augmentations = dataset_config['augmentations']
+        assert isinstance(self.augmentations, bool),\
+            'augmentation parameter should be boolean'
+
+        self.normalize = False
+        if 'normalize' in dataset_config:
+            self.normalize = dataset_config['normalize']
+        assert isinstance(self.normalize, bool),\
+            'normalize parameter should be boolean'
+
+        self.shuffle = True
+        if 'shuffle' in dataset_config:
+            self.shuffle = dataset_config['shuffle']
+        assert isinstance(self.shuffle, bool),\
+            'shuffle parameter should be boolean'
+
+        random_seed = None
+        if 'random_seed' in dataset_config:
+            random_seed = dataset_config['random_seed']
+
         self.random_seed = random_seed
         np.random.seed(random_seed)
-        self.normalize = normalize
-        self.data_format = data_format
+
         self.on_epoch_end()
 
     def __len__(self):
@@ -149,6 +169,7 @@ class BaseDataSet(keras.utils.Sequence):
             # Select select int randomly that will represent augmentation type
             if self.augmentations:
                 aug_idx = np.random.choice([0, 1, 2, 3, 4, 5], 1)
+
             cur_input = self._get_volume(cur_input_fnames.split(','),
                                          aug_idx)
             cur_target = self._get_volume(cur_target_fnames.split(','),
@@ -186,13 +207,9 @@ class DataSetWithMask(BaseDataSet):
                  input_fnames,
                  target_fnames,
                  mask_fnames,
+                 dataset_config,
                  batch_size,
-                 model_task='regression',
-                 label_weights=None,
                  shuffle=True,
-                 augmentations=False,
-                 random_seed=42,
-                 normalize=False,
                  data_format='channels_first'):
         """Init
 
@@ -206,28 +223,23 @@ class DataSetWithMask(BaseDataSet):
          filenames for one target
         :param pd.Series mask_fnames: pd.Series with each row containing
          mask filenames
+        :param dict dataset_config: Dataset part of the main config file
         :param int batch_size: num of datasets in each batch
-        :param str model_task: Can be 'regression' or 'segmentation'
-        :param list label_weights: weight for each label
         :param bool shuffle: shuffle data for each epoch
-        :param int random_seed: initialize the random number generator with
-         this seed
-        :param bool normalize: Whether to zscore normalize tiles
-        :param str data_format: Data format: channels_first or channels_last
         """
 
         super().__init__(tile_dir,
                          input_fnames,
                          target_fnames,
+                         dataset_config,
                          batch_size,
-                         model_task,
                          shuffle,
-                         augmentations,
-                         random_seed,
-                         normalize,
                          data_format)
         self.mask_fnames = mask_fnames
-        self.label_weights = label_weights
+        # list label_weights: weight for each label
+        self.label_weights = None
+        if 'label_weights' in dataset_config:
+            self.label_weights = dataset_config['label_weights']
 
     def __getitem__(self, index):
         """Get a batch of data

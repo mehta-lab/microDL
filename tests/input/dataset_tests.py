@@ -1,4 +1,3 @@
-import cv2
 import nose.tools
 import numpy as np
 import os
@@ -7,7 +6,6 @@ from testfixtures import TempDirectory
 import unittest
 
 import micro_dl.input.dataset as dataset
-import micro_dl.utils.aux_utils as aux_utils
 
 
 class TestBaseDataSet(unittest.TestCase):
@@ -36,15 +34,19 @@ class TestBaseDataSet(unittest.TestCase):
                                                     self.target_fnames)):
             np.save(os.path.join(self.temp_path, in_name), self.im + i)
             np.save(os.path.join(self.temp_path, out_name), self.im + i)
+        dataset_config = {
+            'augmentations': True,
+            'random_seed': 42,
+            'normalize': False,
+            'data_format': 'c'
+        }
         # Instantiate class
         self.data_inst = dataset.BaseDataSet(
             tile_dir=self.temp_path,
             input_fnames=self.input_fnames,
             target_fnames=self.target_fnames,
+            dataset_config=dataset_config,
             batch_size=self.batch_size,
-            augmentations=True,
-            random_seed=42,
-            normalize=False,
             data_format='channels_last',
         )
 
