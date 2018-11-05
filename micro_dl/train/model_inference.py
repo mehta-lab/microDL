@@ -33,7 +33,7 @@ def load_model(network_config, model_fname, predict=False):
     return model
 
 
-def predict_on_larger_image(network_config, model_fname, input_image):
+def predict_on_larger_image(network_config,model_fname, input_image):
     """Predict on an image larger than the one it was trained on
 
     All networks with U-net like architecture in this repo, use downsampling of

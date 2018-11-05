@@ -318,6 +318,33 @@ def get_channel_axis(data_format):
     return channel_axis
 
 
+def adjust_slice_margins(slice_ids, depth):
+    """
+    Adjusts slice (z) indices to given z depth by removing indices too close
+    to boundaries. Assumes that slice indices are contiguous.
+
+    :param list of ints slice_ids: Slice (z) indices
+    :param int depth: Number of z slices
+    :return: list of ints slice_ids: Slice indices with adjusted margins
+    :raises AssertionError if depth is even
+    :raises AssertionError if there aren't enough slice ids for given depth
+    :raises AssertionError if slices aren't contiguous
+    """
+    assert depth % 2 == 1, "Depth must be uneven"
+    if depth > 1:
+        margin = depth // 2
+        nbr_slices = len(slice_ids)
+        assert nbr_slices > 2 * margin, \
+            "Insufficient slices ({}) for max depth {}".format(
+                nbr_slices, depth)
+        assert slice_ids[-1] - slice_ids[0] + 1 == nbr_slices, \
+            "Slice indices are not contiguous"
+        # TODO: use itertools.groupby if non-contiguous data is a thing
+        # np.unique is sorted so we can just remove first and last ids
+        slice_ids = slice_ids[margin:-margin]
+    return slice_ids
+
+
 def read_json(json_filename):
     """
     Read  JSON file and validate schema

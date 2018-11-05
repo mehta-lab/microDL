@@ -1,6 +1,7 @@
 """Utility functions for processing images"""
 import cv2
 import itertools
+import math
 import numpy as np
 import os
 from scipy.ndimage.morphology import binary_fill_holes
@@ -23,6 +24,30 @@ def resize_image(input_image, output_shape):
 
     resized_image = resize(input_image, output_shape)
     return resized_image
+
+
+def crop2base(im, base=2):
+    """
+    Crop image to nearest smaller factor of the base (usually 2)
+
+    :param nd.array im: Image
+    :param int base: Base to use, typically 2
+    :return nd.array im: Cropped image
+    :raises AssertionError: if base is less than zero
+    """
+    assert base > 0, "Base needs to be greater than zero, not {}".format(base)
+    im_shape = im.shape
+    x_shape = base ** int(math.log(im_shape[0], base))
+    y_shape = base ** int(math.log(im_shape[1], base))
+    if x_shape < im_shape[0]:
+        # Approximate center crop
+        start_idx = (im_shape[0] - x_shape) // 2
+        im = im[start_idx:start_idx + im_shape[0], ...]
+    if y_shape < im_shape[1]:
+        # Approximate center crop
+        start_idx = (im_shape[1] - y_shape) // 2
+        im = im[:, start_idx:start_idx + im_shape[1], ...]
+    return im
 
 
 def resize_mask(input_image, target_size):

@@ -136,19 +136,11 @@ class ImageTiler:
                 self.channel_ids,
                 [self.depths] * len(self.channel_ids)),
             )
-
-        self.margin = 0
-        if max_depth > 1:
-            margin = max_depth // 2
-            nbr_slices = len(self.slice_ids)
-            assert nbr_slices > 2 * self.margin,\
-                "Insufficient slices ({}) for max depth {}".format(
-                    nbr_slices, max_depth)
-            assert self.slice_ids[-1] - self.slice_ids[0] + 1 == nbr_slices,\
-                "Slice indices are not contiguous"
-            # TODO: use itertools.groupby if non-contiguous data is a thing
-            # np.unique is sorted so we can just remove first and last ids
-            self.slice_ids = self.slice_ids[margin:-margin]
+        # Adjust slice margins
+        self.slice_ids = aux_utils.adjust_slice_margins(
+            slice_ids=self.slice_ids,
+            depth=max_depth,
+        )
 
     def get_tile_dir(self):
         """

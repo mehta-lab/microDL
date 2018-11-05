@@ -1,6 +1,7 @@
 #!/usr/bin/env/python
 """Model inference"""
 import argparse
+import cv2
 import natsort
 import numpy as np
 import os
@@ -9,7 +10,8 @@ import yaml
 
 import micro_dl.train.model_inference as inference
 import micro_dl.utils.aux_utils as aux_utils
-from micro_dl.utils.train_utils import check_gpu_availability
+import micro_dl.utils.image_utils as image_utils
+
 
 def parse_args():
     """Parse command line arguments
@@ -19,18 +21,6 @@ def parse_args():
     """
 
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--gpu',
-        type=int,
-        default=0,
-        help='specify the gpu to use: 0,1,... (-1 for debugging)',
-    )
-    parser.add_argument(
-        '--gpu_mem_frac',
-        type=float,
-        default=1.,
-        help='specify the gpu memory fraction to use',
-    )
     parser.add_argument(
         '--model_dir',
         type=str,
@@ -47,7 +37,7 @@ def parse_args():
         '--test_data',
         type=bool,
         default=True,
-        help='True if use test data indices in split_samples.',
+        help='True if use test data indices in split_samples. False=run all data',
     )
     parser.add_argument(
         '--image_dir',
@@ -72,15 +62,24 @@ def run_prediction(args):
         config = yaml.load(f)
     # Load frames metadata and determine indices
     frames_meta = pd.read_csv(os.path.join(args.image_dir, 'frames_meta.csv'))
-    idx_name = config['dataset']['split_by_column']
+    split_idx_name = config['dataset']['split_by_column']
     if args.test_data:
         idx_fname = os.path.join(args.model_dir, 'split_samples.json')
         try:
             split_samples = aux_utils.read_json(idx_fname)
-            test_indices = split_samples['test']
+            test_ids = split_samples['test']
         except FileNotFoundError as e:
             print("No split_samples file. Will predict all images in dir.")
-            test_indices = np.unique(frames_meta[idx_name])
+    else:
+        test_ids = np.unique(frames_meta[split_idx_name])
+
+    # Find other indices to iterate over than split index name
+    # E.g. if split is position, we also need to iterate over time and slice
+    iter_ids = {split_idx_name: test_ids}
+    metadata_ids = ['slice_idx', 'pos_idx', 'time_idx']  # Channel is not iterated over
+    for id in metadata_ids:
+        if id != split_idx_name:
+            iter_ids[id] = np.unique(frames_meta[id])
 
     # Get model weight file name
     model_fname = args.model_fname
@@ -96,23 +95,68 @@ def run_prediction(args):
     os.makedirs(pred_dir, exist_ok=True)
 
     # Get images, assemble frames if input is 3D
+    depth = 1
+    margin = 0
+    if 'depth' in config['network']:
+        depth = config['network']['depth']
+        if depth > 1:
+            margin = depth // 2
+            metadata_ids['slice_idx'] = aux_utils.adjust_slice_margins(
+                slice_ids=metadata_ids['slice_idx'],
+                depth=depth,
+            )
 
-    im_pred = inference.predict_on_larger_image(
-        network_config=config['network'],
-        model_fname=weights_path,
-        input_image=im,
-    )
+    # TODO: Add multi channel support once such models are tested
+    input_channel = config['dataset']['input_channels'][0]
+    assert isinstance(input_channel, int),\
+        "Only supporting single input channel for now"
 
+    data_format = 'channels_first'
+    if 'data_format' in config['network']:
+        data_format = config['network']['data_format']
 
+    # Iterate over all indices for test data
+    for time_idx in metadata_ids['time_idx']:
+        for pos_idx in metadata_ids['pos_idx']:
+            for slice_idx in metadata_ids['slice_idx']:
+                im_stack = []
+                for z in range(slice_idx - margin, slice_idx + margin + 1):
+                    meta_idx = aux_utils.get_meta_idx(
+                        frames_meta,
+                        time_idx,
+                        input_channel,
+                        z,
+                        pos_idx,
+                    )
+                    file_path = os.path.join(
+                        args.image_dir,
+                        frames_meta.loc[meta_idx, "file_name"],
+                    )
+                    im = image_utils.read_image(file_path)
+                    # TODO: Add flatfield support
+                    im_stack.append(im)
+                # Stack images
+                im_stack = np.stack(im_stack, axis=2)
+                if data_format == 'channels_first':
+                    im_stack = np.swapaxes(im_stack, 0, 2)
+                # Crop to nearest factor of two
+                im_stack = image_utils.crop2base(im_stack)
+                # Predict on large image
+                im_pred = inference.predict_on_larger_image(
+                    network_config=config['network'],
+                    model_fname=weights_path,
+                    input_image=im_stack,
+                )
+                im_name =aux_utils.get_im_name(
+                    time_idx=time_idx,
+                    channel_idx=input_channel,
+                    slice_idx=slice_idx,
+                    pos_idx=pos_idx,
+                )
+                file_name = os.path.join(pred_dir, im_name)
+                cv2.imwrite(file_name, im_pred)
 
 
 if __name__ == '__main__':
     args = parse_args()
-    gpu_available = False
-    assert isinstance(args.gpu, int)
-    if args.gpu == -1:
-        run_prediction(args)
-    if args.gpu >= 0:
-        gpu_available = check_gpu_availability(args.gpu, args.gpu_mem_frac)
-    if gpu_available:
-        run_prediction(args)
+    run_prediction(args)
