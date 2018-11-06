@@ -95,7 +95,7 @@ class TestBaseDataSet(unittest.TestCase):
         np.testing.assert_array_equal(trans_im, self.im)
 
     def test_augment_image_lr(self):
-        trans_im = self.data_inst._augment_image(self.im, 1, 'channels_last')
+        trans_im = self.data_inst._augment_image(self.im, 1)
         for i in range(2):
             np.testing.assert_array_equal(
                 trans_im[..., i],
@@ -103,7 +103,7 @@ class TestBaseDataSet(unittest.TestCase):
             )
 
     def test_augment_image_ud(self):
-        trans_im = self.data_inst._augment_image(self.im, 2, 'channels_last')
+        trans_im = self.data_inst._augment_image(self.im, 2)
         for i in range(2):
             np.testing.assert_array_equal(
                 trans_im[..., i],
@@ -111,7 +111,7 @@ class TestBaseDataSet(unittest.TestCase):
             )
 
     def test_augment_image_rot90(self):
-        trans_im = self.data_inst._augment_image(self.im, 3, 'channels_last')
+        trans_im = self.data_inst._augment_image(self.im, 3)
         for i in range(2):
             np.testing.assert_array_equal(
                 trans_im[..., i],
@@ -119,7 +119,7 @@ class TestBaseDataSet(unittest.TestCase):
             )
 
     def test_augment_image_rot180(self):
-        trans_im = self.data_inst._augment_image(self.im, 4, 'channels_last')
+        trans_im = self.data_inst._augment_image(self.im, 4)
         for i in range(2):
             np.testing.assert_array_equal(
                 trans_im[..., i],
@@ -127,7 +127,7 @@ class TestBaseDataSet(unittest.TestCase):
             )
 
     def test_augment_image_rot270(self):
-        trans_im = self.data_inst._augment_image(self.im, 5, 'channels_last')
+        trans_im = self.data_inst._augment_image(self.im, 5)
         for i in range(2):
             np.testing.assert_array_equal(
                 trans_im[..., i],
@@ -211,7 +211,6 @@ class TestBaseDataSet(unittest.TestCase):
             im_expected = self.data_inst._augment_image(
                 self.im + shuf_ids[i],
                 augmentations[i],
-                'channels_last',
             )
             np.testing.assert_array_equal(im_test, im_expected)
 

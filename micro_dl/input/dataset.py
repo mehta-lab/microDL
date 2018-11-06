@@ -82,7 +82,7 @@ class BaseDataSet(keras.utils.Sequence):
         n_batches = int(np.ceil(self.num_samples / self.batch_size))
         return n_batches
 
-    def _augment_image(self, input_image, aug_idx, data_format='channels_first'):
+    def _augment_image(self, input_image, aug_idx):
         """Adds image augmentation among 6 possible options
 
         :param np.array input_image: input image to be transformed
@@ -99,7 +99,8 @@ class BaseDataSet(keras.utils.Sequence):
         """
         # We need to flip over different dimensions depending on data format
         add_dim = 0
-        if data_format == 'channels_first':
+        # Get tile data format from shape
+        if len(input_image.shape) == 3 and input_image.shape[0] <= 3:
             add_dim = 1
 
         if aug_idx == 0:
@@ -137,7 +138,8 @@ class BaseDataSet(keras.utils.Sequence):
         return trans_image
 
     def _get_volume(self, fname_list, aug_idx=0):
-        """Read a volume from fname_list
+        """
+        Read tiles from fname_list and stack them into an image volume.
 
         :param list fname_list: list of file names of input/target images
         :param int aug_idx: type of augmentation to be applied (if any)
@@ -146,13 +148,12 @@ class BaseDataSet(keras.utils.Sequence):
 
         image_volume = []
         for fname in fname_list:
-            cur_channel = np.load(os.path.join(self.tile_dir, fname))
-            image_volume.append(cur_channel)
+            cur_tile = np.load(os.path.join(self.tile_dir, fname))
+            if self.augmentations:
+                cur_tile = self._augment_image(cur_tile, aug_idx)
+            image_volume.append(cur_tile)
         # Stack images channels first
-        image_volume = np.stack(image_volume)
-        if self.augmentations:
-            image_volume = self._augment_image(image_volume, aug_idx)
-        return image_volume
+        return np.stack(image_volume)
 
     def __getitem__(self, index):
         """Get a batch of data
