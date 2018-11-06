@@ -27,6 +27,7 @@ class BaseDataSet(keras.utils.Sequence):
         Works for either data format (channels_first or channels_last).
         Tiles will be loaded as is, so it's important that you've made sure
         your data format matches your preprocessing config.
+        TODO: Test with multiple channel tiles
 
         :param str tile_dir: directory containing training image tiles
         :param pd.Series input_fnames: pd.Series with each row containing
