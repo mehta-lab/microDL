@@ -35,10 +35,16 @@ def parse_args():
     )
     parser.add_argument(
         '--test_data',
-        type=bool,
-        default=True,
-        help='True if use test data indices in split_samples. False=run all data',
+        dest='test_data',
+        action='store_true',
+        help="Use test indices in split_samples.json",
     )
+    parser.add_argument(
+        '--all_data',
+        dest='test_data',
+        action='store_false',
+    )
+    parser.set_defaults(test_data=True)
     parser.add_argument(
         '--image_dir',
         type=str,
@@ -75,11 +81,13 @@ def run_prediction(args):
 
     # Find other indices to iterate over than split index name
     # E.g. if split is position, we also need to iterate over time and slice
-    iter_ids = {split_idx_name: test_ids}
-    metadata_ids = ['slice_idx', 'pos_idx', 'time_idx']  # Channel is not iterated over
-    for id in metadata_ids:
+    metadata_ids = {split_idx_name: test_ids}
+    iter_ids = ['slice_idx', 'pos_idx', 'time_idx']
+    for id in iter_ids:
         if id != split_idx_name:
-            iter_ids[id] = np.unique(frames_meta[id])
+            metadata_ids[id] = np.unique(frames_meta[id])
+            print(id)
+            print(np.unique(frames_meta[id]))
 
     # Get model weight file name
     model_fname = args.model_fname
@@ -95,7 +103,6 @@ def run_prediction(args):
     os.makedirs(pred_dir, exist_ok=True)
 
     # Get images, assemble frames if input is 3D
-    depth = 1
     margin = 0
     if 'depth' in config['network']:
         depth = config['network']['depth']
