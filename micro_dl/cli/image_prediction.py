@@ -147,14 +147,16 @@ def run_prediction(args):
                 if data_format == 'channels_first':
                     im_stack = np.swapaxes(im_stack, 0, 2)
                 # Crop to nearest factor of two
+                print('imstack', im_stack.shape)
                 im_stack = image_utils.crop2base(im_stack)
+                print('imstack', im_stack.shape)
                 # Predict on large image
                 im_pred = inference.predict_on_larger_image(
                     network_config=config['network'],
                     model_fname=weights_path,
                     input_image=im_stack,
                 )
-                im_name =aux_utils.get_im_name(
+                im_name = aux_utils.get_im_name(
                     time_idx=time_idx,
                     channel_idx=input_channel,
                     slice_idx=slice_idx,

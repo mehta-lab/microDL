@@ -16,11 +16,12 @@ class UNetStackTo2D(BaseUNet):
 
         :param dict network_config: dict with all network associated parameters
         """
-
-        assert 'depth' in network_config and network_config['depth'] > 1, \
-            'depth is missing in network config'
-        assert network_config['depth'] % 2 != 0, \
-            'depth is even. Expecting an odd value to predict center slice'
+        if not predict:
+            # Depth is None when predicting
+            assert 'depth' in network_config and network_config['depth'] > 1,\
+                'depth is missing in network config'
+            assert network_config['depth'] % 2 != 0, \
+                'depth is even. Expecting an odd value to predict center slice'
         assert ('padding' not in network_config or
                 network_config['padding'] == 'same'), \
             'Due to anisotropic filter shape only padding=same allowed here'
@@ -29,9 +30,10 @@ class UNetStackTo2D(BaseUNet):
         num_down_blocks = len(network_config['num_filters_per_block'])
         self.num_down_blocks = num_down_blocks
 
-        if network_config['depth'] > 5:
-            warnings.warn('using more than 5 slices to predict center slice',
-                          Warning)
+        if not predict:
+            if network_config['depth'] > 5:
+                warnings.warn('using more than 5 slices to predict center slice',
+                              Warning)
 
     def _skip_block(self, input_layer, num_slices, num_filters):
         """Converts skip layers from 3D to 2D: 1x1 along Z
