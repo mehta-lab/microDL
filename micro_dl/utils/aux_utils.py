@@ -95,7 +95,20 @@ def get_im_name(time_idx=None,
                 slice_idx=None,
                 pos_idx=None,
                 extra_field=None,
+                ext='.npy',
                 int2str_len=3):
+    """
+    Create an image name given parameters and extension
+
+    :param int time_idx: Time index
+    :param int channel_idx: Channel index
+    :param int slice_idx: Slice (z) index
+    :param int pos_idx: Position (FOV) index
+    :param str extra_field: Any extra string you want to include in the name
+    :param str ext: Extension, e.g. '.png'
+    :param int int2str_len: Length of string of the converted integers
+    :return st im_name: Image file name
+    """
     im_name = "im"
     if channel_idx is not None:
         im_name += "_c" + str(channel_idx).zfill(int2str_len)
@@ -107,7 +120,7 @@ def get_im_name(time_idx=None,
         im_name += "_p" + str(pos_idx).zfill(int2str_len)
     if extra_field is not None:
         im_name += "_" + extra_field
-    im_name += ".npy"
+    im_name += ext
     return im_name
 
 

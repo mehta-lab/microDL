@@ -25,6 +25,8 @@ def conv_block(layer, network_config, block_idx):
     :param int block_idx: block index in the network
     :return: keras.layers after performing operations in block-sequence
      repeated for num_convs_per_block times
+    TODO: data_format from network_config won't work for full 3D models in predict
+    if depth is set to None
     """
 
     conv = get_keras_layer(type='conv', num_dims=network_config['num_dims'])
@@ -32,12 +34,6 @@ def conv_block(layer, network_config, block_idx):
     for _ in range(network_config['num_convs_per_block']):
         for cur_layer_type in block_sequence:
             if cur_layer_type == 'conv':
-                print('block idx', block_idx)
-                print(network_config['num_filters_per_block'][block_idx])
-                print(network_config['filter_size'])
-                print(network_config['padding'])
-                print(network_config['init'])
-                print(network_config['data_format'])
                 layer = conv(
                     filters=network_config['num_filters_per_block'][block_idx],
                     kernel_size=network_config['filter_size'],
@@ -274,9 +270,6 @@ def residual_conv_block(layer, network_config, block_idx):
     """
 
     input_layer = layer
-    print(layer)
-    print(network_config)
-    print(block_idx)
     final_layer = conv_block(layer, network_config, block_idx)
     layer = _merge_residual(final_layer=final_layer,
                             input_layer=input_layer,

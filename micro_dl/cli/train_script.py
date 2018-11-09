@@ -256,7 +256,7 @@ def run_action(args):
                        show_shapes=True, show_layer_names=True)
             with open(os.path.join(trainer_config['model_dir'],
                                    'config.yml'), 'w') as f:
-                yaml.dump(config, f, default_flow_style=False)
+                yaml.dump(config, f)
 
         num_target_channels = network_config['num_target_channels']
         trainer = BaseKerasTrainer(sess=sess,

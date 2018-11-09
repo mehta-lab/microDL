@@ -1,5 +1,4 @@
 """Nearest/Bilinear interpolation in 3D"""
-from keras import backend as K
 from keras.engine import InputSpec
 import numpy as np
 import tensorflow as tf
@@ -83,75 +82,36 @@ class InterpUpSampling3D(InterpUpSampling2D):
         """
 
         b_size, z_size, y_size, x_size, c_size = x.shape.as_list()
-        if None not in x.shape.as_list()[1:]:
-            x_size_new = x_size * self.size[2]
-            y_size_new = y_size * self.size[1]
-            z_size_new = z_size * self.size[0]
-        else:
-            x_size_new = None
-            y_size_new = None
-            z_size_new = None
         # resize y-x
-        print('shapes', x.shape.as_list())
-        print('org shape', K.int_shape(x))
-        temp_shape = tf.placeholder(shape=x.shape.as_list(), dtype=tf.float32)
-        x_shape = tf.shape(temp_shape)
+        x_shape = tf.shape(x)
         squeeze_b_z = tf.reshape(
             tensor=x,
-            shape=[-1, x_shape[2], x_shape[3], x_shape[1]],
+            shape=[-1, x_shape[2], x_shape[3], c_size],
         )
-        # squeeze_b_z = tf.reshape(
-        #     x, tf.convert_to_tensor([-1, y_size, x_size, c_size])
-        # )
-        print('squeeze shape', K.int_shape(squeeze_b_z))
         resize_b_z = super()._interp_image(squeeze_b_z,
                                            (self.size[1:]))
-        print('resize shape', K.int_shape(resize_b_z))
-        #  tf doesn't like None in reshape
+        #  tf doesn't like None in reshape, use dynamic shape
         #  https://github.com/tensorflow/tensorflow/issues/7253
-        # resume_b_z = tf.reshape(
-        #     tensor=resize_b_z,
-        #     shape=tf.convert_to_tensor([-1, z_size,
-        #                                 y_size_new,
-        #                                 x_size_new,
-        #                                 c_size])
-        # )
         bz_shape = tf.shape(resize_b_z)
         resume_b_z = tf.reshape(
             tensor=resize_b_z,
-            shape=[-1, z_size, bz_shape[2], bz_shape[3], c_size],
+            shape=[-1, z_size, bz_shape[1], bz_shape[2], c_size],
         )
-        print('resume shape', K.int_shape(resume_b_z))
         # resize y-z, only z as y is already resized in the previous step
         #   first reorient
         reoriented = tf.transpose(resume_b_z, [0, 3, 2, 1, 4])
-        print('reoriented shape', K.int_shape(reoriented))
         #   squeeze and 2d resize
-        temp_shape = tf.placeholder(shape=reoriented.shape.as_list(),
-                                    dtype=tf.float32)
-        r_shape = tf.shape(temp_shape)
+        r_shape = tf.shape(reoriented)
         squeeze_b_x = tf.reshape(
             tensor=reoriented,
             shape=[-1, r_shape[2], z_size, c_size],
         )
-        # squeeze_b_x = tf.reshape(reoriented, [-1, y_size_new, z_size, c_size])
-        print('reoriented squeeze shape', K.int_shape(squeeze_b_x))
         resize_b_x = super()._interp_image(squeeze_b_x, (1, self.size[0]))
-        # resume_b_x = tf.reshape(
-        #     tensor=resize_b_x,
-        #     shape=tf.convert_to_tensor((-1, x_size_new,
-        #                                 y_size_new,
-        #                                 z_size_new,
-        #                                 c_size))
-        # )
-        temp_shape = tf.placeholder(shape=resize_b_x.shape.as_list(),
-                                    dtype=tf.float32)
-        r_shape = tf.shape(temp_shape)
+        bx_shape = tf.shape(resize_b_x)
         resume_b_x = tf.reshape(
             tensor=resize_b_x,
-            shape=[-1, r_shape[1], r_shape[2], r_shape[3], c_size],
+            shape=[-1, r_shape[2], bx_shape[1], bx_shape[2], c_size],
         )
-        print('resume bx shape', K.int_shape(resume_b_x))
         output_tensor = tf.transpose(resume_b_x, [0, 3, 2, 1, 4])
         return output_tensor
 
@@ -169,8 +129,6 @@ class InterpUpSampling3D(InterpUpSampling2D):
             b_size, z_size, y_size, x_size, c_size = x.shape.as_list()
         else:
             b_size, c_size, z_size, y_size, x_size = x.shape.as_list()
-        print('sizes', b_size, z_size, y_size, x_size, c_size)
-        print(self.size)
         if None not in x.shape.as_list()[1:]:
             x_size_new = x_size * self.size[2]
             y_size_new = y_size * self.size[1]

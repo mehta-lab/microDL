@@ -50,7 +50,6 @@ class BaseUNet(BaseConvNet):
                 network_config['height'] // (2 ** num_down_blocks)
             assert feature_height_at_last_block >= 2, \
                 'network depth is incompatible with height'
-        print("pred", predict)
         #  keras upsampling repeats the rows and columns in data. leads to
         #  checkerboard in upsampled images. repeat - use keras builtin
         #  nearest_neighbor, bilinear: interpolate using custom layers
@@ -73,8 +72,6 @@ class BaseUNet(BaseConvNet):
                 else:
                     self.UpSampling = import_class('networks',
                                                    'InterpUpSampling2D')
-            # if predict:
-            #     network_config['depth'] = None
 
         self.num_down_blocks = num_down_blocks
 
@@ -154,7 +151,6 @@ class BaseUNet(BaseConvNet):
                 data_format=self.config['data_format']
             )(input_layers)
         else:
-            print('up', upsampling_shape)
             layer_upsampled = self.UpSampling(
                 size=upsampling_shape,
                 data_format=self.config['data_format'],
