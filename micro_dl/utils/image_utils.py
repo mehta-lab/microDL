@@ -37,32 +37,17 @@ def crop2base(im, base=2):
     """
     assert base > 0, "Base needs to be greater than zero, not {}".format(base)
     im_shape = im.shape
-    x_idx = 0
-    y_idx = 1
-    channels_first = False
-    if im_shape[0] <= 3 and len(im_shape) > 2:
-        x_idx = 1
-        y_idx = 2
-        channels_first = True
-    x_shape = base ** int(math.log(im_shape[x_idx], base))
-    y_shape = base ** int(math.log(im_shape[y_idx], base))
-    print(im_shape, x_shape, y_shape)
-    if x_shape < im_shape[x_idx]:
+
+    x_shape = base ** int(math.log(im_shape[0], base))
+    y_shape = base ** int(math.log(im_shape[1], base))
+    if x_shape < im_shape[0]:
         # Approximate center crop
-        start_idx = (im_shape[x_idx] - x_shape) // 2
-        if channels_first:
-            im = im[:, start_idx:start_idx + im_shape[x_idx], ...]
-        else:
-            im = im[start_idx:start_idx + im_shape[x_idx], ...]
-        print('x', im.shape)
-    if y_shape < im_shape[y_idx]:
+        start_idx = (im_shape[0] - x_shape) // 2
+        im = im[start_idx:start_idx + x_shape, ...]
+    if y_shape < im_shape[1]:
         # Approximate center crop
-        start_idx = (im_shape[y_idx] - y_shape) // 2
-        if channels_first:
-            im = im[:, :, start_idx:start_idx + im_shape[y_idx], ...]
-        else:
-            im = im[:, start_idx:start_idx + im_shape[y_idx], ...]
-        print('y', im.shape)
+        start_idx = (im_shape[1] - y_shape) // 2
+        im = im[:, start_idx:start_idx + y_shape, ...]
     return im
 
 

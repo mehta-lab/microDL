@@ -52,8 +52,6 @@ def predict_on_larger_image(network_config, model_fname, input_image):
 
     network_config['width'] = None
     network_config['height'] = None
-    if 'depth' in network_config:
-        network_config['depth'] = None
     model = load_model(network_config, model_fname, predict=True)
     input_image = zscore(input_image)
     im_size = input_image.shape

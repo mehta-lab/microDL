@@ -29,7 +29,7 @@ class UNetStackTo2D(BaseUNet):
         super().__init__(network_config, predict)
         num_down_blocks = len(network_config['num_filters_per_block'])
         self.num_down_blocks = num_down_blocks
-
+        print(predict)
         if not predict:
             if network_config['depth'] > 5:
                 warnings.warn('using more than 5 slices to predict center slice',
@@ -139,6 +139,7 @@ class UNetStackTo2D(BaseUNet):
         # ------------- Upsampling / decoding blocks -------------
         upsampling_shape = (1, 2, 2)
         self.config['filter_size'] = (1, filter_size, filter_size)
+        print('filter', self.config['filter_size'])
         for block_idx in reversed(range(self.num_down_blocks - 1)):
             cur_skip_layers = skip_layers_list[block_idx]
             cur_skip_layers = self._skip_block(

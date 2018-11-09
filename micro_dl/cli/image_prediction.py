@@ -1,11 +1,12 @@
 #!/usr/bin/env/python
-"""Model inference"""
+"""Model inference on large images"""
 import argparse
 import cv2
 import natsort
 import numpy as np
 import os
 import pandas as pd
+import time
 import yaml
 
 import micro_dl.train.model_inference as inference
@@ -144,18 +145,20 @@ def run_prediction(args):
                     im_stack.append(im)
                 # Stack images
                 im_stack = np.stack(im_stack, axis=2)
-                if data_format == 'channels_first':
-                    im_stack = np.swapaxes(im_stack, 0, 2)
                 # Crop to nearest factor of two
-                print('imstack', im_stack.shape)
                 im_stack = image_utils.crop2base(im_stack)
+                if data_format == 'channels_first':
+                    im_stack = np.transpose(im_stack, [2, 0, 1])
+                im_stack = np.expand_dims(im_stack, axis=0)
                 print('imstack', im_stack.shape)
                 # Predict on large image
+                start = time.time()
                 im_pred = inference.predict_on_larger_image(
                     network_config=config['network'],
                     model_fname=weights_path,
                     input_image=im_stack,
                 )
+                print("Inference time:", time.time() - start)
                 im_name = aux_utils.get_im_name(
                     time_idx=time_idx,
                     channel_idx=input_channel,
