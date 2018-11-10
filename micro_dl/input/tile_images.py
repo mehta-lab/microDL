@@ -31,6 +31,9 @@ class ImageTiler:
         Normalizes images using z-score, then tiles them.
         Isotropic here refers to the same dimension/shape along row, col, slice
         and not really isotropic resolution in mm.
+        If tile_dir already exist, it will check which channels are already
+        tiled, get indices from them and tile from indices only on the channels
+        not already present.
 
         :param str input_dir: Directory with frames to be tiled
         :param str output_dir: Base output directory
@@ -96,13 +99,13 @@ class ImageTiler:
             output_dir,
             self.str_tile_step,
         )
-        # If tile dir already exist, things could get messy because we don't
-        # have any checks in place for how to add to existing tiles
+        # If tile dir already exist, only tile channels not already present
+        self.tiles_exist = False
         try:
             os.makedirs(self.tile_dir, exist_ok=False)
         except FileExistsError as e:
-            print("You're trying to write to existing dir. ", e)
-            raise
+            print("Tile dir exists. Only add untiled channels.", e)
+            self.tiles_exist = True
 
         self.tile_mask_dir = None
         self.flat_field_dir = flat_field_dir
@@ -259,7 +262,13 @@ class ImageTiler:
         ['time_idx', 'channel_idx', 'pos_idx','slice_idx', 'file_name']
         for all the tiles
         """
-        tiled_metadata = self._get_dataframe()
+        if self.tiles_exist:
+            tiled_metadata = aux_utils.read_meta(self.tile_dir)
+            # Do some logic on what channels have been tiled
+            # Get indices for untiled channels
+            # Get tile_indices
+        else:
+            tiled_metadata = self._get_dataframe()
         tile_indices = None
         for channel_idx in self.channel_ids:
             # Perform flatfield correction if flatfield dir is specified
