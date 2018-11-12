@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import time
 
 from micro_dl.input.estimate_flat_field import FlatFieldEstimator2D
 from micro_dl.input.generate_masks import MaskProcessor
@@ -97,6 +98,7 @@ def pre_process(pp_config):
             time_ids=time_ids,
             slice_ids=slice_ids,
             flat_field_dir=flat_field_dir,
+            uniform_structure=False
         )
         tile_dir = tile_inst.get_tile_dir()
         # If you're using min fraction, it assumes you've generated masks
@@ -114,7 +116,10 @@ def pre_process(pp_config):
             )
             tile_mask_dir = tile_inst.get_tile_mask_dir()
         else:
+            start = time.time()
             tile_inst.tile_stack()
+            end = time.time()
+            print('runtime:', start-end)
 
     # Write in/out/mask/tile paths and config to json in output directory
     processing_info = {
