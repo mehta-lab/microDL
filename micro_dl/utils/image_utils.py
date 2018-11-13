@@ -243,12 +243,12 @@ def tile_image(input_image,
         if len(step_size) == 2:
             step_size.append(im_shape[2])
 
-    check_1 = len(tile_size) == len(step_size)
-    check_2 = np.all(step_size <= tile_size)
-    check_3 = np.all(tile_size) > 0
-    assert check_1 and check_2 and check_3,\
-        "Tiling not valid with tile size {} and step {}".format(
-            tile_size, step_size)
+    assert len(tile_size) == len(step_size),\
+        "Tile {} and step size {} mismatch".format(tile_size, step_size)
+    assert np.all(step_size <= tile_size).\
+        "Step size {} > tile size {}".format(step_size, tile_size)
+    assert np.all(tile_size) > 0,\
+        "Tile size must be > 0, not {}".format(tile_size)
 
     n_rows = input_image.shape[0]
     n_cols = input_image.shape[1]
