@@ -288,14 +288,14 @@ def tile_image(input_image,
                         cropped_img = resize_image(cropped_img,
                                                    isotropic_shape)
                     if use_tile(cropped_img, min_fraction):
-                        cropped_image_list.append((img_id, cropped_img))
+                        cropped_image_list.append([img_id, cropped_img])
                         cropping_index.append(cur_index)
             else:
                 cur_index = (row, row + tile_size[0], col, col + tile_size[1])
                 cropped_img = input_image[row: row + tile_size[0],
                                           col: col + tile_size[1]]
                 if use_tile(cropped_img, min_fraction):
-                    cropped_image_list.append((img_id, cropped_img))
+                    cropped_image_list.append([img_id, cropped_img])
                     cropping_index.append(cur_index)
     if return_index:
         return cropped_image_list, cropping_index
