@@ -125,11 +125,10 @@ def run_prediction(args):
         os.makedirs(fig_dir, exist_ok=True)
 
     # If network depth is > 3 determine depth margins for +-z
-    margin = 0
+    depth = 1
     if 'depth' in config['network']:
         depth = config['network']['depth']
         if depth > 1:
-            margin = depth // 2
             metadata_ids['slice_idx'] = aux_utils.adjust_slice_margins(
                 slice_ids=metadata_ids['slice_idx'],
                 depth=depth,
@@ -155,25 +154,16 @@ def run_prediction(args):
     for time_idx in metadata_ids['time_idx']:
         for pos_idx in metadata_ids['pos_idx']:
             for slice_idx in metadata_ids['slice_idx']:
-                im_stack = []
-                # Load +- slice_idx for 3D data
-                for z in range(slice_idx - margin, slice_idx + margin + 1):
-                    meta_idx = aux_utils.get_meta_idx(
-                        frames_meta,
-                        time_idx,
-                        input_channel,
-                        z,
-                        pos_idx,
-                    )
-                    file_path = os.path.join(
-                        args.image_dir,
-                        frames_meta.loc[meta_idx, "file_name"],
-                    )
-                    im = image_utils.read_image(file_path)
-                    # TODO: Add flatfield support
-                    im_stack.append(im)
-                # Stack images
-                im_stack = np.stack(im_stack, axis=2)
+                # TODO: Add flatfield support
+                im_stack = image_utils.preprocess_imstack(
+                    frames_metadata=frames_meta,
+                    input_dir=args.image_dir,
+                    depth=depth,
+                    time_idx=time_idx,
+                    channel_idx=input_channel,
+                    slice_idx=slice_idx,
+                    pos_idx=pos_idx,
+                )
                 # Crop image shape to nearest factor of two
                 im_stack = image_utils.crop2base(im_stack)
                 # Flip dimensions if data format is channels first

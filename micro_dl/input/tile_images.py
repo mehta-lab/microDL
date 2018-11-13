@@ -5,7 +5,6 @@ import os
 import pandas as pd
 
 import micro_dl.utils.aux_utils as aux_utils
-import micro_dl.utils.normalize as normalize
 import micro_dl.utils.image_utils as image_utils
 
 
@@ -156,60 +155,6 @@ class ImageTiler:
         """
         return self.tile_mask_dir
 
-    def _preprocess_im(self,
-                       time_idx,
-                       channel_idx,
-                       slice_idx,
-                       pos_idx,
-                       flat_field_im=None,
-                       hist_clip_limits=None):
-        """
-        Preprocess image given by indices: flatfield correction, histogram
-        clipping and z-score normalization is performed.
-
-        :param int time_idx: Time index
-        :param int channel_idx: Channel index
-        :param int slice_idx: Slice (z) index
-        :param int pos_idx: Position (FOV) index
-        :param np.array flat_field_im: Flat field image for channel
-        :param list hist_clip_limits: Limits for histogram clipping (size 2)
-        :return np.array im: 2D preprocessed image
-        :return str channel_name: Channel name
-        """
-        depth = self.channel_depth[channel_idx]
-        margin = 0 if depth == 1 else depth // 2
-        im_stack = []
-        for z in range(slice_idx - margin, slice_idx + margin + 1):
-            meta_idx = aux_utils.get_meta_idx(
-                self.frames_metadata,
-                time_idx,
-                channel_idx,
-                z,
-                pos_idx,
-            )
-            channel_name = self.frames_metadata.loc[meta_idx, "channel_name"]
-            file_path = os.path.join(
-                self.input_dir,
-                self.frames_metadata.loc[meta_idx, "file_name"],
-            )
-            im = image_utils.read_image(file_path)
-            if flat_field_im is not None:
-                im = image_utils.apply_flat_field_correction(
-                    im,
-                    flat_field_image=flat_field_im,
-                )
-            im_stack.append(im)
-        # Stack images
-        im_stack = np.stack(im_stack, axis=2)
-        # normalize
-        if hist_clip_limits is not None:
-            im_stack = normalize.hist_clipping(
-                im_stack,
-                hist_clip_limits[0],
-                hist_clip_limits[1],
-            )
-        return normalize.zscore(im_stack), channel_name
-
     def _write_tiled_data(self,
                           tiled_data,
                           save_dir,
@@ -323,11 +268,14 @@ class ImageTiler:
             for slice_idx in self.slice_ids:
                 for time_idx in self.time_ids:
                     for pos_idx in self.pos_ids:
-                        im, channel_name = self._preprocess_im(
-                            time_idx,
-                            channel_idx,
-                            slice_idx,
-                            pos_idx,
+                        im = image_utils.preprocess_imstack(
+                            frames_metadata=self.frames_metadata,
+                            input_dir=self.input_dir,
+                            depth=self.channel_depth[channel_idx],
+                            time_idx=time_idx,
+                            channel_idx=channel_idx,
+                            slice_idx=slice_idx,
+                            pos_idx=pos_idx,
                             flat_field_im=flat_field_im,
                             hist_clip_limits=self.hist_clip_limits,
                         )
@@ -471,11 +419,14 @@ class ImageTiler:
                         if self.flat_field_dir is not None:
                             flat_field_im = flat_field_ims[i]
 
-                        im, channel_name = self._preprocess_im(
-                            time_idx,
-                            channel_idx,
-                            slice_idx,
-                            pos_idx,
+                        im = image_utils.preprocess_imstack(
+                            frames_metadata=self.frames_metadata,
+                            input_dir=self.input_dir,
+                            depth=self.channel_depth[channel_idx],
+                            time_idx=time_idx,
+                            channel_idx=channel_idx,
+                            slice_idx=slice_idx,
+                            pos_idx=pos_idx,
                             flat_field_im=flat_field_im,
                             hist_clip_limits=self.hist_clip_limits,
                         )

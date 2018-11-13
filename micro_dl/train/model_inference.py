@@ -48,7 +48,6 @@ def predict_on_larger_image(model, input_image):
     :return np.array predicted image: as named. Batch axis removed (and channel
      axis if num_channels=1)
     """
-    input_image = zscore(input_image)
     im_size = input_image.shape
     num_dims = len(im_size)
     if num_dims == 3:
