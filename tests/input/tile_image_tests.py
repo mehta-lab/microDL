@@ -469,13 +469,11 @@ class TestImageMaskTiler(unittest.TestCase):
         nose.tools.assert_equal(flat_field_im, None)
 
     def test_tile_mask_stack(self):
-        import glob
-        print(glob.glob(self.mask_dir + '/*'))
         self.tile_inst.tile_mask_stack(
             min_fraction=0.0,
             mask_dir=self.mask_dir,
             mask_channel=self.mask_channel,
-            save_tiled_masks='as_channel',
+            save_tiled_masks=True,
             )
         # Read and validate the saved metadata
         tile_dir = self.tile_inst.get_tile_dir()

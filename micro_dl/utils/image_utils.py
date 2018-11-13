@@ -313,15 +313,15 @@ def crop_at_indices(input_image, crop_indices, isotropic=False):
     """
 
     n_dim = len(input_image.shape)
-    cropped_img_list = []
+    tiles_list = []
     im_depth = input_image.shape[2]
     for cur_idx in crop_indices:
         img_id = 'r{}-{}_c{}-{}'.format(cur_idx[0], cur_idx[1],
                                         cur_idx[2], cur_idx[3])
 
         cropped_img = input_image[cur_idx[0]: cur_idx[1],
-                      cur_idx[2]: cur_idx[3], ...]
-        if n_dim == 3 and len(cur_idx) == 6:
+                                  cur_idx[2]: cur_idx[3], ...]
+        if n_dim == 3:
             img_id = '{}_sl{}-{}'.format(img_id, 0, im_depth)
 
             if isotropic:
@@ -329,8 +329,19 @@ def crop_at_indices(input_image, crop_indices, isotropic=False):
                 isotropic_shape = [img_shape[0], ] * len(img_shape)
                 cropped_img = resize_image(cropped_img, isotropic_shape)
 
-        cropped_img_list.append((img_id, cropped_img))
-    return cropped_img_list
+        tiles_list.append([img_id, cropped_img])
+    return tiles_list
+
+
+def write_tile(file_name_list, flip):
+    """
+    Write tile function that can be called using threading.
+    :param list file_name_list: [file path, tile]
+    """
+    [file_name, tile] = file_name_list
+    if flip:
+        tile = np.transpose(tile, (2, 0, 1))
+    np.save(file_name, tile,  allow_pickle=True, fix_imports=True)
 
 
 def create_mask(input_image, str_elem_size=3):
