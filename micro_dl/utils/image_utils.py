@@ -245,7 +245,7 @@ def tile_image(input_image,
 
     assert len(tile_size) == len(step_size),\
         "Tile {} and step size {} mismatch".format(tile_size, step_size)
-    assert np.all(step_size <= tile_size).\
+    assert np.all(step_size <= tile_size),\
         "Step size {} > tile size {}".format(step_size, tile_size)
     assert np.all(tile_size) > 0,\
         "Tile size must be > 0, not {}".format(tile_size)
