@@ -159,7 +159,7 @@ class BaseDataSet(keras.utils.Sequence):
         return np.stack(image_volume)
 
     def _get_batch(self, fname_tuple, normalize):
-        (fname, aug_idx) = fname_tuple
+        (fname, aug_idx, _) = fname_tuple
         cur_vol = self._get_volume(fname.split(','), aug_idx)
         # If target is boolean (segmentation masks), convert to float
         if cur_vol.dtype == bool:
@@ -196,28 +196,30 @@ class BaseDataSet(keras.utils.Sequence):
             if self.augmentations:
                 aug_idx = np.random.choice([0, 1, 2, 3, 4, 5], 1)
             aug_ids.append(aug_idx)
-
+        order = range(len(aug_ids))
         with concurrent.futures.ThreadPoolExecutor() as executor:
             future_input = {executor.submit(
                 self._get_batch,
                 fname_tuple,
                 self.normalize):
-                fname_tuple for fname_tuple in zip(input_fnames, aug_ids)}
-        input_image = []
-        for future in concurrent.futures.map(future_input):
+                fname_tuple for fname_tuple in zip(input_fnames, aug_ids, order)}
+        input_image = [None] * len(input_fnames)
+        for future in concurrent.futures.as_completed(future_input):
             cur_input = future.result()
-            input_image.append(cur_input)
+            i = future_input[future][2]
+            input_image[i] = cur_input
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
             future_target = {executor.submit(
                 self._get_batch,
                 fname_tuple,
                 norm_output):
-                fname_tuple for fname_tuple in zip(target_fnames, aug_ids)}
-        target_image = []
-        for future in concurrent.futures.map(future_target):
+                fname_tuple for fname_tuple in zip(target_fnames, aug_ids, order)}
+        target_image = [None] * len(target_fnames)
+        for future in concurrent.futures.as_completed(future_target):
             cur_target = future.result()
-            target_image.append(cur_target)
+            i = future_target[future][2]
+            target_image[i] = cur_target
 
         input_image = np.stack(input_image)
         target_image = np.stack(target_image)
