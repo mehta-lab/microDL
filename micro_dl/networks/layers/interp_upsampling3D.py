@@ -82,6 +82,7 @@ class InterpUpSampling3D(InterpUpSampling2D):
         """
 
         b_size, z_size, y_size, x_size, c_size = x.shape.as_list()
+        print('x shape', x.shape.as_list())
         # resize y-x
         x_shape = tf.shape(x)
         squeeze_b_z = tf.reshape(
@@ -113,6 +114,7 @@ class InterpUpSampling3D(InterpUpSampling2D):
             shape=[-1, r_shape[2], bx_shape[1], bx_shape[2], c_size],
         )
         output_tensor = tf.transpose(resume_b_x, [0, 3, 2, 1, 4])
+        print('out', output_tensor.shape.as_list())
         return output_tensor
 
     def call(self, x, mask=None):
@@ -129,6 +131,7 @@ class InterpUpSampling3D(InterpUpSampling2D):
             b_size, z_size, y_size, x_size, c_size = x.shape.as_list()
         else:
             b_size, c_size, z_size, y_size, x_size = x.shape.as_list()
+        print('in call', x.shape.as_list())
         if None not in x.shape.as_list()[1:]:
             x_size_new = x_size * self.size[2]
             y_size_new = y_size * self.size[1]

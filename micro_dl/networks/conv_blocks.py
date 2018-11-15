@@ -157,7 +157,8 @@ def _crop_layer(input_layer, final_layer, data_format, num_dims, padding):
                                         data_format)
     final_layer_shape = get_layer_shape(final_layer.get_shape().as_list(),
                                         data_format)
-
+    # TODO: This will fail for 3D models in the final residual merge
+    # Need to use dynamic weights
     if padding == 'valid':
         num_crop_pixels = (input_layer_shape - final_layer_shape)
         assert np.any(num_crop_pixels >= 0) and \
@@ -196,7 +197,6 @@ def _merge_residual(final_layer,
                                   num_dims=num_dims)
     num_final_layers = int(final_layer.get_shape()[channel_axis])
     num_input_layers = int(input_layer.get_shape()[channel_axis])
-
     # crop input if padding='valid'
     input_layer = _crop_layer(input_layer,
                               final_layer,
