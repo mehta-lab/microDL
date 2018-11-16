@@ -3,19 +3,12 @@
 import numpy as np
 import os
 import pandas as pd
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.normalize as normalize
 import micro_dl.utils.image_utils as image_utils
 from micro_dl.utils.image_utils import crop_at_indices_save
-
-
-def multithreading(func, args,
-                   workers):
-    with ThreadPoolExecutor(workers) as ex:
-        res = ex.map(func, args)
-    return list(res)
 
 
 def multiprocessing(fn_args, workers):
@@ -44,7 +37,8 @@ class ImageTiler:
                  flat_field_dir=None,
                  isotropic=False,
                  data_format='channels_first',
-                 uniform_structure=True):
+                 uniform_structure=True,
+                 num_workers=4):
         """
         Normalizes images using z-score, then tiles them.
         Isotropic here refers to the same dimension/shape along row, col, slice
@@ -73,6 +67,9 @@ class ImageTiler:
         :param str flat_field_dir: Flatfield directory. None if no flatfield
             correction
         :param bool isotropic: if 3D, make the grid/shape isotropic
+        :param bool uniform_structure: indicator if all sub-units have same
+         number of unique values
+        :param int num_workers: number of cores to use for multiprocessing
         :param str data_format: Channels first or last
         """
         self.input_dir = input_dir
@@ -115,6 +112,7 @@ class ImageTiler:
             self.str_tile_step,
         )
         self.uniform_structure = uniform_structure
+        self.num_workers = num_workers
 
         # If tile dir already exist, things could get messy because we don't
         # have any checks in place for how to add to existing tiles
@@ -429,11 +427,6 @@ class ImageTiler:
                                 hist_clip_limits = tuple(
                                     self.hist_clip_limits
                                 )
-                            # np.array cannot be pickled, create a mp.array
-                            # num_voxels = np.size(im)
-                            # im_as_mparray = mp.Array(ctypes.c_double,
-                            #                         num_voxels)
-                            # np.copyto(im.flatten(), im_as_mparray)
 
                             # all args to mp should be hashable :-(
                             cur_args = (tuple(input_fnames),
@@ -449,7 +442,7 @@ class ImageTiler:
                                         self.tile_dir)
                             fn_args.append(cur_args)
             tiled_metadata_list = multiprocessing(fn_args,
-                                                  workers=4)
+                                                  workers=self.num_workers)
             for idx, item in enumerate(tiled_metadata_list):
                 if idx == 0:
                     tiled_metadata = pd.DataFrame.from_dict(item)
@@ -532,6 +525,9 @@ class ImageTiler:
             im_stack.append(image_utils.read_image(file_path))
         # Stack images
         return np.stack(im_stack, axis=2)
+
+    # break this into uniform_struct: with and w/o mp, not uniform_struct: with
+    # and w/o uniform struct
 
     def tile_mask_stack(self,
                         mask_dir=None,

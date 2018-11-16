@@ -82,6 +82,7 @@ def get_meta_idx(metadata_df,
     :param int pos_idx: Position (FOV) index
     :return: int pos_idx: Row position matching indices above
     """
+
     frame_idx = metadata_df.index[
         (metadata_df['channel_idx'] == channel_idx) &
         (metadata_df['time_idx'] == time_idx) &
