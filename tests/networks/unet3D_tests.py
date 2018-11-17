@@ -182,7 +182,7 @@ class TestUNet3D(unittest.TestCase):
 
         self.network_config['padding'] = 'valid'
         self.network_config['residual'] = False
-        net_valid = UNet3D(self.network_config, predict=True)
+        net_valid = UNet3D(self.network_config)
         inputs, outputs = net_valid.build_net()
         model = Model(inputs, outputs)
         model_layers = model.layers

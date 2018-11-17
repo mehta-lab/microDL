@@ -4,8 +4,7 @@ from keras.layers import Activation, Input, UpSampling2D, UpSampling3D
 
 from micro_dl.networks.base_conv_net import BaseConvNet
 from micro_dl.networks.conv_blocks import conv_block,  residual_conv_block, \
-    residual_downsample_conv_block
-from micro_dl.networks.conv_blocks import skip_merge
+    residual_downsample_conv_block, skip_merge
 from micro_dl.utils.aux_utils import import_class, validate_config
 from micro_dl.utils.network_utils import get_keras_layer
 
