@@ -4,7 +4,8 @@ from keras.layers import Activation, Input, UpSampling2D, UpSampling3D
 
 from micro_dl.networks.base_conv_net import BaseConvNet
 from micro_dl.networks.conv_blocks import conv_block,  residual_conv_block, \
-    residual_downsample_conv_block, skip_merge
+    residual_downsample_conv_block
+from micro_dl.networks.conv_blocks import skip_merge
 from micro_dl.utils.aux_utils import import_class, validate_config
 from micro_dl.utils.network_utils import get_keras_layer
 
@@ -57,13 +58,16 @@ class BaseUNet(BaseConvNet):
         msg = 'invalid upsampling, not in repeat/bilinear/nearest_neighbor'
         assert upsampling in ['bilinear', 'nearest_neighbor', 'repeat'], msg
 
-        if 'depth' in self.config and self.config['depth'] > 1:
-                self.config['num_dims'] = 3
-                if upsampling == 'repeat':
-                    self.UpSampling = UpSampling3D
-                else:
-                    self.UpSampling = import_class('networks',
-                                                   'InterpUpSampling3D')
+        if 'depth' in self.config:
+            if not predict:
+                assert self.config['depth'] > 1, \
+                    'depth is set to none or zero. confirm if 2D or 3D model'
+            self.config['num_dims'] = 3
+            if upsampling == 'repeat':
+                self.UpSampling = UpSampling3D
+            else:
+                self.UpSampling = import_class('networks',
+                                               'InterpUpSampling3D')
         else:
             self.config['num_dims'] = 2
             if upsampling == 'repeat':

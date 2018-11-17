@@ -105,7 +105,6 @@ def downsample_conv_block(layer,
 
 def pad_channels(input_layer, final_layer, channel_axis):
     """Zero pad along channels before residual/skip merge
-
     :param keras.layers input_layer: input layer to be padded with zeros / 1x1
     to match shape of final layer
     :param keras.layers final_layer: layer whose shape has to be matched
@@ -140,9 +139,7 @@ def pad_channels(input_layer, final_layer, channel_axis):
 
 def _crop_layer(input_layer, final_layer, data_format, num_dims, padding):
     """Crop input layer to match shape of final layer
-
     ONLY SYMMETRIC CROPPING IS HANDLED HERE!
-
     :param keras.layers final_layer: last layer of conv block or skip layers
      in Unet
     :param keras.layers input_layer: input_layer to the block
@@ -157,8 +154,7 @@ def _crop_layer(input_layer, final_layer, data_format, num_dims, padding):
                                         data_format)
     final_layer_shape = get_layer_shape(final_layer.get_shape().as_list(),
                                         data_format)
-    # TODO: This will fail for 3D models in the final residual merge
-    # Need to use dynamic weights
+
     if padding == 'valid':
         num_crop_pixels = (input_layer_shape - final_layer_shape)
         assert np.any(num_crop_pixels >= 0) and \
@@ -181,7 +177,6 @@ def _merge_residual(final_layer,
                     kernel_init,
                     padding):
     """Add residual connection from input to last layer
-
     :param keras.layers final_layer: last layer
     :param keras.layers input_layer: input_layer
     :param str data_format: [channels_first, channels_last]
@@ -197,6 +192,7 @@ def _merge_residual(final_layer,
                                   num_dims=num_dims)
     num_final_layers = int(final_layer.get_shape()[channel_axis])
     num_input_layers = int(input_layer.get_shape()[channel_axis])
+
     # crop input if padding='valid'
     input_layer = _crop_layer(input_layer,
                               final_layer,
@@ -229,7 +225,6 @@ def skip_merge(skip_layers,
                num_dims,
                padding):
     """Skip connection concatenate/add to upsampled layer
-
     :param keras.layer skip_layers: as named
     :param keras.layer upsampled_layers: as named
     :param str skip_merge_type: [add, concat]

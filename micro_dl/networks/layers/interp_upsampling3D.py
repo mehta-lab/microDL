@@ -82,22 +82,34 @@ class InterpUpSampling3D(InterpUpSampling2D):
         """
 
         b_size, z_size, y_size, x_size, c_size = x.shape.as_list()
-        print('x shape', x.shape.as_list())
+        x_size_new = x_size * self.size[2]
+        y_size_new = y_size * self.size[1]
+        z_size_new = z_size * self.size[0]
+
+        # dynamic shape results in None along all dimensions except channel.
+        # This leads to mismatch if width, height and depth are not None
+        # and other layers have the exact shape
+        use_dynamic_shape = None in [x.shape.as_list()[1:]]
         # resize y-x
-        x_shape = tf.shape(x)
-        squeeze_b_z = tf.reshape(
-            tensor=x,
-            shape=[-1, x_shape[2], x_shape[3], c_size],
-        )
+        if use_dynamic_shape:
+            x_shape = tf.shape(x)
+            to_shape = [-1, x_shape[2], x_shape[3], c_size]
+        else:
+            to_shape = tf.convert_to_tensor([-1, y_size, x_size, c_size])
+
+        squeeze_b_z = tf.reshape(tensor=x, shape=to_shape)
         resize_b_z = super()._interp_image(squeeze_b_z,
                                            (self.size[1:]))
         #  tf doesn't like None in reshape, use dynamic shape
         #  https://github.com/tensorflow/tensorflow/issues/7253
-        bz_shape = tf.shape(resize_b_z)
-        resume_b_z = tf.reshape(
-            tensor=resize_b_z,
-            shape=[-1, z_size, bz_shape[1], bz_shape[2], c_size],
-        )
+        if use_dynamic_shape:
+            bz_shape = tf.shape(resize_b_z)
+            to_shape = [-1, z_size, bz_shape[1], bz_shape[2], c_size]
+        else:
+            to_shape = tf.convert_to_tensor(
+                [-1, z_size, y_size_new, x_size_new, c_size]
+            )
+        resume_b_z = tf.reshape(tensor=resize_b_z, shape=to_shape)
         # resize y-z, only z as y is already resized in the previous step
         #   first reorient
         reoriented = tf.transpose(resume_b_z, [0, 3, 2, 1, 4])
@@ -108,13 +120,15 @@ class InterpUpSampling3D(InterpUpSampling2D):
             shape=[-1, r_shape[2], z_size, c_size],
         )
         resize_b_x = super()._interp_image(squeeze_b_x, (1, self.size[0]))
-        bx_shape = tf.shape(resize_b_x)
-        resume_b_x = tf.reshape(
-            tensor=resize_b_x,
-            shape=[-1, r_shape[2], bx_shape[1], bx_shape[2], c_size],
-        )
+        if use_dynamic_shape:
+            bx_shape = tf.shape(resize_b_x)
+            to_shape = [-1, r_shape[2], bx_shape[1], bx_shape[2], c_size],
+        else:
+            to_shape = tf.convert_to_tensor(
+                (-1, x_size_new, y_size_new, z_size_new, c_size)
+            )
+        resume_b_x = tf.reshape(tensor=resize_b_x, shape=to_shape)
         output_tensor = tf.transpose(resume_b_x, [0, 3, 2, 1, 4])
-        print('out', output_tensor.shape.as_list())
         return output_tensor
 
     def call(self, x, mask=None):
@@ -131,15 +145,10 @@ class InterpUpSampling3D(InterpUpSampling2D):
             b_size, z_size, y_size, x_size, c_size = x.shape.as_list()
         else:
             b_size, c_size, z_size, y_size, x_size = x.shape.as_list()
-        print('in call', x.shape.as_list())
-        if None not in x.shape.as_list()[1:]:
-            x_size_new = x_size * self.size[2]
-            y_size_new = y_size * self.size[1]
-            z_size_new = z_size * self.size[0]
-        else:
-            x_size_new = None
-            y_size_new = None
-            z_size_new = None
+
+        x_size_new = x_size * self.size[2] if x_size is not None else None
+        y_size_new = y_size * self.size[1] if y_size is not None else None
+        z_size_new = z_size * self.size[0] if z_size is not None else None
 
         if (x_size == x_size_new) and (y_size == y_size_new) and (
                 z_size == z_size_new):

@@ -169,11 +169,12 @@ class TestUNet3D(unittest.TestCase):
         # even without conv downsampling, there could be shape mismatches if
         # downsampling results in odd num of channels, as in upsampling we'll
         # have even num of channels
+        self.network_config['padding'] = 'same'
         self.network_config['residual'] = False
         self.network_config['height'] = 54
         self.network_config['width'] = 54
         tst = UNet3D(self.network_config)
-        nose.tools.assert_raises(AssertionError,
+        nose.tools.assert_raises(ValueError,
                                  tst.build_net)
 
     def test_UNet3D_valid_shapes(self):
@@ -181,7 +182,7 @@ class TestUNet3D(unittest.TestCase):
 
         self.network_config['padding'] = 'valid'
         self.network_config['residual'] = False
-        net_valid = UNet3D(self.network_config)
+        net_valid = UNet3D(self.network_config, predict=True)
         inputs, outputs = net_valid.build_net()
         model = Model(inputs, outputs)
         model_layers = model.layers
