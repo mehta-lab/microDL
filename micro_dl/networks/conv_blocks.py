@@ -104,7 +104,8 @@ def downsample_conv_block(layer,
 
 
 def pad_channels(input_layer, final_layer, channel_axis):
-    """Zero pad along channels before residual/skip merge
+    """Zero pad along channels before residual/skip add
+
     :param keras.layers input_layer: input layer to be padded with zeros / 1x1
     to match shape of final layer
     :param keras.layers final_layer: layer whose shape has to be matched
@@ -113,61 +114,71 @@ def pad_channels(input_layer, final_layer, channel_axis):
      layer
     """
 
-    num_input_layers = int(input_layer.get_shape()[channel_axis])
-    num_final_layers = int(final_layer.get_shape()[channel_axis])
+    num_input_layers = tf.shape(input_layer)[channel_axis]
+    num_final_layers = tf.shape(final_layer)[channel_axis]
     num_zero_channels = num_final_layers - num_input_layers
-    tensor_zeros = K.zeros_like(final_layer)
+    tensor_zeros = tf.zeros_like(final_layer)
     tensor_zeros, _ = tf.split(tensor_zeros,
                                [num_zero_channels, num_input_layers],
                                axis=channel_axis)
-    if num_zero_channels % 2 == 0:
-        delta = 0
-    else:
-        delta = 1
-
+    delta = tf.cond(tf.equal(tf.mod(num_zero_channels, 2), 0),
+                    lambda: 0, lambda: 1)
     top_block, bottom_block = tf.split(
         tensor_zeros,
-        [int((num_zero_channels + delta) / 2),
-         int((num_zero_channels - delta) / 2)],
+        [(num_zero_channels + delta) // 2,
+         (num_zero_channels - delta) // 2],
         axis=channel_axis
     )
-    layer_padded = Concatenate(axis=channel_axis)(
-        [top_block, input_layer, bottom_block]
-    )
+    layer_padded = tf.concat([top_block, input_layer, bottom_block],
+                             axis=channel_axis)
+    op_shape = final_layer.get_shape().as_list()
+    layer_padded.set_shape(tuple(op_shape))
     return layer_padded
 
 
-def _crop_layer(input_layer, final_layer, data_format, num_dims, padding):
+def _crop_layer(input_layer, final_layer, data_format, num_dims):
     """Crop input layer to match shape of final layer
+
     ONLY SYMMETRIC CROPPING IS HANDLED HERE!
+
     :param keras.layers final_layer: last layer of conv block or skip layers
      in Unet
     :param keras.layers input_layer: input_layer to the block
     :param str data_format: [channels_first, channels_last]
     :param int num_dims: as named
-    :param str padding: same or valid
     :return: keras.layer, input layer cropped if shape is different than final
      layer, else input layer as is
     """
 
-    input_layer_shape = get_layer_shape(input_layer.get_shape().as_list(),
-                                        data_format)
-    final_layer_shape = get_layer_shape(final_layer.get_shape().as_list(),
-                                        data_format)
+    input_shape = tf.shape(input_layer)
+    final_shape = tf.shape(final_layer)
+    # offsets for the top left corner of the crop
+    if data_format == 'channels_first':
+        offsets = [0, 0, (input_shape[2] - final_shape[2]) // 2,
+                   (input_shape[3] - final_shape[3]) // 2]
+        crop_shape = [-1, input_shape[1], final_shape[2], final_shape[3]]
+        if num_dims == 3:
+            offsets.append((input_shape[4] - final_shape[4]) // 2)
+            crop_shape.append(final_shape[4])
+    else:
+        offsets = [0, (input_shape[1] - final_shape[1]) // 2,
+                   (input_shape[2] - final_shape[2]) // 2]
+        crop_shape = [-1, final_shape[1], final_shape[2]]
+        if num_dims == 3:
+            offsets.append((input_shape[3] - final_shape[3]) // 2)
+            crop_shape.append(final_shape[3])
+        offsets.append(0)
+        crop_shape.append(input_shape[-1])
 
-    if padding == 'valid':
-        num_crop_pixels = (input_layer_shape - final_layer_shape)
-        assert np.any(num_crop_pixels >= 0) and \
-               np.all(num_crop_pixels % 2 == 0), \
-            'num of pixels to crop is -ve or odd: %s' % num_crop_pixels
-        num_crop_pixels = (num_crop_pixels / 2).astype('int')
-        num_crop_pixels = tuple(num_crop_pixels.astype('int32'))
-        num_crop_pixels = tuple([(val, ) * 2 for val in num_crop_pixels])
-        # num_crop_pixels = (num_crop_pixels, ) * num_dims
-        crop_layer = get_keras_layer('cropping', num_dims)
-        input_layer = crop_layer(cropping=num_crop_pixels,
-                                 data_format=data_format)(input_layer)
-    return input_layer
+    # https://github.com/tensorflow/tensorflow/issues/19376
+    input_cropped = tf.slice(input_layer, offsets, crop_shape)
+
+    op_shape = final_layer.get_shape().as_list()
+    channel_axis = get_channel_axis(data_format)
+    op_shape[channel_axis] = input_layer.get_shape().as_list()[channel_axis]
+    input_cropped.set_shape(tuple(op_shape))
+
+    return input_cropped
 
 
 def _merge_residual(final_layer,
@@ -192,13 +203,12 @@ def _merge_residual(final_layer,
                                   num_dims=num_dims)
     num_final_layers = int(final_layer.get_shape()[channel_axis])
     num_input_layers = int(input_layer.get_shape()[channel_axis])
-
     # crop input if padding='valid'
-    input_layer = _crop_layer(input_layer,
-                              final_layer,
-                              data_format,
-                              num_dims,
-                              padding)
+    if padding == 'valid':
+        input_layer = Lambda(_crop_layer,
+                             arguments={'final_layer': final_layer,
+                                        'data_format': data_format,
+                                        'num_dims': num_dims})(input_layer)
 
     if num_input_layers > num_final_layers:
         # use 1x 1 to get to the desired num of feature maps
@@ -235,13 +245,12 @@ def skip_merge(skip_layers,
     """
 
     channel_axis = get_channel_axis(data_format)
-
     # crop input if padding='valid'
-    skip_layers = _crop_layer(skip_layers,
-                              upsampled_layers,
-                              data_format,
-                              num_dims,
-                              padding)
+    if padding == 'valid':
+        skip_layers = Lambda(_crop_layer,
+                             arguments={'final_layer': upsampled_layers,
+                                        'data_format': data_format,
+                                        'num_dims': num_dims})(skip_layers)
 
     if skip_merge_type == 'concat':
         layer = Concatenate(axis=channel_axis)([upsampled_layers,
