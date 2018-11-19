@@ -45,7 +45,6 @@ class UNetStackTo2D(BaseUNet):
         :param int num_filters: as named
         :return: convolved layer with valid padding
         """
-
         filter_shape = (num_slices, 1, 1)
         layer = Conv3D(filters=num_filters,
                        kernel_size=filter_shape,
@@ -68,10 +67,8 @@ class UNetStackTo2D(BaseUNet):
          skip_layers_list: list of all skip layers
         """
 
-        assert filter_shape is not None and downsample_shape is not None, \
-            'anisotropic filter_shape and downsample_shape are required'
-        if filter_shape is not None:
-            self.config['filter_size'] = filter_shape
+        assert filter_shape is not None, 'Anisotropic filter shape is required'
+        assert downsample_shape is not None, 'Downsample_shape is required'
 
         if self.config['residual']:
             layer = residual_conv_block(layer=input_layer,
