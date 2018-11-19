@@ -98,7 +98,8 @@ def pre_process(pp_config):
             time_ids=time_ids,
             slice_ids=slice_ids,
             flat_field_dir=flat_field_dir,
-            uniform_structure=False
+            uniform_structure=False,
+            num_workers=4
         )
         tile_dir = tile_inst.get_tile_dir()
         # If you're using min fraction, it assumes you've generated masks

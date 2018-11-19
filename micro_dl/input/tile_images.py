@@ -38,7 +38,7 @@ class ImageTiler:
                  isotropic=False,
                  data_format='channels_first',
                  uniform_structure=True,
-                 num_workers=4):
+                 num_workers=1):
         """
         Normalizes images using z-score, then tiles them.
         Isotropic here refers to the same dimension/shape along row, col, slice
@@ -368,6 +368,92 @@ class ImageTiler:
             "row_start",
             "col_start"])
 
+    def _tile_image_serially(self,
+                             time_idx,
+                             channel_idx,
+                             slice_idx,
+                             pos_idx,
+                             flat_field_im,
+                             tiled_metadata,
+                             tile_indices=None):
+        """Tile image one at a time """
+
+        im, channel_name = self._preprocess_im(
+            time_idx,
+            channel_idx,
+            slice_idx,
+            pos_idx,
+            flat_field_im=flat_field_im,
+            hist_clip_limits=self.hist_clip_limits
+        )
+        if tile_indices is None:
+            tiled_image_data, tile_indices = \
+                image_utils.tile_image(
+                    input_image=im,
+                    tile_size=self.tile_size,
+                    step_size=self.step_size,
+                    isotropic=self.isotropic,
+                    return_index=True,
+                )
+        else:
+            tiled_image_data = image_utils.crop_at_indices(
+                input_image=im,
+                crop_indices=tile_indices,
+                isotropic=self.isotropic,
+            )
+        tiled_metadata = self._write_tiled_data(
+            tiled_image_data,
+            save_dir=self.tile_dir,
+            time_idx=time_idx,
+            channel_idx=channel_idx,
+            slice_idx=slice_idx,
+            pos_idx=pos_idx,
+            tile_indices=tile_indices,
+            tiled_metadata=tiled_metadata,
+        )
+        return tiled_metadata, tile_indices
+
+    def _tile_stack_parallel(self,
+                             time_idx,
+                             channel_idx,
+                             slice_idx,
+                             pos_idx,
+                             tile_indices,
+                             fn_args):
+        """ """
+
+        input_fnames = self._get_input_fnames(
+            time_idx=time_idx,
+            channel_idx=channel_idx,
+            slice_idx=slice_idx,
+            pos_idx=pos_idx
+        )
+        flat_field_fname = None
+        if self.flat_field_dir is not None:
+            flat_field_fname = os.path.join(
+                self.flat_field_dir,
+                'flat-field_channel-{}.npy'.format(channel_idx)
+            )
+        hist_clip_limits = None
+        if self.hist_clip_limits is not None:
+            hist_clip_limits = tuple(
+                self.hist_clip_limits
+            )
+
+        # all args to mp should be hashable :-(
+        cur_args = (tuple(input_fnames),
+                    flat_field_fname,
+                    hist_clip_limits,
+                    time_idx,
+                    channel_idx,
+                    pos_idx,
+                    slice_idx,
+                    tuple(tile_indices),
+                    self.data_format,
+                    self.isotropic,
+                    self.tile_dir)
+        fn_args.append(cur_args)
+
     def tile_stack(self):
         """
         Tiles images in the specified channels.
@@ -393,64 +479,40 @@ class ImageTiler:
                         else:
                             cur_sl_idx_list = sl_idx_list
                         for sl_idx in cur_sl_idx_list:
-                            if tile_indices is None:
-                                im, channel_name = self._preprocess_im(
-                                    tp_idx,
-                                    ch_idx,
-                                    sl_idx,
-                                    pos_idx,
-                                    flat_field_im=flat_field_im,
-                                    hist_clip_limits=self.hist_clip_limits
-                                )
-                                tiled_image_data, tile_indices = \
-                                    image_utils.tile_image(
-                                        input_image=im,
-                                        tile_size=self.tile_size,
-                                        step_size=self.step_size,
-                                        isotropic=self.isotropic,
-                                        return_index=True,
-                                    )
-                            input_fnames = self._get_input_fnames(
-                                time_idx=tp_idx,
-                                channel_idx=ch_idx,
-                                slice_idx=sl_idx,
-                                pos_idx=pos_idx
-                            )
-                            flat_field_fname = None
-                            if self.flat_field_dir is not None:
-                                flat_field_fname = os.path.join(
-                                    self.flat_field_dir,
-                                    'flat-field_channel-{}.npy'.format(ch_idx)
-                                    )
-                            hist_clip_limits = None
-                            if self.hist_clip_limits is not None:
-                                hist_clip_limits = tuple(
-                                    self.hist_clip_limits
-                                )
-
-                            # all args to mp should be hashable :-(
-                            cur_args = (tuple(input_fnames),
-                                        flat_field_fname,
-                                        hist_clip_limits,
+                            if self.num_workers == 1:
+                                tiled_metadata, tile_indices = \
+                                    self._tile_image_serially(
                                         tp_idx,
                                         ch_idx,
-                                        pos_idx,
                                         sl_idx,
-                                        tuple(tile_indices),
-                                        self.data_format,
-                                        self.isotropic,
-                                        self.tile_dir)
-                            fn_args.append(cur_args)
-            tiled_metadata_list = multiprocessing(fn_args,
-                                                  workers=self.num_workers)
-            for idx, item in enumerate(tiled_metadata_list):
-                if idx == 0:
-                    tiled_metadata = pd.DataFrame.from_dict(item)
-                else:
-                    tmp_df = pd.DataFrame.from_dict(item)
-                    tiled_metadata = tiled_metadata.append(
-                        tmp_df, ignore_index=True
-                    )
+                                        pos_idx,
+                                        flat_field_im,
+                                        tiled_metadata,
+                                        tile_indices)
+                            elif self.num_workers > 1:
+                                if tile_indices is None:
+                                    im, channel_name = self._preprocess_im(
+                                        tp_idx,
+                                        ch_idx,
+                                        sl_idx,
+                                        pos_idx,
+                                        flat_field_im=flat_field_im,
+                                        hist_clip_limits=self.hist_clip_limits
+                                    )
+                                    tiled_image_data, tile_indices = \
+                                        image_utils.tile_image(
+                                            input_image=im,
+                                            tile_size=self.tile_size,
+                                            step_size=self.step_size,
+                                            isotropic=self.isotropic,
+                                            return_index=True,
+                                        )
+                                self._tile_stack_parallel(tp_idx,
+                                                          ch_idx,
+                                                          sl_idx,
+                                                          pos_idx,
+                                                          tile_indices,
+                                                          fn_args)
         else:
             for channel_idx in self.channel_ids:
                 # Perform flatfield correction if flatfield dir is specified
@@ -458,39 +520,45 @@ class ImageTiler:
                 for slice_idx in self.slice_ids:
                     for time_idx in self.time_ids:
                         for pos_idx in self.pos_ids:
-                            im, channel_name = self._preprocess_im(
-                                time_idx,
-                                channel_idx,
-                                slice_idx,
-                                pos_idx,
-                                flat_field_im=flat_field_im,
-                                hist_clip_limits=self.hist_clip_limits
-                            )
-                            if tile_indices is None:
-                                tiled_image_data, tile_indices = \
-                                    image_utils.tile_image(
-                                        input_image=im,
-                                        tile_size=self.tile_size,
-                                        step_size=self.step_size,
-                                        isotropic=self.isotropic,
-                                        return_index=True,
+                            if self.num_workers == 1:
+                                tiled_metadata, tile_indices = \
+                                    self._tile_image_serially(
+                                                     time_idx,
+                                                     channel_idx,
+                                                     slice_idx,
+                                                     pos_idx,
+                                                     flat_field_im,
+                                                     tiled_metadata,
+                                                     tile_indices)
+                            elif self.num_workers > 1:
+                                if tile_indices is None:
+                                    im, channel_name = self._preprocess_im(
+                                        time_idx,
+                                        channel_idx,
+                                        slice_idx,
+                                        pos_idx,
+                                        flat_field_im=flat_field_im,
+                                        hist_clip_limits=self.hist_clip_limits
                                     )
-                            else:
-                                tiled_image_data = image_utils.crop_at_indices(
-                                    input_image=im,
-                                    crop_indices=tile_indices,
-                                    isotropic=self.isotropic,
-                                )
-                            tiled_metadata = self._write_tiled_data(
-                                tiled_image_data,
-                                save_dir=self.tile_dir,
-                                time_idx=time_idx,
-                                channel_idx=channel_idx,
-                                slice_idx=slice_idx,
-                                pos_idx=pos_idx,
-                                tile_indices=tile_indices,
-                                tiled_metadata=tiled_metadata,
-                            )
+                                    tiled_image_data, tile_indices = \
+                                        image_utils.tile_image(
+                                            input_image=im,
+                                            tile_size=self.tile_size,
+                                            step_size=self.step_size,
+                                            isotropic=self.isotropic,
+                                            return_index=True,
+                                        )
+                                # change fn_args to a mp.queue
+                                self._tile_stack_parallel(time_idx,
+                                                          channel_idx,
+                                                          slice_idx,
+                                                          pos_idx,
+                                                          tile_indices,
+                                                          fn_args)
+        if self.num_workers > 1:
+            tiled_meta_df_list = multiprocessing(fn_args,
+                                                 workers=self.num_workers)
+            tiled_metadata = pd.concat(tiled_meta_df_list, ignore_index=True)
         # Finally, save all the metadata
         tiled_metadata = tiled_metadata.sort_values(by=['file_name'])
         tiled_metadata.to_csv(

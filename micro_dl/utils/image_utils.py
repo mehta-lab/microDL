@@ -4,6 +4,7 @@ import skimage.io as cv2
 import itertools
 import numpy as np
 import os
+import pandas as pd
 from scipy.ndimage.morphology import binary_fill_holes
 from skimage.filters import threshold_otsu
 from skimage.morphology import disk, ball, binary_opening
@@ -332,7 +333,8 @@ def crop_at_indices_save(input_fnames,
                                'pos_idx': pos_idx,
                                'row_start': cur_idx[0],
                                'col_start': cur_idx[2]})
-    return tiled_metadata
+    tile_meta_df = pd.DataFrame.from_dict(tiled_metadata)
+    return tile_meta_df
 
 
 def create_mask(input_image, str_elem_size=3):
