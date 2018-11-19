@@ -1,13 +1,11 @@
 """Collection of different conv blocks typically used in conv nets"""
-import keras.backend as K
 from keras.layers import BatchNormalization, Dropout, Lambda
 from keras.layers.merge import Add, Concatenate
-import numpy as np
 import tensorflow as tf
 
 from micro_dl.utils.aux_utils import get_channel_axis
 from micro_dl.utils.network_utils import create_activation_layer, \
-    get_keras_layer, get_layer_shape
+    get_keras_layer
 
 
 def conv_block(layer, network_config, block_idx):

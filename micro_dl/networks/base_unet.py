@@ -57,23 +57,35 @@ class BaseUNet(BaseConvNet):
         msg = 'invalid upsampling, not in repeat/bilinear/nearest_neighbor'
         assert upsampling in ['bilinear', 'nearest_neighbor', 'repeat'], msg
 
-        if 'depth' in self.config:
-            if not predict:
-                assert self.config['depth'] > 1, \
-                    'depth is set to none or zero. confirm if 2D or 3D model'
-            self.config['num_dims'] = 3
-            if upsampling == 'repeat':
-                self.UpSampling = UpSampling3D
-            else:
-                self.UpSampling = import_class('networks',
-                                               'InterpUpSampling3D')
-        else:
+        def _init_2D():
             self.config['num_dims'] = 2
             if upsampling == 'repeat':
                 self.UpSampling = UpSampling2D
             else:
                 self.UpSampling = import_class('networks',
                                                'InterpUpSampling2D')
+            return
+
+        def _init_3D():
+            self.config['num_dims'] = 3
+            if upsampling == 'repeat':
+                self.UpSampling = UpSampling3D
+            else:
+                self.UpSampling = import_class('networks',
+                                               'InterpUpSampling3D')
+
+        if 'depth' in self.config:
+            if not predict:
+                assert self.config['depth'] >= 1, \
+                    'depth is set to none or zero. confirm if 2D or 3D model'
+                if self.config['depth'] > 1:
+                    _init_3D()
+                elif self.config['depth'] == 1:
+                    _init_2D()
+            else:
+                _init_3D()
+        else:
+            _init_2D()
 
         self.num_down_blocks = num_down_blocks
 
