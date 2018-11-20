@@ -6,7 +6,7 @@
 # jupyter       latest (pip)
 # pytorch       0.4.0  (pip)
 # tensorflow    1.8.0  (pip)
-# keras         2.1.5  (pip)
+# keras         2.2.4  (pip)
 # opencv        3.4.1  (git)
 # ==================================================================
 
@@ -90,7 +90,7 @@ RUN APT_INSTALL="apt-get install -y --no-install-recommends" && \
 
     $PIP_INSTALL \
         h5py \
-	keras==2.1.5 \
+	keras==2.2.4 \
         && \
 
     # keras contrib
