@@ -1,5 +1,6 @@
 """Utility functions for processing images"""
-import cv2
+#import cv2
+import skimage.io as cv2
 import itertools
 import math
 import numpy as np
@@ -344,6 +345,89 @@ def write_tile(file_name_list, flip):
     np.save(file_name, tile,  allow_pickle=True, fix_imports=True)
 
 
+def crop_at_indices_save(input_fnames,
+                         flat_field_fname,
+                         hist_clip_limits,
+                         time_idx,
+                         channel_idx,
+                         pos_idx,
+                         slice_idx,
+                         crop_indices,
+                         data_format,
+                         isotropic,
+                         save_dir):
+    """Crop image into tiles at given indices and save
+
+    :param tuple input_fnames: tuple of input fnames with full path
+    :param str flat_field_fname: fname of flat field image
+    :param tuple hist_clip_limits: limits for histogram clipping
+    :param int time_idx: time point of input image
+    :param int channel_idx: channel idx of input image
+    :param int slice_idx: slice idx of input image
+    :param int pos_idx: sample idx of input image
+    :param tuple crop_indices: tuple of indices for cropping
+    :param str data_format: channels_first / channels_last
+    :param bool isotropic: if 3D, make the grid/shape isotropic
+    :param str save_dir: output dir to save tiles
+    :return: a list of dicts with metadata
+    """
+
+    im_stack = []
+    for fname in input_fnames:
+        im = read_image(fname)
+        if flat_field_fname is not None:
+            flat_field_image = np.load(flat_field_fname)
+            im = apply_flat_field_correction(im,
+                                             flat_field_image)
+        im_stack.append(im)
+    input_image = np.stack(im_stack, axis=2)
+    if hist_clip_limits is not None:
+        input_image = normalize.hist_clipping(
+            input_image,
+            hist_clip_limits[0],
+            hist_clip_limits[1]
+        )
+    input_image = normalize.zscore(input_image)
+
+    n_dim = len(input_image.shape)
+    im_depth = input_image.shape[2]
+    tiled_metadata = []
+    for cur_idx in crop_indices:
+        img_id = 'r{}-{}_c{}-{}'.format(cur_idx[0], cur_idx[1],
+                                        cur_idx[2], cur_idx[3])
+
+        cropped_img = input_image[cur_idx[0]: cur_idx[1],
+                                  cur_idx[2]: cur_idx[3], ...]
+        if n_dim == 3 and len(cur_idx) == 6:
+            img_id = '{}_sl{}-{}'.format(img_id, 0, im_depth)
+
+            if isotropic:
+                img_shape = cropped_img.shape
+                isotropic_shape = [img_shape[0], ] * len(img_shape)
+                cropped_img = resize_image(cropped_img, isotropic_shape)
+        file_name = aux_utils.get_im_name(
+            time_idx=time_idx,
+            channel_idx=channel_idx,
+            slice_idx=slice_idx,
+            pos_idx=pos_idx,
+            extra_field=img_id
+            )
+        if data_format == 'channels_first' and len(cropped_img.shape) > 2:
+            cropped_img = np.transpose(cropped_img, (2, 0, 1))
+        np.save(os.path.join(save_dir, file_name),
+                cropped_img,
+                allow_pickle=True,
+                fix_imports=True)
+        tiled_metadata.append({'channel_idx': channel_idx,
+                               'slice_idx': slice_idx,
+                               'time_idx': time_idx,
+                               'file_name': file_name,
+                               'pos_idx': pos_idx,
+                               'row_start': cur_idx[0],
+                               'col_start': cur_idx[2]})
+    return tiled_metadata
+
+
 def create_mask(input_image, str_elem_size=3):
     """Create a binary mask using morphological operations
 
@@ -381,7 +465,7 @@ def read_image(file_path):
         im = np.load(file_path)
     else:
         try:
-            im = cv2.imread(file_path, cv2.IMREAD_ANYDEPTH)
+            im = cv2.imread(file_path) #cv2.IMREAD_ANYDEPTH)
         except IOError as e:
             print(e)
             raise

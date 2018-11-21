@@ -98,6 +98,7 @@ def pre_process(pp_config):
             time_ids=time_ids,
             slice_ids=slice_ids,
             flat_field_dir=flat_field_dir,
+            uniform_structure=False
         )
         tile_dir = tile_inst.get_tile_dir()
         # If you're using min fraction, it assumes you've generated masks
@@ -109,6 +110,7 @@ def pre_process(pp_config):
                 mask_channel=mask_channel,
             )
         else:
+            start = time.time()
             tile_inst.tile_stack()
         print('Tiling time: {}'.format(time.time() - start))
 
