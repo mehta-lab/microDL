@@ -102,7 +102,9 @@ class BaseDataSet(keras.utils.Sequence):
         # We need to flip over different dimensions depending on data format
         add_dim = 0
         # Get tile data format from shape
-        if len(input_image.shape) == 3 and input_image.shape[0] <= 3:
+        # TODO: Won't work for symmetric sized tiles
+        if len(input_image.shape) == 3 and \
+                input_image.shape[0] < input_image.shape[0]:
             add_dim = 1
 
         if aug_idx == 0:

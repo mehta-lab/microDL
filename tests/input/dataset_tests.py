@@ -188,7 +188,7 @@ class TestBaseDataSet(unittest.TestCase):
             )
 
     def test_get_volume(self):
-        image_volume = self.data_inst._get_volume(self.input_fnames)
+        image_volume = self.data_inst._get_volume(self.input_fnames, normalize=False)
         # There are 4 input images of shape (5, 7, 3)
         self.assertTupleEqual(image_volume.shape, (4, 5, 7, 3))
         # Check image content (normalize is false)
