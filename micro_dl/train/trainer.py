@@ -54,6 +54,13 @@ class BaseKerasTrainer:
         self.num_target_channels = num_target_channels
         self.logger = self._init_train_logger()
 
+        workers = 4
+        if 'workers' in train_config:
+            workers = train_config['workers']
+            assert isinstance(workers, int) and workers > 0, \
+                'workers must be a positive integer'
+        self.workers = workers
+
         self.resume_training = False
         if 'resume' in train_config and train_config['resume']:
             self.resume_training = True
@@ -204,7 +211,7 @@ class BaseKerasTrainer:
                                      validation_data=self.val_dataset,
                                      epochs=self.epochs,
                                      callbacks=callbacks,
-                                     workers=4,
+                                     workers=self.workers,
                                      verbose=1)
         except Exception as e:
             self.logger.error('problems with fit_generator: ' + str(e))
