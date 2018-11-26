@@ -54,28 +54,38 @@ class BaseDataSet(keras.utils.Sequence):
             assert self.model_task in {'regression', 'segmentation'}, \
                 "Model task must be either 'segmentation' or 'regression'"
 
+        # Whether or not to do augmentations
         self.augmentations = False
         if 'augmentations' in dataset_config:
             self.augmentations = dataset_config['augmentations']
         assert isinstance(self.augmentations, bool),\
             'augmentation parameter should be boolean'
 
+        # Whether to do zscore normalization on tile level
         self.normalize = False
         if 'normalize' in dataset_config:
             self.normalize = dataset_config['normalize']
         assert isinstance(self.normalize, bool),\
             'normalize parameter should be boolean'
 
+        # Whether to shuffle indices at the end of each epoch
         self.shuffle = True
         if 'shuffle' in dataset_config:
             self.shuffle = dataset_config['shuffle']
         assert isinstance(self.shuffle, bool),\
             'shuffle parameter should be boolean'
 
+        # Whether to remove singleton dimensions from tiles (e.g. 2D models)
+        self.squeeze = False
+        if 'squeeze' in dataset_config:
+            self.squeeze = dataset_config['squeeze']
+        assert isinstance(self.squeeze, bool),\
+            'squeeze parameter should be boolean'
+
+        # Whether to use fixed random seed (only recommended for testing)
         random_seed = None
         if 'random_seed' in dataset_config:
             random_seed = dataset_config['random_seed']
-
         self.random_seed = random_seed
         np.random.seed(random_seed)
 
@@ -102,7 +112,7 @@ class BaseDataSet(keras.utils.Sequence):
         """
         # We need to flip over different dimensions depending on data format
         add_dim = 0
-        if self.data_format == 'channels_first':
+        if self.data_format == 'channels_first' and not self.squeeze:
             add_dim = 1
 
         if aug_idx == 0:
@@ -151,6 +161,8 @@ class BaseDataSet(keras.utils.Sequence):
         image_volume = []
         for fname in fname_list:
             cur_tile = np.load(os.path.join(self.tile_dir, fname))
+            if self.squeeze:
+                cur_tile = np.squeeze(cur_tile)
             if self.augmentations:
                 cur_tile = self._augment_image(cur_tile, aug_idx)
             image_volume.append(cur_tile)

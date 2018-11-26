@@ -121,11 +121,15 @@ class BaseKerasTrainer:
                 # Learning rate scheduler should be used either prior to
                 # training using LR finder, or for CLR during training
                 if callbacks_config[cb_dict]['lr_find']:
+                    fig_path = os.path.join(
+                        self.model_dir,
+                        callbacks_config[cb_dict]['fig_fname'],
+                    )
                     cur_cb = lr_finder.LRFinder(
                         base_lr=callbacks_config[cb_dict]['base_lr'],
                         max_lr=callbacks_config[cb_dict]['max_lr'],
                         max_epochs=callbacks_config[cb_dict]['max_epochs'],
-                        fig_fname=callbacks_config[cb_dict]['fig_fname'],
+                        fig_fname=fig_path,
                     )
                 else:
                     cur_cb = custom_learning.CyclicLearning(
