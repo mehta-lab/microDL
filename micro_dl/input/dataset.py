@@ -19,7 +19,8 @@ class BaseDataSet(keras.utils.Sequence):
                  input_fnames,
                  target_fnames,
                  dataset_config,
-                 batch_size):
+                 batch_size,
+                 data_format):
         """Init
 
         The images could be normalized at the image level during tiling
@@ -37,12 +38,14 @@ class BaseDataSet(keras.utils.Sequence):
          filenames for one target
         :param dict dataset_config: Dataset part of the main config file
         :param int batch_size: num of datasets in each batch
+        :param str data_format: Channel location (channels_first or last)
         """
         self.tile_dir = tile_dir
         self.input_fnames = input_fnames
         self.target_fnames = target_fnames
         self.num_samples = len(self.input_fnames)
         self.batch_size = batch_size
+        self.data_format = data_format
 
         # Check if model task (regression or segmentation) is specified
         self.model_task = 'regression'
@@ -95,16 +98,11 @@ class BaseDataSet(keras.utils.Sequence):
          3 - rotate 90 degrees in the xy-plane in the x toward y direction
          4 - rotate 180 degrees in the xy-plane in the x toward y direction
          5 - rotate 270 degrees in the xy-plane in the x toward y direction
-        :param str data_format: channels_first or _last. Data is always loaded
-        as channels_first so channels_last operations may be obsolete
         :return np.array image after transformation is applied
         """
         # We need to flip over different dimensions depending on data format
         add_dim = 0
-        # Get tile data format from shape
-        # TODO: Won't work for symmetric sized tiles
-        if len(input_image.shape) == 3 and \
-                input_image.shape[0] < input_image.shape[0]:
+        if self.data_format == 'channels_first':
             add_dim = 1
 
         if aug_idx == 0:
@@ -226,7 +224,8 @@ class DataSetWithMask(BaseDataSet):
                  target_fnames,
                  mask_fnames,
                  dataset_config,
-                 batch_size):
+                 batch_size,
+                 data_format):
         """Init
 
         https://stackoverflow.com/questions/44747288/keras-sample-weight-array-error
@@ -241,14 +240,15 @@ class DataSetWithMask(BaseDataSet):
          mask filenames
         :param dict dataset_config: Dataset part of the main config file
         :param int batch_size: num of datasets in each batch
-        :param bool shuffle: shuffle data for each epoch
+        :param str data_format: Channel location (channels_first or last)
         """
 
         super().__init__(tile_dir,
                          input_fnames,
                          target_fnames,
                          dataset_config,
-                         batch_size)
+                         batch_size,
+                         data_format)
         self.mask_fnames = mask_fnames
         # list label_weights: weight for each label
         self.label_weights = None
