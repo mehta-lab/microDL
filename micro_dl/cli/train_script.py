@@ -200,13 +200,15 @@ def create_network(network_config, gpu_id):
     return model
 
 
-def run_action(args, gpu_id, gpu_mem_frac):
+def run_action(args, gpu_ids, gpu_mem_frac):
     """Performs training or tune hyper parameters
 
     Lambda layers throw errors when converting to yaml!
     model_yaml = self.model.to_yaml()
 
     :param Namespace args: namespace containing the arguments passed
+    :param int gpu_ids: GPU ID
+    :param float gpu_mem_frac: Available GPU memory fraction
     """
 
     action = args.action
@@ -267,11 +269,11 @@ def run_action(args, gpu_id, gpu_mem_frac):
 
         K.set_image_data_format(network_config['data_format'])
 
-        if gpu_id == -1:
+        if gpu_ids == -1:
             sess = None
         else:
             sess = train_utils.set_keras_session(
-                gpu_ids=gpu_id,
+                gpu_ids=gpu_ids,
                 gpu_mem_frac=gpu_mem_frac,
             )
 
@@ -283,7 +285,7 @@ def run_action(args, gpu_id, gpu_mem_frac):
             with open(os.path.join(trainer_config['model_dir'],
                                    'config.yml'), 'w') as f:
                 yaml.dump(config, f, default_flow_style=False)
-            model = create_network(network_config, args.gpu)
+            model = create_network(network_config, gpu_ids)
             plot_model(model,
                        to_file=os.path.join(trainer_config['model_dir'],
                                             'model_graph.png'),

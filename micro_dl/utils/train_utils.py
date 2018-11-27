@@ -49,7 +49,7 @@ def select_gpu(gpu_ids=None, gpu_mem_frac=None):
     :param float gpu_mem_frac: Desired GPU memory fraction [0, 1]. If None,
         use maximum available amount of GPU.
     :return int gpu_ids: GPU ID to use.
-    :return float gpu_mem_frac: GPU memory fraction to use
+    :return float cur_mem_frac: GPU memory fraction to use
     :raises NotImplementedError: If gpu_ids is not int
     :raises AssertionError: If requested memory fraction isn't available
     """
@@ -65,7 +65,7 @@ def select_gpu(gpu_ids=None, gpu_mem_frac=None):
             ("Not enough memory available. Requested/current fractions:",
                 "\n".join([str(c) + " / " + "{0:.4g}".format(m)
                            for c, m in zip(gpu_mem_frac, cur_mem_frac)]))
-        return gpu_ids, gpu_mem_frac
+        return gpu_ids, cur_mem_frac
 
     # User has not specified GPU ID, find the GPU with most memory available
     sp = subprocess.Popen(['nvidia-smi --query-gpu=index --format=csv'],
@@ -84,8 +84,10 @@ def select_gpu(gpu_ids=None, gpu_mem_frac=None):
     max_mem = max(cur_mem_frac)
     idx = cur_mem_frac.index(max_mem)
     gpu_id = gpu_ids[idx]
-    print('Using GPU {} with memory fraction {0:.4g}.'.format(gpu_id, max_mem))
-    return gpu_id, cur_mem_frac[idx]
+    # Subtract a little margin to be safe
+    max_mem = max_mem - np.finfo(np.float32).eps
+    print('Using GPU {} with memory fraction {}.'.format(gpu_id, max_mem))
+    return gpu_id, max_mem
 
 
 def split_train_val_test(sample_set, train_ratio, test_ratio,
