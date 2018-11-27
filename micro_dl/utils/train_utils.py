@@ -7,7 +7,7 @@ import subprocess
 from micro_dl.train import losses as custom_losses, metrics as custom_metrics
 
 
-def check_gpu_availability(gpu_id, gpu_mem_frac):
+def check_gpu_availability(gpu_id):
     """
     Check if mem_frac is available in given gpu_id
 
@@ -22,9 +22,7 @@ def check_gpu_availability(gpu_id, gpu_mem_frac):
     if isinstance(gpu_id, int):
         gpu_id = [gpu_id]
 
-    msg = 'There is no matching memory fraction for all the given gpu_ids'
-    assert len(gpu_id) == len(gpu_mem_frac), msg
-    curr_mem_frac = []
+    cur_mem_frac = []
     for idx, gpu in enumerate(gpu_id):
         query = ('nvidia-smi --id={} --query-gpu=memory.free,memory.total '
                  '--format=csv').format(gpu)
@@ -34,10 +32,32 @@ def check_gpu_availability(gpu_id, gpu_mem_frac):
         query_output = query_output.split('\n')
         mem = query_output[1].split(',')
         mem = [int(val.replace('MiB', '')) for val in mem]
-        curr_mem_frac.append(mem[0] / mem[1])
+        cur_mem_frac.append(mem[0] / mem[1])
 
-    gpu_availability = np.all(np.array(curr_mem_frac >= gpu_mem_frac))
-    return gpu_availability, curr_mem_frac
+    return cur_mem_frac
+
+
+def select_gpu():
+    # Get GPU IDs
+    sp = subprocess.Popen(['nvidia-smi --query-gpu=index --format=csv'],
+                          stdout=subprocess.PIPE,
+                          shell=True)
+    gpu_ids = sp.communicate()
+    gpu_ids = gpu_ids[0].decode('utf8')
+    gpu_ids = gpu_ids.split('\n')
+    assert len(gpu_ids) > 2, 'No GPUs found. Query result: {}'.format(gpu_ids)
+    gpu_ids = [int(gpu_id) for gpu_id in gpu_ids[1:-1]]
+    cur_mem_frac = check_gpu_availability(gpu_ids)
+    # Get the GPU with maximum memory fraction
+    max_mem = max(cur_mem_frac)
+    idx = cur_mem_frac.index(max_mem)
+    gpu_id = gpu_ids[idx]
+    print('Using GPU {} with memory fraction {0:.4g}.'.format(gpu_id, max_mem))
+
+    # msg = 'There is no matching memory fraction for all the given gpu_ids'
+    # assert len(gpu_id) == len(gpu_mem_frac), msg
+    # gpu_availability = np.all(np.array(curr_mem_frac >= gpu_mem_frac))
+    return gpu_id, cur_mem_frac[idx]
 
 
 def split_train_val_test(sample_set, train_ratio, test_ratio,

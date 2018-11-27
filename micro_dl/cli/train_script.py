@@ -6,7 +6,6 @@ import keras.backend as K
 from keras.utils import plot_model
 import os
 import pandas as pd
-import pickle
 import tensorflow as tf
 import yaml
 
@@ -15,8 +14,7 @@ from micro_dl.input.training_table import BaseTrainingTable
 from micro_dl.train.model_inference import load_model
 from micro_dl.train.trainer import BaseKerasTrainer
 import micro_dl.utils.aux_utils as aux_utils
-from micro_dl.utils.train_utils import check_gpu_availability, \
-    set_keras_session
+import micro_dl.utils.train_utils as train_utils
 
 
 def parse_args():
@@ -179,7 +177,7 @@ def create_network(network_config, gpu_id):
     return model
 
 
-def run_action(args):
+def run_action(args, gpu_id, gpu_mem_frac):
     """Performs training or tune hyper parameters
 
     Lambda layers throw errors when converting to yaml!
@@ -246,11 +244,13 @@ def run_action(args):
 
         K.set_image_data_format(network_config['data_format'])
 
-        if args.gpu == -1:
+        if gpu_id == -1:
             sess = None
         else:
-            sess = set_keras_session(gpu_ids=args.gpu,
-                                     gpu_mem_frac=args.gpu_mem_frac)
+            sess = train_utils.set_keras_session(
+                gpu_ids=gpu_id,
+                gpu_mem_frac=gpu_mem_frac,
+            )
 
         if args.model_fname:
             # load model only loads the weights, have to save intermediate
@@ -298,13 +298,13 @@ if __name__ == '__main__':
     gpu_mem_frac = args.gpu_mem_frac
     if isinstance(gpu_mem_frac, float):
         gpu_mem_frac = [gpu_mem_frac]
-    gpu_available, curr_mem_frac = check_gpu_availability(
+    gpu_available, curr_mem_frac = train_utils.check_gpu_availability(
         args.gpu,
         gpu_mem_frac,
     )
     # Allow run if gpu_available
     if gpu_available:
-        run_action(args)
+        run_action(args, gpu_id, gpu_mem_frac)
     else:
         raise ValueError(
             "Not enough memory available. Requested/current fractions:",
