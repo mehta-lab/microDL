@@ -8,6 +8,8 @@ import micro_dl.utils.image_utils as image_utils
 
 # Create a test image and its corresponding coordinates and values
 # Create a test image with a bright block to the right
+import micro_dl.utils.tile_utils
+
 test_im = np.zeros((10, 15), np.uint8) + 100
 test_im[:, 9:] = 200
 x, y = np.meshgrid(np.linspace(1, 7, 3), np.linspace(1, 13, 5))
@@ -61,7 +63,7 @@ def test_preprocess_imstack():
     frames_meta = pd.DataFrame(
         columns=df_names,
     )
-    im_stack = image_utils.preprocess_imstack(
+    im_stack = micro_dl.utils.tile_utils.preprocess_imstack(
         time_idx=self.time_idx,
         channel_idx=self.channel_idx,
         slice_idx=16,

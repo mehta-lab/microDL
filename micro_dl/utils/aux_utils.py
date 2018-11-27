@@ -376,7 +376,7 @@ def adjust_slice_margins(slice_ids, depth):
         # TODO: use itertools.groupby if non-contiguous data is a thing
         # np.unique is sorted so we can just remove first and last ids
         slice_ids = slice_ids[margin:-margin]
-    return margin, slice_ids
+    return slice_ids
 
 
 def read_json(json_filename):
