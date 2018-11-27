@@ -18,31 +18,54 @@ import micro_dl.utils.train_utils as train_utils
 
 
 def parse_args():
-    """Parse command line arguments
+    """
+    Parse command line arguments
 
     In python namespaces are implemented as dictionaries
     :return: namespace containing the arguments passed.
     """
-
     parser = argparse.ArgumentParser()
-    parser.add_argument('--gpu', type=int, default=0,
-                        help=('specify the gpu to use: 0,1,...',
-                              ', -1 for debugging'))
-    parser.add_argument('--gpu_mem_frac', type=float, default=1.,
-                        help='specify the gpu memory fraction to use')
-    parser.add_argument('--action', type=str, default='train',
-                        choices=('train', 'tune_hyperparam'),
-                        help=('action to take on the model: train,'
-                              'tune_hyperparam'))
+    parser.add_argument(
+        '--gpu',
+        type=int,
+        default=None,
+        help=('Default: find GPU with most memory.',
+              'Optional: specify the gpu to use: 0,1,...',
+              ', -1 for debugging'),
+    )
+    parser.add_argument(
+        '--gpu_mem_frac',
+        type=float,
+        default=None,
+        help=('Default: max memory fraction for given GPU ID.'
+              'Optional: specify the gpu memory fraction to use [0, 1]'),
+    )
+    parser.add_argument(
+        '--action',
+        type=str,
+        default='train',
+        choices=('train', 'tune_hyperparam'),
+        help='action to take on the model: train,tune_hyperparam',
+    )
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('--config', type=str,
-                       help='path to yaml configuration file')
-    group.add_argument('--model_fname', type=str, default=None,
-                       help='path to checkpoint file')
-    parser.add_argument('--port', type=int, default=-1,
-                        help='port to use for the tensorboard callback')
-    args = parser.parse_args()
-    return args
+    group.add_argument(
+        '--config',
+        type=str,
+        help='path to yaml configuration file',
+    )
+    group.add_argument(
+        '--model_fname',
+        type=str,
+        default=None,
+        help='path to checkpoint file',
+    )
+    parser.add_argument(
+        '--port',
+        type=int,
+        default=-1,
+        help='port to use for the tensorboard callback',
+    )
+    return parser.parse_args()
 
 
 def create_datasets(df_meta,
@@ -287,27 +310,9 @@ def run_action(args, gpu_id, gpu_mem_frac):
 if __name__ == '__main__':
     # Parse command line arguments
     args = parse_args()
-    # Currently only supporting one GPU as input
-    if not isinstance(args.gpu, int):
-        raise NotImplementedError
-    # If debug mode, run without checking GPUs
-    if args.gpu == -1:
-        run_action(args)
-    # Get currently available GPU memory fractions and determine if
-    # requested amount of memory is available
-    gpu_mem_frac = args.gpu_mem_frac
-    if isinstance(gpu_mem_frac, float):
-        gpu_mem_frac = [gpu_mem_frac]
-    gpu_available, curr_mem_frac = train_utils.check_gpu_availability(
+    # Get GPU ID and memory fraction
+    gpu_id, gpu_mem_frac = train_utils.select_gpu(
         args.gpu,
-        gpu_mem_frac,
+        args.gpu_mem_frac,
     )
-    # Allow run if gpu_available
-    if gpu_available:
-        run_action(args, gpu_id, gpu_mem_frac)
-    else:
-        raise ValueError(
-            "Not enough memory available. Requested/current fractions:",
-            "\n".join([str(c) + " / " + "{0:.4g}".format(m)
-                       for c, m in zip(gpu_mem_frac, curr_mem_frac)]),
-        )
+    run_action(args, gpu_id, gpu_mem_frac)
