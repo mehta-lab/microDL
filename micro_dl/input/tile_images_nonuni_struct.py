@@ -24,7 +24,7 @@ class ImageTilerNonUniform(ImageTilerUniform):
                  hist_clip_limits=None,
                  flat_field_dir=None,
                  isotropic=False,
-                 data_format='channels_first',
+                 image_format='zyx',
                  num_workers=4,
                  int2str_len=3):
         """Init
@@ -48,7 +48,7 @@ class ImageTilerNonUniform(ImageTilerUniform):
                          hist_clip_limits,
                          flat_field_dir,
                          isotropic,
-                         data_format,
+                         image_format,
                          num_workers,
                          int2str_len)
         # Get metadata indices

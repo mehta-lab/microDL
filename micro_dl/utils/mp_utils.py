@@ -20,7 +20,7 @@ def tile_and_save(input_fnames,
                   tile_size,
                   step_size,
                   min_fraction,
-                  data_format,
+                  image_format,
                   isotropic,
                   save_dir,
                   int2str_len=3):
@@ -36,7 +36,7 @@ def tile_and_save(input_fnames,
     :param list tile_size: size of tile along row, col (& slices)
     :param list step_size: step size along row, col (& slices)
     :param float min_fraction: min foreground volume fraction for keep tile
-    :param str data_format: channels_first / channels_last
+    :param str image_format: zyx / yxz
     :param bool isotropic: if 3D, make the grid/shape isotropic
     :param str save_dir: output dir to save tiles
     :param int int2str_len: len of indices for creating file names
@@ -55,7 +55,7 @@ def tile_and_save(input_fnames,
                      'pos_idx': pos_idx,
                      'slice_idx': slice_idx,
                      'save_dir': save_dir,
-                     'data_format': data_format,
+                     'image_format': image_format,
                      'int2str_len': int2str_len}
 
         tile_meta_df = tile_utils.tile_image(input_image=input_image,
@@ -91,7 +91,7 @@ def crop_at_indices_save(input_fnames,
                          pos_idx,
                          slice_idx,
                          crop_indices,
-                         data_format,
+                         image_format,
                          isotropic,
                          save_dir,
                          int2str_len=3):
@@ -105,7 +105,7 @@ def crop_at_indices_save(input_fnames,
     :param int slice_idx: slice idx of input image
     :param int pos_idx: sample idx of input image
     :param tuple crop_indices: tuple of indices for cropping
-    :param str data_format: channels_first / channels_last
+    :param str image_format: zyx or yxz
     :param bool isotropic: if 3D, make the grid/shape isotropic
     :param str save_dir: output dir to save tiles
     :param int int2str_len: len of indices for creating file names
@@ -124,7 +124,7 @@ def crop_at_indices_save(input_fnames,
                      'pos_idx': pos_idx,
                      'slice_idx': slice_idx,
                      'save_dir': save_dir,
-                     'data_format': data_format,
+                     'image_format': image_format,
                      'int2str_len': int2str_len}
 
         tile_meta_df = tile_utils.crop_at_indices(input_image=input_image,

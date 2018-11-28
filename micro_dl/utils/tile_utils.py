@@ -117,7 +117,7 @@ def tile_image(input_image,
     :param float min_fraction: Minimum fraction of foreground in mask for
     including tile
     :param dict save_dict: dict with keys: time_idx, channel_idx, slice_idx,
-     pos_idx, data_format and save_dir for generation output fname
+     pos_idx, image_format and save_dir for generation output fname
     :return: if not saving: a list with tuples of tiled image id of the format
      rrmin-rmax_ccmin-cmax_slslmin-slmax and tiled image
      Else: save tiles in-place and return a df with tile metadata
@@ -256,7 +256,7 @@ def crop_at_indices(input_image,
     :param list crop_indices: list of indices for cropping
     :param bool isotropic: if 3D, make the grid/shape isotropic
     :param dict save_dict: dict with keys: time_idx, channel_idx, slice_idx,
-     pos_idx, data_format and save_dir for generation output fname
+     pos_idx, image_format and save_dir for generation output fname
     :return: if not saving tiles: a list with tuples of cropped image id of
      the format rrmin-rmax_ccmin-cmax_slslmin-slmax and cropped image.
      Else saves tiles in-place and returns a df with tile metadata
@@ -302,7 +302,7 @@ def write_tile(tile, save_dict, img_id):
 
     :param np.array tile: one tile
     :param dict save_dict: dict with keys: time_idx, channel_idx, slice_idx,
-     pos_idx, data_format and save_dir for generation output fname
+     pos_idx, image_format and save_dir for generation output fname
     :param str img_id: tile related indices as string
     :return str op_fname: filename used for saving the tile with entire path
     """
@@ -314,7 +314,7 @@ def write_tile(tile, save_dict, img_id):
                                       int2str_len=save_dict['int2str_len'],
                                       extra_field=img_id)
     op_fname = os.path.join(save_dict['save_dir'], file_name)
-    if save_dict['data_format'] == 'channels_first' and len(tile.shape) > 2:
+    if save_dict['image_format'] == 'zyx' and len(tile.shape) > 2:
         tile = np.transpose(tile, (2, 0, 1))
     np.save(op_fname, tile, allow_pickle=True, fix_imports=True)
     return file_name
@@ -325,7 +325,7 @@ def write_meta(tiled_metadata, save_dict):
 
     :param list tiled_metadata: list of meta dicts
     :param dict save_dict: dict with keys: time_idx, channel_idx, slice_idx,
-     pos_idx, data_format and save_dir for generation output fname
+     pos_idx, image_format and save_dir for generation output fname
     :return:
     """
 

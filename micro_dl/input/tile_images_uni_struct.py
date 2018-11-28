@@ -24,7 +24,7 @@ class ImageTilerUniform:
                  hist_clip_limits=None,
                  flat_field_dir=None,
                  isotropic=False,
-                 data_format='channels_first',
+                 image_format='zyx',
                  num_workers=4,
                  int2str_len=3):
         """
@@ -58,7 +58,7 @@ class ImageTilerUniform:
         :param str flat_field_dir: Flatfield directory. None if no flatfield
             correction
         :param bool isotropic: if 3D, make the grid/shape isotropic
-        :param str data_format: Channels first or last
+        :param str image_format: zyx (preferred) or yxz
         :param int num_workers: number of workers for multiprocessing
         :param int int2str_len: number of characters for each idx to be used
          in file names
@@ -80,16 +80,16 @@ class ImageTilerUniform:
             pos_ids = tile_dict['positions']
         if 'hist_clip_limits' in tile_dict:
             hist_clip_limits = tile_dict['hist_clip_limits']
-        if 'data_format' in tile_dict:
-            data_format = tile_dict['data_format']
-            assert data_format in {'channels_first', 'channels_last'},\
-                "Data format must be channels_first or channels_last"
+        if 'image_format' in tile_dict:
+            image_format = tile_dict['image_format']
+            assert image_format in {'zyx', 'yxz'}, \
+                'Data format must be zyx or yxz'
         self.depths = depths
         self.tile_size = tile_size
         self.step_size = step_size
         self.isotropic = isotropic
         self.hist_clip_limits = hist_clip_limits
-        self.data_format = data_format
+        self.image_format = image_format
         self.num_workers = num_workers
 
         self.str_tile_step = 'tiles_{}_step_{}'.format(
@@ -353,7 +353,7 @@ class ImageTilerUniform:
                     pos_idx,
                     slice_idx,
                     tuple(tile_indices),
-                    self.data_format,
+                    self.image_format,
                     self.isotropic,
                     self.tile_dir,
                     self.int2str_len)
@@ -397,7 +397,7 @@ class ImageTilerUniform:
                                          'pos_idx': pos_idx,
                                          'slice_idx': slice_idx,
                                          'save_dir': self.tile_dir,
-                                         'data_format': self.data_format,
+                                         'image_format': self.image_format,
                                          'int2str_len': self.int2str_len}
                             tiled_meta0, tile_indices = \
                                 tile_utils.tile_image(
@@ -482,7 +482,7 @@ class ImageTilerUniform:
                     self.tile_size,
                     self.step_size,
                     min_fraction,
-                    self.data_format,
+                    self.image_format,
                     self.isotropic,
                     self.tile_dir,
                     self.int2str_len)
@@ -508,7 +508,7 @@ class ImageTilerUniform:
         """
 
         # mask depth has to match input or ouput channel depth
-        assert mask_depth <= max(self.channel_depth)
+        assert mask_depth <= max(self.channel_depth.values())
         self.mask_depth = mask_depth
 
         # tile and save masks
