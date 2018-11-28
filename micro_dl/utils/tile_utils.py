@@ -152,11 +152,16 @@ def tile_image(input_image,
                 use_tile = False
         return use_tile
 
+    tile_3d = False
     # Add to tile size and step size in case of 3D images
     im_shape = input_image.shape
     if len(im_shape) == 3:
         if len(tile_size) == 2:
             tile_size.append(im_shape[2])
+        else:
+            tile_3d = True
+
+        # TODO add else here to use slice_idx for 3D/ stack to stack
         # Step size in z is assumed to be the same as depth
         if len(step_size) == 2:
             step_size.append(im_shape[2])
@@ -197,7 +202,7 @@ def tile_image(input_image,
             cropped_img = input_image[row: row + tile_size[0],
                           col: col + tile_size[1], ...]
             if n_dim == 3:
-                if im_depth > 5:
+                if tile_3d:
                     for sl in range(0, n_slices, step_size[2]):
                         if sl + step_size[2] > n_slices:
                             sl = check_in_range(sl, n_slices, tile_size[2])
@@ -208,8 +213,8 @@ def tile_image(input_image,
                         img_id = '{}_sl{}-{}'.format(img_id, sl,
                                                      sl + tile_size[2])
                         cropped_img = input_image[row: row + tile_size[0],
-                                      col: col + tile_size[1],
-                                      sl: sl + tile_size[2]]
+                                                  col: col + tile_size[1],
+                                                  sl: sl + tile_size[2]]
                 else:
                     img_id = '{}_sl{}-{}'.format(img_id, 0, im_depth)
                 if isotropic_cond:

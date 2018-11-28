@@ -311,13 +311,12 @@ class ImageTilerUniform:
             im_fnames.append(file_path)
         return im_fnames
 
-    def gather_tiling_fn_calls(self,
-                               tile_indices,
-                               channel_idx,
-                               time_idx,
-                               slice_idx,
-                               pos_idx,
-                               flat_field_im):
+    def get_args_crop_at_indices(self,
+                                 tile_indices,
+                                 channel_idx,
+                                 time_idx,
+                                 slice_idx,
+                                 pos_idx):
         """Gather arguments for cropping
 
         :param list tile_indices: list of tile indices
@@ -325,30 +324,10 @@ class ImageTilerUniform:
         :param int time_idx: time index for current image
         :param int slice_idx: slice index for current image
         :param int pos_idx: position / sample index for current image
-        :param np.array flat_field_im: flat field image for current channel
         :return list cur_args: tuple of arguments for tiling
                 list tile_indices: tile indices for current image
         """
 
-        if tile_indices is None:
-            im = tile_utils.preprocess_imstack(
-                frames_metadata=self.frames_metadata,
-                input_dir=self.input_dir,
-                depth=self.channel_depth[channel_idx],
-                time_idx=time_idx,
-                channel_idx=channel_idx,
-                slice_idx=slice_idx,
-                pos_idx=pos_idx,
-                flat_field_im=flat_field_im,
-                hist_clip_limits=self.hist_clip_limits
-            )
-            tiled_image_data, tile_indices = tile_utils.tile_image(
-                    input_image=im,
-                    tile_size=self.tile_size,
-                    step_size=self.step_size,
-                    isotropic=self.isotropic,
-                    return_index=True,
-                )
         input_fnames = self._get_input_fnames(
             time_idx=time_idx,
             channel_idx=channel_idx,
@@ -378,7 +357,7 @@ class ImageTilerUniform:
                     self.isotropic,
                     self.tile_dir,
                     self.int2str_len)
-        return cur_args, tile_indices
+        return cur_args
 
     def tile_stack(self):
         """
@@ -399,17 +378,49 @@ class ImageTilerUniform:
             for slice_idx in self.slice_ids:
                 for time_idx in self.time_ids:
                     for pos_idx in self.pos_ids:
-                        cur_args, tile_indices = self.gather_tiling_fn_calls(
-                               tile_indices,
-                               channel_idx,
-                               time_idx,
-                               slice_idx,
-                               pos_idx,
-                               flat_field_im
-                        )
-                        fn_args.append(cur_args)
+                        if tile_indices is None:
+                            # tile and save first image
+                            # get meta data and tile_indices
+                            im = tile_utils.preprocess_imstack(
+                                frames_metadata=self.frames_metadata,
+                                input_dir=self.input_dir,
+                                depth=self.channel_depth[channel_idx],
+                                time_idx=time_idx,
+                                channel_idx=channel_idx,
+                                slice_idx=slice_idx,
+                                pos_idx=pos_idx,
+                                flat_field_im=flat_field_im,
+                                hist_clip_limits=self.hist_clip_limits
+                            )
+                            save_dict = {'time_idx': time_idx,
+                                         'channel_idx': channel_idx,
+                                         'pos_idx': pos_idx,
+                                         'slice_idx': slice_idx,
+                                         'save_dir': self.tile_dir,
+                                         'data_format': self.data_format,
+                                         'int2str_len': self.int2str_len}
+                            tiled_meta0, tile_indices = \
+                                tile_utils.tile_image(
+                                    input_image=im,
+                                    tile_size=self.tile_size,
+                                    step_size=self.step_size,
+                                    isotropic=self.isotropic,
+                                    return_index=True,
+                                    save_dict=save_dict
+                                )
+                        else:
+                            cur_args = self.get_args_crop_at_indices(
+                                tile_indices,
+                                channel_idx,
+                                time_idx,
+                                slice_idx,
+                                pos_idx,
+                                flat_field_im
+                            )
+                            fn_args.append(cur_args)
         tiled_meta_df_list = mp_crop_at_indices_save(fn_args,
                                                      workers=self.num_workers)
+        tiled_meta_df_list.append(tiled_meta0)
         tiled_metadata = pd.concat(tiled_meta_df_list, ignore_index=True)
         if self.tiles_exist:
             tiled_metadata = pd.concat([prev_tiled_metadata, tiled_metadata],
@@ -421,38 +432,51 @@ class ImageTilerUniform:
             sep=",",
         )
 
-    def mask_tiling_fn_calls(self,
-                             mask_channel,
-                             time_idx,
-                             slice_idx,
-                             pos_idx,
-                             mask_dir=None,
-                             min_fraction=None):
+    def get_args_tile_image(self,
+                            channel_idx,
+                            time_idx,
+                            slice_idx,
+                            pos_idx,
+                            mask_dir=None,
+                            min_fraction=None):
         """Gather arguments for cropping
 
-        :param int mask_channel: channel corresponding to mask
-        :param int time_idx: time index of mask
-        :param int slice_idx: slice index of mask
-        :param int pos_idx: position / sample index of mask
+        :param int channel_idx: channel corresponding to current image / mask
+        :param int time_idx: time index of current image / mask
+        :param int slice_idx: slice index of current image / mask
+        :param int pos_idx: position / sample index of current image / mask
         :param str mask_dir: dir containing image level masks
         :param float min_fraction: min foreground volume fraction for use tile
         :return list cur_args: tuple of arguments for tiling
         """
 
         input_fnames = self._get_input_fnames(time_idx=time_idx,
-                                              channel_idx=mask_channel,
+                                              channel_idx=channel_idx,
                                               slice_idx=slice_idx,
                                               pos_idx=pos_idx,
                                               mask_dir=mask_dir)
         # no flat field correction for mask
         flat_field_fname = None
+        if mask_dir is not None:
+            if self.flat_field_dir is not None:
+                flat_field_fname = os.path.join(
+                    self.flat_field_dir,
+                    'flat-field_channel-{}.npy'.format(channel_idx)
+                )
+
         # no hist clipping for mask as mask is bool
         hist_clip_limits = None
+        if mask_dir is not None:
+            if self.hist_clip_limits is not None:
+                hist_clip_limits = tuple(
+                    self.hist_clip_limits
+                )
+
         cur_args = (tuple(input_fnames),
                     flat_field_fname,
                     hist_clip_limits,
                     time_idx,
-                    mask_channel,
+                    channel_idx,
                     pos_idx,
                     slice_idx,
                     self.tile_size,
@@ -497,8 +521,8 @@ class ImageTilerUniform:
                         # tiling indices, so it's not allowed to add masks to
                         # existing tiled data sets (indices will be retrieved
                         # from existing meta)
-                        cur_args = self.mask_tiling_fn_calls(
-                            mask_channel=mask_channel,
+                        cur_args = self.get_args_tile_image(
+                            channel_idx=mask_channel,
                             time_idx=time_idx,
                             slice_idx=slice_idx,
                             pos_idx=pos_idx,
@@ -524,13 +548,6 @@ class ImageTilerUniform:
              for idx, val in enumerate(self.channel_ids)
              if val == mask_channel]
 
-        # Load flatfield images if flatfield dir is specified
-        flat_field_im = None
-        if self.flat_field_dir is not None:
-            flat_field_ims = []
-            for channel_idx in self.channel_ids:
-                flat_field_ims.append(self._get_flat_field(channel_idx))
-
         fn_args = []
         for slice_idx in self.slice_ids:
             for time_idx in self.time_ids:
@@ -544,15 +561,12 @@ class ImageTilerUniform:
                         slice_idx=slice_idx
                     )
                     for i, channel_idx in enumerate(self.channel_ids):
-                        if self.flat_field_dir is not None:
-                            flat_field_im = flat_field_ims[i]
-                        cur_args, _ = self.gather_tiling_fn_calls(
+                        cur_args = self.get_args_crop_at_indices(
                             cur_tile_indices,
                             channel_idx,
                             time_idx,
                             slice_idx,
-                            pos_idx,
-                            flat_field_im=flat_field_im)
+                            pos_idx)
                         fn_args.append(cur_args)
         tiled_meta_df_list = mp_crop_at_indices_save(fn_args,
                                                      workers=self.num_workers)
