@@ -423,6 +423,8 @@ class ImageTilerUniform:
         tiled_meta_df_list.append(tiled_meta0)
         tiled_metadata = pd.concat(tiled_meta_df_list, ignore_index=True)
         if self.tiles_exist:
+            tiled_metadata.reset_index(drop=True, inplace=True)
+            prev_tiled_metadata.reset_index(drop=True, inplace=True)
             tiled_metadata = pd.concat([prev_tiled_metadata, tiled_metadata],
                                        ignore_index=True)
         # Finally, save all the metadata
@@ -560,19 +562,22 @@ class ImageTilerUniform:
                         pos_idx=pos_idx,
                         slice_idx=slice_idx
                     )
-                    for i, channel_idx in enumerate(self.channel_ids):
-                        cur_args = self.get_args_crop_at_indices(
-                            cur_tile_indices,
-                            channel_idx,
-                            time_idx,
-                            slice_idx,
-                            pos_idx)
-                        fn_args.append(cur_args)
+                    if np.any(cur_tile_indices):
+                        for i, channel_idx in enumerate(self.channel_ids):
+                            cur_args = self.get_args_crop_at_indices(
+                                cur_tile_indices,
+                                channel_idx,
+                                time_idx,
+                                slice_idx,
+                                pos_idx)
+                            fn_args.append(cur_args)
         tiled_meta_df_list = mp_crop_at_indices_save(fn_args,
                                                      workers=self.num_workers)
         tiled_metadata = pd.concat(tiled_meta_df_list, ignore_index=True)
         if self.tiles_exist:
             prev_tiled_metadata = aux_utils.read_meta(self.tile_dir)
+            prev_tiled_metadata.reset_index(drop=True, inplace=True)
+            tiled_metadata.reset_index(drop=True, inplace=True)
             tiled_metadata = pd.concat([prev_tiled_metadata, tiled_metadata],
                                        ignore_index=True)
         # Finally, save all the metadata

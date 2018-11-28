@@ -1,4 +1,5 @@
 import copy
+import numpy as np
 import os
 import pandas as pd
 
@@ -140,18 +141,21 @@ class ImageTilerNonUniform(ImageTilerUniform):
                             pos_idx=pos_idx,
                             slice_idx=sl_idx
                         )
-                        cur_args = super().get_args_crop_at_indices(
-                            cur_tile_indices,
-                            ch_idx,
-                            tp_idx,
-                            sl_idx,
-                            pos_idx
-                        )
-                        fn_args.append(cur_args)
+                        if np.any(cur_tile_indices):
+                            cur_args = super().get_args_crop_at_indices(
+                                cur_tile_indices,
+                                ch_idx,
+                                tp_idx,
+                                sl_idx,
+                                pos_idx
+                            )
+                            fn_args.append(cur_args)
 
         tiled_meta_df_list = mp_crop_at_indices_save(fn_args,
                                                      workers=self.num_workers)
         tiled_metadata = pd.concat(tiled_meta_df_list, ignore_index=True)
+        tiled_metadata.reset_index(drop=True, inplace=True)
+        cur_meta_df.reset_index(drop=True, inplace=True)
         tiled_metadata = pd.concat([cur_meta_df, tiled_metadata],
                                    ignore_index=True)
 
@@ -222,7 +226,7 @@ class ImageTilerNonUniform(ImageTilerUniform):
         :param int mask_depth: Depth for mask channel
         """
 
-        # mask depth has to match input or ouput channel depth
+        # mask depth has to match input or output channel depth
         assert mask_depth <= max(self.channel_depth.values())
         self.mask_depth = mask_depth
 

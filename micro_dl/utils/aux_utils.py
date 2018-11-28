@@ -286,7 +286,7 @@ def read_meta(input_dir, meta_fname='frames_meta.csv'):
     assert len(meta_fname) == 1, \
         "Can't find info.csv file in {}".format(input_dir)
     try:
-        frames_metadata = pd.read_csv(meta_fname[0])
+        frames_metadata = pd.read_csv(meta_fname[0], index_col=0)
     except IOError as e:
         e.args += 'cannot read metadata csv file'
         raise
