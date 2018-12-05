@@ -106,7 +106,7 @@ class MaskProcessor:
         )
         file_path = os.path.join(
             self.input_dir,
-            self.frames_metadata.loc[frame_idx, "file_name"],
+            self.frames_metadata.loc[frame_idx, 'file_name'],
         )
         im = image_utils.read_image(file_path)
         if correct_flat_field:
