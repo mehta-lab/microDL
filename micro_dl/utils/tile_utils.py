@@ -62,6 +62,7 @@ def preprocess_imstack(frames_metadata,
     :param list hist_clip_limits: Limits for histogram clipping (size 2)
     :return np.array im: 2D preprocessed image
     """
+
     margin = 0 if depth == 1 else depth // 2
     im_stack = []
     for z in range(slice_idx - margin, slice_idx + margin + 1):
@@ -161,7 +162,6 @@ def tile_image(input_image,
         else:
             tile_3d = True
 
-        # TODO add else here to use slice_idx for 3D/ stack to stack
         # Step size in z is assumed to be the same as depth
         if len(step_size) == 2:
             step_size.append(im_shape[2])
@@ -200,7 +200,7 @@ def tile_image(input_image,
 
             cur_index = (row, row + tile_size[0], col, col + tile_size[1])
             cropped_img = input_image[row: row + tile_size[0],
-                          col: col + tile_size[1], ...]
+                                      col: col + tile_size[1], ...]
             if n_dim == 3:
                 if tile_3d:
                     for sl in range(0, n_slices, step_size[2]):

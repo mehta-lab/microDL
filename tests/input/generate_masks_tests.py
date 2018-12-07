@@ -1,9 +1,9 @@
-import skimage.io as sk_im_io
 import nose.tools
 import numpy as np
 import numpy.testing
 import os
 import pandas as pd
+import skimage.io as sk_im_io
 from testfixtures import TempDirectory
 import unittest
 
