@@ -180,6 +180,12 @@ def run_action(args, gpu_ids, gpu_mem_frac):
     trainer_config = config['trainer']
     network_config = config['network']
 
+    # Safety check: 2D UNets needs to have singleton dimension squeezed
+    if network_config['class'] == 'UNet2D':
+        dataset_config['squeeze'] = True
+    elif network_config['class'] == 'UNetStackTo2D':
+        dataset_config['squeeze'] = False
+
     # Check if masked loss exists
     masked_loss = False
     if 'masked_loss' in trainer_config:
