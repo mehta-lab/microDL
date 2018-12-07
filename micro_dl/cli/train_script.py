@@ -107,7 +107,7 @@ def create_datasets(df_meta,
     df_names = ['df_train', 'df_val', 'df_test']
     all_datasets = {}
     for i in range(3):
-        metadata = all_metadata[i]
+        metadata = all_metadata[df_names[i]]
         if isinstance(metadata, type(None)):
             all_datasets[df_names[i]] = None
         else:
@@ -200,8 +200,8 @@ def run_action(args, gpu_ids, gpu_mem_frac):
     # Get shape order from preprocessing config
     config_preprocess = preprocessing_info['config']
     shape_order = 'yxz'
-    if 'shape_order' in config_preprocess['config']['tile']:
-        shape_order = config_preprocess['config']['tile']['shape_order']
+    if 'shape_order' in config_preprocess['tile']:
+        shape_order = config_preprocess['tile']['shape_order']
 
     if action == 'train':
         # Create directory where model will be saved
