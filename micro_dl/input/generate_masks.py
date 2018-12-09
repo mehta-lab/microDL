@@ -227,8 +227,6 @@ class MaskProcessor:
                         mask_metadata.append(cur_meta)
         mask_meta_df = pd.DataFrame.from_dict(mask_metadata)
         mask_meta_df = mask_meta_df.sort_values(by=['file_name'])
-        mask_meta_df.reset_index(drop=True, inplace=True)
-        self.frames_metadata.reset_index(drop=True, inplace=True)
         meta_df = pd.concat([self.frames_metadata, mask_meta_df],
                             axis=0,
                             ignore_index=True)

@@ -305,7 +305,7 @@ class ImageTilerUniform:
                                                   pos_idx)
                 file_path = os.path.join(
                     self.input_dir,
-                    self.frames_metadata.loc[meta_idx, "file_name"],
+                    self.frames_metadata.loc[meta_idx, 'file_name'],
                 )
             # check if file_path exists
             im_fnames.append(file_path)
@@ -414,8 +414,7 @@ class ImageTilerUniform:
                                 channel_idx,
                                 time_idx,
                                 slice_idx,
-                                pos_idx,
-                                flat_field_im
+                                pos_idx
                             )
                             fn_args.append(cur_args)
         tiled_meta_df_list = mp_crop_at_indices_save(fn_args,
@@ -459,7 +458,7 @@ class ImageTilerUniform:
                                               mask_dir=mask_dir)
         # no flat field correction for mask
         flat_field_fname = None
-        if mask_dir is not None:
+        if mask_dir is None:
             if self.flat_field_dir is not None:
                 flat_field_fname = os.path.join(
                     self.flat_field_dir,
@@ -468,7 +467,7 @@ class ImageTilerUniform:
 
         # no hist clipping for mask as mask is bool
         hist_clip_limits = None
-        if mask_dir is not None:
+        if mask_dir is None:
             if self.hist_clip_limits is not None:
                 hist_clip_limits = tuple(
                     self.hist_clip_limits
@@ -518,7 +517,7 @@ class ImageTilerUniform:
             mask_fn_args = []
             for slice_idx in self.slice_ids:
                 for time_idx in self.time_ids:
-                    for pos_idx in np.unique(self.frames_metadata["pos_idx"]):
+                    for pos_idx in self.pos_ids:
                         # Evaluate mask, then channels.The masks will influence
                         # tiling indices, so it's not allowed to add masks to
                         # existing tiled data sets (indices will be retrieved
@@ -539,7 +538,10 @@ class ImageTilerUniform:
             # Finally, save all the metadata
             mask_meta_df = mask_meta_df.sort_values(by=['file_name'])
             mask_meta_df.to_csv(os.path.join(self.tile_dir, 'frames_meta.csv'),
-                                sep=",")
+                                sep=',')
+            assert os.path.exists(os.path.join(self.tile_dir,
+                                               'frames_meta.csv')), \
+                'mask tile info not written'
         else:
             mask_meta_df = pd.read_csv(
                 os.path.join(self.tile_dir, 'frames_meta.csv')
@@ -574,12 +576,11 @@ class ImageTilerUniform:
         tiled_meta_df_list = mp_crop_at_indices_save(fn_args,
                                                      workers=self.num_workers)
         tiled_metadata = pd.concat(tiled_meta_df_list, ignore_index=True)
-        if self.tiles_exist:
-            prev_tiled_metadata = aux_utils.read_meta(self.tile_dir)
-            prev_tiled_metadata.reset_index(drop=True, inplace=True)
-            tiled_metadata.reset_index(drop=True, inplace=True)
-            tiled_metadata = pd.concat([prev_tiled_metadata, tiled_metadata],
-                                       ignore_index=True)
+        prev_tiled_metadata = aux_utils.read_meta(self.tile_dir)
+        tiled_metadata = pd.concat([prev_tiled_metadata.reset_index(drop=True),
+                                    tiled_metadata.reset_index(drop=True)],
+                                   axis=0,
+                                   ignore_index=True)
         # Finally, save all the metadata
         tiled_metadata = tiled_metadata.sort_values(by=['file_name'])
         tiled_metadata.to_csv(
