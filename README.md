@@ -27,12 +27,6 @@ and one for Tensorboard (6006). To be able to view these in your browser, you ne
 The -v arguments similarly maps directories. You can use multiple -p and -v arguments if you want to map multiple things.
 The final 'bash' is to signify that you want to run bash (your usual Unix shell). 
 
-You may need to export pythonpaths inside your Docker container, e.g.:
-```buildoutcfg
-export PYTHONPATH=$(pwd)
-```
-for current directory, or whatever other pythonpaths you want to export.
-
 If you want to launch a Jupyter notebook inside your container, you can do so with the following command:
 ```buildoutcfg
 jupyter notebook --ip=0.0.0.0 --port=8888 --allow-root --no-browser
@@ -105,11 +99,12 @@ The following settings can be adjusted in preprocessing using a config file (see
 * slice_ids: (int/list) Value(s) of z-index to be processed
 * verbose: (int) Logging verbosity levels: NOTSET:0, DEBUG:10, INFO:20, WARNING:30, ERROR:40, CRITICAL:50
 * correct_flat_field: (bool) perform flatfield correction (2D data only)
-* use_masks: (bool) whether to generate binary masks from images
+* squeeze: (bool) whether to squeeze singleton tile dimensions (e.g. for 2D models)
+* create_masks: (bool) whether to generate binary masks from images
 * masks:
-    * mask_channels: (list of ints) which channels should be used for masks
+    * channels: (list of ints) which channels should be used for masks
     * str_elem_radius: (int) morpological structuring element radius
-* tile_stack: (bool) do tiling (recommended)
+* do_tiling: (bool) do tiling (recommended)
 * tile:
     * channels: (list of ints) specify channel numbers, -1 for all channels
     * tile_size: (list of ints) tile size in pixels for each dimension
@@ -152,11 +147,15 @@ The LR finder should be run for a few epochs at most. During those epochs it gra
 the learning rate from base_lr to max_lr.
 It saves a plot of the results from which you can determine learning
 rate bounds from learning rate vs. loss.
+Before proceeding to actual training, update base_lr and max_lr to be within the range where
+loss starts decreasing to a bit before the loss becomes unstable or start increasing again.
+E.g. in the figure below you migth select base_lr = 0.001 and max_lr = 0.006.
+![LR Finder](lr_finder_result.png?raw=true "Title")
 
 While training, you can either set the training rate to a value (e.g. from LR finder)
 or you can use cyclic learning rates where you set an upper and lower bound for the learning rate.
-Cyclical learning rate (CLR) is a custom callback function implemented as in
-[this paper.](https://arxiv.org/abs/1506.01186)
+Cyclical learning rate (CLR) is a custom callback function implemented as in the same paper by Smith
+referenced above.
 Learning rate is increased then decreased in a repeated triangular
 pattern over time. One triangle = one cycle.
 Step size is the number of iterations / batches in half a cycle.
@@ -164,7 +163,10 @@ The paper recommends a step-size of 2-10 times the number of batches in
 an epoch (empirical) i.e step-size = 2-10 epochs.
 It might be best to stop training at the end of a cycle when the learning rate is
 at minimum value and accuracy/performance potentially peaks.
-Initial amplitude is scaled by gamma ** iterations.
+Initial amplitude is scaled by gamma ** iterations. An example of learning rate with
+exponential decay can be seen below.
+
+![LR Finder](CLR.png?raw=true "Title")
 
 ### Run Training
 
