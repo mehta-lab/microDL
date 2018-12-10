@@ -154,11 +154,11 @@ class ImageTilerNonUniform(ImageTilerUniform):
         tiled_meta_df_list = mp_crop_at_indices_save(fn_args,
                                                      workers=self.num_workers)
         tiled_metadata = pd.concat(tiled_meta_df_list, ignore_index=True)
-        tiled_metadata.reset_index(drop=True, inplace=True)
-        cur_meta_df.reset_index(drop=True, inplace=True)
-        tiled_metadata = pd.concat([cur_meta_df, tiled_metadata],
-                                   ignore_index=True)
 
+        tiled_metadata = pd.concat([cur_meta_df.reset_index(drop=True),
+                                    tiled_metadata.reset_index(drop=True)],
+                                   axis=0,
+                                   ignore_index=True)
         # Finally, save all the metadata
         tiled_metadata = tiled_metadata.sort_values(by=['file_name'])
         tiled_metadata.to_csv(
@@ -196,9 +196,7 @@ class ImageTilerNonUniform(ImageTilerUniform):
 
         # tile first channel and use the tile indices to tile the rest
         meta_df = self.tile_first_channel(channel0_ids=ch0_ids,
-                                          channel0_depth=ch_depth,
-                                          cur_mask_dir=None,
-                                          min_fraction=None)
+                                          channel0_depth=ch_depth)
         # remove channel 0 from self.channel_ids
         _ = self.channel_ids.pop(0)
         if self.channel_ids:
@@ -240,6 +238,7 @@ class ImageTilerNonUniform(ImageTilerUniform):
         # channel
         nested_id_dict_1 = copy.deepcopy(self.nested_id_dict)
 
+        # get t, z, p indices for mask_channel
         ch0_ids = []
         for tp_idx, tp_dict in self.nested_id_dict.items():
             for ch_idx, ch_dict in tp_dict.items():

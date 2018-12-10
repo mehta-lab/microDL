@@ -1,6 +1,5 @@
 import nose.tools
 import numpy as np
-import numpy.testing
 import os
 import pandas as pd
 import skimage.io as sk_im_io
@@ -28,7 +27,7 @@ class TestImageTilerUniform(unittest.TestCase):
                          'file_name',
                          'pos_idx']
         frames_meta = pd.DataFrame(columns=self.df_names,)
-        # Write images as bytes
+        # Write images
         self.im = 127 * np.ones((15, 11), dtype=np.uint8)
         self.im2 = 234 * np.ones((15, 11), dtype=np.uint8)
         self.channel_idx = 1
@@ -59,10 +58,8 @@ class TestImageTilerUniform(unittest.TestCase):
             )
 
         # Write metadata
-        frames_meta.to_csv(
-            os.path.join(self.temp_path, self.meta_name),
-            sep=',',
-        )
+        frames_meta.to_csv(os.path.join(self.temp_path, self.meta_name),
+                           sep=',',)
         # Add flatfield
         self.flat_field_dir = os.path.join(self.temp_path, 'ff_dir')
         self.tempdir.makedir('ff_dir')
@@ -117,10 +114,10 @@ class TestImageTilerUniform(unittest.TestCase):
         nose.tools.assert_equal(self.tile_inst.flat_field_dir,
                                 self.flat_field_dir,)
         # Depth is 3 so first and last frame will not be used
-        numpy.testing.assert_array_equal(self.tile_inst.slice_ids,
-                                         np.asarray([16, 17, 18]),)
-        numpy.testing.assert_array_equal(self.tile_inst.pos_ids,
-                                         np.asarray([7, 8]),)
+        np.testing.assert_array_equal(self.tile_inst.slice_ids,
+                                      np.asarray([16, 17, 18]),)
+        np.testing.assert_array_equal(self.tile_inst.pos_ids,
+                                      np.asarray([7, 8]),)
         # channel_depth should be a dict containing depths for each channel
         self.assertListEqual(list(self.tile_inst.channel_depth),
                              [self.channel_idx],)
@@ -148,7 +145,7 @@ class TestImageTilerUniform(unittest.TestCase):
 
     def test_get_flat_field(self):
         flat_field_im = self.tile_inst._get_flat_field(channel_idx=1)
-        numpy.testing.assert_array_equal(flat_field_im, self.ff_im)
+        np.testing.assert_array_equal(flat_field_im, self.ff_im)
 
     def test_get_tile_indices(self):
         """Test get_tiled_indices"""
@@ -322,9 +319,9 @@ class TestImageTilerUniform(unittest.TestCase):
         for i, row in frames_meta.iterrows():
             tile = np.load(os.path.join(tile_dir, row.file_name))
             if row.pos_idx == 7:
-                numpy.testing.assert_array_equal(tile, im_norm)
+                np.testing.assert_array_equal(tile, im_norm)
             else:
-                numpy.testing.assert_array_equal(tile, im2_norm)
+                np.testing.assert_array_equal(tile, im2_norm)
 
     def test_get_args_tile_image(self):
         """Test get_args_tile_image"""
@@ -401,11 +398,12 @@ class TestImageTilerUniform(unittest.TestCase):
                                      ext='.npy')
             np.save(os.path.join(mask_dir, im_name), cur_im)
             cur_meta = {'channel_idx': 3,
-                        'slice_idx': z,
+                        'slice_idx': z+15,
                         'time_idx': self.time_idx,
                         'pos_idx': self.pos_idx1,
                         'file_name': im_name}
-            frames_meta.append(cur_meta, ignore_index=True)
+            frames_meta = frames_meta.append(cur_meta, ignore_index=True)
+
         self.tile_inst.frames_metadata = frames_meta
         self.tile_inst.pos_ids = [7]
 
