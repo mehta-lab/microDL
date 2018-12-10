@@ -229,6 +229,7 @@ class MaskProcessor:
         mask_meta_df = mask_meta_df.sort_values(by=['file_name'])
         meta_df = pd.concat([self.frames_metadata, mask_meta_df],
                             axis=0,
-                            ignore_index=True)
+                            ignore_index=True,
+                            sort=True)
         meta_df.to_csv(os.path.join(self.input_dir, 'frames_meta.csv'),
                        sep=',')
