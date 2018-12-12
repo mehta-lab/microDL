@@ -7,104 +7,56 @@
 # pytorch       0.4.0  (pip)
 # tensorflow    1.10.0  (pip)
 # keras         2.1.6  (pip)
-# opencv        3.4.1  (git)
+# opencv        3.4.1  (pip)
 # ==================================================================
 
-FROM ibmcom/powerai:1.5.3-all-ubuntu16.04-py3
+FROM ibmcom/powerai:1.5.4-all-ubuntu18.04-py3
 
 ENV USER_NAME pwrai
-
-RUN APT_INSTALL="sudo apt-get install -y --no-install-recommends" && \
-    PIP_INSTALL="python -m pip --no-cache-dir install --upgrade" && \
-    GIT_CLONE="git clone --depth 10" && \
-
-    rm -rf /var/lib/apt/lists/* \
-           /etc/apt/sources.list.d/cuda.list \
-           /etc/apt/sources.list.d/nvidia-ml.list && \
-
-    apt-get update && \
+ENV CONDA_DIR /home/pwrai/anaconda3
+RUN echo 1 | sudo /opt/DL/license/bin/accept-powerai-license.sh
 
 # ==================================================================
 # tools
 # ------------------------------------------------------------------
 
-    DEBIAN_FRONTEND=noninteractive $APT_INSTALL \
-        build-essential \
-        libcupti-dev \
-        ca-certificates \
-        cmake \
-        wget \
-        git \
-        tmux \
-	    graphviz \
-        vim \
-        && \
-
-# ==================================================================
-# python
-# ------------------------------------------------------------------
-
-    DEBIAN_FRONTEND=noninteractive $APT_INSTALL \
-        software-properties-common \
-        && \
-    add-apt-repository ppa:deadsnakes/ppa && \
-    apt-get update && \
-    DEBIAN_FRONTEND=noninteractive $APT_INSTALL \
-        python3.6 \
-        python3.6-dev \
-        python3.6-tk \
-        && \
-    wget -O ~/get-pip.py \
-        https://bootstrap.pypa.io/get-pip.py && \
-    python3.6 ~/get-pip.py && \
-    ln -s /usr/bin/python3.6 /usr/local/bin/python3 && \
-    ln -s /usr/bin/python3.6 /usr/local/bin/python && \
-    $PIP_INSTALL \
-        setuptools \
-        && \
-
-# ==================================================================
-# jupyter
-# ------------------------------------------------------------------
-
-    $PIP_INSTALL \
-        jupyter \
-        && \
+RUN sudo apt-get update && sudo apt-get install -y --no-install-recommends \
+         build-essential \
+         libcupti-dev \
+         ca-certificates \
+         cmake \
+         wget \
+         git \
+         tmux \
+         graphviz \
+         vim \
+         && \
 
 # ==================================================================
 # keras
 # ------------------------------------------------------------------
 
-    $PIP_INSTALL \
-        h5py \
-	keras==2.1.5 \
-        && \
-
-# ==================================================================
-# opencv
-# ------------------------------------------------------------------
-
-    $PIP_INSTALL \
-        opencv-python \
-        && \
+RUN pip install ---upgrade --no-cache-dir \
+    keras==2.1.6 \
+    && \
 
 # ==================================================================
 # config & cleanup
 # ------------------------------------------------------------------
 
-    ldconfig && \
-    apt-get clean && \
-    apt-get autoremove && \
-    rm -rf /var/lib/apt/lists/* /tmp/* ~/*
+sudo apt-get clean && \
+sudo apt-get autoremove && \
+sudo rm -rf /var/lib/apt/lists/* /tmp/* ~/*
 
 # ==================================================================
 # install pip packages from requirements text file
 # ------------------------------------------------------------------
 
-    ADD requirements.txt /tmp/requirements.txt
-    RUN pip install --no-cache-dir -r /tmp/requirements.txt
+ADD requirements.txt /tmp/requirements.txt
+pip install --upgrade --no-cache-dir -r /tmp/requirements.txt
 
-    WORKDIR /microDL
-    ENV PYTHONPATH /microDL
+WORKDIR /microDL
+ENV PYTHONPATH /microDL
 
 EXPOSE 8888 6006
+
