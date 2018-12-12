@@ -1,11 +1,9 @@
-FROM ibmcom/powerai:1.5.3-all-ubuntu16.04-py3
+FROM ibmcom/powerai:1.5.4-all-ubuntu18.04-py3
 
+ENV USER_NAME pwrai
 ENV CONDA_DIR /home/pwrai/anaconda3
-ENV PATH ${CONDA_DIR}/bin:${PATH}
-
 RUN echo 1 | sudo /opt/DL/license/bin/accept-powerai-license.sh
 
-# Tools
 RUN sudo apt-get update && sudo apt-get install -y --no-install-recommends \
          build-essential \
          libcupti-dev \
@@ -32,9 +30,11 @@ sudo rm -rf /var/lib/apt/lists/*
 # Install pip packages from requirements text file
 
 ADD requirements.txt /tmp/requirements.txt
-RUN pip install -r /tmp/requirements.txt
+
+pip install --upgrade --no-cache-dir -r /tmp/requirements.txt
 
 WORKDIR /microDL
 ENV PYTHONPATH /microDL
 
 EXPOSE 8888 6006
+
