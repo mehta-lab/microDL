@@ -6,10 +6,7 @@ RUN echo 1 | sudo /opt/DL/license/bin/accept-powerai-license.sh
 
 RUN sudo apt-get update && sudo apt-get install -y --no-install-recommends \
          build-essential \
-         libcupti-dev \
-         ca-certificates \
          cmake \
-         wget \
          git \
          tmux \
          graphviz \
@@ -37,4 +34,3 @@ WORKDIR /microDL
 ENV PYTHONPATH /microDL
 
 EXPOSE 8888 6006
-
