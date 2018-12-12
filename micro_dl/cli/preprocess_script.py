@@ -164,6 +164,8 @@ def pre_process(pp_config):
 
 
 if __name__ == '__main__':
+    time_start = time.time()
     args = parse_args()
     config = aux_utils.read_config(args.config)
     pre_process(config)
+    print("Total preprocessing time:", time.time() - time_start)
