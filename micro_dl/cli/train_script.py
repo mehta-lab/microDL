@@ -288,6 +288,7 @@ def run_action(args, gpu_ids, gpu_mem_frac):
 
 if __name__ == '__main__':
     # Parse command line arguments
+    time_start = time.time()
     args = parse_args()
     # Get GPU ID and memory fraction
     gpu_id, gpu_mem_frac = train_utils.select_gpu(
@@ -295,3 +296,4 @@ if __name__ == '__main__':
         args.gpu_mem_frac,
     )
     run_action(args, gpu_id, gpu_mem_frac)
+    print("Time elapsed:", time.time() - time_start)
