@@ -152,7 +152,6 @@ def pre_process(pp_config):
 
     # Write in/out/mask/tile paths and config to json in output directory
     time_el = time.time() - time_start
-    print("Time elapsed:", time_el)
     processing_info = {
         "preprocessing_time": time_el,
         "input_dir": input_dir,
@@ -168,7 +167,6 @@ def pre_process(pp_config):
 
 
 if __name__ == '__main__':
-
     args = parse_args()
     config = aux_utils.read_config(args.config)
     pre_process(config)
