@@ -1,0 +1,61 @@
+# ==================================================================
+# module list
+# ------------------------------------------------------------------
+# cuda          9.0    (apt)
+# python        3.6    (apt)
+# jupyter       latest (pip)
+# pytorch       0.4.0  (pip)
+# tensorflow    1.10.0  (pip)
+# keras         2.1.6  (pip)
+# opencv        3.4.1  (pip)
+# ==================================================================
+
+FROM ibmcom/powerai:1.5.4-all-ubuntu18.04-py3
+
+ENV USER_NAME pwrai
+ENV CONDA_DIR /home/pwrai/anaconda3
+RUN echo 1 | sudo /opt/DL/license/bin/accept-powerai-license.sh
+
+# ==================================================================
+# tools
+# ------------------------------------------------------------------
+
+RUN sudo apt-get update && sudo apt-get install -y --no-install-recommends \
+         build-essential \
+         libcupti-dev \
+         ca-certificates \
+         cmake \
+         wget \
+         git \
+         tmux \
+         graphviz \
+         vim \
+         && \
+
+# ==================================================================
+# keras
+# ------------------------------------------------------------------
+
+RUN pip install ---upgrade --no-cache-dir \
+    keras==2.1.6 \
+    && \
+
+# ==================================================================
+# config & cleanup
+# ------------------------------------------------------------------
+
+sudo apt-get clean && \
+sudo apt-get autoremove && \
+sudo rm -rf /var/lib/apt/lists/* /tmp/* ~/*
+
+# ==================================================================
+# install pip packages from requirements text file
+# ------------------------------------------------------------------
+
+ADD requirements.txt /tmp/requirements.txt
+pip install --upgrade --no-cache-dir -r /tmp/requirements.txt
+
+WORKDIR /microDL
+ENV PYTHONPATH /microDL
+
+EXPOSE 8888 6006
