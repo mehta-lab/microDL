@@ -223,7 +223,6 @@ def tile_image(input_image,
                     img_shape = cropped_img.shape
                     isotropic_shape = [img_shape[0], ] * len(img_shape)
                     cropped_img = resize_image(cropped_img, isotropic_shape)
-            print("cropped_img_shape {}".format(cropped_img.shape))
             if use_tile(cropped_img, min_fraction):
                 cropped_image_list.append([img_id, cropped_img])
                 cropping_index.append(cur_index)
@@ -317,7 +316,6 @@ def write_tile(tile, save_dict, img_id):
                                       int2str_len=save_dict['int2str_len'],
                                       extra_field=img_id)
     op_fname = os.path.join(save_dict['save_dir'], file_name)
-    print(tile.shape)
     if save_dict['image_format'] == 'zyx' and len(tile.shape) > 2:
         tile = np.transpose(tile, (2, 0, 1))
     np.save(op_fname, tile, allow_pickle=True, fix_imports=True)
