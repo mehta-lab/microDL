@@ -157,7 +157,6 @@ def tile_image(input_image,
     tile_3d = False
     # Add to tile size and step size in case of 3D images
     im_shape = input_image.shape
-    print("im_shape {}".format(im_shape))
     if len(im_shape) == 3:
         if len(tile_size) == 2:
             tile_size.append(im_shape[2])
