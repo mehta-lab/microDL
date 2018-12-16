@@ -157,6 +157,7 @@ def tile_image(input_image,
     tile_3d = False
     # Add to tile size and step size in case of 3D images
     im_shape = input_image.shape
+    print("im_shape {}".format(im_shape))
     if len(im_shape) == 3:
         if len(tile_size) == 2:
             tile_size.append(im_shape[2])
@@ -222,6 +223,7 @@ def tile_image(input_image,
                     img_shape = cropped_img.shape
                     isotropic_shape = [img_shape[0], ] * len(img_shape)
                     cropped_img = resize_image(cropped_img, isotropic_shape)
+            print("cropped_img_shape {}".format(cropped_img.shape))
             if use_tile(cropped_img, min_fraction):
                 cropped_image_list.append([img_id, cropped_img])
                 cropping_index.append(cur_index)
