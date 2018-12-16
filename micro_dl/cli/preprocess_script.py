@@ -107,7 +107,7 @@ def pre_process(pp_config):
             channel_ids = pp_config['tile']['channels']
         num_workers = 4
         if 'num_workers' in pp_config['tile']:
-            num_workers = pp_config['num_workers']
+            num_workers = pp_config['tile']['num_workers']
         start = time.time()
         if uniform_struct:
             tile_inst = ImageTilerUniform(input_dir=input_dir,
