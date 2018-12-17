@@ -40,7 +40,7 @@ def pre_process(pp_config):
     will be assembled based on the inputs and target you specify.
 
     :param dict pp_config: dict with key options:
-    [input_dir, output_dir, slice_ids, time_ids,
+    [input_dir, output_dir, slice_ids, time_ids, pos_ids
     correct_flat_field, use_masks, masks, tile_stack, tile]
     """
     input_dir = pp_config['input_dir']
@@ -52,10 +52,15 @@ def pre_process(pp_config):
     time_ids = -1
     if 'time_ids' in pp_config:
         time_ids = pp_config['time_ids']
+
     uniform_struct = pp_config['uniform_structure']
     int2str_len = 3
     if 'int2str_len' in pp_config:
         int2str_len = pp_config['int2str_len']
+
+    pos_ids = -1
+    if 'pos_ids' in pp_config:
+        pos_ids = pp_config['pos_ids']
 
     # estimate flat_field images
     correct_flat_field = True if pp_config['correct_flat_field'] else False
@@ -80,6 +85,7 @@ def pre_process(pp_config):
             flat_field_dir=flat_field_dir,
             time_ids=time_ids,
             slice_ids=slice_ids,
+            pos_ids=pos_ids,
             int2str_len=int2str_len,
             uniform_struct=uniform_struct
         )
@@ -112,6 +118,7 @@ def pre_process(pp_config):
                                           time_ids=time_ids,
                                           slice_ids=slice_ids,
                                           channel_ids=channel_ids,
+                                          pos_ids=pos_ids,
                                           flat_field_dir=flat_field_dir,
                                           num_workers=num_workers,
                                           int2str_len=int2str_len)
@@ -122,10 +129,10 @@ def pre_process(pp_config):
                                              time_ids=time_ids,
                                              slice_ids=slice_ids,
                                              channel_ids=channel_ids,
+                                             pos_ids=pos_ids,
                                              flat_field_dir=flat_field_dir,
                                              num_workers=num_workers,
                                              int2str_len=int2str_len)
-        # If you're using min fraction, it assumes you've generated masks
         # and want to tile only the ones with a minimum amount of foreground
         if 'min_fraction' in pp_config['tile'] and pp_config['create_masks']:
             tile_inst.tile_mask_stack(

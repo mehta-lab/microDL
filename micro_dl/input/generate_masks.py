@@ -1,5 +1,4 @@
 """Generate masks from sum of flurophore channels"""
-
 import numpy as np
 import os
 import pandas as pd
@@ -160,6 +159,32 @@ class MaskProcessor:
                     'file_name': file_name}
         return cur_meta
 
+    def get_args_generate_masks(self,
+                                time_idx,
+                                slice_idx,
+                                pos_idx,
+                                correct_flat_field,
+                                str_elem_radius):
+        """Generate mask for one position"""
+
+        mask_images = []
+        for channel_idx in self.channel_ids:
+            im = self._read_image(time_idx,
+                                  channel_idx,
+                                  slice_idx,
+                                  pos_idx,
+                                  correct_flat_field)
+            mask_images.append(im)
+        # Combine channel images and generate mask
+        summed_image = np.sum(np.stack(mask_images), axis=0)
+        summed_image = summed_image.astype('float32')
+        cur_meta = self._create_save_mask(summed_image,
+                                          str_elem_radius,
+                                          time_idx,
+                                          pos_idx,
+                                          slice_idx)
+        return cur_meta
+
     def generate_masks(self,
                        correct_flat_field=False,
                        str_elem_radius=5):
@@ -180,22 +205,12 @@ class MaskProcessor:
             for slice_idx in self.slice_ids:
                 for time_idx in self.time_ids:
                     for pos_idx in self.pos_ids:
-                        mask_images = []
-                        for channel_idx in self.channel_ids:
-                            im = self._read_image(time_idx,
-                                                  channel_idx,
-                                                  slice_idx,
-                                                  pos_idx,
-                                                  correct_flat_field)
-                            mask_images.append(im)
-                        # Combine channel images and generate mask
-                        summed_image = np.sum(np.stack(mask_images), axis=0)
-                        summed_image = summed_image.astype('float32')
-                        cur_meta = self._create_save_mask(summed_image,
-                                                          str_elem_radius,
-                                                          time_idx,
-                                                          pos_idx,
-                                                          slice_idx)
+                        cur_meta = self.get_args_generate_masks(
+                            time_idx=time_idx,
+                            slice_idx=slice_idx,
+                            pos_idx=pos_idx,
+                            correct_flat_field=correct_flat_field,
+                            str_elem_radius=str_elem_radius)
                         mask_metadata.append(cur_meta)
         else:
             for tp_idx, tp_dict in self.nested_id_dict.items():

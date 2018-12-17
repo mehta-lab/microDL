@@ -4,10 +4,16 @@ from micro_dl.utils import tile_utils as tile_utils
 
 
 def mp_tile_save(fn_args, workers):
+    """
+    https://stackoverflow.com/questions/42074501/python-concurrent-futures-processpoolexecutor-performance-of-submit-vs-map
+    :param fn_args:
+    :param workers:
+    :return:
+    """
     with ProcessPoolExecutor(workers) as ex:
         # can't use map directly as it works only with single arg functions
         res = ex.map(tile_and_save, *zip(*fn_args))
-    return list(res)
+        return list(res)
 
 
 def tile_and_save(input_fnames,
