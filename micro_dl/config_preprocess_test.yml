@@ -1,0 +1,19 @@
+output_dir: '/Users/anitha.krishnan/Desktop/tile_op'
+verbose: 10
+input_dir: '/Users/anitha.krishnan/Desktop/anithaTestData'
+uniform_structure: False
+correct_flat_field: False
+int2str_len: 4
+create_masks: False
+masks:
+    channels: [0]
+    str_elem_radius: 3
+do_tiling: True
+tile:
+    channels: [0]
+    tile_size: [256, 256]
+    step_size: [128, 128]
+    depths: 1
+    mask_depth: 1
+    image_format: 'zyx'
+    min_fraction: 0.005
