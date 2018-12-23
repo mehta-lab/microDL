@@ -55,6 +55,7 @@ def pre_process(pp_config):
     pos_ids = -1
     if 'pos_ids' in pp_config:
         pos_ids = pp_config['pos_ids']
+
     uniform_struct = pp_config['uniform_structure']
     int2str_len = 3
     if 'int2str_len' in pp_config:
