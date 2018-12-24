@@ -42,9 +42,8 @@ def select_gpu(gpu_ids=None, gpu_mem_frac=None):
     If ID is given as input, set the gpu_mem_frac to maximum available,
     or if a memory fraction is given, make sure the given GPU has the desired
     memory fraction available.
-    Currently only supports single GPU runs.
 
-    :param int gpu_ids: Desired GPU ID. If None, find GPU with the most memory
+    :param int or list of int gpu_ids: Desired GPU ID. If None, find GPU with the most memory
         available.
     :param float gpu_mem_frac: Desired GPU memory fraction [0, 1]. If None,
         use maximum available amount of GPU.
@@ -56,8 +55,8 @@ def select_gpu(gpu_ids=None, gpu_mem_frac=None):
     # Check if user has specified a GPU ID to use
     if not isinstance(gpu_ids, type(None)):
         # Currently only supporting one GPU as input
-        if not isinstance(gpu_ids, int):
-            raise NotImplementedError
+        if isinstance(gpu_ids, int):
+            gpu_ids = [gpu_ids]
         if gpu_ids == -1:
             return -1, 0
         if isinstance(gpu_mem_frac, float):
@@ -67,21 +66,21 @@ def select_gpu(gpu_ids=None, gpu_mem_frac=None):
             ("Not enough memory available. Requested/current fractions:",
                 "\n".join([str(c) + " / " + "{0:.4g}".format(m)
                            for c, m in zip(gpu_mem_frac, cur_mem_frac)]))
-        return gpu_ids, cur_mem_frac
+    else:
+        # User has not specified GPU ID, find the GPU with most memory available
+        sp = subprocess.Popen(['nvidia-smi --query-gpu=index --format=csv'],
+                              stdout=subprocess.PIPE,
+                              shell=True)
+        gpu_ids = sp.communicate()
+        gpu_ids = gpu_ids[0].decode('utf8')
+        gpu_ids = gpu_ids.split('\n')
+        # If no GPUs are found, run on CPU (debug mode)
+        if len(gpu_ids) <= 2:
+            print('No GPUs found, run will be slow. Query result: {}'.format(gpu_ids))
+            return -1, 0
+        gpu_ids = [int(gpu_id) for gpu_id in gpu_ids[1:-1]]
+        cur_mem_frac = check_gpu_availability(gpu_ids)
 
-    # User has not specified GPU ID, find the GPU with most memory available
-    sp = subprocess.Popen(['nvidia-smi --query-gpu=index --format=csv'],
-                          stdout=subprocess.PIPE,
-                          shell=True)
-    gpu_ids = sp.communicate()
-    gpu_ids = gpu_ids[0].decode('utf8')
-    gpu_ids = gpu_ids.split('\n')
-    # If no GPUs are found, run on CPU (debug mode)
-    if len(gpu_ids) <= 2:
-        print('No GPUs found, run will be slow. Query result: {}'.format(gpu_ids))
-        return -1, 0
-    gpu_ids = [int(gpu_id) for gpu_id in gpu_ids[1:-1]]
-    cur_mem_frac = check_gpu_availability(gpu_ids)
     # Get the GPU with maximum memory fraction
     max_mem = max(cur_mem_frac)
     idx = cur_mem_frac.index(max_mem)
