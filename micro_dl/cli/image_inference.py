@@ -117,7 +117,7 @@ def run_prediction(args):
     weights_path = os.path.join(args.model_dir, model_fname)
 
     # Create image subdirectory to write predicted images
-    pred_dir = os.path.join(args.image_dir, 'predictions')
+    pred_dir = os.path.join(args.model_dir, 'predictions')
     os.makedirs(pred_dir, exist_ok=True)
     # If saving figures, create another subdirectory to predictions
     if args.save_figs:
