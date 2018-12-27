@@ -135,7 +135,7 @@ def sort_meta_by_channel(frames_metadata):
         channel X.
     """
 
-    metadata_ids = validate_metadata_indices(
+    metadata_ids, tp_dict = validate_metadata_indices(
         frames_metadata,
         time_ids=-1,
         channel_ids=-1,

@@ -62,6 +62,10 @@ def pre_process(pp_config):
     if 'pos_ids' in pp_config:
         pos_ids = pp_config['pos_ids']
 
+    num_workers = 4
+    if 'num_workers' in pp_config['tile']:
+        num_workers = pp_config['num_workers']
+
     # estimate flat_field images
     correct_flat_field = True if pp_config['correct_flat_field'] else False
     flat_field_dir = None
@@ -87,17 +91,18 @@ def pre_process(pp_config):
             slice_ids=slice_ids,
             pos_ids=pos_ids,
             int2str_len=int2str_len,
-            uniform_struct=uniform_struct
+            uniform_struct=uniform_struct,
+            num_workers=num_workers
         )
         str_elem_radius = 5
         if 'str_elem_radius' in pp_config['masks']:
             str_elem_radius = pp_config['masks']['str_elem_radius']
-
+        start = time.time()
         mask_processor_inst.generate_masks(
             correct_flat_field=correct_flat_field,
             str_elem_radius=str_elem_radius,
         )
-
+        print('Tiling time: {}'.format(time.time() - start))
         mask_dir = mask_processor_inst.get_mask_dir()
         mask_channel = mask_processor_inst.get_mask_channel()
 
@@ -107,9 +112,6 @@ def pre_process(pp_config):
         channel_ids = -1
         if 'channels' in pp_config['tile']:
             channel_ids = pp_config['tile']['channels']
-        num_workers = 4
-        if 'num_workers' in pp_config['tile']:
-            num_workers = pp_config['num_workers']
         start = time.time()
         if uniform_struct:
             tile_inst = ImageTilerUniform(input_dir=input_dir,
@@ -133,6 +135,8 @@ def pre_process(pp_config):
                                              flat_field_dir=flat_field_dir,
                                              num_workers=num_workers,
                                              int2str_len=int2str_len)
+
+        tile_dir = tile_inst.get_tile_dir()
         # and want to tile only the ones with a minimum amount of foreground
         if 'min_fraction' in pp_config['tile'] and pp_config['create_masks']:
             tile_inst.tile_mask_stack(

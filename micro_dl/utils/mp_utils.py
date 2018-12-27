@@ -1,15 +1,76 @@
 from concurrent.futures import ProcessPoolExecutor
+import numpy as np
+import os
 
+from micro_dl.utils import aux_utils as aux_utils
+from micro_dl.utils.image_utils import create_mask
 from micro_dl.utils import tile_utils as tile_utils
 
 
+def mp_create_save_mask(fn_args, workers):
+    with ProcessPoolExecutor(workers) as ex:
+        # can't use map directly as it works only with single arg functions
+        res = ex.map(create_save_mask, *zip(*fn_args))
+        return list(res)
+
+
+def create_save_mask(input_fnames,
+                     flat_field_fname,
+                     str_elem_radius,
+                     mask_dir,
+                     mask_channel_idx,
+                     time_idx,
+                     pos_idx,
+                     slice_idx,
+                     int2str_len):
+    """Create and save mask
+
+    :param tuple input_fnames: tuple of input fnames with full path
+    :param str flat_field_fname: fname of flat field image
+    :param int str_elem_radius: size of structuring element used for binary
+         opening. str_elem: disk or ball
+    :param str mask_dir: dir to save masks
+    :param int mask_channel_idx: channel number of maskß
+    :param int time_idx: time points to use for generating mask
+    :param int pos_idx: generate masks for given position / sample ids
+    :param int slice_idx: generate masks for given slice ids
+    :param int int2str_len: Length of str when converting ints
+    :return dict cur_meta for each mask
+    """
+    im_stack = tile_utils.read_imstack(input_fnames,
+                                       flat_field_fname)
+    # Combine channel images and generate mask
+    summed_image = np.sum(np.stack(im_stack), axis=2)
+    summed_image = summed_image.astype('float32')
+
+    mask = create_mask(summed_image, str_elem_radius)
+    # Create mask name for given slice, time and position
+    file_name = aux_utils.get_im_name(time_idx=time_idx,
+                                      channel_idx=mask_channel_idx,
+                                      slice_idx=slice_idx,
+                                      pos_idx=pos_idx,
+                                      int2str_len=int2str_len)
+    # Save mask for given channels, mask is 2D
+    np.save(os.path.join(mask_dir, file_name),
+            mask,
+            allow_pickle=True,
+            fix_imports=True)
+    cur_meta = {'channel_idx': mask_channel_idx,
+                'slice_idx': slice_idx,
+                'time_idx': time_idx,
+                'pos_idx': pos_idx,
+                'file_name': file_name}
+    return cur_meta
+
+
 def mp_tile_save(fn_args, workers):
-    """
+    """Tile and save with multiprocessing
     https://stackoverflow.com/questions/42074501/python-concurrent-futures-processpoolexecutor-performance-of-submit-vs-map
-    :param fn_args:
-    :param workers:
-    :return:
+    :param list of tuple fn_args: list with tuples of function arguments
+    :param int workers: max number of workers
+    :return: list of returned df from tile_and_save
     """
+
     with ProcessPoolExecutor(workers) as ex:
         # can't use map directly as it works only with single arg functions
         res = ex.map(tile_and_save, *zip(*fn_args))
