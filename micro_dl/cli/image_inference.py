@@ -202,7 +202,7 @@ def run_prediction(args, gpu_ids, gpu_mem_frac):
                 )
                 file_name = os.path.join(pred_dir, im_name)
                 if args.ext == '.png' or args.ext == '.tif':
-                    # Convert to float16 for now
+                    # Convert to float16 and remove batch dimension
                     # im_pred = 2 ** 16 * (im_pred - im_pred.min()) /\
                     #           (im_pred.max() - im_pred.min())
                     im_pred = np.squeeze(im_pred.astype(np.float16))
