@@ -63,7 +63,7 @@ def predict_on_larger_image(model, input_image):
         'images with channel dim allowed'
 
     predicted_image = model.predict(input_image)
-    return np.squeeze(predicted_image)
+    return predicted_image
 
 
 class ModelEvaluator:

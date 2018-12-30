@@ -232,7 +232,7 @@ def run_prediction(args, gpu_ids, gpu_mem_frac):
                     plot_utils.save_predicted_images(
                         input_batch=im_stack,
                         target_batch=im_target[np.newaxis, np.newaxis, ...],
-                        pred_batch=im_pred[np.newaxis, np.newaxis, ...],
+                        pred_batch=im_pred,
                         output_dir=fig_dir,
                         output_fname=im_name[:-4])
 
