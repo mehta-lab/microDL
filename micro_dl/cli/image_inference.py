@@ -202,10 +202,10 @@ def run_prediction(args, gpu_ids, gpu_mem_frac):
                 )
                 file_name = os.path.join(pred_dir, im_name)
                 if args.ext == '.png' or args.ext == '.tif':
-                    # Convert to uint16 for now
-                    im_pred = 2 ** 16 * (im_pred - im_pred.min()) /\
-                              (im_pred.max() - im_pred.min())
-                    im_pred = im_pred.astype(np.uint16)
+                    # Convert to float16 for now
+                    # im_pred = 2 ** 16 * (im_pred - im_pred.min()) /\
+                    #           (im_pred.max() - im_pred.min())
+                    im_pred = np.squeeze(im_pred.astype(np.float16))
                     cv2.imwrite(file_name, im_pred)
                 elif args.ext == '.npy':
                     np.save(file_name, im_pred, allow_pickle=True)
@@ -234,7 +234,10 @@ def run_prediction(args, gpu_ids, gpu_mem_frac):
                         target_batch=im_target[np.newaxis, np.newaxis, ...],
                         pred_batch=im_pred,
                         output_dir=fig_dir,
-                        output_fname=im_name[:-4])
+                        output_fname=im_name[:-4],
+                        tol=1,
+                        font_size=15
+                    )
 
 
 if __name__ == '__main__':
