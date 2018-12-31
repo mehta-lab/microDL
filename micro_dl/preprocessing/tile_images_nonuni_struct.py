@@ -4,7 +4,7 @@ import os
 import pandas as pd
 
 import micro_dl.utils.aux_utils as aux_utils
-from micro_dl.input.tile_images_uni_struct import ImageTilerUniform
+from micro_dl.preprocessing.tile_images_uni_struct import ImageTilerUniform
 from micro_dl.utils.mp_utils import mp_tile_save, mp_crop_at_indices_save
 
 

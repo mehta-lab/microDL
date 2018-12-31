@@ -8,7 +8,7 @@ from testfixtures import TempDirectory
 import unittest
 
 from micro_dl.utils import aux_utils as aux_utils
-from micro_dl.input.generate_masks import MaskProcessor
+from micro_dl.preprocessing.generate_masks import MaskProcessor
 
 
 class TestMaskProcessor(unittest.TestCase):

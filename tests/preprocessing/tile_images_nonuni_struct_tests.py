@@ -7,7 +7,7 @@ import skimage.io as sk_im_io
 from testfixtures import TempDirectory
 import unittest
 
-import micro_dl.input.tile_images_nonuni_struct as tile_images
+import micro_dl.preprocessing.tile_images_nonuni_struct as tile_images
 import micro_dl.utils.aux_utils as aux_utils
 
 

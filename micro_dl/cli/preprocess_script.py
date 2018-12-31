@@ -4,10 +4,11 @@ import argparse
 import os
 import time
 
-from micro_dl.input.estimate_flat_field import FlatFieldEstimator2D
-from micro_dl.input.generate_masks import MaskProcessor
-from micro_dl.input.tile_images_uni_struct import ImageTilerUniform
-from micro_dl.input.tile_images_nonuni_struct import ImageTilerNonUniform
+from micro_dl.preprocessing.estimate_flat_field import FlatFieldEstimator2D
+from micro_dl.preprocessing.generate_masks import MaskProcessor
+from micro_dl.preprocessing.tile_images_uni_struct import ImageTilerUniform
+from micro_dl.preprocessing.tile_images_nonuni_struct import \
+    ImageTilerNonUniform
 import micro_dl.utils.aux_utils as aux_utils
 
 
