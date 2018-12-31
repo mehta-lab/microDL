@@ -11,7 +11,7 @@ def mp_create_save_mask(fn_args, workers):
     with ProcessPoolExecutor(workers) as ex:
         # can't use map directly as it works only with single arg functions
         res = ex.map(create_save_mask, *zip(*fn_args))
-        return list(res)
+    return list(res)
 
 
 def create_save_mask(input_fnames,
@@ -74,7 +74,7 @@ def mp_tile_save(fn_args, workers):
     with ProcessPoolExecutor(workers) as ex:
         # can't use map directly as it works only with single arg functions
         res = ex.map(tile_and_save, *zip(*fn_args))
-        return list(res)
+    return list(res)
 
 
 def tile_and_save(input_fnames,

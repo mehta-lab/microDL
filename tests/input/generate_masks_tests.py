@@ -8,7 +8,6 @@ from testfixtures import TempDirectory
 import unittest
 
 from micro_dl.utils import aux_utils as aux_utils
-from micro_dl.utils.image_utils import create_mask
 from micro_dl.input.generate_masks import MaskProcessor
 
 
@@ -118,83 +117,37 @@ class TestMaskProcessor(unittest.TestCase):
 
         nose.tools.assert_equal(self.mask_gen_inst.get_mask_channel(), 3)
 
-    def test_read_image(self):
-        """Test read_image"""
+    def test_get_args_read_image(self):
+        """Test _get_args_read_image"""
 
-        for sl_idx in self.mask_gen_inst.slice_ids:
-            cur_im = self.mask_gen_inst._read_image(
-                time_idx=self.mask_gen_inst.time_ids[0],
-                channel_idx=self.mask_gen_inst.channel_ids[0],
-                slice_idx=sl_idx,
-                pos_idx=self.mask_gen_inst.pos_ids[0],
-                correct_flat_field=False
-            )
-            numpy.testing.assert_array_equal(cur_im,
-                                             self.sph_object[:, :, sl_idx])
-
-        for sl_idx in self.mask_gen_inst.slice_ids:
-            cur_im = self.mask_gen_inst._read_image(
-                time_idx=self.mask_gen_inst.time_ids[0],
-                channel_idx=self.mask_gen_inst.channel_ids[1],
-                slice_idx=sl_idx,
-                pos_idx=self.mask_gen_inst.pos_ids[0],
-                correct_flat_field=False
-            )
-            numpy.testing.assert_array_equal(cur_im,
-                                             self.rec_object[:, :, sl_idx])
-
-    def test_create_save_mask(self):
-        """Test create_save_mask"""
-
-        input_image = self.sph_object[:, :, 5] + self.rec_object[:, :, 5]
-        cur_meta = self.mask_gen_inst._create_save_mask(
-            input_image=input_image,
-            str_elem_radius=1,
+        ip_fnames, ff_fname = self.mask_gen_inst._get_args_read_image(
             time_idx=self.time_ids,
+            channel_idx=self.channel_ids,
+            slice_idx=5,
             pos_idx=self.pos_ids,
-            slice_idx=5
+            correct_flat_field=None
         )
-        fname = aux_utils.get_im_name(time_idx=self.time_ids,
-                                      channel_idx=3,
-                                      slice_idx=5,
-                                      pos_idx=self.pos_ids)
-        op_fname = os.path.join(self.output_dir, 'mask_channels_1-2', fname)
-        nose.tools.assert_equal(os.path.exists(op_fname),
-                                True)
-        mask_image = np.load(op_fname)
-        numpy.testing.assert_array_equal(
-            mask_image,
-            create_mask(input_image, str_elem_size=1)
-        )
-        exp_meta = {'channel_idx': 3,
-                    'slice_idx': 5,
-                    'time_idx': 0,
-                    'pos_idx': 1,
-                    'file_name': fname}
-        nose.tools.assert_dict_equal(cur_meta, exp_meta)
+        exp_fnames = ['im_c001_z005_t000_p001.png',
+                      'im_c002_z005_t000_p001.png']
+        for idx, fname in enumerate(exp_fnames):
+            nose.tools.assert_equal(ip_fnames[idx],
+                                    os.path.join(self.temp_path, fname))
+        nose.tools.assert_equal(ff_fname, None)
 
     def test_generate_masks_uni(self):
-        """Test generate_masks with uniform structure"""
+        """Test generate masks"""
 
         self.mask_gen_inst.generate_masks(str_elem_radius=1)
         frames_meta = pd.read_csv(
             os.path.join(self.temp_path, 'frames_meta.csv'),
             index_col=0
         )
+        # 8 slices and 3 channels
         exp_len = 24
         nose.tools.assert_equal(len(frames_meta), exp_len)
-
-        for slice_idx in self.mask_gen_inst.slice_ids:
-            im = self.sph_object[:, :, slice_idx] + \
-                 self.rec_object[:, :, slice_idx]
-            exp_mask = create_mask(im, str_elem_size=1)
-            fname = aux_utils.get_im_name(time_idx=self.time_ids,
-                                          channel_idx=3,
-                                          slice_idx=slice_idx,
-                                          pos_idx=self.pos_ids)
-            cur_mask = np.load(os.path.join(self.mask_gen_inst.get_mask_dir(),
-                                            fname))
-            numpy.testing.assert_array_equal(cur_mask, exp_mask)
+        for idx in range(8):
+            nose.tools.assert_equal('im_c003_z00{}_t000_p001.npy'.format(idx),
+                                    frames_meta.iloc[16 + idx]['file_name'])
 
     def test_generate_masks_nonuni(self):
         """Test generate_masks with non-uniform structure"""
@@ -257,18 +210,15 @@ class TestMaskProcessor(unittest.TestCase):
             os.path.join(self.temp_path, 'frames_meta.csv'),
             index_col=0
         )
+        # pos1: 8 slices, pos2: 3 slices
         exp_len = 22
         nose.tools.assert_equal(len(frames_meta), exp_len)
-
-        for pos_idx in pos_ids:
-            cur_object = self.sph_object if pos_idx == 1 else rec
-            for slice_idx in mask_gen_inst.nested_id_dict[0][0][pos_idx]:
-                im = cur_object[:, :, slice_idx]
-                exp_mask = create_mask(im, str_elem_size=1)
-                fname = aux_utils.get_im_name(time_idx=time_ids,
-                                              channel_idx=1,
-                                              slice_idx=slice_idx,
-                                              pos_idx=pos_idx)
-                cur_mask = np.load(os.path.join(mask_gen_inst.get_mask_dir(),
-                                                fname))
-                numpy.testing.assert_array_equal(cur_mask, exp_mask)
+        mask_fnames = frames_meta['file_name'].tolist()[11:22]
+        exp_mask_fnames = [
+            'im_c001_z000_t000_p001.npy', 'im_c001_z000_t000_p002.npy',
+            'im_c001_z001_t000_p001.npy', 'im_c001_z001_t000_p002.npy',
+            'im_c001_z002_t000_p001.npy', 'im_c001_z002_t000_p002.npy',
+            'im_c001_z003_t000_p001.npy', 'im_c001_z004_t000_p001.npy',
+            'im_c001_z005_t000_p001.npy', 'im_c001_z006_t000_p001.npy',
+            'im_c001_z007_t000_p001.npy']
+        nose.tools.assert_list_equal(mask_fnames, exp_mask_fnames)
