@@ -1,4 +1,4 @@
-output_dir: '/data/sguo/Processed/2018_11_01_kidney_slice/SMS_2018_1101_1906_1_BG_2018_1101_1906_1/tiles_local_zscore_depth_3'
+output_dir: '/data/sguo/Processed/2018_11_01_kidney_slice/SMS_2018_1101_1906_1_BG_2018_1101_1906_1/tiles_local_zscore_depth_ip3_op1'
 verbose: 10
 input_dir: '/data/sguo/Processed/2018_11_01_kidney_slice/SMS_2018_1101_1906_1_BG_2018_1101_1906_1/microDL_format'
 correct_flat_field: False
@@ -12,7 +12,7 @@ tile:
     channels: -1
     tile_size: [256, 256]
     step_size: [128, 128]
-    depths: [3, 3, 3, 3, 3, 3, 3]
+    depths: [3, 3, 3, 3, 1, 1, 1]
     mask_depth: 1
     shape_order: 'zyx'
     num_workers: 4
