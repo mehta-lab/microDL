@@ -56,3 +56,13 @@ def dice_coef(y_true, y_pred, smooth=1.):
     dice = (2. * intersection + smooth) / \
            (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
     return dice
+
+def ssim(y_true, y_pred):
+    """Structural similarity
+    Use max_val=5 to approximate maximum of normalized images
+    """
+    if K.image_data_format() == 'channels_first':
+        y_true = tf.transpose(y_true, [0, 2, 3, 1])
+        y_pred = tf.transpose(y_pred, [0, 2, 3, 1])
+    ssim = tf.image.ssim(y_true, y_pred, max_val=5)
+    return K.mean(ssim)

@@ -1,8 +1,9 @@
 """Custom losses"""
 from keras import backend as K
+from keras.losses import mean_absolute_error
 import tensorflow as tf
 
-import micro_dl.train.metrics as metrics
+from micro_dl.train.metrics import dice_coef, ssim
 from micro_dl.utils.aux_utils import get_channel_axis
 
 
@@ -41,6 +42,12 @@ def kl_divergence_loss(y_true, y_pred):
     else:
         return K.sum(y_true * K.log(y_true / y_pred), axis=1)
 
+def dssim_loss(y_true, y_pred):
+    """Structural dissimilarity loss + L1 loss
+    0.8 * DSSIM + 0.2 * L1
+    """
+    mae = mean_absolute_error(y_true, y_pred)
+    return 0.8 * (1.0 - ssim(y_true, y_pred) / 2.0) + 0.2 * mae
 
 def _split_ytrue_mask(y_true, n_channels):
     """Split the mask concatenated with y_true
@@ -106,4 +113,4 @@ def dice_coef_loss(y_true, y_pred):
     :param y_pred: predicted values
     :return: Dice loss
     """
-    return 1. - metrics.dice_coef(y_true, y_pred)
+    return 1. - dice_coef(y_true, y_pred)

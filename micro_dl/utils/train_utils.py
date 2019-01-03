@@ -92,7 +92,7 @@ def select_gpu(gpu_ids=None, gpu_mem_frac=None):
 
 
 def split_train_val_test(sample_set, train_ratio, test_ratio,
-                          val_ratio=None):
+                         val_ratio=None, random_seed=None):
     """Generate indices for train, validation and test split
 
     This can be achieved by using sklearn.model_selection.train_test_split
@@ -105,6 +105,7 @@ def split_train_val_test(sample_set, train_ratio, test_ratio,
      used for test set
     :param float val_ratio: between 0 and 1, percent of samples to be
      used for the validation set
+    :param int random_seed: between 0 and 2**32 - 1, random seed for train-val-test split
     :return: dict split_idx with keys [train, val, test] and values as lists
     """
 
@@ -115,6 +116,8 @@ def split_train_val_test(sample_set, train_ratio, test_ratio,
     num_test = max(num_test, 1)
 
     split_idx = {}
+    if random_seed:
+        np.random.seed(random_seed)
     test_idx = np.random.choice(sample_set, num_test, replace=False)
     split_idx['test'] = test_idx.tolist()
     rem_set = set(sample_set) - set(test_idx)
@@ -123,6 +126,8 @@ def split_train_val_test(sample_set, train_ratio, test_ratio,
     if val_ratio:
         num_val = int(val_ratio * num_samples)
         num_val = max(num_val, 1)
+        if random_seed:
+            np.random.seed(random_seed)
         val_idx = np.random.choice(rem_set, num_val, replace=False)
         split_idx['val'] = val_idx.tolist()
         rem_set = set(rem_set) - set(val_idx)

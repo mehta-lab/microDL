@@ -9,7 +9,7 @@ class BaseTrainingTable:
     """Generates the training table/info"""
 
     def __init__(self, df_metadata, input_channels, target_channels,
-                 split_by_column, split_ratio, mask_channels=None):
+                 split_by_column, split_ratio, mask_channels=None, random_seed=None):
         """Init
 
         :param pd.DataFrame df_metadata: Dataframe with columns: [channel_num,
@@ -20,6 +20,7 @@ class BaseTrainingTable:
         :param dict split_ratio: dict with keys train, val, test and values are
          the corresponding ratios
         :param list of ints/None mask_channels: Use mask channel if specified
+        :param int random_seed: between 0 and 2**32 - 1, random seed for train-val-test split
         """
 
         self.df_metadata = df_metadata
@@ -28,6 +29,7 @@ class BaseTrainingTable:
         self.split_by_column = split_by_column
         self.split_ratio = split_ratio
         self.mask_channels = mask_channels
+        self.random_seed = random_seed
 
     @staticmethod
     def _get_col_name(channel_ids):
@@ -83,7 +85,8 @@ class BaseTrainingTable:
         assert np.issubdtype(unique_values.dtype, np.integer)
         split_idx = split_train_val_test(
             unique_values, self.split_ratio['train'],
-            self.split_ratio['test'], self.split_ratio['val']
+            self.split_ratio['test'], self.split_ratio['val'],
+            random_seed=self.random_seed
         )
         train_set = split_idx['train']
         train_idx = self.df_metadata[self.split_by_column].isin(train_set)
