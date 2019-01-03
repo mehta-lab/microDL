@@ -7,7 +7,7 @@ import skimage.io as sk_im_io
 from testfixtures import TempDirectory
 import unittest
 
-import micro_dl.preprocessing.tile_images_nonuni_struct as tile_images
+import micro_dl.preprocessing.tile_nonuniform_images as tile_images
 import micro_dl.utils.aux_utils as aux_utils
 
 
@@ -121,13 +121,14 @@ class TestImageTilerNonUniform(unittest.TestCase):
     def test_tile_first_channel(self):
         """Test tile_first_channel"""
 
-        ch0_ids = []
+        ch0_ids = {}
         # get the indices for first channel
         for tp_idx, tp_dict in self.tile_inst.nested_id_dict.items():
             for ch_idx, ch_dict in tp_dict.items():
                 if ch_idx == 1:
-                    cur_idx = [tp_idx, ch_idx, ch_dict]
-                    ch0_ids.append(cur_idx)
+                    ch0_dict = {ch_idx: ch_dict}
+            ch0_ids[tp_idx] = ch0_dict
+
         # get the expected meta df
         exp_meta = []
         for row in [0, 4, 8, 10]:
@@ -171,17 +172,18 @@ class TestImageTilerNonUniform(unittest.TestCase):
         """Test tile_remaining_channels"""
 
         # tile channel 1
-        nested_id_dict_1 = copy.deepcopy(self.tile_inst.nested_id_dict)
-        ch0_ids = []
+        nested_id_dict_copy = copy.deepcopy(self.tile_inst.nested_id_dict)
+        ch0_ids = {}
         for tp_idx, tp_dict in self.tile_inst.nested_id_dict.items():
             for ch_idx, ch_dict in tp_dict.items():
                 if ch_idx == 1:
-                    cur_idx = [tp_idx, ch_idx, ch_dict]
-                    ch0_ids.append(cur_idx)
-                    del nested_id_dict_1[tp_idx][ch_idx]
+                    ch0_dict = {ch_idx: ch_dict}
+                    del nested_id_dict_copy[tp_idx][ch_idx]
+            ch0_ids[tp_idx] = ch0_dict
+
         ch0_meta_df = self.tile_inst.tile_first_channel(ch0_ids, 3)
         # tile channel 2
-        self.tile_inst.tile_remaining_channels(nested_id_dict_1,
+        self.tile_inst.tile_remaining_channels(nested_id_dict_copy,
                                                tiled_ch_id=1,
                                                cur_meta_df=ch0_meta_df)
         frames_meta = pd.read_csv(os.path.join(self.tile_inst.tile_dir,

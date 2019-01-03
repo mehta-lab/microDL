@@ -6,7 +6,7 @@ import skimage.io as sk_im_io
 from testfixtures import TempDirectory
 import unittest
 
-import micro_dl.preprocessing.tile_images_uni_struct as tile_images
+import micro_dl.preprocessing.tile_uniform_images as tile_images
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.normalize as norm_util
 
@@ -258,19 +258,20 @@ class TestImageTilerUniform(unittest.TestCase):
                       for fname in exp_fnames]
         nose.tools.assert_list_equal(exp_fnames, im_fnames)
 
-    def test_get_args_crop_at_indices(self):
-        """Test get_args_crop_at_indices"""
+    def test_get_crop_args(self):
+        """Test get_crop_tile_args with task_type=crop"""
 
         exp_tile_indices = [[0, 5, 0, 5], [0, 5, 4, 9], [0, 5, 6, 11],
                             [10, 15, 0, 5], [10, 15, 4, 9], [10, 15, 6, 11],
                             [4, 9, 0, 5], [4, 9, 4, 9], [4, 9, 6, 11],
                             [8, 13, 0, 5], [8, 13, 4, 9], [8, 13, 6, 11]]
-        cur_args = self.tile_inst.get_args_crop_at_indices(
-            tile_indices=exp_tile_indices,
+        cur_args = self.tile_inst.get_crop_tile_args(
             channel_idx=self.channel_idx,
             time_idx=self.time_idx,
             slice_idx=16,
-            pos_idx=7
+            pos_idx=7,
+            task_type='crop',
+            tile_indices=exp_tile_indices
         )
         exp_input_fnames = ['im_c001_z015_t005_p007.png',
                             'im_c001_z016_t005_p007.png',
@@ -323,16 +324,17 @@ class TestImageTilerUniform(unittest.TestCase):
             else:
                 np.testing.assert_array_equal(tile, im2_norm)
 
-    def test_get_args_tile_image(self):
-        """Test get_args_tile_image"""
+    def test_get_tile_args(self):
+        """Test get_crop_tile_args with task_type=tile"""
 
         self.tile_inst.mask_depth = 3
         mask_dir = os.path.join(self.temp_path, 'mask_dir')
-        cur_args = self.tile_inst.get_args_tile_image(
+        cur_args = self.tile_inst.get_crop_tile_args(
             channel_idx=self.channel_idx,
             time_idx=self.time_idx,
             slice_idx=16,
             pos_idx=7,
+            task_type='tile',
             mask_dir=mask_dir,
             min_fraction=0.3
         )
@@ -341,13 +343,11 @@ class TestImageTilerUniform(unittest.TestCase):
                             'im_c001_z017_t005_p007.npy']
         exp_fnames = [os.path.join(mask_dir, fname)
                       for fname in exp_input_fnames]
-        exp_ff_fname = os.path.join(
-            self.flat_field_dir,
-            'flat-field_channel-{}.npy'.format(self.channel_idx),
-        )
 
         nose.tools.assert_list_equal(list(cur_args[0]), exp_fnames)
+        # flat field fname is None
         nose.tools.assert_equal(cur_args[1], None)
+        # hist clip limits is None
         nose.tools.assert_equal(cur_args[2], None)
         nose.tools.assert_equal(cur_args[3], self.time_idx)
         nose.tools.assert_equal(cur_args[4], self.channel_idx)
@@ -362,11 +362,12 @@ class TestImageTilerUniform(unittest.TestCase):
         nose.tools.assert_equal(cur_args[13], self.int2str_len)
 
         # not a mask channel
-        cur_args = self.tile_inst.get_args_tile_image(
+        cur_args = self.tile_inst.get_crop_tile_args(
             channel_idx=self.channel_idx,
             time_idx=self.time_idx,
             slice_idx=16,
-            pos_idx=7
+            pos_idx=7,
+            task_type='tile'
         )
         exp_input_fnames = ['im_c001_z015_t005_p007.png',
                             'im_c001_z016_t005_p007.png',
@@ -374,6 +375,11 @@ class TestImageTilerUniform(unittest.TestCase):
         exp_fnames = [os.path.join(self.tile_inst.input_dir, fname)
                       for fname in exp_input_fnames]
         nose.tools.assert_list_equal(list(cur_args[0]), exp_fnames)
+
+        exp_ff_fname = os.path.join(
+            self.flat_field_dir,
+            'flat-field_channel-{}.npy'.format(self.channel_idx),
+        )
         nose.tools.assert_equal(cur_args[1], exp_ff_fname)
         nose.tools.assert_equal(cur_args[9], None)
 

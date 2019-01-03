@@ -6,8 +6,8 @@ import time
 
 from micro_dl.preprocessing.estimate_flat_field import FlatFieldEstimator2D
 from micro_dl.preprocessing.generate_masks import MaskProcessor
-from micro_dl.preprocessing.tile_images_uni_struct import ImageTilerUniform
-from micro_dl.preprocessing.tile_images_nonuni_struct import \
+from micro_dl.preprocessing.tile_uniform_images import ImageTilerUniform
+from micro_dl.preprocessing.tile_nonuniform_images import \
     ImageTilerNonUniform
 import micro_dl.utils.aux_utils as aux_utils
 
@@ -53,11 +53,11 @@ def pre_process(pp_config):
     time_ids = -1
     if 'time_ids' in pp_config:
         time_ids = pp_config['time_ids']
-    pos_ids = -1
-    if 'pos_ids' in pp_config:
-        pos_ids = pp_config['pos_ids']
 
-    uniform_struct = pp_config['uniform_structure']
+    uniform_struct = False
+    if 'uniform_struct' in pp_config:
+        uniform_struct = pp_config['uniform_structure']
+
     int2str_len = 3
     if 'int2str_len' in pp_config:
         int2str_len = pp_config['int2str_len']
@@ -101,12 +101,10 @@ def pre_process(pp_config):
         str_elem_radius = 5
         if 'str_elem_radius' in pp_config['masks']:
             str_elem_radius = pp_config['masks']['str_elem_radius']
-        start = time.time()
         mask_processor_inst.generate_masks(
             correct_flat_field=correct_flat_field,
             str_elem_radius=str_elem_radius,
         )
-        print('Tiling time: {}'.format(time.time() - start))
         mask_dir = mask_processor_inst.get_mask_dir()
         mask_channel = mask_processor_inst.get_mask_channel()
 
@@ -116,7 +114,7 @@ def pre_process(pp_config):
         channel_ids = -1
         if 'channels' in pp_config['tile']:
             channel_ids = pp_config['tile']['channels']
-        start = time.time()
+
         if uniform_struct:
             tile_inst = ImageTilerUniform(input_dir=input_dir,
                                           output_dir=output_dir,
@@ -150,7 +148,6 @@ def pre_process(pp_config):
             )
         else:
             tile_inst.tile_stack()
-        print('Tiling time: {}'.format(time.time() - start))
 
     # Write in/out/mask/tile paths and config to json in output directory
     processing_info = {

@@ -4,8 +4,8 @@ import os
 import pandas as pd
 
 import micro_dl.utils.aux_utils as aux_utils
-from micro_dl.preprocessing.tile_images_uni_struct import ImageTilerUniform
-from micro_dl.utils.mp_utils import mp_tile_save, mp_crop_at_indices_save
+from micro_dl.preprocessing.tile_uniform_images import ImageTilerUniform
+from micro_dl.utils.mp_utils import mp_tile_save, mp_crop_save
 
 
 class ImageTilerNonUniform(ImageTilerUniform):
@@ -79,7 +79,7 @@ class ImageTilerNonUniform(ImageTilerUniform):
         self.tile_dir/meta_dir. The list of meta_df for all images gets saved
         as frames_meta.csv
 
-        :param list channel0_ids: [tp_idx, ch_idx, ch_dict] for first channel
+        :param dict channel0_ids: [tp_idx][ch_idx][ch_dict] for first channel
          or mask channel
         :param int channel0_depth: image depth for first channel or mask
         :param str cur_mask_dir: mask dir if tiling mask channel else none
@@ -89,21 +89,23 @@ class ImageTilerNonUniform(ImageTilerUniform):
         """
 
         fn_args = []
-        for tp_idx, ch_idx, ch_dict in channel0_ids:
-            for pos_idx, sl_idx_list in ch_dict.items():
-                cur_sl_idx_list = aux_utils.adjust_slice_margins(
-                    sl_idx_list, channel0_depth
-                )
-                for sl_idx in cur_sl_idx_list:
-                    cur_args = super().get_args_tile_image(
-                        channel_idx=ch_idx,
-                        time_idx=tp_idx,
-                        slice_idx=sl_idx,
-                        pos_idx=pos_idx,
-                        mask_dir=cur_mask_dir,
-                        min_fraction=min_fraction
+        for tp_idx, tp_dict in channel0_ids.items():
+            for ch_idx, ch_dict in tp_dict.items():
+                for pos_idx, sl_idx_list in ch_dict.items():
+                    cur_sl_idx_list = aux_utils.adjust_slice_margins(
+                        sl_idx_list, channel0_depth
                     )
-                    fn_args.append(cur_args)
+                    for sl_idx in cur_sl_idx_list:
+                        cur_args = super().get_crop_tile_args(
+                            channel_idx=ch_idx,
+                            time_idx=tp_idx,
+                            slice_idx=sl_idx,
+                            pos_idx=pos_idx,
+                            task_type='tile',
+                            mask_dir=cur_mask_dir,
+                            min_fraction=min_fraction
+                        )
+                        fn_args.append(cur_args)
 
         # tile_image uses min_fraction assuming input_image is a bool
         ch0_meta_df_list = mp_tile_save(fn_args, workers=self.num_workers)
@@ -144,17 +146,18 @@ class ImageTilerNonUniform(ImageTilerUniform):
                             slice_idx=sl_idx
                         )
                         if np.any(cur_tile_indices):
-                            cur_args = super().get_args_crop_at_indices(
-                                cur_tile_indices,
+                            cur_args = super().get_crop_tile_args(
                                 ch_idx,
                                 tp_idx,
                                 sl_idx,
-                                pos_idx
+                                pos_idx,
+                                task_type='crop',
+                                tile_indices=cur_tile_indices
                             )
                             fn_args.append(cur_args)
 
-        tiled_meta_df_list = mp_crop_at_indices_save(fn_args,
-                                                     workers=self.num_workers)
+        tiled_meta_df_list = mp_crop_save(fn_args,
+                                          workers=self.num_workers)
         tiled_metadata = pd.concat(tiled_meta_df_list, ignore_index=True)
 
         tiled_metadata = pd.concat([cur_meta_df.reset_index(drop=True),
@@ -186,15 +189,15 @@ class ImageTilerNonUniform(ImageTilerUniform):
 
         # create a copy of nested_id_dict to remove the entries of the first
         # channel
-        nested_id_dict_1 = copy.deepcopy(self.nested_id_dict)
+        nested_id_dict_copy = copy.deepcopy(self.nested_id_dict)
 
-        ch0_ids = []
+        ch0_ids = {}
         for tp_idx, tp_dict in self.nested_id_dict.items():
             for ch_idx, ch_dict in tp_dict.items():
                 if ch_idx == ch_to_tile:
-                    cur_idx = [tp_idx, ch_idx, ch_dict]
-                    ch0_ids.append(cur_idx)
-                    del nested_id_dict_1[tp_idx][ch_idx]
+                    ch0_dict = {ch_idx: ch_dict}
+                    del nested_id_dict_copy[tp_idx][ch_idx]
+            ch0_ids[tp_idx] = ch0_dict
 
         # tile first channel and use the tile indices to tile the rest
         meta_df = self.tile_first_channel(channel0_ids=ch0_ids,
@@ -202,7 +205,7 @@ class ImageTilerNonUniform(ImageTilerUniform):
         # remove channel 0 from self.channel_ids
         _ = self.channel_ids.pop(0)
         if self.channel_ids:
-            self.tile_remaining_channels(nested_id_dict=nested_id_dict_1,
+            self.tile_remaining_channels(nested_id_dict=nested_id_dict_copy,
                                          tiled_ch_id=ch_to_tile,
                                          cur_meta_df=meta_df)
 
@@ -238,17 +241,17 @@ class ImageTilerNonUniform(ImageTilerUniform):
 
         # create a copy of nested_id_dict to remove the entries of the first
         # channel
-        nested_id_dict_1 = copy.deepcopy(self.nested_id_dict)
+        nested_id_dict_copy = copy.deepcopy(self.nested_id_dict)
 
         # get t, z, p indices for mask_channel
-        ch0_ids = []
+        ch0_ids = {}
         for tp_idx, tp_dict in self.nested_id_dict.items():
             for ch_idx, ch_dict in tp_dict.items():
                 if ch_idx == ch0:
-                    cur_idx = [tp_idx, mask_channel, ch_dict]
-                    ch0_ids.append(cur_idx)
+                    ch0_dict = {mask_channel: ch_dict}
                     if mask_ch_in_dict:
-                        del nested_id_dict_1[tp_idx][ch_idx]
+                        del nested_id_dict_copy[tp_idx][ch_idx]
+            ch0_ids[tp_idx] = ch0_dict
 
         # tile first channel and use the tile indices to tile the rest
         meta_df = self.tile_first_channel(channel0_ids=ch0_ids,
@@ -256,7 +259,7 @@ class ImageTilerNonUniform(ImageTilerUniform):
                                           cur_mask_dir=mask_dir,
                                           min_fraction=min_fraction)
 
-        nested_dict = nested_id_dict_1 if mask_ch_in_dict \
+        nested_dict = nested_id_dict_copy if mask_ch_in_dict \
             else self.nested_id_dict
         # tile the rest
         self.tile_remaining_channels(nested_id_dict=nested_dict,

@@ -8,6 +8,13 @@ from micro_dl.utils import tile_utils as tile_utils
 
 
 def mp_create_save_mask(fn_args, workers):
+    """Create and save masks with multiprocessing
+
+    :param list of tuple fn_args: list with tuples of function arguments
+    :param int workers: max number of workers
+    :return: list of returned dicts from create_save_mask
+    """
+
     with ProcessPoolExecutor(workers) as ex:
         # can't use map directly as it works only with single arg functions
         res = ex.map(create_save_mask, *zip(*fn_args))
@@ -142,8 +149,14 @@ def tile_and_save(input_fnames,
     return tile_meta_df
 
 
-def mp_crop_at_indices_save(fn_args, workers):
-    # TODO modify to take funtion as input
+def mp_crop_save(fn_args, workers):
+    """Crop and save images with multiprocessing
+
+    :param list of tuple fn_args: list with tuples of function arguments
+    :param int workers: max number of workers
+    :return: list of returned df from crop_at_indices_save
+    """
+
     with ProcessPoolExecutor(workers) as ex:
         # can't use map directly as it works only with single arg functions
         res = ex.map(crop_at_indices_save, *zip(*fn_args))
