@@ -168,4 +168,7 @@ if __name__ == '__main__':
     args = parse_args()
     config = aux_utils.read_config(args.config)
     pre_process(config)
-    print("Total preprocessing time:", time.time() - time_start)
+    time_el = time.time() - time_start
+    print("Time elapsed:", time_el)
+    with open('preproc_time.txt', 'w') as f:
+        f.write('Elapsed time: {}'.format(time_el))
