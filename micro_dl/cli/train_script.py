@@ -296,4 +296,7 @@ if __name__ == '__main__':
         args.gpu_mem_frac,
     )
     run_action(args, gpu_id, gpu_mem_frac)
-    print("Time elapsed:", time.time() - time_start)
+    time_el = time.time() - time_start
+    print("Time elapsed:", time_el)
+    with open('/data/train_time.txt', 'w') as f:
+        f.write('Elapsed time: {}'.format(time_el))
