@@ -17,6 +17,7 @@ class BaseTrainingTable:
         :param list input_channels: list of input channels
         :param list target_channels: list of target channels
         :param str split_by_column: column to be used for train-val-test split
+         or index of df_metadata
         :param dict split_ratio: dict with keys train, val, test and values are
          the corresponding ratios
         :param list of ints/None mask_channels: Use mask channel if specified
