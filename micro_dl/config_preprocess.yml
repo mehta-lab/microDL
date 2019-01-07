@@ -1,6 +1,7 @@
 output_dir: '/Users/jenny.folkesson/Data/SMS-2018-07-03-18-35-00-0010_train_data'
 verbose: 10
 input_dir: '/Users/jenny.folkesson/Data/SMS-2018-07-03-18-35-00-0010'
+resample_scale: 0.2
 correct_flat_field: True
 create_masks: True
 masks:

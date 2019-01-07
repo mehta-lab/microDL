@@ -34,6 +34,8 @@ def pre_process(pp_config):
     Preprocess data. Possible options are:
     correct_flat_field: Perform flatfield correction (2D only currently)
     create_masks: Generate binary masks from given input channels
+    resample: Resize 2D images (xy-plane) according to a scale factor,
+        e.g. to match resolution in z.
     do_tiling: Split frames (stacked frames if generating 3D tiles) into
     smaller tiles with tile_size and step_size.
     This script will preprocess your dataset, save tiles and associated
@@ -70,6 +72,10 @@ def pre_process(pp_config):
     num_workers = 4
     if 'num_workers' in pp_config['tile']:
         num_workers = pp_config['num_workers']
+
+    # Resample frames
+    if 'resample_scale' in pp_config:
+        assert 'scale_factor' in pp_config['resample']
 
     # estimate flat_field images
     correct_flat_field = True if pp_config['correct_flat_field'] else False
