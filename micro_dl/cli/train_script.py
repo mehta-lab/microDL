@@ -180,7 +180,7 @@ def run_action(args, gpu_ids, gpu_mem_frac):
     :param int gpu_ids: GPU ID
     :param float gpu_mem_frac: Available GPU memory fraction
     """
-
+    time_start = time.time()
     action = args.action
     config = aux_utils.read_config(args.config)
     dataset_config = config['dataset']
@@ -273,6 +273,12 @@ def run_action(args, gpu_ids, gpu_mem_frac):
                                    gpu_mem_frac=args.gpu_mem_frac)
         trainer.train()
 
+        time_el = time.time() - time_start
+        print("Time elapsed:", time_el)
+        time_fname = os.path.join(trainer_config['model_dir'], 'train_time.txt')
+        with open(time_fname, 'w') as f:
+            f.write('Training time: {}'.format(time_el))
+
     elif action == 'tune_hyperparam':
         raise NotImplementedError
     else:
@@ -282,7 +288,6 @@ def run_action(args, gpu_ids, gpu_mem_frac):
 
 if __name__ == '__main__':
     # Parse command line arguments
-    time_start = time.time()
     args = parse_args()
     # Get GPU ID and memory fraction
     gpu_id, gpu_mem_frac = train_utils.select_gpu(
@@ -290,7 +295,3 @@ if __name__ == '__main__':
         args.gpu_mem_frac,
     )
     run_action(args, gpu_id, gpu_mem_frac)
-    time_el = time.time() - time_start
-    print("Time elapsed:", time_el)
-    with open('/data/train_time.txt', 'w') as f:
-        f.write('Elapsed time: {}'.format(time_el))

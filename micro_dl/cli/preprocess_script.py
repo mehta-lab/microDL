@@ -44,6 +44,7 @@ def pre_process(pp_config):
     [input_dir, output_dir, slice_ids, time_ids, pos_ids
     correct_flat_field, use_masks, masks, tile_stack, tile]
     """
+    time_start = time.time()
     input_dir = pp_config['input_dir']
     output_dir = pp_config['output_dir']
 
@@ -162,13 +163,15 @@ def pre_process(pp_config):
     meta_path = os.path.join(output_dir, "preprocessing_info.json")
     aux_utils.write_json(processing_info, meta_path)
 
+    time_el = time.time() - time_start
+    print("Time elapsed:", time_el)
+    time_fname = os.path.join(output_dir, 'preproc_time.txt')
+    with open(time_fname, 'w') as f:
+        f.write('Elapsed time: {}'.format(time_el))
+
 
 if __name__ == '__main__':
-    time_start = time.time()
+
     args = parse_args()
     config = aux_utils.read_config(args.config)
     pre_process(config)
-    time_el = time.time() - time_start
-    print("Time elapsed:", time_el)
-    with open('preproc_time.txt', 'w') as f:
-        f.write('Elapsed time: {}'.format(time_el))
