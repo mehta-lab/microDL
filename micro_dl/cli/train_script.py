@@ -212,7 +212,7 @@ def run_action(args, gpu_ids, gpu_mem_frac):
     tile_dir = preprocessing_info[tile_dir_name]
     # Get shape order from preprocessing config
     config_preprocess = preprocessing_info['config']
-    shape_order = 'yxz'
+    shape_order = 'zyx'
     if 'shape_order' in config_preprocess['tile']:
         shape_order = config_preprocess['tile']['shape_order']
 

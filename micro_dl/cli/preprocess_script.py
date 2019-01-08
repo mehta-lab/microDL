@@ -151,7 +151,10 @@ def pre_process(pp_config):
             tile_inst.tile_stack()
 
     # Write in/out/mask/tile paths and config to json in output directory
+    time_el = time.time() - time_start
+    print("Time elapsed:", time_el)
     processing_info = {
+        "preprocessing_time": time_el,
         "input_dir": input_dir,
         "output_dir": output_dir,
         "flat_field_dir": flat_field_dir,
@@ -162,12 +165,6 @@ def pre_process(pp_config):
     }
     meta_path = os.path.join(output_dir, "preprocessing_info.json")
     aux_utils.write_json(processing_info, meta_path)
-
-    time_el = time.time() - time_start
-    print("Time elapsed:", time_el)
-    time_fname = os.path.join(output_dir, 'preproc_time.txt')
-    with open(time_fname, 'w') as f:
-        f.write('Elapsed time: {}'.format(time_el))
 
 
 if __name__ == '__main__':
