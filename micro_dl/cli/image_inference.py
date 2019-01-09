@@ -182,7 +182,12 @@ def run_prediction(args, gpu_ids, gpu_mem_frac):
                 im_stack = image_utils.crop2base(im_stack)
                 # Flip dimensions if data format is channels first
                 if data_format == 'channels_first':
+                    # Change dimension order to zyx (3D) or channel first (2D)
                     im_stack = np.transpose(im_stack, [2, 0, 1])
+                    if depth > 1:
+                        # Add channel dimension for 3D data
+                        im_stack = im_stack[np.newaxis,...]
+
                 # Expand dimensions
                 im_stack = np.expand_dims(im_stack, axis=0)
                 # Predict on large image
