@@ -8,7 +8,6 @@ import os
 import pandas as pd
 import tensorflow as tf
 import yaml
-import time
 
 from micro_dl.input.dataset import BaseDataSet, DataSetWithMask
 from micro_dl.input.training_table import BaseTrainingTable
@@ -180,7 +179,6 @@ def run_action(args, gpu_ids, gpu_mem_frac):
     :param int gpu_ids: GPU ID
     :param float gpu_mem_frac: Available GPU memory fraction
     """
-    time_start = time.time()
     action = args.action
     config = aux_utils.read_config(args.config)
     dataset_config = config['dataset']
@@ -272,12 +270,6 @@ def run_action(args, gpu_ids, gpu_mem_frac):
                                    gpu_ids=args.gpu,
                                    gpu_mem_frac=args.gpu_mem_frac)
         trainer.train()
-
-        time_el = time.time() - time_start
-        print("Time elapsed:", time_el)
-        time_fname = os.path.join(trainer_config['model_dir'], 'train_time.txt')
-        with open(time_fname, 'w') as f:
-            f.write('Training time: {}'.format(time_el))
 
     elif action == 'tune_hyperparam':
         raise NotImplementedError
