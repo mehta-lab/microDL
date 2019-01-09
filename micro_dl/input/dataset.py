@@ -87,10 +87,8 @@ class BaseDataSet(keras.utils.Sequence):
             self.num_epoch_samples = int(self.num_samples * train_fraction)
         self.steps_per_epoch = int(np.ceil(self.num_epoch_samples /
                                            self.batch_size))
-        # Do an initial shuffle
+        # Declare row indices, will to an inital shuffle at the end of init`
         self.row_idx = np.arange(self.num_samples)
-        if self.shuffle:
-            np.random.shuffle(self.row_idx)
 
         # Whether to remove singleton dimensions from tiles (e.g. 2D models)
         self.squeeze = False
