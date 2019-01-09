@@ -73,9 +73,8 @@ def pre_process(pp_config):
     if 'num_workers' in pp_config['tile']:
         num_workers = pp_config['num_workers']
 
-    # Resample frames
     if 'resample_scale' in pp_config:
-        assert 'scale_factor' in pp_config['resample']
+        scale_factor = pp_config['resample_scale']
 
     # estimate flat_field images
     correct_flat_field = True if pp_config['correct_flat_field'] else False
