@@ -226,7 +226,6 @@ class BaseDataSet(keras.utils.Sequence):
         aug_idx = 0
         for idx in range(start_idx, end_idx, 1):
             cur_input_fnames = self.input_fnames.iloc[self.row_idx[idx]]
-            print("input ids", self.row_idx[idx])
             cur_target_fnames = self.target_fnames.iloc[self.row_idx[idx]]
             # Select select int randomly that will represent augmentation type
             if self.augmentations:
