@@ -218,7 +218,7 @@ class BaseKerasTrainer:
         self.model.summary()
         self.logger.info('Model compiled')
         steps_per_epoch = self.train_dataset.get_steps_per_epoch()
-        self.logger.info("Steps per epoch".format(steps_per_epoch))
+        self.logger.info("Steps per epoch: {}".format(steps_per_epoch))
 
         try:
             time_start = time.time()

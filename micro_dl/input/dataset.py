@@ -46,6 +46,8 @@ class BaseDataSet(keras.utils.Sequence):
         self.target_fnames = target_fnames
         self.num_samples = len(self.input_fnames)
         self.batch_size = batch_size
+        assert shape_order in {'yxz', 'zyx'},\
+            "Shape order should be yxz or zyx, not {}".format(shape_order)
         self.shape_order = shape_order
 
         # Check if model task (regression or segmentation) is specified
@@ -301,7 +303,7 @@ class DataSetWithMask(BaseDataSet):
         :param int index: batch index
         :return: np.ndarrays input_image and target_image of shape
          [batch_size, num_channels, z, y, x] and mask_image of shape
-         [batch_size, z, y, x] for data format channels_first,
+         [batch_size, z, y, x] for shape order zyx,
          otherwise [..., y, x, z]
         """
 
