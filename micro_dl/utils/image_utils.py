@@ -28,7 +28,7 @@ def resize_image(input_image, output_shape):
 
 def rescale_image(im, scale_factor):
     """
-    Rescales an image equally in x and y given a scale factor.
+    Rescales a 2D image equally in x and y given a scale factor.
     Uses bilinear interpolation (the OpenCV default).
 
     :param np.array im: 2D image
@@ -39,7 +39,12 @@ def rescale_image(im, scale_factor):
     assert scale_factor > 0,\
         'Scale factor must be > 0, not {}'.format(scale_factor)
 
-    return cv2.resize(im, fx=scale_factor, fy=scale_factor)
+    im_shape = im.shape
+    assert len(im_shape) == 2, "OpenCV only works with 2D images"
+    dsize = (int(round(im_shape[1] * scale_factor)),
+             int(round(im_shape[0] * scale_factor)))
+
+    return cv2.resize(im, dsize=dsize)
 
 
 def crop2base(im, base=2):

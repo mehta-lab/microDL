@@ -1,10 +1,11 @@
 """Generate masks from sum of flurophore channels"""
 
+import cv2
 import numpy as np
 import os
 
 import micro_dl.utils.aux_utils as aux_utils
-import micro_dl.utils.image_utils as image_utils
+import micro_dl.utils.mp_utils as mp_utils
 
 
 class ImageResizer:
@@ -18,17 +19,19 @@ class ImageResizer:
                  time_ids=-1,
                  slice_ids=-1,
                  pos_ids=-1,
-                 int2str_len=3):
+                 int2str_len=3,
+                 num_workers=4):
         """
         :param str input_dir: Directory with image frames
         :param str output_dir: Base output directory
         :param float scale_factor: Scale factor for resizing frames
         :param int/list channel_ids: Channel indices to resize
             (default -1 includes all slices)
-        :param list/int time_ids: timepoints to use
-        :param int slice_ids: Index of slize (z) indices to use
-        :param int pos_ids: Position (FOV) indices to use
+        :param int/list time_ids: timepoints to use
+        :param int/list slice_ids: Index of slize (z) indices to use
+        :param int/list pos_ids: Position (FOV) indices to use
         :param int int2str_len: Length of str when converting ints
+        :param int num_workers: number of workers for multiprocessing
         """
         self.input_dir = input_dir
         self.output_dir = output_dir
@@ -37,7 +40,7 @@ class ImageResizer:
         self.scale_factor = scale_factor
 
         self.frames_metadata = aux_utils.read_meta(self.input_dir)
-        metadata_ids = aux_utils.validate_metadata_indices(
+        metadata_ids, _ = aux_utils.validate_metadata_indices(
             frames_metadata=self.frames_metadata,
             time_ids=time_ids,
             channel_ids=channel_ids,
@@ -52,11 +55,12 @@ class ImageResizer:
         # Create resize_dir as a subdirectory of output_dir
         self.resize_dir = os.path.join(
             self.output_dir,
-            'resized_frames',
+            'resized_images',
         )
         os.makedirs(self.resize_dir, exist_ok=True)
 
         self.int2str_len = int2str_len
+        self.num_workers = num_workers
 
     def get_resize_dir(self):
         """
@@ -69,6 +73,7 @@ class ImageResizer:
         """
         Resize frames for given indices.
         """
+        mp_args = []
         resized_metadata = aux_utils.make_dataframe()
         # Loop through all the indices and resize images
         for slice_idx in self.slice_ids:
@@ -82,29 +87,21 @@ class ImageResizer:
                             slice_idx,
                             pos_idx,
                         )
-                        file_path = os.path.join(
-                            self.input_dir,
-                            self.frames_metadata.loc[frame_idx, "file_name"],
-                        )
-                        im = image_utils.read_image(file_path)
-                        # Here's where the resizing happens
-                        im_resized = image_utils.rescale_image(im, self.scale_factor)
-                        # Get name for given indices
-                        file_name = aux_utils.get_im_name(
-                            time_idx=time_idx,
-                            channel_idx=channel_idx,
-                            slice_idx=slice_idx,
-                            pos_idx=pos_idx,
-                        )
-                        # Save mask for given channels
-                        np.save(os.path.join(self.resize_dir, file_name),
-                                im_resized,
-                                allow_pickle=True,
-                                fix_imports=True)
+                        file_name = self.frames_metadata.loc[frame_idx, "file_name"]
+                        file_path = os.path.join(self.input_dir, file_name)
+                        write_path = os.path.join(self.resize_dir, file_name)
+                        kwargs = {
+                            'file_path': file_path,
+                            'write_path': write_path,
+                            'scale_factor': self.scale_factor,
+                        }
+                        mp_args.append(kwargs)
                         resized_metadata = resized_metadata.append(
                             self.frames_metadata.iloc[frame_idx],
                             ignore_index=True,
                         )
+        # Multiprocessing of kwargs
+        mp_utils.mp_resize_save(mp_args, self.num_workers)
         resized_metadata = resized_metadata.sort_values(by=['file_name'])
         resized_metadata.to_csv(
             os.path.join(self.resize_dir, "frames_meta.csv"),
