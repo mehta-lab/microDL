@@ -96,7 +96,10 @@ python micro_dl/cli/preprocess_script.py --config <config path (.yml)>
 The following settings can be adjusted in preprocessing using a config file (see example in preprocess_config.yml):
 * input_dir: (str) Directory where data to be preprocessed is located
 * output_dir: (str) folder name where all processed data will be written
-* slice_ids: (int/list) Value(s) of z-index to be processed
+* channel_ids: (list of ints) specify channel numbers (default is -1 for all indices)
+* slice_ids: (int/list) Value(s) of z-indices to be processed (default is -1 for all indices)
+* time_ids: (int/list) Value(s) of timepoints to be processed (default is -1 for all indices)
+* pos_ids: (int/list) Value(s) of FOVs/positions to be processed (default is -1 for all indices)
 * verbose: (int) Logging verbosity levels: NOTSET:0, DEBUG:10, INFO:20, WARNING:30, ERROR:40, CRITICAL:50
 * resample_scale: (float) Scale factor for resizing 2D frames, e.g. to match resolution in z
 * correct_flat_field: (bool) perform flatfield correction (2D data only)
@@ -107,7 +110,6 @@ The following settings can be adjusted in preprocessing using a config file (see
     * str_elem_radius: (int) morpological structuring element radius
 * do_tiling: (bool) do tiling (recommended)
 * tile:
-    * channels: (list of ints) specify channel numbers, -1 for all channels
     * tile_size: (list of ints) tile size in pixels for each dimension
     * step_size: (list of ints) step size in pixels for each dimension
     * depths: (list of ints) tile z depth for all the channels specified

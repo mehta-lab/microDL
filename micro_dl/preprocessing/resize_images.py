@@ -69,6 +69,7 @@ class ImageResizer:
         """
         Resize frames for given indices.
         """
+        resized_metadata = aux_utils.make_dataframe()
         # Loop through all the indices and resize images
         for slice_idx in self.slice_ids:
             for time_idx in self.time_ids:
@@ -100,3 +101,12 @@ class ImageResizer:
                                 im_resized,
                                 allow_pickle=True,
                                 fix_imports=True)
+                        resized_metadata = resized_metadata.append(
+                            self.frames_metadata.iloc[frame_idx],
+                            ignore_index=True,
+                        )
+        resized_metadata = resized_metadata.sort_values(by=['file_name'])
+        resized_metadata.to_csv(
+            os.path.join(self.resize_dir, "frames_meta.csv"),
+            sep=',',
+        )
