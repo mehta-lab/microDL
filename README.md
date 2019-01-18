@@ -97,6 +97,7 @@ The following settings can be adjusted in preprocessing using a config file (see
 * input_dir: (str) Directory where data to be preprocessed is located
 * output_dir: (str) folder name where all processed data will be written
 * channel_ids: (list of ints) specify channel numbers (default is -1 for all indices)
+* num_workers: (int) Number of workers for multiprocessing
 * slice_ids: (int/list) Value(s) of z-indices to be processed (default is -1 for all indices)
 * time_ids: (int/list) Value(s) of timepoints to be processed (default is -1 for all indices)
 * pos_ids: (int/list) Value(s) of FOVs/positions to be processed (default is -1 for all indices)

@@ -76,7 +76,7 @@ def pre_process(pp_config):
         int2str_len = pp_config['int2str_len']
 
     num_workers = 4
-    if 'num_workers' in pp_config['tile']:
+    if 'num_workers' in pp_config:
         num_workers = pp_config['num_workers']
 
     # Resample images first
