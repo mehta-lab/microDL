@@ -51,13 +51,7 @@ def predict_on_larger_image(model, input_image):
     """
     im_size = input_image.shape
     num_dims = len(im_size)
-    # if num_dims == 3:
-    #     im_shape = [1, im_size[0], im_size[1], im_size[2]]
-    # elif num_dims == 4:
-    #     im_shape = [1, im_size[0], im_size[1], im_size[2], im_size[3]]
-    # else:
-    #     raise ValueError('Invalid image shape: only 3D and 4D inputs - 2D / 3D'
-    #                      'images with channel dim allowed')
+
     assert num_dims in [3,4], \
         'Invalid image shape: only 3D and 4D inputs - 2D / 3D ' \
         'images with channel dim allowed'
