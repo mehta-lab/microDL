@@ -42,6 +42,7 @@ def select_gpu(gpu_ids=None, gpu_mem_frac=None):
     If ID is given as input, set the gpu_mem_frac to maximum available,
     or if a memory fraction is given, make sure the given GPU has the desired
     memory fraction available.
+    Currently only supports single GPU runs.
 
     :param int or list of int gpu_ids: Desired GPU ID. If None, find GPU with the most memory
         available.
@@ -55,32 +56,33 @@ def select_gpu(gpu_ids=None, gpu_mem_frac=None):
     # Check if user has specified a GPU ID to use
     if not isinstance(gpu_ids, type(None)):
         # Currently only supporting one GPU as input
-        if isinstance(gpu_ids, int):
-            gpu_ids = [gpu_ids]
+        if not isinstance(gpu_ids, int):
+            raise NotImplementedError
         if gpu_ids == -1:
             return -1, 0
-        if isinstance(gpu_mem_frac, float):
-            gpu_mem_frac = [gpu_mem_frac]
         cur_mem_frac = check_gpu_availability(gpu_ids)
-        assert np.all(np.array(cur_mem_frac >= gpu_mem_frac)), \
-            ("Not enough memory available. Requested/current fractions:",
-                "\n".join([str(c) + " / " + "{0:.4g}".format(m)
-                           for c, m in zip(gpu_mem_frac, cur_mem_frac)]))
-    else:
-        # User has not specified GPU ID, find the GPU with most memory available
-        sp = subprocess.Popen(['nvidia-smi --query-gpu=index --format=csv'],
-                              stdout=subprocess.PIPE,
-                              shell=True)
-        gpu_ids = sp.communicate()
-        gpu_ids = gpu_ids[0].decode('utf8')
-        gpu_ids = gpu_ids.split('\n')
-        # If no GPUs are found, run on CPU (debug mode)
-        if len(gpu_ids) <= 2:
-            print('No GPUs found, run will be slow. Query result: {}'.format(gpu_ids))
-            return -1, 0
-        gpu_ids = [int(gpu_id) for gpu_id in gpu_ids[1:-1]]
-        cur_mem_frac = check_gpu_availability(gpu_ids)
+        if not isinstance(gpu_mem_frac, type(None)):
+            if isinstance(gpu_mem_frac, float):
+                gpu_mem_frac = [gpu_mem_frac]
+            assert np.all(np.array(cur_mem_frac >= gpu_mem_frac)), \
+                ("Not enough memory available. Requested/current fractions:",
+                    "\n".join([str(c) + " / " + "{0:.4g}".format(m)
+                              for c, m in zip(gpu_mem_frac, cur_mem_frac)]))
+        return gpu_ids, cur_mem_frac[0]
 
+    # User has not specified GPU ID, find the GPU with most memory available
+    sp = subprocess.Popen(['nvidia-smi --query-gpu=index --format=csv'],
+                          stdout=subprocess.PIPE,
+                          shell=True)
+    gpu_ids = sp.communicate()
+    gpu_ids = gpu_ids[0].decode('utf8')
+    gpu_ids = gpu_ids.split('\n')
+    # If no GPUs are found, run on CPU (debug mode)
+    if len(gpu_ids) <= 2:
+        print('No GPUs found, run will be slow. Query result: {}'.format(gpu_ids))
+        return -1, 0
+    gpu_ids = [int(gpu_id) for gpu_id in gpu_ids[1:-1]]
+    cur_mem_frac = check_gpu_availability(gpu_ids)
     # Get the GPU with maximum memory fraction
     max_mem = max(cur_mem_frac)
     idx = cur_mem_frac.index(max_mem)
@@ -92,7 +94,7 @@ def select_gpu(gpu_ids=None, gpu_mem_frac=None):
 
 
 def split_train_val_test(sample_set, train_ratio, test_ratio,
-                         val_ratio=None, random_seed=None):
+                          val_ratio=None, random_seed=None):
     """Generate indices for train, validation and test split
 
     This can be achieved by using sklearn.model_selection.train_test_split
@@ -115,9 +117,8 @@ def split_train_val_test(sample_set, train_ratio, test_ratio,
     num_test = int(test_ratio * num_samples)
     num_test = max(num_test, 1)
 
+    np.random.seed(random_seed)
     split_idx = {}
-    if random_seed:
-        np.random.seed(random_seed)
     test_idx = np.random.choice(sample_set, num_test, replace=False)
     split_idx['test'] = test_idx.tolist()
     rem_set = set(sample_set) - set(test_idx)
@@ -126,8 +127,6 @@ def split_train_val_test(sample_set, train_ratio, test_ratio,
     if val_ratio:
         num_val = int(val_ratio * num_samples)
         num_val = max(num_val, 1)
-        if random_seed:
-            np.random.seed(random_seed)
         val_idx = np.random.choice(rem_set, num_val, replace=False)
         split_idx['val'] = val_idx.tolist()
         rem_set = set(rem_set) - set(val_idx)

@@ -1,7 +1,7 @@
 import nose.tools
 import numpy as np
 
-import micro_dl.input.estimate_flat_field as est_flat_field
+import micro_dl.preprocessing.estimate_flat_field as est_flat_field
 import micro_dl.utils.image_utils as image_utils
 
 

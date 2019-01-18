@@ -107,7 +107,7 @@ def tile_image(input_image,
     """
      Tiles the image based on given tile and step size.
 
-     USE MIN_FRACTION WITH INPUT_IMAGE.DTYPE=bool
+     USE MIN_FRACTION WITH INPUT_IMAGE.DTYPE=bool / MASKS
 
     :param np.array input_image: input image to be tiled
     :param list/tuple/np array tile_size: size of the blocks to be tiled
