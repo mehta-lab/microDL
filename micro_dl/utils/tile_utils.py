@@ -27,7 +27,7 @@ def read_imstack(input_fnames,
             if isinstance(flat_field_fname, (list, tuple)):
                 flat_field_image = np.load(flat_field_fname[idx])
             else:
-                flat_field_fname = np.load(flat_field_fname)
+                flat_field_image = np.load(flat_field_fname)
             im = apply_flat_field_correction(im,
                                              flat_field_image=flat_field_image)
         im_stack.append(im)

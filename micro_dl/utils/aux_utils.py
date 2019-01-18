@@ -111,22 +111,6 @@ def get_im_name(time_idx=None,
     :return st im_name: Image file name
     """
 
-    if channel_idx is not None:
-        assert isinstance(channel_idx, (int, float)), \
-            'more than one channel id provided'
-
-    if slice_idx is not None:
-        assert isinstance(slice_idx, (int, list)), \
-            'more than one slice id provided'
-
-    if pos_idx is not None:
-        assert isinstance(pos_idx, (int, float)), \
-            'more than one pos id provided'
-
-    if time_idx is not None:
-        assert isinstance(time_idx, (int, float)), \
-            'more than one time id provided'
-
     im_name = "im"
     if channel_idx is not None:
         im_name += "_c" + str(channel_idx).zfill(int2str_len)

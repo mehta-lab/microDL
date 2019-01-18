@@ -351,7 +351,7 @@ class ImageTilerUniform:
         flat_field_fname = None
         if mask_dir is None:
             if self.flat_field_dir is not None:
-                flat_field_fname.append = os.path.join(
+                flat_field_fname = os.path.join(
                         self.flat_field_dir,
                         'flat-field_channel-{}.npy'.format(channel_idx)
                     )
