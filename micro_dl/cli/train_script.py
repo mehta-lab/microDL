@@ -95,10 +95,10 @@ def create_datasets(df_meta,
     if masked_loss:
         mask_channels = dataset_config['mask_channels']
 
+    random_seed = None
     if 'random_seed' in dataset_config:
         random_seed = dataset_config['random_seed']
-    else:
-        random_seed = None
+
     tt = BaseTrainingTable(
         df_metadata=df_meta,
         input_channels=dataset_config['input_channels'],

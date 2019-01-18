@@ -1,6 +1,5 @@
 """Utility functions for processing images"""
-# import cv2
-import skimage.io as cv2
+import cv2
 import itertools
 import math
 import numpy as np
@@ -166,7 +165,7 @@ def read_image(file_path):
         im = np.load(file_path)
     else:
         try:
-            im = cv2.imread(file_path) #cv2.IMREAD_ANYDEPTH)
+            im = cv2.imread(file_path, cv2.IMREAD_ANYDEPTH)
         except IOError as e:
             print(e)
             raise

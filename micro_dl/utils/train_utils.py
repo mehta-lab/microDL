@@ -44,7 +44,7 @@ def select_gpu(gpu_ids=None, gpu_mem_frac=None):
     memory fraction available.
     Currently only supports single GPU runs.
 
-    :param int or list of int gpu_ids: Desired GPU ID. If None, find GPU with the most memory
+    :param int gpu_ids: Desired GPU ID. If None, find GPU with the most memory
         available.
     :param float gpu_mem_frac: Desired GPU memory fraction [0, 1]. If None,
         use maximum available amount of GPU.
