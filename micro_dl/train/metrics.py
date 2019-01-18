@@ -65,12 +65,14 @@ def ssim(y_true, y_pred):
     """
     if K.ndim(y_true)>4:
         if K.image_data_format() == 'channels_first':
-            y_true = K.squeeze(y_true, axis=2)
-            y_pred = K.squeeze(y_pred, axis=2)
+            y_true = tf.transpose(y_true, [0, 2, 3, 4, 1])
+            y_pred = tf.transpose(y_pred, [0, 2, 3, 4, 1])
+        # remove the singular z dimension
+        y_true = K.squeeze(y_true, axis=1)
+        y_pred = K.squeeze(y_pred, axis=1)
+    else:
+        if K.image_data_format() == 'channels_first':
             y_true = tf.transpose(y_true, [0, 2, 3, 1])
             y_pred = tf.transpose(y_pred, [0, 2, 3, 1])
-        else:
-            y_true = K.squeeze(y_true, axis=1)
-            y_pred = K.squeeze(y_pred, axis=1)
     ssim = tf.image.ssim(y_true, y_pred, max_val=5)
     return K.mean(ssim)
