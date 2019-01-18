@@ -115,10 +115,15 @@ class MaskProcessor:
 
         flat_field_fname = None
         if correct_flat_field:
-            flat_field_fname = os.path.join(
-                self.flat_field_dir,
-                'flat-field_channel-{}.npy'.format(channel_idx)
-            )
+            if not isinstance(channel_idx, (list, tuple)):
+                channel_idx = [channel_idx]
+            flat_field_fname = []
+            for ch_idx in channel_idx:
+                flat_field_fname.append(os.path.join(
+                    self.flat_field_dir,
+                    'flat-field_channel-{}.npy'.format(ch_idx)
+                ))
+
         return tuple(input_fnames), flat_field_fname
 
     def generate_masks(self,

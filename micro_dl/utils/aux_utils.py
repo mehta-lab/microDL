@@ -110,6 +110,23 @@ def get_im_name(time_idx=None,
     :param int int2str_len: Length of string of the converted integers
     :return st im_name: Image file name
     """
+
+    if isinstance(channel_idx, (list, tuple)):
+        assert len(channel_idx) == 1, 'more than one channel id provided'
+        channel_idx = channel_idx[0]
+
+    if isinstance(slice_idx, (list, tuple)):
+        assert len(slice_idx) == 1, 'more than one slice id provided'
+        slice_idx = slice_idx[0]
+
+    if isinstance(pos_idx, (list, tuple)):
+        assert len(pos_idx) == 1, 'more than one pos id provided'
+        pos_idx = pos_idx[0]
+
+    if isinstance(time_idx, (list, tuple)):
+        assert len(time_idx) == 1, 'more than one time id provided'
+        time_idx = time_idx[0]
+
     im_name = "im"
     if channel_idx is not None:
         im_name += "_c" + str(channel_idx).zfill(int2str_len)

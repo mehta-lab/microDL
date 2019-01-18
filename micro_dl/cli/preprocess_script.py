@@ -55,7 +55,7 @@ def pre_process(pp_config):
     if 'time_ids' in pp_config:
         time_ids = pp_config['time_ids']
 
-    uniform_struct = False
+    uniform_struct = True
     if 'uniform_struct' in pp_config:
         uniform_struct = pp_config['uniform_struct']
 
@@ -71,6 +71,10 @@ def pre_process(pp_config):
     if 'num_workers' in pp_config['tile']:
         num_workers = pp_config['num_workers']
 
+    channel_ids = -1
+    if 'channels' in pp_config['tile']:
+        channel_ids = pp_config['tile']['channels']
+
     # estimate flat_field images
     correct_flat_field = True if pp_config['correct_flat_field'] else False
     flat_field_dir = None
@@ -78,6 +82,7 @@ def pre_process(pp_config):
         flat_field_inst = FlatFieldEstimator2D(
             input_dir=input_dir,
             output_dir=output_dir,
+            channel_ids=channel_ids,
             slice_ids=slice_ids,
         )
         flat_field_inst.estimate_flat_field()
@@ -112,9 +117,7 @@ def pre_process(pp_config):
     # Tile frames
     tile_dir = None
     if pp_config['do_tiling']:
-        channel_ids = -1
-        if 'channels' in pp_config['tile']:
-            channel_ids = pp_config['tile']['channels']
+
 
         if uniform_struct:
             tile_inst = ImageTilerUniform(input_dir=input_dir,

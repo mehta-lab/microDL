@@ -20,10 +20,10 @@ def read_imstack(input_fnames,
     """
 
     im_stack = []
-    for fname in input_fnames:
+    for idx, fname in enumerate(input_fnames):
         im = read_image(fname)
         if flat_field_fname is not None:
-            flat_field_image = np.load(flat_field_fname)
+            flat_field_image = np.load(flat_field_fname[idx])
             im = apply_flat_field_correction(im,
                                              flat_field_image=flat_field_image)
         im_stack.append(im)

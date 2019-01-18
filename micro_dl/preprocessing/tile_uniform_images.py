@@ -351,10 +351,14 @@ class ImageTilerUniform:
         flat_field_fname = None
         if mask_dir is None:
             if self.flat_field_dir is not None:
-                flat_field_fname = os.path.join(
-                    self.flat_field_dir,
-                    'flat-field_channel-{}.npy'.format(channel_idx)
-                )
+                if not isinstance(channel_idx, (list, tuple)):
+                    channel_idx = [channel_idx]
+                flat_field_fname = []
+                for ch_idx in channel_idx:
+                    flat_field_fname.append(os.path.join(
+                        self.flat_field_dir,
+                        'flat-field_channel-{}.npy'.format(ch_idx)
+                    ))
         # no hist_clipping for mask as mask is bool
         hist_clip_limits = None
         if mask_dir is None:
