@@ -68,8 +68,8 @@ def pre_process(pp_config):
         pos_ids = pp_config['pos_ids']
 
     num_workers = 4
-    if 'num_workers' in pp_config['tile']:
-        num_workers = pp_config['tile']['num_workers']
+    if 'num_workers' in pp_config:
+        num_workers = pp_config['num_workers']
 
     # estimate flat_field images
     correct_flat_field = True if pp_config['correct_flat_field'] else False

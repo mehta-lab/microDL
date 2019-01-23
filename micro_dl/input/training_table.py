@@ -21,7 +21,7 @@ class BaseTrainingTable:
         :param dict split_ratio: dict with keys train, val, test and values are
          the corresponding ratios
         :param list of ints/None mask_channels: Use mask channel if specified
-        :param int random_seed: between 0 and 2**32 - 1, random seed for train-val-test split
+        :param int random_seed: between 0 and uint32, random seed for train-val-test split
         """
 
         self.df_metadata = df_metadata

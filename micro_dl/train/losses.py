@@ -44,7 +44,11 @@ def kl_divergence_loss(y_true, y_pred):
 
 def dssim_loss(y_true, y_pred):
     """Structural dissimilarity loss + L1 loss
-    0.8 * DSSIM + 0.2 * L1
+    DSSIM is defined as (1-SSIM)/2
+    https://en.wikipedia.org/wiki/Structural_similarity
+    :param tensor y_true: Labeled ground truth
+    :param tensor y_pred: Predicted labels, potentially non-binary
+    :return float: 0.8 * DSSIM + 0.2 * L1
     """
     mae = mean_absolute_error(y_true, y_pred)
     return 0.8 * (1.0 - ssim(y_true, y_pred) / 2.0) + 0.2 * mae

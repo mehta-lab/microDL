@@ -57,11 +57,16 @@ def dice_coef(y_true, y_pred, smooth=1.):
            (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
     return dice
 
-def ssim(y_true, y_pred):
+def ssim(y_true, y_pred, max_val=6):
     """Structural similarity
     Use max_val=5 to approximate maximum of normalized images
     tensorflow does not support SSIM for 3D images. Need a different
     way to compute SSIM for 5D tensor
+    :param tensor y_true: Labeled ground truth
+    :param tensor y_pred: Predicted labels, potentially non-binary
+    :param float max_val: The dynamic range of the images (i.e., the
+        difference between the maximum the and minimum allowed values).
+    :return float K.mean(ssim): mean SSIM over images in the batch
     """
     if K.ndim(y_true)>4:
         if K.image_data_format() == 'channels_first':
@@ -74,5 +79,5 @@ def ssim(y_true, y_pred):
         if K.image_data_format() == 'channels_first':
             y_true = tf.transpose(y_true, [0, 2, 3, 1])
             y_pred = tf.transpose(y_pred, [0, 2, 3, 1])
-    ssim = tf.image.ssim(y_true, y_pred, max_val=5)
+    ssim = tf.image.ssim(y_true, y_pred, max_val=max_val)
     return K.mean(ssim)
