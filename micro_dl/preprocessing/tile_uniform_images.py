@@ -46,7 +46,6 @@ class ImageTilerUniform:
             Default 1 assumes 2D data for all channels to be tiled.
             For cases where input and target shapes are not the same (e.g. stack
              to 2D) you should specify depths for each channel in tile.channels.
-        :param int mask_depth: Depth for mask channel
         :param list/int time_ids: Tile given timepoint indices
         :param list/int tile_channels: Tile images in the given channel indices
          default=-1, tile all channels
