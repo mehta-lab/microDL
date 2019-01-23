@@ -18,7 +18,7 @@ def validate_mask_meta(pp_config):
 
     :param dict pp_config: Preprocessing config
     :return int mask_channel: New channel index for masks for writing tiles
-    :raises AssertionError: If 'masks' in pp_config contains both mask_channel
+    :raises AssertionError: If 'masks' in pp_config contains both channels
         and mask_dir (the former is for generating masks from a channel)
     :raises IOError: If no csv file is present in mask_dir
     :raises AssertionError: If more than one csv file exists in mask_dir
@@ -32,8 +32,8 @@ def validate_mask_meta(pp_config):
     :raises AssertionError: If mask file correspond to more than one input
         channel
     """
-    assert 'mask_channel' not in pp_config, \
-        "Don't specify a mask_channel if using pre-generated masks"
+    assert 'channels' not in pp_config['masks'], \
+        "Don't specify channels to mask if using pre-generated masks"
     mask_dir = pp_config['masks']['mask_dir']
     # Look for a csv. If more than one, get name from config
     csv_name = glob.glob(os.path.join(mask_dir, '*.csv'))
