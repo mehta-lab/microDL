@@ -83,7 +83,6 @@ class TestPreprocessUtils(unittest.TestCase):
         self.assertEqual(mask_out_channel, 5)
 
         out_meta = aux_utils.read_meta(self.mask_dir)
-        print(out_meta)
         for i, row in out_meta.iterrows():
             self.assertEqual(row.slice_idx, self.slice_idx)
             self.assertEqual(row.time_idx, self.time_idx)
@@ -91,3 +90,37 @@ class TestPreprocessUtils(unittest.TestCase):
             self.assertEqual(row.pos_idx, i)
             self.assertEqual(row.file_name, "mask_{}.png".format(i + 1))
 
+    def test_validate_mask_meta_no_channel(self):
+        pp_config = {
+            'input_dir': self.input_dir,
+            'masks': {'mask_dir': self.mask_dir, 'csv_name': self.csv_name},
+        }
+        mask_out_channel = preprocess_utils.validate_mask_meta(pp_config)
+        self.assertEqual(mask_out_channel, 999)
+
+        out_meta = aux_utils.read_meta(self.mask_dir)
+        for i, row in out_meta.iterrows():
+            self.assertEqual(row.slice_idx, self.slice_idx)
+            self.assertEqual(row.time_idx, self.time_idx)
+            self.assertEqual(row.channel_idx, self.mask_channel)
+            self.assertEqual(row.pos_idx, i)
+            self.assertEqual(row.file_name, "mask_{}.png".format(i + 1))
+
+    @nose.tools.raises(AssertionError)
+    def test_validate_mask_meta_mask_channel(self):
+        pp_config = {
+            'input_dir': self.input_dir,
+            'masks': {'mask_dir': self.mask_dir,
+                      'csv_name': self.csv_name,
+                      'channels': 1,
+                      },
+        }
+        preprocess_utils.validate_mask_meta(pp_config)
+
+    @nose.tools.raises(IOError)
+    def test_validate_mask_meta_wrong_dir(self):
+        pp_config = {
+            'input_dir': self.input_dir,
+            'masks': {'mask_dir': self.temp_path},
+        }
+        preprocess_utils.validate_mask_meta(pp_config)

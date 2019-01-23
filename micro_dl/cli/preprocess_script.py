@@ -116,7 +116,7 @@ def pre_process(pp_config):
     if 'masks' in pp_config:
         if 'channels' in pp_config['masks']:
             # Generate masks from channel
-            assert mask_dir not in pp_config, \
+            assert 'mask_dir' not in pp_config['masks'], \
                 "Don't specify a mask_dir if generating masks from channel"
             mask_channel = pp_config['masks']['channels']
             if channel_ids != -1:
