@@ -199,5 +199,5 @@ class MaskProcessor:
         meta_df = pd.concat([self.frames_metadata, mask_meta_df],
                             axis=0,
                             ignore_index=True)
-        meta_df.to_csv(os.path.join(self.input_dir, 'frames_meta.csv'),
+        meta_df.to_csv(os.path.join(self.mask_dir, 'frames_meta.csv'),
                        sep=',')
