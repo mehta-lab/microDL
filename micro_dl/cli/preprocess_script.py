@@ -182,9 +182,9 @@ def pre_process(pp_config):
             if 'mask_depth' in pp_config['tile']:
                 mask_depth = pp_config['tile']['mask_depth']
             tile_inst.tile_mask_stack(
-                min_fraction=min_fraction,
                 mask_dir=mask_dir,
                 mask_channel=mask_out_channel,
+                min_fraction=min_fraction,
                 mask_depth=mask_depth,
             )
         else:

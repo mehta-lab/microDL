@@ -48,6 +48,7 @@ def validate_mask_meta(pp_config):
         csv_name = csv_name[0]
         assert csv_name != 'frames_meta.csv',\
             "frames_meta.csv is reserved for output. Please rename mask csv."
+    # Read csv with masks and corresponding input file names
     mask_meta = aux_utils.read_meta(input_dir=mask_dir, meta_fname=csv_name)
 
     assert len(set(mask_meta).difference({'file_name', 'mask_name'})) == 0,\
@@ -73,16 +74,16 @@ def validate_mask_meta(pp_config):
 
     assert len(out_meta.channel_idx.unique()) == 1,\
         "Masks should match one input channel only"
-    # Write mask metadata with indices that match input images
-    meta_filename = os.path.join(mask_dir, 'frames_meta.csv')
-    out_meta.to_csv(meta_filename, sep=",")
     # Masks need to have their own channel index for tiling
     # Hopefully this will be big enough default value
     mask_channel = 999
-    if 'channel_ids' in pp_config:
-        mask_channel = max(pp_config['channel_ids']) + 1
+    # Replace channel_idx new mask channel idx
+    out_meta['channel_idx'] = mask_channel
+
+    # Write mask metadata with indices that match input images
+    meta_filename = os.path.join(mask_dir, 'frames_meta.csv')
+    out_meta.to_csv(meta_filename, sep=",")
 
     return mask_channel
-
 
 

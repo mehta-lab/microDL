@@ -80,7 +80,7 @@ class TestPreprocessUtils(unittest.TestCase):
             'masks': {'mask_dir': self.mask_dir, 'csv_name': self.csv_name},
         }
         mask_out_channel = preprocess_utils.validate_mask_meta(pp_config)
-        self.assertEqual(mask_out_channel, 5)
+        self.assertEqual(mask_out_channel, 999)
 
         out_meta = aux_utils.read_meta(self.mask_dir)
         for i, row in out_meta.iterrows():
