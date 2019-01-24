@@ -23,7 +23,7 @@ class MaskProcessor:
         """
         :param str input_dir: Directory with image frames
         :param str output_dir: Base output directory
-        :param str channel_ids: Channel indices to be masked (typically
+        :param list[int] channel_ids: Channel indices to be masked (typically
             just one)
         :param str flat_field_dir: Directory with flatfield images if
             flatfield correction is applied
