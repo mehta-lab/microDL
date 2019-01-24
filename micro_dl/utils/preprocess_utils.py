@@ -32,6 +32,9 @@ def validate_mask_meta(pp_config):
     :raises AssertionError: If mask file correspond to more than one input
         channel
     """
+    # Masks need to have their own channel index for tiling
+    # Hopefully this will be big enough default value
+    mask_channel = 999
     assert 'channels' not in pp_config['masks'], \
         "Don't specify channels to mask if using pre-generated masks"
     mask_dir = pp_config['masks']['mask_dir']
@@ -39,15 +42,20 @@ def validate_mask_meta(pp_config):
     csv_name = glob.glob(os.path.join(mask_dir, '*.csv'))
     if len(csv_name) == 0:
         raise IOError("No csv file present in mask dir")
-    elif len(csv_name) > 1:
-        assert 'csv_name' in pp_config['masks'], \
-            "Please add csv_name to config->masks to resolve ambiguity"
-        csv_name = pp_config['masks']['csv_name']
     else:
-        # Use the one existing csv name
-        csv_name = csv_name[0]
-        assert csv_name != 'frames_meta.csv',\
-            "frames_meta.csv is reserved for output. Please rename mask csv."
+        # See if frames_meta is already present, if so, move on
+        has_meta = next((s for s in csv_name if 'frames_meta.csv' in s), None)
+        if isinstance(has_meta, str):
+            return mask_channel
+        if len(csv_name) == 1:
+            # Use the one existing csv name
+            csv_name = csv_name[0]
+        else:
+            # If more than one csv, we need to know which one
+            assert 'csv_name' in pp_config['masks'], \
+                "Please add csv_name to config->masks to resolve ambiguity"
+            csv_name = pp_config['masks']['csv_name']
+
     # Read csv with masks and corresponding input file names
     mask_meta = aux_utils.read_meta(input_dir=mask_dir, meta_fname=csv_name)
 
@@ -74,9 +82,7 @@ def validate_mask_meta(pp_config):
 
     assert len(out_meta.channel_idx.unique()) == 1,\
         "Masks should match one input channel only"
-    # Masks need to have their own channel index for tiling
-    # Hopefully this will be big enough default value
-    mask_channel = 999
+
     # Replace channel_idx new mask channel idx
     out_meta['channel_idx'] = mask_channel
 
