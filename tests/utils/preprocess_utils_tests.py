@@ -86,13 +86,13 @@ class TestPreprocessUtils(unittest.TestCase):
         for i, row in out_meta.iterrows():
             self.assertEqual(row.slice_idx, self.slice_idx)
             self.assertEqual(row.time_idx, self.time_idx)
-            self.assertEqual(row.channel_idx, self.mask_channel)
+            self.assertEqual(row.channel_idx, 999)
             self.assertEqual(row.pos_idx, i)
             self.assertEqual(row.file_name, "mask_{}.png".format(i + 1))
 
     def test_validate_mask_meta_no_channel(self):
         pp_config = {
-            'input_dir': self.input_dir,
+            'input_dir': self.input_dir, 
             'masks': {'mask_dir': self.mask_dir, 'csv_name': self.csv_name},
         }
         mask_out_channel = preprocess_utils.validate_mask_meta(pp_config)
@@ -102,7 +102,7 @@ class TestPreprocessUtils(unittest.TestCase):
         for i, row in out_meta.iterrows():
             self.assertEqual(row.slice_idx, self.slice_idx)
             self.assertEqual(row.time_idx, self.time_idx)
-            self.assertEqual(row.channel_idx, self.mask_channel)
+            self.assertEqual(row.channel_idx, 999)
             self.assertEqual(row.pos_idx, i)
             self.assertEqual(row.file_name, "mask_{}.png".format(i + 1))
 
