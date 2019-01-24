@@ -92,7 +92,7 @@ class TestPreprocessUtils(unittest.TestCase):
 
     def test_validate_mask_meta_no_channel(self):
         pp_config = {
-            'input_dir': self.input_dir, 
+            'input_dir': self.input_dir,
             'masks': {'mask_dir': self.mask_dir, 'csv_name': self.csv_name},
         }
         mask_out_channel = preprocess_utils.validate_mask_meta(pp_config)

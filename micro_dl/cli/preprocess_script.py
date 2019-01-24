@@ -114,7 +114,7 @@ def pre_process(pp_config):
 
     # Generate masks
     mask_dir = None
-    mask_channel = None
+    mask_out_channel = None
     if 'masks' in pp_config:
         if 'channels' in pp_config['masks']:
             # Generate masks from channel
@@ -148,6 +148,7 @@ def pre_process(pp_config):
             mask_dir = mask_processor_inst.get_mask_dir()
             mask_out_channel = mask_processor_inst.get_mask_channel()
         elif 'mask_dir' in pp_config['masks']:
+            mask_dir = pp_config['masks']['mask_dir']
             # Get preexisting masks from directory and match to input dir
             mask_out_channel = preprocess_utils.validate_mask_meta(pp_config)
         else:
