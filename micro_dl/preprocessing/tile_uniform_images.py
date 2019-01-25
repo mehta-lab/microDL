@@ -365,19 +365,22 @@ class ImageTilerUniform:
 
         # no flat field correction for mask
         flat_field_fname = None
+        hist_clip_limits = None
+        is_mask = False
         if mask_dir is None:
             if self.flat_field_dir is not None:
                 flat_field_fname = os.path.join(
-                        self.flat_field_dir,
-                        'flat-field_channel-{}.npy'.format(channel_idx)
-                    )
-        # no hist_clipping for mask as mask is bool
-        hist_clip_limits = None
-        if mask_dir is None:
+                    self.flat_field_dir,
+                    'flat-field_channel-{}.npy'.format(channel_idx)
+                )
+            # no hist_clipping for mask as mask is bool
             if self.hist_clip_limits is not None:
                 hist_clip_limits = tuple(
                     self.hist_clip_limits
                 )
+        else:
+            # Using masks, need to make sure they're bool
+            is_mask = True
 
         if task_type == 'crop':
             cur_args = (tuple(input_fnames),
@@ -391,7 +394,8 @@ class ImageTilerUniform:
                         self.image_format,
                         self.isotropic,
                         self.tile_dir,
-                        self.int2str_len)
+                        self.int2str_len,
+                        is_mask)
         elif task_type == 'tile':
             cur_args = (tuple(input_fnames),
                         flat_field_fname,
@@ -406,7 +410,8 @@ class ImageTilerUniform:
                         self.image_format,
                         self.isotropic,
                         self.tile_dir,
-                        self.int2str_len)
+                        self.int2str_len,
+                        is_mask)
         return cur_args
 
     def tile_stack(self):
@@ -531,7 +536,7 @@ class ImageTilerUniform:
                             pos_idx=pos_idx,
                             task_type='tile',
                             mask_dir=mask_dir,
-                            min_fraction=min_fraction
+                            min_fraction=min_fraction,
                         )
                         mask_fn_args.append(cur_args)
 
