@@ -23,6 +23,8 @@ class MaskProcessor:
         """
         :param str input_dir: Directory with image frames
         :param str output_dir: Base output directory
+        :param str channel_ids: Channel indices to be masked (typically
+            just one)
         :param str flat_field_dir: Directory with flatfield images if
             flatfield correction is applied
         :param int/list channel_ids: generate mask from the sum of these
@@ -84,27 +86,31 @@ class MaskProcessor:
 
     def _get_args_read_image(self,
                              time_idx,
-                             channel_idx,
+                             channel_ids,
                              slice_idx,
                              pos_idx,
                              correct_flat_field):
-        """Read image from t, c, pos and ch indices
+        """
+        Read image from t, c, p and s indices. All indices are singular
+        except channel which can be a list
 
-        :param int time_idx: time points to use for generating mask
-        :param list channel_idx: channel ids to use for generating mask
-        :param int slice_idx: generate masks for given slice ids
-        :param int pos_idx: generate masks for given position / sample ids
+        :param int time_idx: Current time point to use for generating mask
+        :param list channel_ids: channel ids to use for generating mask
+        :param int slice_idx: Slice index
+        :param int pos_idx: Position index
         :param bool correct_flat_field: bool indicator to correct for flat
-         field
-        :return np.array im: image corresponding to the given ids and flat
-         field corrected
+            field
+        :return np.array im: image corresponding to the given channel indices
+            and flatfield corrected
+        TODO: This doesn't work for flatfield correction because each channel
+            needs a separate flatfield image
         """
 
         input_fnames = []
-        for ch_idx in channel_idx:
+        for channel_idx in channel_ids:
             frame_idx = aux_utils.get_meta_idx(self.frames_metadata,
                                                time_idx,
-                                               ch_idx,
+                                               channel_idx,
                                                slice_idx,
                                                pos_idx)
             file_path = os.path.join(
@@ -127,7 +133,6 @@ class MaskProcessor:
                         self.flat_field_dir,
                         'flat-field_channel-{}.npy'.format(ch_idx)
                     ))
-
         return tuple(input_fnames), flat_field_fname
 
     def generate_masks(self,
@@ -152,10 +157,11 @@ class MaskProcessor:
                     for pos_idx in self.pos_ids:
                         fname_args = self._get_args_read_image(
                             time_idx=time_idx,
-                            channel_idx=self.channel_ids,
+                            channel_ids=self.channel_ids,
                             slice_idx=slice_idx,
                             pos_idx=pos_idx,
-                            correct_flat_field=correct_flat_field)
+                            correct_flat_field=correct_flat_field,
+                        )
                         cur_args = (fname_args[0], fname_args[1],
                                     str_elem_radius,
                                     self.mask_dir,
@@ -172,10 +178,10 @@ class MaskProcessor:
                     for sl_idx in sl_idx_list:
                         fname_args = self._get_args_read_image(
                             time_idx=tp_idx,
-                            channel_idx=self.channel_ids,
+                            channel_ids=self.channel_ids,
                             slice_idx=sl_idx,
                             pos_idx=pos_idx,
-                            correct_flat_field=correct_flat_field
+                            correct_flat_field=correct_flat_field,
                         )
                         cur_args = (fname_args[0], fname_args[1],
                                     str_elem_radius,
