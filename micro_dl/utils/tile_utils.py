@@ -10,34 +10,46 @@ from micro_dl.utils.image_utils import read_image, \
 
 def read_imstack(input_fnames,
                  flat_field_fname=None,
-                 hist_clip_limits=None):
-    """Read the images in the fnames and assembles a stack
+                 hist_clip_limits=None,
+                 is_mask=False):
+    """
+    Read the images in the fnames and assembles a stack.
+    If images are masks, make sure they're boolean by setting >0 to True
     
     :param tuple input_fnames: tuple of input fnames with full path
     :param str flat_field_fname: fname of flat field image
     :param tuple hist_clip_limits: limits for histogram clipping
-    :return np.array: input stack flat_field correct and z-scored
+    :param bool: Indicator for if files contain masks
+    :return np.array: input stack flat_field correct and z-scored if regular
+        images, booleans if they're masks
     """
 
     im_stack = []
-    for fname in input_fnames:
+    for idx, fname in enumerate(input_fnames):
         im = read_image(fname)
         if flat_field_fname is not None:
-            flat_field_image = np.load(flat_field_fname)
+            # multiple flat field images are passed in case of mask generation
+            if isinstance(flat_field_fname, (list, tuple)):
+                flat_field_image = np.load(flat_field_fname[idx])
+            else:
+                flat_field_image = np.load(flat_field_fname)
             im = apply_flat_field_correction(
                 im,
                 flat_field_image=flat_field_image,
             )
         im_stack.append(im)
     input_image = np.stack(im_stack, axis=2)
-    if hist_clip_limits is not None:
-        input_image = normalize.hist_clipping(
-            input_image,
-            hist_clip_limits[0],
-            hist_clip_limits[1]
-        )
-    if input_image.dtype != bool:
+    if not is_mask:
+        if hist_clip_limits is not None:
+            input_image = normalize.hist_clipping(
+                input_image,
+                hist_clip_limits[0],
+                hist_clip_limits[1]
+            )
         input_image = normalize.zscore(input_image)
+    else:
+        if input_image.dtype != bool:
+            input_image = input_image > 0
     return input_image
 
 
