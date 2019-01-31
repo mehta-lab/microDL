@@ -293,29 +293,18 @@ class ImageTilerUniform:
         im_fnames = []
         for z in range(slice_idx - margin, slice_idx + margin + 1):
             if mask_dir is not None:
-                try:
-                    mask_meta = aux_utils.read_meta(mask_dir)
-                    meta_idx = aux_utils.get_meta_idx(
-                        mask_meta,
-                        time_idx,
-                        channel_idx,
-                        z,
-                        pos_idx,
-                    )
-                    file_path = os.path.join(
-                        mask_dir,
-                        mask_meta.loc[meta_idx, 'file_name'],
-                    )
-                except AssertionError:
-                    # There is no frames_meta in mask dir, try generating name
-                    file_name = aux_utils.get_im_name(
-                        time_idx=time_idx,
-                        channel_idx=channel_idx,
-                        slice_idx=z,
-                        pos_idx=pos_idx,
-                        int2str_len=self.int2str_len,
-                    )
-                    file_path = os.path.join(mask_dir, file_name)
+                mask_meta = aux_utils.read_meta(mask_dir)
+                meta_idx = aux_utils.get_meta_idx(
+                    mask_meta,
+                    time_idx,
+                    channel_idx,
+                    z,
+                    pos_idx,
+                )
+                file_path = os.path.join(
+                    mask_dir,
+                    mask_meta.loc[meta_idx, 'file_name'],
+                )
             else:
                 meta_idx = aux_utils.get_meta_idx(
                     self.frames_metadata,
