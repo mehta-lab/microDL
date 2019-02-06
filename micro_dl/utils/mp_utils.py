@@ -258,3 +258,52 @@ def resize_and_save(**kwargs):
     )
     # Write image
     cv2.imwrite(kwargs['write_path'], im_resized)
+
+
+def mp_rescale_vol(fn_args, workers):
+    """Rescale and save image stacks with multiprocessing
+
+    :param list of tuple fn_args: list with tuples of function arguments
+    :param int workers: max number of workers
+    :return: list of returned df from crop_at_indices_save
+    """
+
+    with ProcessPoolExecutor(workers) as ex:
+        # can't use map directly as it works only with single arg functions
+        ex.map(rescale_vol_and_save(), *zip(*fn_args))
+
+
+def rescale_vol_and_save(time_idx,
+                         pos_idx,
+                         channel_idx,
+                         sl_start_idx,
+                         sl_end_idx,
+                         frames_metadata,
+                         output_path,
+                         scale_factor):
+    """Rescale volumes and save
+
+    :param int time_idx:
+    :param int pos_idx:
+    :param int channel_idx:
+    :param int sl_start_idx:
+    :param int sl_end_idx:
+    :param pd.Dataframe frames_metadata:
+    :param str output_path:
+    :param float/list scale_factor:
+    """
+
+    input_stack = []
+    for sl_idx in range(sl_start_idx, sl_end_idx):
+        meta_idx = aux_utils.get_meta_idx(frames_metadata,
+                                          time_idx,
+                                          channel_idx,
+                                          sl_idx,
+                                          pos_idx)
+        cur_fname = frames_metadata.loc[meta_idx, 'file_name']
+        cur_img = image_utils.read_image(cur_fname)
+        input_stack.append(cur_img)
+    input_stack = np.stack(input_stack, axis=0)
+    resc_vol = image_utils.rescale_volume(input_stack, scale_factor)
+
+    cv2.imwrite(output_path, resc_vol)
