@@ -79,7 +79,7 @@ class TestMpUtils(unittest.TestCase):
         # Write metadata
         frames_meta.to_csv(os.path.join(self.temp_path, self.meta_fname),
                            sep=',')
-
+        self.frames_meta = frames_meta
         self.output_dir = os.path.join(self.temp_path, 'mask_dir')
         os.makedirs(self.output_dir, exist_ok=True)
 
@@ -127,3 +127,26 @@ class TestMpUtils(unittest.TestCase):
                 mask_image,
                 create_mask(input_image, str_elem_size=1)
             )
+
+    def test_rescale_vol_and_save(self):
+        """test rescale_vol_and_save"""
+
+        for ch_idx in self.channel_ids:
+            op_fname = os.path.join(
+                self.temp_path,
+                'im_c{}_z0-7_t0_p0_sc4.1-1.0-1.0.npy'.format(ch_idx)
+            )
+            mp_utils.rescale_vol_and_save(
+                self.time_ids,
+                self.pos_ids,
+                ch_idx,
+                0, 8,
+                self.frames_meta,
+                op_fname,
+                [4.1, 1.0, 1.0],
+                self.temp_path
+            )
+
+            resc_vol = np.load(op_fname)
+            nose.tools.assert_tuple_equal(resc_vol.shape,
+                                          (33, 32, 32))

@@ -48,8 +48,12 @@ def rescale_image(im, scale_factor):
     return cv2.resize(im, dsize=dsize)
 
 
-def rescale_volume(input_volume, scale_factor):
-    """Rescale a 3D volume
+def rescale_nd_image(input_volume, scale_factor):
+    """Rescale a nd array, mainly used for 3D volume
+
+    For non-int dims, the values are rounded off to closest int. 0.5 is iffy,
+    when upsampling the value gets floored an downsampling it gets rounded to
+    next int
 
     :param np.array input_volume: 3D stack
     :param float/list scale_factor: if scale_factor is a float, scale all
@@ -58,17 +62,18 @@ def rescale_volume(input_volume, scale_factor):
     :return np.array res_volume: rescaled volume
     """
 
-    assert not np.issubdtype(input_volume, np.bool), \
+    assert not input_volume.dtype == 'bool', \
         'input image is binary, not ideal for spline interpolation'
 
     if not isinstance(scale_factor, float):
         assert len(input_volume.shape) == len(scale_factor), \
             'Missing scale factor:' \
-            'scale_factor{} != input_volume{}'.format(len(scale_factor),
-                                                      len(input_volume.shape))
+            'scale_factor:{} != input_volume:{}'.format(
+                len(scale_factor), len(input_volume.shape)
+            )
 
-    res_volume = zoom(input_volume, scale_factor)
-    return res_volume
+    res_image = zoom(input_volume, scale_factor)
+    return res_image
 
 
 def crop2base(im, base=2):

@@ -123,11 +123,6 @@ class ImageResizer:
 
         # assuming slice_ids will be continuous
         num_total_slices = len(self.slice_ids)
-        assert np.mod(num_total_slices, num_slices_subvolume) == 0, \
-            'Resulting volumes are of unequal dimensions. ' \
-            'total_slices:{}, '.format(num_total_slices) \
-            'num_slices_per_volume:{}'.format(num_slices_subvolume)
-
         if not isinstance(self.scale_factor, float):
             sc_str = '-'.join(self.scale_factor.astype('str'))
         else:
@@ -135,14 +130,21 @@ class ImageResizer:
 
         mp_args = []
         resized_metadata_list = []
-        num_blocks = int(num_total_slices / num_slices_subvolume)
+        if num_slices_subvolume == -1:
+            num_slices_subvolume = len(self.slice_ids)
+        num_blocks = np.ceil(
+            num_total_slices / num_slices_subvolume
+        ).astype('int')
         for time_idx in self.time_ids:
             for pos_idx in self.pos_ids:
                 for channel_idx in self.channel_ids:
                     for slice_idx in range(num_blocks):
                         start_idx = slice_idx * num_slices_subvolume
                         end_idx = start_idx + num_slices_subvolume
-                        op_fname = 'im_c{}_z{}-{}_t{}_p{}_sc{}.tif'.format(
+                        if end_idx >= num_total_slices:
+                            end_idx = num_total_slices
+                            start_idx = num_total_slices - num_slices_subvolume
+                        op_fname = 'im_c{}_z{}-{}_t{}_p{}_sc{}.npy'.format(
                             channel_idx,
                             start_idx,
                             end_idx,
@@ -157,7 +159,8 @@ class ImageResizer:
                                         end_idx,
                                         self.frames_metadata,
                                         write_fpath,
-                                        self.scale_factor))
+                                        self.scale_factor,
+                                        self.input_dir))
                         cur_metadata = {'time_idx': time_idx,
                                         'pos_idx': pos_idx,
                                         'channel_idx': channel_idx,

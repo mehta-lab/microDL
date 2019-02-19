@@ -270,7 +270,7 @@ def mp_rescale_vol(fn_args, workers):
 
     with ProcessPoolExecutor(workers) as ex:
         # can't use map directly as it works only with single arg functions
-        ex.map(rescale_vol_and_save(), *zip(*fn_args))
+        ex.map(rescale_vol_and_save, *zip(*fn_args))
 
 
 def rescale_vol_and_save(time_idx,
@@ -280,7 +280,8 @@ def rescale_vol_and_save(time_idx,
                          sl_end_idx,
                          frames_metadata,
                          output_path,
-                         scale_factor):
+                         scale_factor,
+                         input_dir):
     """Rescale volumes and save
 
     :param int time_idx:
@@ -301,9 +302,8 @@ def rescale_vol_and_save(time_idx,
                                           sl_idx,
                                           pos_idx)
         cur_fname = frames_metadata.loc[meta_idx, 'file_name']
-        cur_img = image_utils.read_image(cur_fname)
+        cur_img = image_utils.read_image(os.path.join(input_dir, cur_fname))
         input_stack.append(cur_img)
     input_stack = np.stack(input_stack, axis=0)
-    resc_vol = image_utils.rescale_volume(input_stack, scale_factor)
-
-    cv2.imwrite(output_path, resc_vol)
+    resc_vol = image_utils.rescale_nd_image(input_stack, scale_factor)
+    np.save(output_path, resc_vol, allow_pickle=True, fix_imports=True)

@@ -82,8 +82,8 @@ def pre_process(pp_config):
         num_workers = pp_config['num_workers']
 
     # Resample images first
-    if 'resample_scale' in pp_config:
-        scale_factor = pp_config['resample_scale']
+    if 'resize' in pp_config:
+        scale_factor = pp_config['resize']['scale_factor']
         if scale_factor != 1:
             resize_inst = ImageResizer(
                 input_dir=input_dir,
@@ -95,7 +95,14 @@ def pre_process(pp_config):
                 pos_ids=pos_ids,
                 int2str_len=int2str_len,
             )
-            resize_inst.resize_frames()
+            if isinstance(scale_factor, float):
+                resize_inst.resize_frames()
+            else:
+                num_slices_subvolume = -1
+                if 'num_slices_subvolume' in pp_config['resize']:
+                    num_slices_subvolume = \
+                        pp_config['resize']['num_slices_subvolume']
+                resize_inst.resize_volumes(num_slices_subvolume)
             # Point input to resized images
             input_dir = resize_inst.get_resize_dir()
 

@@ -1,5 +1,6 @@
 import nose.tools
 import numpy as np
+from skimage.filters import gaussian
 
 import micro_dl.utils.image_utils as image_utils
 
@@ -13,6 +14,13 @@ x, y = np.meshgrid(np.linspace(1, 7, 3), np.linspace(1, 13, 5))
 test_coords = np.vstack((x.flatten(), y.flatten())).T
 test_values = np.zeros((15,), dtype=np.float64) + 100.
 test_values[9:] = 200.
+
+uni_thr_tst_image = np.zeros((31, 31))
+uni_thr_tst_image[5:10, 8:16] = 127
+uni_thr_tst_image[11:21, 2:12] = 97
+uni_thr_tst_image[8:12, 3:7] = 31
+uni_thr_tst_image[17:29, 17:29] = 61
+uni_thr_tst_image[3:14, 17:29] = 47
 
 
 def test_upscale_image():
@@ -58,3 +66,34 @@ def test_fit_polynomial_surface():
     # Since flatfield is normalized, the mean should be close to one
     nose.tools.assert_almost_equal(np.mean(flatfield), 1., places=3)
 
+
+def test_get_unimodal_threshold():
+    input_image = gaussian(uni_thr_tst_image, 1)
+    best_thr = image_utils.get_unimodal_threshold(input_image)
+    nose.tools.assert_equal(np.floor(best_thr), 3.0)
+
+
+def test_unimodal_thresholding():
+    input_image = gaussian(uni_thr_tst_image, 1)
+    mask = image_utils.unimodal_thresholding(input_image,
+                                             str_elem_size=0)
+    np.testing.assert_array_equal(mask, input_image > 3.04)
+
+
+def test_rescale_volume():
+    # shape (5, 31, 31)
+    nd_image = np.repeat(uni_thr_tst_image[np.newaxis], 5, axis=0)
+    # upsample isotropically, 0.5 upsampling
+    res_volume = image_utils.rescale_nd_image(nd_image, 1.3)
+    nose.tools.assert_tuple_equal(res_volume.shape, (6, 40, 40))
+    # upsample anisotropically
+    res_volume = image_utils.rescale_nd_image(nd_image, [2.1, 1.1, 1.7])
+    nose.tools.assert_tuple_equal(res_volume.shape, (10, 34, 53))
+    # downsample isotropically, 0.5 downsampling
+    res_volume = image_utils.rescale_nd_image(uni_thr_tst_image, 0.7)
+    nose.tools.assert_tuple_equal(res_volume.shape, (4, 22, 22))
+    # assertion error
+    nose.tools.assert_raises(
+        AssertionError,
+        image_utils.rescale_nd_image(nd_image, [1.2, 1.8])
+    )
