@@ -52,7 +52,7 @@ def rescale_nd_image(input_volume, scale_factor):
     """Rescale a nd array, mainly used for 3D volume
 
     For non-int dims, the values are rounded off to closest int. 0.5 is iffy,
-    when upsampling the value gets floored an downsampling it gets rounded to
+    when downsampling the value gets floored and upsampling it gets rounded to
     next int
 
     :param np.array input_volume: 3D stack
@@ -226,8 +226,8 @@ def get_unimodal_threshold(input_image):
 
     https://users.cs.cf.ac.uk/Paul.Rosin/resources/papers/unimodal2.pdf
     https://www.mathworks.com/matlabcentral/fileexchange/45443-rosin-thresholding
+
     :param np.array input_image: generate mask for this image
-    :param int str_elem_size: size of the structuring element. typically 3, 5
     :return float best_threshold: optimal lower threshold for the fg hist
     """
 

@@ -265,7 +265,6 @@ def mp_rescale_vol(fn_args, workers):
 
     :param list of tuple fn_args: list with tuples of function arguments
     :param int workers: max number of workers
-    :return: list of returned df from crop_at_indices_save
     """
 
     with ProcessPoolExecutor(workers) as ex:
@@ -279,19 +278,20 @@ def rescale_vol_and_save(time_idx,
                          sl_start_idx,
                          sl_end_idx,
                          frames_metadata,
-                         output_path,
+                         output_fname,
                          scale_factor,
                          input_dir):
     """Rescale volumes and save
 
-    :param int time_idx:
-    :param int pos_idx:
-    :param int channel_idx:
-    :param int sl_start_idx:
-    :param int sl_end_idx:
-    :param pd.Dataframe frames_metadata:
-    :param str output_path:
-    :param float/list scale_factor:
+    :param int time_idx: time point of input image
+    :param int pos_idx: sample idx of input image
+    :param int channel_idx: channel idx of input image
+    :param int sl_start_idx: start slice idx for the vol to be saved
+    :param int sl_end_idx: end slice idx for the vol to be saved
+    :param pd.Dataframe frames_metadata: metadata for the input slices
+    :param str output_fname: output_fname
+    :param float/list scale_factor: scale factor for resizing
+    :param str input_dir: input dir for 2D images
     """
 
     input_stack = []
@@ -306,4 +306,4 @@ def rescale_vol_and_save(time_idx,
         input_stack.append(cur_img)
     input_stack = np.stack(input_stack, axis=0)
     resc_vol = image_utils.rescale_nd_image(input_stack, scale_factor)
-    np.save(output_path, resc_vol, allow_pickle=True, fix_imports=True)
+    np.save(output_fname, resc_vol, allow_pickle=True, fix_imports=True)
