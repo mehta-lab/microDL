@@ -24,7 +24,6 @@ class ImageTilerNonUniform(ImageTilerUniform):
                  pos_ids=-1,
                  hist_clip_limits=None,
                  flat_field_dir=None,
-                 isotropic=False,
                  image_format='zyx',
                  num_workers=4,
                  int2str_len=3):
@@ -48,7 +47,6 @@ class ImageTilerNonUniform(ImageTilerUniform):
                          pos_ids,
                          hist_clip_limits,
                          flat_field_dir,
-                         isotropic,
                          image_format,
                          num_workers,
                          int2str_len)

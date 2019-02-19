@@ -100,7 +100,6 @@ class TestImageTilerUniform(unittest.TestCase):
         nose.tools.assert_equal(self.tile_inst.depths, 3)
         nose.tools.assert_equal(self.tile_inst.tile_size, [5, 5])
         nose.tools.assert_equal(self.tile_inst.step_size, [4, 4])
-        nose.tools.assert_false(self.tile_inst.isotropic)
         nose.tools.assert_equal(self.tile_inst.hist_clip_limits, None)
         nose.tools.assert_equal(self.tile_inst.image_format, 'zyx')
         nose.tools.assert_equal(self.tile_inst.num_workers, 4)

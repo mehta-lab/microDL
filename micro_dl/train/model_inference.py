@@ -326,9 +326,6 @@ class ModelEvaluator:
                               place_operation='mean'):
         """Tile and run inference on tiles and assemble the full image
 
-        If 3D and isotropic, it is not possible to find the original
-        tile_size i.e. depth from config used for training
-
         :param pd.DataFrame image_meta: Df with individual image info,
          timepoint', 'channel_num', 'sample_num', 'slice_num', 'fname',
          'size_x_microns', 'size_y_microns', 'size_z_microns'
@@ -360,14 +357,9 @@ class ModelEvaluator:
         tile_size = [self.config['network']['height'],
                      self.config['network']['width']]
 
-        isotropic = False
         if depth is not None:
             assert 'depth' in self.config['network']
             tile_size.insert(0, depth)
-            if depth == self.config['network']['depth']:
-                isotropic = False  # no need to resample
-            else:
-                isotropic = True
 
         step_size = (1 - per_tile_overlap) * np.array(tile_size)
         step_size = step_size.astype('int')
@@ -400,8 +392,9 @@ class ModelEvaluator:
             )
             tp_dir = str(os.sep).join(test_ip0_fnames[0].split(os.sep)[:-2])
             test_image = np.load(test_ip0_fnames[0])
-            _, crop_indices = tile_image(test_image, tile_size,
-                                         step_size, isotropic,
+            _, crop_indices = tile_image(test_image,
+                                         tile_size,
+                                         step_size,
                                          return_index=True)
             pred_dir = os.path.join(self.config['trainer']['model_dir'],
                                     'predicted_images', 'tp_{}'.format(tp))
@@ -413,7 +406,7 @@ class ModelEvaluator:
                 pred_tiles = self._pred_image(input_image,
                                               crop_indices,
                                               batch_size)
-                pred_image = self._stich_image(pred_tiles, crop_indices,
+                pred_image = self._stitch_image(pred_tiles, crop_indices,
                                                input_image.shape, batch_size,
                                                tile_size, overlap_size,
                                                place_operation)

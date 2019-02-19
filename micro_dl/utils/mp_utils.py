@@ -96,7 +96,6 @@ def tile_and_save(input_fnames,
                   step_size,
                   min_fraction,
                   image_format,
-                  isotropic,
                   save_dir,
                   int2str_len=3,
                   is_mask=False):
@@ -113,7 +112,6 @@ def tile_and_save(input_fnames,
     :param list step_size: step size along row, col (& slices)
     :param float min_fraction: min foreground volume fraction for keep tile
     :param str image_format: zyx / yxz
-    :param bool isotropic: if 3D, make the grid/shape isotropic
     :param str save_dir: output dir to save tiles
     :param int int2str_len: len of indices for creating file names
     :param bool is_mask: Indicates if files are masks
@@ -139,7 +137,6 @@ def tile_and_save(input_fnames,
             input_image=input_image,
             tile_size=tile_size,
             step_size=step_size,
-            isotropic=isotropic,
             min_fraction=min_fraction,
             save_dict=save_dict,
         )
@@ -177,7 +174,6 @@ def crop_at_indices_save(input_fnames,
                          slice_idx,
                          crop_indices,
                          image_format,
-                         isotropic,
                          save_dir,
                          int2str_len=3,
                          is_mask=False):
@@ -192,7 +188,6 @@ def crop_at_indices_save(input_fnames,
     :param int pos_idx: sample idx of input image
     :param tuple crop_indices: tuple of indices for cropping
     :param str image_format: zyx or yxz
-    :param bool isotropic: if 3D, make the grid/shape isotropic
     :param str save_dir: output dir to save tiles
     :param int int2str_len: len of indices for creating file names
     :param bool is_mask: Indicates if files are masks
@@ -217,7 +212,6 @@ def crop_at_indices_save(input_fnames,
         tile_meta_df = tile_utils.crop_at_indices(
             input_image=input_image,
             crop_indices=crop_indices,
-            isotropic=isotropic,
             save_dict=save_dict,
         )
     except Exception as e:

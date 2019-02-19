@@ -114,7 +114,6 @@ def preprocess_imstack(frames_metadata,
 def tile_image(input_image,
                tile_size,
                step_size,
-               isotropic=False,
                return_index=False,
                min_fraction=None,
                save_dict=None):
@@ -128,7 +127,6 @@ def tile_image(input_image,
      from the image
     :param list/tuple/np array step_size: size of the window shift. In case of
      no overlap, the step size is tile_size. If overlap, step_size < tile_size
-    :param bool isotropic: if 3D, make the grid/shape isotropic
     :param bool return_index: indicator for returning tile indices
     :param float min_fraction: Minimum fraction of foreground in mask for
     including tile
@@ -195,12 +193,6 @@ def tile_image(input_image,
     if n_dim == 3:
         n_slices = im_depth
 
-    if isotropic:
-        isotropic_shape = [tile_size[0], ] * len(tile_size)
-        isotropic_cond = not(list(tile_size) == isotropic_shape)
-    else:
-        isotropic_cond = isotropic
-
     cropped_image_list = []
     cropping_index = []
     tiled_metadata = []
@@ -232,10 +224,6 @@ def tile_image(input_image,
                                                   sl: sl + tile_size[2]]
                 else:
                     img_id = '{}_sl{}-{}'.format(img_id, 0, im_depth)
-                if isotropic_cond:
-                    img_shape = cropped_img.shape
-                    isotropic_shape = [img_shape[0], ] * len(img_shape)
-                    cropped_img = resize_image(cropped_img, isotropic_shape)
             if use_tile(cropped_img, min_fraction):
                 cropped_image_list.append([img_id, cropped_img])
                 cropping_index.append(cur_index)
@@ -263,13 +251,11 @@ def tile_image(input_image,
 
 def crop_at_indices(input_image,
                     crop_indices,
-                    isotropic=False,
                     save_dict=None):
     """Crop image into tiles at given indices
 
     :param np.array input_image: input image for cropping
     :param list crop_indices: list of indices for cropping
-    :param bool isotropic: if 3D, make the grid/shape isotropic
     :param dict save_dict: dict with keys: time_idx, channel_idx, slice_idx,
      pos_idx, image_format and save_dir for generation output fname
     :return: if not saving tiles: a list with tuples of cropped image id of
@@ -290,10 +276,6 @@ def crop_at_indices(input_image,
         if n_dim == 3:
             img_id = '{}_sl{}-{}'.format(img_id, 0, im_depth)
 
-            if isotropic:
-                img_shape = cropped_img.shape
-                isotropic_shape = [img_shape[0], ] * len(img_shape)
-                cropped_img = resize_image(cropped_img, isotropic_shape)
         if save_dict is not None:
             file_name = write_tile(cropped_img, save_dict, img_id)
             tiled_metadata.append({'channel_idx': save_dict['channel_idx'],
