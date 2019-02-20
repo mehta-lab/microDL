@@ -117,7 +117,6 @@ class TestResizeImages(unittest.TestCase):
 
         # set up a volume with 5 slices, 2 channels
         slice_ids = [0, 1, 2, 3, 4]
-        im = 1500 * np.ones((30, 20), dtype=np.uint16)
         channel_ids = [2, 3]
         frames_meta = aux_utils.make_dataframe()
         exp_meta_dict = []
@@ -136,12 +135,11 @@ class TestResizeImages(unittest.TestCase):
                     aux_utils.get_ids_from_imname(im_name),
                     ignore_index=True,
                 )
-            op_fname = 'im_c{}_z0-5_t5_p7_sc3.3-0.8-1.0.npy'.format(c)
+            op_fname = 'im_c{}_z0_t5_p7_sc3.3-0.8-1.0.npy'.format(c)
             exp_meta_dict.append({'time_idx': self.time_idx,
                                   'pos_idx': self.pos_idx,
                                   'channel_idx': c,
-                                  'slice_start_idx': 0,
-                                  'slice_end_idx': 5,
+                                  'slice_idx': 0,
                                   'file_name': op_fname})
         # Write metadata
         frames_meta.to_csv(
@@ -169,14 +167,11 @@ class TestResizeImages(unittest.TestCase):
         exp_meta_dict = []
         for c in channel_ids:
             for s in [0, 2]:
-                op_fname = 'im_c{}_z{}-{}_t5_p7_sc3.3-0.8-1.0.npy'.format(
-                    c, s, s+3
-                )
+                op_fname = 'im_c{}_z{}_t5_p7_sc3.3-0.8-1.0.npy'.format(c, s)
                 exp_meta_dict.append({'time_idx': self.time_idx,
                                       'pos_idx': self.pos_idx,
                                       'channel_idx': c,
-                                      'slice_start_idx': s,
-                                      'slice_end_idx': s + 3,
+                                      'slice_idx': s,
                                       'file_name': op_fname})
 
         resize_inst.resize_volumes(num_slices_subvolume=3)
