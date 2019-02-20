@@ -4,8 +4,7 @@ import numpy as np
 import pandas as pd
 
 from micro_dl.utils import normalize as normalize, aux_utils as aux_utils
-from micro_dl.utils.image_utils import read_image, \
-    apply_flat_field_correction, resize_image
+from micro_dl.utils.image_utils import read_image, apply_flat_field_correction
 
 
 def read_imstack(input_fnames,
@@ -111,6 +110,54 @@ def preprocess_imstack(frames_metadata,
     return normalize.zscore(im_stack)
 
 
+def preprocess_volume(frames_metadata,
+                      input_dir,
+                      time_idx,
+                      channel_idx,
+                      slice_idx,
+                      pos_idx,
+                      flat_field_im=None,
+                      hist_clip_limits=None):
+    """
+    Preprocess image given by indices: flatfield correction, histogram
+    clipping and z-score normalization is performed.
+
+    :param pd.DataFrame frames_metadata: DF with meta info for all images
+    :param str input_dir: dir containing input images
+    :param int time_idx: Time index
+    :param int channel_idx: Channel index
+    :param int slice_idx: Slice (z) index
+    :param int pos_idx: Position (FOV) index
+    :param np.array flat_field_im: Flat field image for channel
+    :param list hist_clip_limits: Limits for histogram clipping (size 2)
+    :return np.array im: 2D preprocessed image
+    """
+
+    meta_idx = frames_metadata.index[
+        (frames_metadata['channel_idx'] == channel_idx) &
+        (frames_metadata['time_idx'] == time_idx) &
+        (frames_metadata['pos_idx'] == pos_idx) &
+        (frames_metadata['slice_idx'] == slice_idx)
+    ].tolist()[0]
+
+    file_path = os.path.join(
+            input_dir,
+            frames_metadata.loc[meta_idx, 'file_name'],
+    )
+
+    im = read_image(file_path)
+    if flat_field_im is not None:
+        # check if 3D array divided by 2D array
+        im = apply_flat_field_correction(im, flat_field_image=flat_field_im)
+
+    # normalize
+    if hist_clip_limits is not None:
+        im_stack = normalize.hist_clipping(im,
+                                           hist_clip_limits[0],
+                                           hist_clip_limits[1])
+    return normalize.zscore(im_stack)
+
+
 def tile_image(input_image,
                tile_size,
                step_size,
@@ -191,7 +238,7 @@ def tile_image(input_image,
     n_dim = len(im_shape)
     im_depth = im_shape[2]
     if n_dim == 3:
-        n_slices = im_depth
+        n_slices = step_size[2] if tile_3d else im_depth
 
     cropped_image_list = []
     cropping_index = []
@@ -229,14 +276,19 @@ def tile_image(input_image,
                 cropping_index.append(cur_index)
                 if save_dict is not None:
                     file_name = write_tile(cropped_img, save_dict, img_id)
-                    tiled_metadata.append(
-                        {'channel_idx': save_dict['channel_idx'],
-                         'slice_idx': save_dict['slice_idx'],
-                         'time_idx': save_dict['time_idx'],
-                         'file_name': file_name,
-                         'pos_idx': save_dict['pos_idx'],
-                         'row_start': row,
-                         'col_start': col})
+                    cur_metadata = {'channel_idx': save_dict['channel_idx'],
+                                    'slice_idx': save_dict['slice_idx'],
+                                    'time_idx': save_dict['time_idx'],
+                                    'file_name': file_name,
+                                    'pos_idx': save_dict['pos_idx'],
+                                    'row_start': row,
+                                    'col_start': col}
+                    if tile_3d:
+                        del cur_metadata['slice_idx']
+                        cur_metadata['slice_start_idx'] = \
+                            save_dict['slice_start_idx']
+                    tiled_metadata.append(cur_metadata)
+
     if save_dict is None:
         if return_index:
             return cropped_image_list, cropping_index
@@ -251,13 +303,15 @@ def tile_image(input_image,
 
 def crop_at_indices(input_image,
                     crop_indices,
-                    save_dict=None):
+                    save_dict=None,
+                    tile_3d=False):
     """Crop image into tiles at given indices
 
     :param np.array input_image: input image for cropping
     :param list crop_indices: list of indices for cropping
     :param dict save_dict: dict with keys: time_idx, channel_idx, slice_idx,
      pos_idx, image_format and save_dir for generation output fname
+    :param bool tile_3d: boolean flag for adding slice_start_idx to meta
     :return: if not saving tiles: a list with tuples of cropped image id of
      the format rrmin-rmax_ccmin-cmax_slslmin-slmax and cropped image.
      Else saves tiles in-place and returns a df with tile metadata
@@ -278,6 +332,21 @@ def crop_at_indices(input_image,
 
         if save_dict is not None:
             file_name = write_tile(cropped_img, save_dict, img_id)
+            cur_metadata = {'channel_idx': save_dict['channel_idx'],
+                            'slice_idx': save_dict['slice_idx'],
+                            'time_idx': save_dict['time_idx'],
+                            'file_name': file_name,
+                            'pos_idx': save_dict['pos_idx'],
+                            'row_start': cur_idx[0],
+                            'col_start': cur_idx[2]}
+            if tile_3d:
+                del cur_metadata['slice_idx']
+                cur_metadata['slice_start_idx'] = \
+                    save_dict['slice_start_idx']
+                cur_metadata['slice_end_idx'] = \
+                    save_dict['slice_end_idx']
+            tiled_metadata.append(cur_metadata)
+
             tiled_metadata.append({'channel_idx': save_dict['channel_idx'],
                                    'slice_idx': save_dict['slice_idx'],
                                    'time_idx': save_dict['time_idx'],

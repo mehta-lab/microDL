@@ -8,7 +8,7 @@ from micro_dl.utils.mp_utils import mp_tile_save, mp_crop_save
 
 
 class ImageTilerUniform:
-    """Tiles all images images in a dataset"""
+    """Tiles all images in a dataset"""
 
     def __init__(self,
                  input_dir,
