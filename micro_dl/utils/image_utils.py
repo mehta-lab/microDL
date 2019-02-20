@@ -228,7 +228,8 @@ def get_unimodal_threshold(input_image):
     https://www.mathworks.com/matlabcentral/fileexchange/45443-rosin-thresholding
 
     :param np.array input_image: generate mask for this image
-    :return float best_threshold: optimal lower threshold for the fg hist
+    :return float best_threshold: optimal lower threshold for the foreground
+     hist
     """
 
     hist_counts, bin_edges = np.histogram(
@@ -238,6 +239,7 @@ def get_unimodal_threshold(input_image):
     )
     bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
 
+    # assuming that background has the max count
     max_idx = np.argmax(hist_counts)
     int_with_max_count = bin_centers[max_idx]
     p1 = [int_with_max_count, hist_counts[max_idx]]
@@ -247,8 +249,8 @@ def get_unimodal_threshold(input_image):
     last_binedge = pos_counts_idx[-1]
     p2 = [bin_centers[last_binedge], hist_counts[last_binedge]]
 
-    best_threshold = -1
-    max_dist = -1
+    best_threshold = -np.inf
+    max_dist = -np.inf
     for idx in range(max_idx, last_binedge, 1):
         x0 = bin_centers[idx]
         y0 = hist_counts[idx]
@@ -259,7 +261,7 @@ def get_unimodal_threshold(input_image):
         if per_dist > max_dist:
             best_threshold = x0
             max_dist = per_dist
-
+    assert best_threshold > -np.inf, 'Error in unimodal thresholding'
     return best_threshold
 
 

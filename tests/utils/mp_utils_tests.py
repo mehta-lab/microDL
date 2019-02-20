@@ -134,7 +134,7 @@ class TestMpUtils(unittest.TestCase):
         for ch_idx in self.channel_ids:
             op_fname = os.path.join(
                 self.temp_path,
-                'im_c{}_z0-7_t0_p0_sc4.1-1.0-1.0.npy'.format(ch_idx)
+                'im_c{}_z0_t0_p0_sc4.1-1.0-1.0.npy'.format(ch_idx)
             )
             mp_utils.rescale_vol_and_save(
                 self.time_ids,
