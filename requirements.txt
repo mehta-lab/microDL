@@ -8,9 +8,9 @@ opencv-python
 pandas
 PIMS
 pydot
+PyYAML
 scikit-image
 scikit-learn
 scipy
 tensorflow==1.10.0
 testfixtures
-yaml
