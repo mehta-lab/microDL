@@ -1,10 +1,10 @@
-cv2
 Cython
 keras==2.1.6
 matplotlib
 natsort
 nose
 numpy
+opencv-python
 pandas
 PIMS
 pydot
