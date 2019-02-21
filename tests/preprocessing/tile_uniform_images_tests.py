@@ -98,6 +98,12 @@ class TestImageTilerUniform(unittest.TestCase):
                       'im_c001_z017_t005_p007.png']
         self.exp_fnames = [os.path.join(self.temp_path, fname)
                       for fname in exp_fnames]
+        self.exp_tile_indices = [
+            [0, 5, 0, 5], [0, 5, 4, 9], [0, 5, 6, 11],
+            [10, 15, 0, 5], [10, 15, 4, 9], [10, 15, 6, 11],
+            [4, 9, 0, 5], [4, 9, 4, 9], [4, 9, 6, 11],
+            [8, 13, 0, 5], [8, 13, 4, 9], [8, 13, 6, 11],
+        ]
 
     def tearDown(self):
         """Tear down temporary folder and file structure"""
@@ -170,11 +176,7 @@ class TestImageTilerUniform(unittest.TestCase):
             pos_idx=7,
             slice_idx=16
         )
-        exp_tile_indices = [[0, 5, 0, 5], [0, 5, 4, 9], [0, 5, 6, 11],
-                            [10, 15, 0, 5], [10, 15, 4, 9], [10, 15, 6, 11],
-                            [4, 9, 0, 5], [4, 9, 4, 9], [4, 9, 6, 11],
-                            [8, 13, 0, 5], [8, 13, 4, 9], [8, 13, 6, 11]]
-        exp_tile_indices = np.asarray(exp_tile_indices, dtype='uint8')
+        exp_tile_indices = np.asarray(self.exp_tile_indices, dtype='uint8')
         row_ids = list(range(len(exp_tile_indices)))
         for ret_idx in tile_indices:
             row_idx = np.where((exp_tile_indices[:, 0] == ret_idx[0]) &
@@ -203,12 +205,8 @@ class TestImageTilerUniform(unittest.TestCase):
         self.tile_inst.channel_ids = [1, 2]
         tile_meta, _ = self.tile_inst._get_tiled_data()
 
-        exp_tile_indices = [[0, 5, 0, 5], [0, 5, 4, 9], [0, 5, 6, 11],
-                            [10, 15, 0, 5], [10, 15, 4, 9], [10, 15, 6, 11],
-                            [4, 9, 0, 5], [4, 9, 4, 9], [4, 9, 6, 11],
-                            [8, 13, 0, 5], [8, 13, 4, 9], [8, 13, 6, 11]]
         exp_tile_meta = []
-        for exp_idx in exp_tile_indices:
+        for exp_idx in self.exp_tile_indices:
             for z in [16, 17, 18]:
                 cur_img_id = 'r{}-{}_c{}-{}_sl{}-{}'.format(
                     exp_idx[0], exp_idx[1], exp_idx[2], exp_idx[3], 0, 3
@@ -264,17 +262,13 @@ class TestImageTilerUniform(unittest.TestCase):
     def test_get_crop_args(self):
         """Test get_crop_tile_args with task_type=crop"""
 
-        exp_tile_indices = [[0, 5, 0, 5], [0, 5, 4, 9], [0, 5, 6, 11],
-                            [10, 15, 0, 5], [10, 15, 4, 9], [10, 15, 6, 11],
-                            [4, 9, 0, 5], [4, 9, 4, 9], [4, 9, 6, 11],
-                            [8, 13, 0, 5], [8, 13, 4, 9], [8, 13, 6, 11]]
         cur_args = self.tile_inst.get_crop_tile_args(
             channel_idx=self.channel_idx,
             time_idx=self.time_idx,
             slice_idx=16,
             pos_idx=7,
             task_type='crop',
-            tile_indices=exp_tile_indices
+            tile_indices=self.exp_tile_indices
         )
         nose.tools.assert_list_equal(list(cur_args[0]), self.exp_fnames)
         nose.tools.assert_equal(cur_args[1], self.ff_name)
