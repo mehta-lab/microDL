@@ -1,4 +1,5 @@
 Cython
+keras==2.1.6
 matplotlib
 natsort
 nose
@@ -9,3 +10,4 @@ pydot
 scikit-image
 scikit-learn
 scipy
+tensorflow==1.10.0
