@@ -37,7 +37,11 @@ def read_imstack(input_fnames,
                 flat_field_image=flat_field_image,
             )
         im_stack.append(im)
-    input_image = np.stack(im_stack, axis=2)
+    if len(im.shape) == 3:
+        input_image = im
+        assert len(input_fnames) == 1, 'more than one 3D image passed'
+    else:
+        input_image = np.stack(im_stack, axis=2)
     if not is_mask:
         if hist_clip_limits is not None:
             input_image = normalize.hist_clipping(
@@ -98,8 +102,13 @@ def preprocess_imstack(frames_metadata,
                 flat_field_image=flat_field_im,
             )
         im_stack.append(im)
-    # Stack images
-    im_stack = np.stack(im_stack, axis=2)
+
+    if len(im.shape) == 3:
+        im_stack = im
+        assert depth == 1, 'more than one 3D volume gets read'
+    else:
+        # Stack images
+        im_stack = np.stack(im_stack, axis=2)
     # normalize
     if hist_clip_limits is not None:
         im_stack = normalize.hist_clipping(
@@ -107,54 +116,6 @@ def preprocess_imstack(frames_metadata,
             hist_clip_limits[0],
             hist_clip_limits[1],
         )
-    return normalize.zscore(im_stack)
-
-
-def preprocess_volume(frames_metadata,
-                      input_dir,
-                      time_idx,
-                      channel_idx,
-                      slice_idx,
-                      pos_idx,
-                      flat_field_im=None,
-                      hist_clip_limits=None):
-    """
-    Preprocess image given by indices: flatfield correction, histogram
-    clipping and z-score normalization is performed.
-
-    :param pd.DataFrame frames_metadata: DF with meta info for all images
-    :param str input_dir: dir containing input images
-    :param int time_idx: Time index
-    :param int channel_idx: Channel index
-    :param int slice_idx: Slice (z) index
-    :param int pos_idx: Position (FOV) index
-    :param np.array flat_field_im: Flat field image for channel
-    :param list hist_clip_limits: Limits for histogram clipping (size 2)
-    :return np.array im: 2D preprocessed image
-    """
-
-    meta_idx = frames_metadata.index[
-        (frames_metadata['channel_idx'] == channel_idx) &
-        (frames_metadata['time_idx'] == time_idx) &
-        (frames_metadata['pos_idx'] == pos_idx) &
-        (frames_metadata['slice_idx'] == slice_idx)
-    ].tolist()[0]
-
-    file_path = os.path.join(
-            input_dir,
-            frames_metadata.loc[meta_idx, 'file_name'],
-    )
-
-    im = read_image(file_path)
-    if flat_field_im is not None:
-        # check if 3D array divided by 2D array
-        im = apply_flat_field_correction(im, flat_field_image=flat_field_im)
-
-    # normalize
-    if hist_clip_limits is not None:
-        im_stack = normalize.hist_clipping(im,
-                                           hist_clip_limits[0],
-                                           hist_clip_limits[1])
     return normalize.zscore(im_stack)
 
 
@@ -213,6 +174,20 @@ def tile_image(input_image,
                 use_tile = False
         return use_tile
 
+    def get_tile_meta(cropped_img, img_id, save_dict, row, col, sl=None):
+        if save_dict is not None:
+            file_name = write_tile(cropped_img, save_dict, img_id)
+            cur_metadata = {'channel_idx': save_dict['channel_idx'],
+                            'slice_idx': save_dict['slice_idx'],
+                            'time_idx': save_dict['time_idx'],
+                            'file_name': file_name,
+                            'pos_idx': save_dict['pos_idx'],
+                            'row_start': row,
+                            'col_start': col}
+            if sl is not None:
+                cur_metadata['slice_start'] = sl
+        return cur_metadata
+
     tile_3d = False
     # Add to tile size and step size in case of 3D images
     im_shape = input_image.shape
@@ -221,11 +196,10 @@ def tile_image(input_image,
             tile_size.append(im_shape[2])
         else:
             tile_3d = True
-
         # Step size in z is assumed to be the same as depth
         if len(step_size) == 2:
             step_size.append(im_shape[2])
-
+    print('tile_utils: tile_3d', tile_3d)
     assert len(tile_size) == len(step_size),\
         "Tile {} and step size {} mismatch".format(tile_size, step_size)
     assert np.all(step_size <= tile_size),\
@@ -238,7 +212,7 @@ def tile_image(input_image,
     n_dim = len(im_shape)
     im_depth = im_shape[2]
     if n_dim == 3:
-        n_slices = step_size[2] if tile_3d else im_depth
+        n_slices = im_shape[2] if tile_3d else im_depth
 
     cropped_image_list = []
     cropping_index = []
@@ -257,37 +231,38 @@ def tile_image(input_image,
                                       col: col + tile_size[1], ...]
             if n_dim == 3:
                 if tile_3d:
-                    for sl in range(0, n_slices, step_size[2]):
+                    for sl in range(0,
+                                    n_slices - tile_size[2] + step_size[2],
+                                    step_size[2]):
                         if sl + step_size[2] > n_slices:
                             sl = check_in_range(sl, n_slices, tile_size[2])
 
                         cur_index = (row, row + tile_size[0],
                                      col, col + tile_size[1],
                                      sl, sl + tile_size[2])
-                        img_id = '{}_sl{}-{}'.format(img_id, sl,
-                                                     sl + tile_size[2])
+                        cur_img_id = '{}_sl{}-{}'.format(img_id, sl,
+                                                         sl + tile_size[2])
                         cropped_img = input_image[row: row + tile_size[0],
                                                   col: col + tile_size[1],
                                                   sl: sl + tile_size[2]]
+                        if use_tile(cropped_img, min_fraction):
+                            cropped_image_list.append([cur_img_id, cropped_img])
+                            cropping_index.append(cur_index)
+                            cur_tile_meta = get_tile_meta(cropped_img,
+                                                          cur_img_id,
+                                                          save_dict,
+                                                          row, col, sl)
+                            tiled_metadata.append(cur_tile_meta)
                 else:
                     img_id = '{}_sl{}-{}'.format(img_id, 0, im_depth)
-            if use_tile(cropped_img, min_fraction):
+            if use_tile(cropped_img, min_fraction) and not tile_3d:
                 cropped_image_list.append([img_id, cropped_img])
                 cropping_index.append(cur_index)
-                if save_dict is not None:
-                    file_name = write_tile(cropped_img, save_dict, img_id)
-                    cur_metadata = {'channel_idx': save_dict['channel_idx'],
-                                    'slice_idx': save_dict['slice_idx'],
-                                    'time_idx': save_dict['time_idx'],
-                                    'file_name': file_name,
-                                    'pos_idx': save_dict['pos_idx'],
-                                    'row_start': row,
-                                    'col_start': col}
-                    if tile_3d:
-                        del cur_metadata['slice_idx']
-                        cur_metadata['slice_start_idx'] = \
-                            save_dict['slice_start_idx']
-                    tiled_metadata.append(cur_metadata)
+                cur_tile_meta = get_tile_meta(cropped_img,
+                                              img_id,
+                                              save_dict,
+                                              row, col)
+                tiled_metadata.append(cur_tile_meta)
 
     if save_dict is None:
         if return_index:
@@ -328,7 +303,10 @@ def crop_at_indices(input_image,
         cropped_img = input_image[cur_idx[0]: cur_idx[1],
                                   cur_idx[2]: cur_idx[3], ...]
         if n_dim == 3:
-            img_id = '{}_sl{}-{}'.format(img_id, 0, im_depth)
+            if tile_3d:
+                img_id = '{}_sl{}-{}'.format(img_id, cur_idx[4], cur_idx[5])
+            else:
+                img_id = '{}_sl{}-{}'.format(img_id, 0, im_depth)
 
         if save_dict is not None:
             file_name = write_tile(cropped_img, save_dict, img_id)
@@ -340,20 +318,8 @@ def crop_at_indices(input_image,
                             'row_start': cur_idx[0],
                             'col_start': cur_idx[2]}
             if tile_3d:
-                del cur_metadata['slice_idx']
-                cur_metadata['slice_start_idx'] = \
-                    save_dict['slice_start_idx']
-                cur_metadata['slice_end_idx'] = \
-                    save_dict['slice_end_idx']
+                cur_metadata['slice_start'] = cur_idx[4]
             tiled_metadata.append(cur_metadata)
-
-            tiled_metadata.append({'channel_idx': save_dict['channel_idx'],
-                                   'slice_idx': save_dict['slice_idx'],
-                                   'time_idx': save_dict['time_idx'],
-                                   'file_name': file_name,
-                                   'pos_idx': save_dict['pos_idx'],
-                                   'row_start': cur_idx[0],
-                                   'col_start': cur_idx[2]})
         tiles_list.append([img_id, cropped_img])
     if save_dict is None:
         return tiles_list

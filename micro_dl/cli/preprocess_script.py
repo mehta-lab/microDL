@@ -7,6 +7,7 @@ import time
 from micro_dl.preprocessing.estimate_flat_field import FlatFieldEstimator2D
 from micro_dl.preprocessing.generate_masks import MaskProcessor
 from micro_dl.preprocessing.resize_images import ImageResizer
+from micro_dl.preprocessing.tile_3d import ImageTilerUniform3D
 from micro_dl.preprocessing.tile_uniform_images import ImageTilerUniform
 from micro_dl.preprocessing.tile_nonuniform_images import \
     ImageTilerNonUniform
@@ -178,7 +179,34 @@ def pre_process(pp_config):
             'int2str_len': int2str_len,
         }
         if uniform_struct:
-            tile_inst = ImageTilerUniform(**kwargs)
+            if pp_config['tile']['tile_3d']:
+                num_sl_vol = -1
+                if not 'resize' in pp_config:
+                    top_dir = input_dir.split(os.sep)[:-1]
+                    top_dir = os.sep.join(top_dir)
+                    resize_config = aux_utils.read_json(
+                        os.path.join(top_dir, 'preprocessing_info.json')
+                    )
+                    assert 'resize' in resize_config['config'], \
+                        'Images not saved as 3D for using tile 3D'
+                    resize_config = resize_config['config']
+                    if 'num_slices_subvolume' in resize_config['resize']:
+                        num_sl_vol = \
+                            resize_config['resize']['num_slices_subvolume']
+                else:
+                    if 'num_slices_subvolume' in pp_config['resize']:
+                        num_sl_vol = \
+                            pp_config['resize']['num_slices_subvolume']
+
+                if num_sl_vol == -1:
+                    tile_slice_ids = slice_ids[0]
+                else:
+                    tile_slice_ids = slice_ids[0, -1, num_sl_vol - 1]
+
+                kwargs['slice_ids'] = tile_slice_ids
+                tile_inst = ImageTilerUniform3D(**kwargs)
+            else:
+                tile_inst = ImageTilerUniform(**kwargs)
         else:
             tile_inst = ImageTilerNonUniform(**kwargs)
 

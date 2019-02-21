@@ -176,7 +176,8 @@ def crop_at_indices_save(input_fnames,
                          image_format,
                          save_dir,
                          int2str_len=3,
-                         is_mask=False):
+                         is_mask=False,
+                         tile_3d=False):
     """Crop image into tiles at given indices and save
 
     :param tuple input_fnames: tuple of input fnames with full path
@@ -191,6 +192,7 @@ def crop_at_indices_save(input_fnames,
     :param str save_dir: output dir to save tiles
     :param int int2str_len: len of indices for creating file names
     :param bool is_mask: Indicates if files are masks
+    :param bool tile_3d: indicator for tiling in 3D
     :return: pd.DataFrame from a list of dicts with metadata
     """
 
@@ -213,6 +215,7 @@ def crop_at_indices_save(input_fnames,
             input_image=input_image,
             crop_indices=crop_indices,
             save_dict=save_dict,
+            tile_3d=tile_3d
         )
     except Exception as e:
         err_msg = 'error in t_{}, c_{}, pos_{}, sl_{}'.format(

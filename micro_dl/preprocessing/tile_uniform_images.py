@@ -152,6 +152,7 @@ class ImageTilerUniform:
             depth=max_depth,
         )
         self.int2str_len = int2str_len
+        self.tile_3d = False
 
     def get_tile_dir(self):
         """
@@ -221,12 +222,22 @@ class ImageTilerUniform:
         t = tiled_meta['time_idx'] == time_idx
         channel_meta = tiled_meta[c & z & p & t]
         # Get tile_indices
-        tile_indices = pd.concat([
-            channel_meta['row_start'],
-            channel_meta['row_start'].add(self.tile_size[0]),
-            channel_meta['col_start'],
-            channel_meta['col_start'].add(self.tile_size[1]),
-        ], axis=1)
+        if self.tile_3d:
+            tile_indices = pd.concat([
+                channel_meta['row_start'],
+                channel_meta['row_start'].add(self.tile_size[0]),
+                channel_meta['col_start'],
+                channel_meta['col_start'].add(self.tile_size[1]),
+                channel_meta['slice_start'],
+                channel_meta['slice_start'].add(self.tile_size[2])
+            ], axis=1)
+        else:
+            tile_indices = pd.concat([
+                channel_meta['row_start'],
+                channel_meta['row_start'].add(self.tile_size[0]),
+                channel_meta['col_start'],
+                channel_meta['col_start'].add(self.tile_size[1]),
+            ], axis=1)
         # Match list format similar to tile_image
         tile_indices = tile_indices.values.tolist()
         return tile_indices
@@ -376,7 +387,8 @@ class ImageTilerUniform:
                         self.image_format,
                         self.tile_dir,
                         self.int2str_len,
-                        is_mask)
+                        is_mask,
+                        self.tile_3d)
         elif task_type == 'tile':
             cur_args = (tuple(input_fnames),
                         flat_field_fname,
