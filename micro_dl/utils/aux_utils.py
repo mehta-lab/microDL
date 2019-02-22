@@ -487,3 +487,43 @@ def get_ids_from_imname(im_name, df_names=DF_NAMES, order="cztp"):
         idx_name = idx_dict[order_char]
         meta_row[idx_name] = int(ints[i])
     return meta_row
+
+
+def parse_sms_name(file_name, meta_row, channel_names):
+    """
+    Parse metadata from file name or file path.
+    This function is custom for the computational microscopy (SMS)
+    group, who has the following file naming convention:
+    File naming convention is assumed to be:
+        img_channelname_t***_p***_z***.tif
+    This function will alter list and dict in place.
+
+    :param str file_name: File name or path
+    :param dict meta_row: Metadata for frame (one row in dataframe)
+    :param list[str] channel_names: Expanding list of channel names
+    """
+    # Get rid of path if present
+    file_str = os.path.basename(file_name)[:-4]
+    str_split = file_str.split("_")[1:]
+
+    if len(str_split) > 4:
+        # this means they have introduced additional _ in the file name
+        channel_name = '_'.join(str_split[:-3])
+    else:
+        channel_name = str_split[0]
+    # Add channel name and index
+    meta_row["channel_name"] = channel_name
+    if channel_name not in channel_names:
+        channel_names.append(channel_name)
+    # Index channels by names
+    meta_row["channel_idx"] = channel_names.index(channel_name)
+    # Loop through the rest of the indices which should be in name
+    str_split = str_split[-3:]
+    for s in str_split:
+        if s.find("t") == 0 and len(s) == 4:
+            meta_row["time_idx"] = int(s[1:])
+        elif s.find("p") == 0 and len(s) == 4:
+            meta_row["pos_idx"] = int(s[1:])
+        elif s.find("z") == 0 and len(s) == 4:
+            meta_row["slice_idx"] = int(s[1:])
+

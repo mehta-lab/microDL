@@ -25,6 +25,12 @@ def parse_args():
         default="cztp",
         help="The order in which indices are listed in the image file name",
     )
+    parser.add_argument(
+        '--name_parser',
+        type=str,
+        default="get_ids_from_imname",
+        help="The function in aux_utils that will parse the file name for indices",
+    )
     return parser.parse_args()
 
 
