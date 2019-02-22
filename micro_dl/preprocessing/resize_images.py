@@ -20,7 +20,8 @@ class ImageResizer:
                  slice_ids=-1,
                  pos_ids=-1,
                  int2str_len=3,
-                 num_workers=4):
+                 num_workers=4,
+                 flat_field_dir=None):
         """
         :param str input_dir: Directory with image frames
         :param str output_dir: Base output directory
@@ -32,6 +33,7 @@ class ImageResizer:
         :param int/list pos_ids: Position (FOV) indices to use
         :param int int2str_len: Length of str when converting ints
         :param int num_workers: number of workers for multiprocessing
+        :param str flat_field_dir: dir with flat flield images
         """
         self.input_dir = input_dir
         self.output_dir = output_dir
@@ -63,6 +65,7 @@ class ImageResizer:
 
         self.int2str_len = int2str_len
         self.num_workers = num_workers
+        self.flat_field_dir = flat_field_dir
 
     def get_resize_dir(self):
         """
@@ -96,10 +99,17 @@ class ImageResizer:
                                                              "file_name"]
                         file_path = os.path.join(self.input_dir, file_name)
                         write_path = os.path.join(self.resize_dir, file_name)
+                        ff_path = None
+                        if self.flat_field_dir is not None:
+                            ff_path = os.path.join(
+                                self.flat_field_dir,
+                                'flat-field_channel-{}.npy'.format(channel_idx)
+                            )
                         kwargs = {
                             'file_path': file_path,
                             'write_path': write_path,
                             'scale_factor': self.scale_factor,
+                            'ff_path': ff_path
                         }
                         mp_args.append(kwargs)
                         resized_metadata = resized_metadata.append(
@@ -140,6 +150,12 @@ class ImageResizer:
         for time_idx in self.time_ids:
             for pos_idx in self.pos_ids:
                 for channel_idx in self.channel_ids:
+                    ff_path = None
+                    if self.flat_field_dir is not None:
+                        ff_path = os.path.join(
+                            self.flat_field_dir,
+                            'flat-field_channel-{}.npy'.format(channel_idx)
+                        )
                     for block_idx in range(num_blocks):
                         idx = self.slice_ids[0] + \
                               block_idx * (num_slices_subvolume - 1)
@@ -162,7 +178,8 @@ class ImageResizer:
                                         self.frames_metadata,
                                         write_fpath,
                                         self.scale_factor,
-                                        self.input_dir))
+                                        self.input_dir,
+                                        ff_path))
                         cur_metadata = {'time_idx': time_idx,
                                         'pos_idx': pos_idx,
                                         'channel_idx': channel_idx,
@@ -177,3 +194,10 @@ class ImageResizer:
             os.path.join(self.resize_dir, 'frames_meta.csv'),
             sep=',',
         )
+
+        if num_slices_subvolume == -1:
+            slice_ids = self.slice_ids[0]
+        else:
+            slice_ids = self.slice_ids[0, -1, num_slices_subvolume - 1]
+
+        return slice_ids

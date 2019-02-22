@@ -152,7 +152,7 @@ class ImageTilerUniform:
             depth=max_depth,
         )
         self.int2str_len = int2str_len
-        self.tile_3d = False
+        self.tile_3d = tile_dict['tile_3d']
 
     def get_tile_dir(self):
         """

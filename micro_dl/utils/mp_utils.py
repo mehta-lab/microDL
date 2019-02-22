@@ -5,6 +5,7 @@ import os
 
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.image_utils as image_utils
+import micro_dl.preprocessing.masks as mask_utils
 import micro_dl.utils.tile_utils as tile_utils
 
 
@@ -30,7 +31,8 @@ def create_save_mask(input_fnames,
                      time_idx,
                      pos_idx,
                      slice_idx,
-                     int2str_len):
+                     int2str_len,
+                     type):
     """Create and save mask
 
     :param tuple input_fnames: tuple of input fnames with full path
@@ -43,15 +45,22 @@ def create_save_mask(input_fnames,
     :param int pos_idx: generate masks for given position / sample ids
     :param int slice_idx: generate masks for given slice ids
     :param int int2str_len: Length of str when converting ints
+    :param str type: thresholding type used for masking or str to map to
+     masking function
     :return dict cur_meta for each mask
     """
+
     im_stack = tile_utils.read_imstack(input_fnames,
                                        flat_field_fname)
     # Combine channel images and generate mask
     summed_image = np.sum(np.stack(im_stack), axis=2)
     summed_image = summed_image.astype('float32')
+    if type == 'otsu':
+        mask = mask_utils.create_mask(summed_image, str_elem_radius)
+    elif type == 'unimodal':
+        mask = mask_utils.unimodal_thresholding(summed_image,
+                                                str_elem_radius)
 
-    mask = image_utils.create_mask(summed_image, str_elem_radius)
     # Create mask name for given slice, time and position
     file_name = aux_utils.get_im_name(time_idx=time_idx,
                                       channel_idx=mask_channel_idx,
@@ -247,8 +256,16 @@ def resize_and_save(**kwargs):
     str file_path: Path to input image
     str write_path: Path to image to be written
     float scale_factor: Scale factor for resizing
+    str ff_path: path to flat field correction image
     """
+
     im = image_utils.read_image(kwargs['file_path'])
+    if kwargs['ff_path'] is not None:
+        ff_image = np.load(kwargs['ff_path'])
+        im = image_utils.apply_flat_field_correction(
+            im,
+            flat_field_image=ff_image
+        )
     im_resized = image_utils.rescale_image(
         im=im,
         scale_factor=kwargs['scale_factor'],
@@ -277,7 +294,8 @@ def rescale_vol_and_save(time_idx,
                          frames_metadata,
                          output_fname,
                          scale_factor,
-                         input_dir):
+                         input_dir,
+                         ff_path):
     """Rescale volumes and save
 
     :param int time_idx: time point of input image
@@ -289,6 +307,7 @@ def rescale_vol_and_save(time_idx,
     :param str output_fname: output_fname
     :param float/list scale_factor: scale factor for resizing
     :param str input_dir: input dir for 2D images
+    :param str ff_path: path to flat field correction image
     """
 
     input_stack = []
@@ -300,6 +319,12 @@ def rescale_vol_and_save(time_idx,
                                           pos_idx)
         cur_fname = frames_metadata.loc[meta_idx, 'file_name']
         cur_img = image_utils.read_image(os.path.join(input_dir, cur_fname))
+        if ff_path is not None:
+            ff_image = np.load(ff_path)
+            cur_img = image_utils.apply_flat_field_correction(
+                cur_img,
+                flat_field_image=ff_image
+            )
         input_stack.append(cur_img)
     input_stack = np.stack(input_stack, axis=0)
     resc_vol = image_utils.rescale_nd_image(input_stack, scale_factor)

@@ -1,12 +1,10 @@
 import nose.tools
 import numpy as np
-from skimage.filters import gaussian
-
-import micro_dl.utils.image_utils as image_utils
-
 
 # Create a test image and its corresponding coordinates and values
 # Create a test image with a bright block to the right
+from micro_dl.utils import image_utils as image_utils
+from tests.preprocessing.mask_utils_tests import uni_thr_tst_image
 
 test_im = np.zeros((10, 15), np.uint16) + 100
 test_im[:, 9:] = 200
@@ -14,13 +12,6 @@ x, y = np.meshgrid(np.linspace(1, 7, 3), np.linspace(1, 13, 5))
 test_coords = np.vstack((x.flatten(), y.flatten())).T
 test_values = np.zeros((15,), dtype=np.float64) + 100.
 test_values[9:] = 200.
-
-uni_thr_tst_image = np.zeros((31, 31))
-uni_thr_tst_image[5:10, 8:16] = 127
-uni_thr_tst_image[11:21, 2:12] = 97
-uni_thr_tst_image[8:12, 3:7] = 31
-uni_thr_tst_image[17:29, 17:29] = 61
-uni_thr_tst_image[3:14, 17:29] = 47
 
 
 def test_upscale_image():
@@ -65,19 +56,6 @@ def test_fit_polynomial_surface():
                            np.mean(flatfield[:, -1]))
     # Since flatfield is normalized, the mean should be close to one
     nose.tools.assert_almost_equal(np.mean(flatfield), 1., places=3)
-
-
-def test_get_unimodal_threshold():
-    input_image = gaussian(uni_thr_tst_image, 1)
-    best_thr = image_utils.get_unimodal_threshold(input_image)
-    nose.tools.assert_equal(np.floor(best_thr), 3.0)
-
-
-def test_unimodal_thresholding():
-    input_image = gaussian(uni_thr_tst_image, 1)
-    mask = image_utils.unimodal_thresholding(input_image,
-                                             str_elem_size=0)
-    np.testing.assert_array_equal(mask, input_image > 3.04)
 
 
 def test_rescale_volume():

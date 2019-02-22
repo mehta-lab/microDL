@@ -19,7 +19,8 @@ class MaskProcessor:
                  pos_ids=-1,
                  int2str_len=3,
                  uniform_struct=True,
-                 num_workers=4):
+                 num_workers=4,
+                 mask_type='otsu'):
         """
         :param str input_dir: Directory with image frames
         :param str output_dir: Base output directory
@@ -37,7 +38,10 @@ class MaskProcessor:
         :param bool uniform_struct: bool indicator for same structure across
          pos and time points
         :param int num_workers: number of workers for multiprocessing
+        :param str mask_type: method to use for generating mask. Needed for
+         mapping to the masking function
         """
+
         self.input_dir = input_dir
         self.output_dir = output_dir
         self.flat_field_dir = flat_field_dir
@@ -69,6 +73,10 @@ class MaskProcessor:
         self.int2str_len = int2str_len
         self.uniform_struct = uniform_struct
         self.nested_id_dict = nested_id_dict
+
+        assert mask_type in ['otsu', 'unimodal'], \
+            'Masking method invalid, Otsu and unimodal are currently supported'
+        self.mask_type = mask_type
 
     def get_mask_dir(self):
         """
@@ -102,8 +110,6 @@ class MaskProcessor:
             field
         :return np.array im: image corresponding to the given channel indices
             and flatfield corrected
-        TODO: This doesn't work for flatfield correction because each channel
-            needs a separate flatfield image
         """
 
         input_fnames = []
@@ -169,7 +175,8 @@ class MaskProcessor:
                                     time_idx,
                                     pos_idx,
                                     slice_idx,
-                                    self.int2str_len)
+                                    self.int2str_len,
+                                    self.mask_type)
                         fn_args.append(cur_args)
         else:
             for tp_idx, tp_dict in self.nested_id_dict.items():
@@ -190,7 +197,8 @@ class MaskProcessor:
                                     tp_idx,
                                     pos_idx,
                                     sl_idx,
-                                    self.int2str_len)
+                                    self.int2str_len,
+                                    self.mask_type)
                         fn_args.append(cur_args)
 
         mask_meta_list = mp_create_save_mask(fn_args, self.num_workers)
