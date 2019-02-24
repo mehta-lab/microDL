@@ -54,6 +54,6 @@ class ImageTilerUniform3D(ImageTilerUniform):
                 'step size missing for some dimensions'
 
         assert self.tile_3d is True
-        assert all([item == 1 for item in self.depths.values()]), \
+        assert all([item == 1 for item in self.channel_depth.values()]), \
             'Depth is > 1 for 3D volume. ' \
             'Tiling does not support 4D arrays currently'

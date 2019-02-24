@@ -9,7 +9,7 @@ import unittest
 
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.mp_utils as mp_utils
-from micro_dl.preprocessing.masks import create_mask
+from micro_dl.utils.masks import create_mask
 
 
 class TestMpUtils(unittest.TestCase):

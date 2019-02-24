@@ -5,7 +5,7 @@ import os
 
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.image_utils as image_utils
-import micro_dl.preprocessing.masks as mask_utils
+import micro_dl.utils.masks as mask_utils
 import micro_dl.utils.tile_utils as tile_utils
 
 
@@ -32,7 +32,7 @@ def create_save_mask(input_fnames,
                      pos_idx,
                      slice_idx,
                      int2str_len,
-                     type):
+                     mask_type):
     """Create and save mask
 
     :param tuple input_fnames: tuple of input fnames with full path
@@ -45,7 +45,7 @@ def create_save_mask(input_fnames,
     :param int pos_idx: generate masks for given position / sample ids
     :param int slice_idx: generate masks for given slice ids
     :param int int2str_len: Length of str when converting ints
-    :param str type: thresholding type used for masking or str to map to
+    :param str mask_type: thresholding type used for masking or str to map to
      masking function
     :return dict cur_meta for each mask
     """
@@ -53,11 +53,20 @@ def create_save_mask(input_fnames,
     im_stack = tile_utils.read_imstack(input_fnames,
                                        flat_field_fname)
     # Combine channel images and generate mask
-    summed_image = np.sum(np.stack(im_stack), axis=2)
+    if len(im_stack.shape) == 3:
+        if len(input_fnames) == 1:
+            # read a 3d image
+            summed_image = im_stack
+        else:
+            # read a 2d image stack
+            summed_image = np.sum(np.stack(im_stack), axis=2)
+    elif len(im_stack.shape) == 4:
+        # read a 3d image stack
+        summed_image = np.sum(np.stack(im_stack), axis=3)
     summed_image = summed_image.astype('float32')
-    if type == 'otsu':
+    if mask_type == 'otsu':
         mask = mask_utils.create_mask(summed_image, str_elem_radius)
-    elif type == 'unimodal':
+    elif mask_type == 'unimodal':
         mask = mask_utils.unimodal_thresholding(summed_image,
                                                 str_elem_radius)
 

@@ -198,6 +198,6 @@ class ImageResizer:
         if num_slices_subvolume == -1:
             slice_ids = self.slice_ids[0]
         else:
-            slice_ids = self.slice_ids[0, -1, num_slices_subvolume - 1]
+            slice_ids = self.slice_ids[0: -1: num_slices_subvolume - 1]
 
         return slice_ids

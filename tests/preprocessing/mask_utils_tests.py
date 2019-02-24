@@ -2,7 +2,7 @@ import nose.tools
 import numpy as np
 from skimage.filters import gaussian
 
-import micro_dl.preprocessing.masks as mask_utils
+import micro_dl.utils.masks as mask_utils
 
 uni_thr_tst_image = np.zeros((31, 31))
 uni_thr_tst_image[5:10, 8:16] = 127

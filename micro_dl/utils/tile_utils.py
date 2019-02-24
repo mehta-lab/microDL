@@ -38,8 +38,12 @@ def read_imstack(input_fnames,
             )
         im_stack.append(im)
     if len(im.shape) == 3:
-        input_image = im
-        assert len(input_fnames) == 1, 'more than one 3D image passed'
+        if len(input_fnames) == 1:
+            # multiple 3d images could be passed for creating masks from their
+            # sum
+            input_image = im
+        elif len(input_fnames) > 1:
+            input_image = np.stack(im_stack, axis=3)
     else:
         input_image = np.stack(im_stack, axis=2)
     if not is_mask:
@@ -104,10 +108,11 @@ def preprocess_imstack(frames_metadata,
         im_stack.append(im)
 
     if len(im.shape) == 3:
+        # each channel is tiled independently and stacked later in dataset cls
         im_stack = im
         assert depth == 1, 'more than one 3D volume gets read'
     else:
-        # Stack images
+        # Stack images in same channel
         im_stack = np.stack(im_stack, axis=2)
     # normalize
     if hist_clip_limits is not None:
@@ -199,7 +204,6 @@ def tile_image(input_image,
         # Step size in z is assumed to be the same as depth
         if len(step_size) == 2:
             step_size.append(im_shape[2])
-    print('tile_utils: tile_3d', tile_3d)
     assert len(tile_size) == len(step_size),\
         "Tile {} and step size {} mismatch".format(tile_size, step_size)
     assert np.all(step_size <= tile_size),\

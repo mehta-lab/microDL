@@ -180,7 +180,7 @@ def tile_images(params_dict,
               'pos_ids': params_dict['pos_ids'],
               'flat_field_dir': flat_field_dir,
               'num_workers': params_dict['num_workers'],
-              'int2str_len': params_dict['int2str_len']}
+              'int2str_len': params_dict['int2strlen']}
 
     if params_dict['uniform_struct']:
         if 'tile_3d' in tile_dict:
@@ -190,11 +190,14 @@ def tile_images(params_dict,
                     'slice of each volume.If slice_ids=-1, the slice_ids'
                     'will be read from frames_meta.csv. Assuming slice_ids'
                     'provided here is fixed for these gaps.', Warning)
-                tile_inst = ImageTilerUniform3D(**kwargs)
-            else:
-                tile_inst = ImageTilerUniform(**kwargs)
+            tile_inst = ImageTilerUniform3D(**kwargs)
         else:
-            tile_inst = ImageTilerNonUniform(**kwargs)
+            tile_dict['tile_3d'] = False
+            tile_inst = ImageTilerUniform(**kwargs)
+    else:
+        # currently not supported but should be easy to extend
+        tile_dict['tile_3d'] = False
+        tile_inst = ImageTilerNonUniform(**kwargs)
 
     tile_dir = tile_inst.get_tile_dir()
 
@@ -251,12 +254,18 @@ def pre_process(pp_config, req_params_dict):
     time_start = time.time()
 
     # estimate flat field images
-    correct_flat_field = True if pp_config['correct_flat_field'] \
-        else False
     flat_field_dir = None
-    if correct_flat_field:
-        flat_field_dir = flat_field_correct(req_params_dict)
-        pp_config['flat_field_dir'] = flat_field_dir
+    if 'flat_field' in pp_config:
+        if 'estimate' in pp_config['flat_field'] and \
+                pp_config['flat_field']['estimate']:
+            assert 'flat_field_dir' not in pp_config['flat_field'], \
+                'estimate_flat_field or use images in flat_field_dir.'
+            flat_field_dir = flat_field_correct(req_params_dict)
+            pp_config['flat_field']['flat_field_dir'] = flat_field_dir
+
+        elif 'correct' in pp_config['flat_field'] and \
+                pp_config['flat_field']['correct']:
+            flat_field_dir = pp_config['flat_field']['flat_field_dir']
 
     # Resample images
     if 'resize' in pp_config:
@@ -287,15 +296,16 @@ def pre_process(pp_config, req_params_dict):
                 "Don't specify a mask_dir if generating masks from channel"
             mask_from_channel = pp_config['masks']['channels']
             if channel_ids != -1:
-                assert mask_from_channel in channel_ids,\
+                assert np.all([ch in channel_ids
+                               for ch in mask_from_channel]), \
                     "Mask channel {} not in channel indices {}".format(
                         mask_from_channel, channel_ids)
             str_elem_radius = 5
             if 'str_elem_radius' in pp_config['masks']:
                 str_elem_radius = pp_config['masks']['str_elem_radius']
             mask_type = 'otsu'
-            if 'mask_type' in pp_config['mask']:
-                mask_type = pp_config['mask_type']['type']
+            if 'mask_type' in pp_config['masks']:
+                mask_type = pp_config['masks']['mask_type']
             mask_dir, mask_out_channel = generate_masks(req_params_dict,
                                                         mask_from_channel,
                                                         flat_field_dir,
@@ -313,7 +323,6 @@ def pre_process(pp_config, req_params_dict):
         pp_config['masks']['mask_out_channel'] = mask_out_channel
 
     # Tile frames
-    tile_dir = None
     if 'tile' in pp_config:
         resize_flag = False
         if 'resize' not in pp_config:
@@ -345,19 +354,11 @@ def save_config(cur_config, runtime):
     meta_path = os.path.join(cur_config['output_dir'],
                              'preprocessing_info.json')
 
-    if prior_pp_config is None:
-        processing_info = {'processing_time': runtime,
-                           'config': cur_config}
-    else:
-        # currently config has only two nested levels
-        for key, value in cur_config.items():
-            if isinstance(value, dict):
-                for key_i, value_i in value.items():
-                    prior_pp_config[key][key_i] = value_i
-            else:
-                prior_pp_config[key] = value
-        processing_info = {'processing_time': runtime,
-                           'config': prior_pp_config}
+    processing_info = [{'processing_time': runtime,
+                        'config': cur_config}]
+    if prior_pp_config is not None:
+        prior_pp_config.append(processing_info[0])
+        processing_info = prior_pp_config
     aux_utils.write_json(processing_info, meta_path)
 
 
@@ -406,6 +407,6 @@ if __name__ == '__main__':
                    'int2strlen': int2str_len,
                    'num_workers': num_workers}
 
-    pp_config, runtime = pre_process(pp_config)
+    pp_config, runtime = pre_process(pp_config, base_config)
     save_config(pp_config, runtime)
 
