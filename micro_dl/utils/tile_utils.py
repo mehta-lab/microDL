@@ -221,7 +221,6 @@ def tile_image(input_image,
     if n_dim == 3:
         n_slices = im_shape[2]
 
-    print('tile_image:', input_image.shape, tile_3d, n_slices)
     cropped_image_list = []
     cropping_index = []
     tiled_metadata = []

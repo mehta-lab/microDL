@@ -1,4 +1,5 @@
 """Utility functions for processing images"""
+
 import cv2
 import itertools
 import math
