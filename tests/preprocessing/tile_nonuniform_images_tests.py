@@ -270,7 +270,6 @@ class TestImageTilerNonUniform(unittest.TestCase):
         mask_images = np.zeros((15, 11, 5), dtype='bool')
         mask_images[4:12, 4:9, 2:4] = 1
 
-        # write mask images and add meta to frames_meta. same mask across all
         # timepoints for testing
         mask_meta = []
         for z in range(5):
@@ -291,6 +290,7 @@ class TestImageTilerNonUniform(unittest.TestCase):
                 mask_meta.append(cur_meta)
         mask_meta_df = pd.DataFrame.from_dict(mask_meta)
         mask_meta_df.to_csv(os.path.join(mask_dir, 'frames_meta.csv'), sep=',')
+
         self.tile_inst.pos_ids = [7]
 
         self.tile_inst.tile_mask_stack(mask_dir,

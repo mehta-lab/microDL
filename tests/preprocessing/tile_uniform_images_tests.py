@@ -62,14 +62,20 @@ class TestImageTilerUniform(unittest.TestCase):
             )
 
         # Write metadata
-        frames_meta.to_csv(os.path.join(self.temp_path, self.meta_name),
-                           sep=',',)
+        frames_meta.to_csv(
+            os.path.join(self.temp_path, self.meta_name),
+            sep=',',
+        )
         # Add flatfield
         self.flat_field_dir = os.path.join(self.temp_path, 'ff_dir')
         self.tempdir.makedir('ff_dir')
         self.ff_im = 4. * np.ones((15, 11))
+        self.ff_name = os.path.join(
+            self.flat_field_dir,
+            'flat-field_channel-1.npy',
+        )
         np.save(
-            os.path.join(self.flat_field_dir, 'flat-field_channel-1.npy'),
+            self.ff_name,
             self.ff_im,
             allow_pickle=True,
             fix_imports=True
@@ -88,6 +94,17 @@ class TestImageTilerUniform(unittest.TestCase):
             tile_dict=self.tile_dict,
             flat_field_dir=self.flat_field_dir,
         )
+        exp_fnames = ['im_c001_z015_t005_p007.png',
+                      'im_c001_z016_t005_p007.png',
+                      'im_c001_z017_t005_p007.png']
+        self.exp_fnames = [os.path.join(self.temp_path, fname)
+                           for fname in exp_fnames]
+        self.exp_tile_indices = [
+            [0, 5, 0, 5], [0, 5, 4, 9], [0, 5, 6, 11],
+            [10, 15, 0, 5], [10, 15, 4, 9], [10, 15, 6, 11],
+            [4, 9, 0, 5], [4, 9, 4, 9], [4, 9, 6, 11],
+            [8, 13, 0, 5], [8, 13, 4, 9], [8, 13, 6, 11],
+        ]
 
         # create a mask
         mask_dir = os.path.join(self.temp_path, 'mask_dir')
@@ -274,12 +291,7 @@ class TestImageTilerUniform(unittest.TestCase):
             slice_idx=16,
             pos_idx=self.pos_idx1
         )
-        exp_fnames = ['im_c001_z015_t005_p007.png',
-                      'im_c001_z016_t005_p007.png',
-                      'im_c001_z017_t005_p007.png']
-        exp_fnames = [os.path.join(self.temp_path, fname)
-                      for fname in exp_fnames]
-        nose.tools.assert_list_equal(exp_fnames, im_fnames)
+        nose.tools.assert_list_equal(self.exp_fnames, im_fnames)
 
     def test_get_crop_args(self):
         """Test get_crop_tile_args with task_type=crop"""
@@ -292,17 +304,8 @@ class TestImageTilerUniform(unittest.TestCase):
             task_type='crop',
             tile_indices=self.exp_tile_indices
         )
-        exp_input_fnames = ['im_c001_z015_t005_p007.png',
-                            'im_c001_z016_t005_p007.png',
-                            'im_c001_z017_t005_p007.png']
-        exp_fnames = [os.path.join(self.temp_path, fname)
-                      for fname in exp_input_fnames]
-        exp_ff_fname = os.path.join(
-            self.flat_field_dir,
-            'flat-field_channel-{}.npy'.format(self.channel_idx),
-            )
-        nose.tools.assert_list_equal(list(cur_args[0]), exp_fnames)
-        nose.tools.assert_equal(cur_args[1], exp_ff_fname)
+        nose.tools.assert_list_equal(list(cur_args[0]), self.exp_fnames)
+        nose.tools.assert_equal(cur_args[1], self.ff_name)
         nose.tools.assert_equal(cur_args[2], None)
         nose.tools.assert_equal(cur_args[3], self.time_idx)
         nose.tools.assert_equal(cur_args[4], self.channel_idx)
@@ -345,7 +348,6 @@ class TestImageTilerUniform(unittest.TestCase):
         """Test get_crop_tile_args with task_type=tile"""
 
         self.tile_inst.mask_depth = 3
-
         cur_args = self.tile_inst.get_crop_tile_args(
             channel_idx=self.mask_channel,
             time_idx=self.time_idx,
@@ -355,11 +357,12 @@ class TestImageTilerUniform(unittest.TestCase):
             mask_dir=self.mask_dir,
             min_fraction=0.3
         )
-        exp_input_fnames = ['im_c003_z015_t005_p007.npy',
-                            'im_c003_z016_t005_p007.npy',
-                            'im_c003_z017_t005_p007.npy']
+
+        exp_fnames = ['im_c003_z015_t005_p007.npy',
+                      'im_c003_z016_t005_p007.npy',
+                      'im_c003_z017_t005_p007.npy']
         exp_fnames = [os.path.join(self.mask_dir, fname)
-                      for fname in exp_input_fnames]
+                      for fname in exp_fnames]
 
         nose.tools.assert_list_equal(list(cur_args[0]), exp_fnames)
         # flat field fname is None
@@ -385,12 +388,7 @@ class TestImageTilerUniform(unittest.TestCase):
             pos_idx=7,
             task_type='tile'
         )
-        exp_input_fnames = ['im_c001_z015_t005_p007.png',
-                            'im_c001_z016_t005_p007.png',
-                            'im_c001_z017_t005_p007.png']
-        exp_fnames = [os.path.join(self.tile_inst.input_dir, fname)
-                      for fname in exp_input_fnames]
-        nose.tools.assert_list_equal(list(cur_args[0]), exp_fnames)
+        nose.tools.assert_list_equal(list(cur_args[0]), self.exp_fnames)
 
         exp_ff_fname = os.path.join(
             self.flat_field_dir,
