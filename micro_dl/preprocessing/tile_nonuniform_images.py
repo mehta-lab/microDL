@@ -236,9 +236,11 @@ class ImageTilerNonUniform(ImageTilerUniform):
         # across channels. Get time, pos and slice indices for mask channel
 
         mask_meta_df = aux_utils.read_meta(mask_dir)
+        # TODO: different masks across timepoints (but MaskProcessor generates
+        # mask for tp=0 only)
         _, mask_nested_id_dict = aux_utils.validate_metadata_indices(
             frames_metadata=mask_meta_df,
-            time_ids=[0],
+            time_ids=self.time_ids,
             channel_ids=mask_channel,
             slice_ids=self.slice_ids,
             pos_ids=self.pos_ids,
@@ -251,7 +253,7 @@ class ImageTilerNonUniform(ImageTilerUniform):
             for ch_idx, ch_dict in tp_dict.items():
                 if ch_idx == mask_channel:
                     ch0_dict = {mask_channel: ch_dict}
-            mask_ch_ids[tp_idx] = ch0_dict
+                    mask_ch_ids[tp_idx] = ch0_dict
 
         # tile mask channel and use the tile indices to tile the rest
         meta_df = self.tile_first_channel(channel0_ids=mask_ch_ids,

@@ -512,6 +512,8 @@ class ImageTilerUniform:
                 os.path.join(self.tile_dir, 'frames_meta.csv')
             )
         else:
+            # TODO: different masks across timepoints (but MaskProcessor
+            # generates mask for tp=0 only)
             mask_fn_args = []
             for slice_idx in self.slice_ids:
                 for time_idx in self.time_ids:

@@ -179,7 +179,8 @@ def tile_image(input_image,
                 use_tile = False
         return use_tile
 
-    def get_tile_meta(cropped_img, img_id, save_dict, row, col, sl=None):
+    def get_tile_meta(cropped_img, img_id, save_dict, row, col, sl_start=None):
+        cur_metadata = None
         if save_dict is not None:
             file_name = write_tile(cropped_img, save_dict, img_id)
             cur_metadata = {'channel_idx': save_dict['channel_idx'],
@@ -189,21 +190,24 @@ def tile_image(input_image,
                             'pos_idx': save_dict['pos_idx'],
                             'row_start': row,
                             'col_start': col}
-            if sl is not None:
-                cur_metadata['slice_start'] = sl
+            if sl_start is not None:
+                cur_metadata['slice_start'] = sl_start
         return cur_metadata
 
-    tile_3d = False
     # Add to tile size and step size in case of 3D images
     im_shape = input_image.shape
+    im_depth = im_shape[2]
     if len(im_shape) == 3:
         if len(tile_size) == 2:
             tile_size.append(im_shape[2])
-        else:
-            tile_3d = True
-        # Step size in z is assumed to be the same as depth
-        if len(step_size) == 2:
             step_size.append(im_shape[2])
+            tile_3d = False
+        else:
+            if step_size[2] == im_depth:
+                tile_3d = False
+            else:
+                tile_3d = True
+
     assert len(tile_size) == len(step_size),\
         "Tile {} and step size {} mismatch".format(tile_size, step_size)
     assert np.all(step_size <= tile_size),\
@@ -213,11 +217,11 @@ def tile_image(input_image,
 
     n_rows = im_shape[0]
     n_cols = im_shape[1]
-    n_dim = len(im_shape)
-    im_depth = im_shape[2]
+    n_dim = len(input_image.shape)
     if n_dim == 3:
-        n_slices = im_shape[2] if tile_3d else im_depth
+        n_slices = im_shape[2]
 
+    print('tile_image:', input_image.shape, tile_3d, n_slices)
     cropped_image_list = []
     cropping_index = []
     tiled_metadata = []
@@ -238,9 +242,8 @@ def tile_image(input_image,
                     for sl in range(0,
                                     n_slices - tile_size[2] + step_size[2],
                                     step_size[2]):
-                        if sl + step_size[2] > n_slices:
+                        if sl + tile_size[2] > n_slices:
                             sl = check_in_range(sl, n_slices, tile_size[2])
-
                         cur_index = (row, row + tile_size[0],
                                      col, col + tile_size[1],
                                      sl, sl + tile_size[2])
@@ -377,6 +380,6 @@ def write_meta(tiled_metadata, save_dict):
                      + '.csv')
         tile_meta_df.to_csv(
             os.path.join(save_dict['save_dir'], 'meta_dir', meta_name),
-            sep=",",
+            sep=',',
         )
         return tile_meta_df
