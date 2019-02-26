@@ -20,7 +20,8 @@ class MaskProcessor:
                  int2str_len=3,
                  uniform_struct=True,
                  num_workers=4,
-                 mask_type='otsu'):
+                 mask_type='otsu',
+                 mask_out_channel=None):
         """
         :param str input_dir: Directory with image frames
         :param str output_dir: Base output directory
@@ -40,6 +41,9 @@ class MaskProcessor:
         :param int num_workers: number of workers for multiprocessing
         :param str mask_type: method to use for generating mask. Needed for
          mapping to the masking function
+        :param int mask_out_channel: channel num assigned to mask channel. If
+         resizing images on a subset of channels, frames_meta is from resize
+         dir, which could lead to wrong mask channel being assigned.
         """
 
         self.input_dir = input_dir
@@ -50,7 +54,13 @@ class MaskProcessor:
         self.frames_metadata = aux_utils.read_meta(self.input_dir)
         # Create a unique mask channel number so masks can be treated
         # as a new channel
-        self.mask_channel = int(self.frames_metadata["channel_idx"].max() + 1)
+        if mask_out_channel is None:
+            self.mask_channel = int(
+                self.frames_metadata['channel_idx'].max() + 1
+            )
+        else:
+            self.mask_channel = mask_out_channel
+        
         metadata_ids, nested_id_dict = aux_utils.validate_metadata_indices(
             frames_metadata=self.frames_metadata,
             time_ids=time_ids,
