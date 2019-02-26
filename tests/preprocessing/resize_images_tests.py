@@ -86,7 +86,7 @@ class TestResizeImages(unittest.TestCase):
 
     def test_upsample(self):
         # Half the image size
-        scale_factor = 2
+        scale_factor = 2.0
         resize_inst = resize_images.ImageResizer(
             input_dir=self.temp_path,
             output_dir=self.output_dir,
@@ -135,7 +135,7 @@ class TestResizeImages(unittest.TestCase):
                     aux_utils.get_ids_from_imname(im_name),
                     ignore_index=True,
                 )
-            op_fname = 'im_c{}_z0_t5_p7_sc3.3-0.8-1.0.npy'.format(c)
+            op_fname = 'im_c00{}_z000_t005_p007_3.3-0.8-1.0.npy'.format(c)
             exp_meta_dict.append({'time_idx': self.time_idx,
                                   'pos_idx': self.pos_idx,
                                   'channel_idx': c,

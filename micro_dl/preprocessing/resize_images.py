@@ -79,7 +79,7 @@ class ImageResizer:
         Resize frames for given indices.
         """
 
-        assert isinstance(self.scale_factor, float), \
+        assert isinstance(self.scale_factor, (float, int)), \
             'different scale factors provided for x and y'
         mp_args = []
         resized_metadata = aux_utils.make_dataframe()
