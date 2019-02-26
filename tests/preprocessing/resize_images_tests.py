@@ -167,7 +167,8 @@ class TestResizeImages(unittest.TestCase):
         exp_meta_dict = []
         for c in channel_ids:
             for s in [0, 2]:
-                op_fname = 'im_c{}_z{}_t5_p7_sc3.3-0.8-1.0.npy'.format(c, s)
+                op_fname = 'im_c00{}_z00{}_t005_p007_3.3-0.8-1.0.npy'.format(c,
+                                                                             s)
                 exp_meta_dict.append({'time_idx': self.time_idx,
                                       'pos_idx': self.pos_idx,
                                       'channel_idx': c,

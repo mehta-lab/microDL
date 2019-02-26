@@ -5,10 +5,10 @@ import os
 
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.image_utils as image_utils
-from micro_dl.utils.tile_utils import tile_image
+import micro_dl.utils.tile_utils as tile_utils
+import micro_dl.utils.train_utils as train_utils
 from micro_dl.utils.normalize import zscore
 from micro_dl.plotting.plot_utils import save_predicted_images
-import micro_dl.utils.train_utils as train_utils
 
 
 def load_model(network_config, model_fname, predict=False):
@@ -211,7 +211,7 @@ class ModelEvaluator:
             pred_tiles.append(pred_batch)
         return pred_tiles
 
-    def _place_patch(self, full_image, tile_image, input_image_dim, full_idx,
+    def _place_patch(self, full_image, pred_image, input_image_dim, full_idx,
                      tile_idx, operation='mean'):
         """Place individual patches on the full image
 
@@ -219,7 +219,7 @@ class ModelEvaluator:
 
         :param np.array full_image: image with the same shape as input image
          and initialized with zeros
-        :param np.array tile_image: predicted tile or model inference on the
+        :param np.array pred_image: predicted tile or model inference on the
          tile
         :param int input_image_dim: dimensionality of input image
         :param list full_idx: indices in the full image
@@ -233,13 +233,13 @@ class ModelEvaluator:
         full_slice = self._get_crop_indices(input_image_dim, n_dim, full_idx)
         if operation == 'mean':
             full_image[full_slice] = (full_image[full_slice] +
-                                      tile_image[tile_slice]) / 2
+                                      pred_image[tile_slice]) / 2
         elif operation == 'max':
             #  check if np.max does pixel-wise comparison
             full_image[full_slice] = np.maximum(full_image[full_slice],
-                                                tile_image[tile_slice])
+                                                pred_image[tile_slice])
         elif operation == 'insert':
-            full_image[full_slice] = tile_image[tile_slice]
+            full_image[full_slice] = pred_image[tile_slice]
         return full_image
 
     def _stich_image(self, pred_tiles, crop_indices, input_image_shape,
@@ -392,7 +392,7 @@ class ModelEvaluator:
             )
             tp_dir = str(os.sep).join(test_ip0_fnames[0].split(os.sep)[:-2])
             test_image = np.load(test_ip0_fnames[0])
-            _, crop_indices = tile_image(test_image,
+            _, crop_indices = tile_utils.tile_image(test_image,
                                          tile_size,
                                          step_size,
                                          return_index=True)
