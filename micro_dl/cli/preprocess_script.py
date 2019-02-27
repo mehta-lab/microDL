@@ -159,9 +159,7 @@ def generate_masks(params_dict,
 def tile_images(params_dict,
                 tile_dict,
                 resize_flag,
-                flat_field_dir,
-                mask_dir,
-                mask_out_channel):
+                flat_field_dir):
     """Tile images
 
     :param dict params_dict: dict with keys: input_dir, output_dir, time_ids,
@@ -172,8 +170,6 @@ def tile_images(params_dict,
     :param bool resize_flag: indicator if resize related params in pp_config
      passed to pre_process()
     :param str flat_field_dir: dir with flat field correction images
-    :param str mask_dir: dir with masks (from generate_masks)
-    :param int mask_out_channel: channel assigned to generated masks
     :return str tile_dir: dir with tiled images
     """
 
@@ -212,15 +208,8 @@ def tile_images(params_dict,
         min_fraction = tile_dict['min_fraction']
         mask_depth = 1
 
-        if mask_out_channel is None:
-            assert 'mask_channel' in tile_dict, \
-                'Mask channel is not provided'
-            mask_out_channel = tile_dict['mask_channel']
-
-        if mask_dir is None:
-            assert 'mask_dir' in tile_dict, \
-                'Mask dir is not provided'
-            mask_dir = tile_dict['mask_dir']
+        mask_out_channel = tile_dict['mask_channel']
+        mask_dir = tile_dict['mask_dir']
 
         if 'mask_depth' in tile_dict:
             mask_depth = tile_dict['mask_depth']
@@ -272,7 +261,7 @@ def pre_process(pp_config, req_params_dict):
         elif 'correct' in pp_config['flat_field'] and \
                 pp_config['flat_field']['correct']:
             flat_field_dir = pp_config['flat_field']['flat_field_dir']
-
+    
     # Resample images
     if 'resize' in pp_config:
         scale_factor = pp_config['resize']['scale_factor']
@@ -334,12 +323,15 @@ def pre_process(pp_config, req_params_dict):
         resize_flag = False
         if 'resize' not in pp_config:
             resize_flag = True
+        if 'min_fraction' in pp_config['tile']:
+            if 'mask_dir' not in pp_config['tile']:
+                pp_config['tile']['mask_dir'] = mask_dir
+            if 'mask_channel' not in pp_config['tile']:
+                pp_config['tile']['mask_channel'] = mask_out_channel
         tile_dir = tile_images(req_params_dict,
                                pp_config['tile'],
                                resize_flag,
-                               flat_field_dir,
-                               mask_dir,
-                               mask_out_channel)
+                               flat_field_dir)
         pp_config['tile']['tile_dir'] = tile_dir
 
     # Write in/out/mask/tile paths and config to json in output directory
