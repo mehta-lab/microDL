@@ -39,6 +39,21 @@ def import_class(module_name, cls_name):
         raise
 
 
+def import_func(module_name, func_name):
+    """Imports a function specified dynamically
+
+    :param str module_name: Module such as input, utils, train etc
+    :param str func_name: Function to get attributes from
+    """
+
+    full_module_name = ".".join(('micro_dl', module_name))
+    try:
+        module = importlib.import_module(full_module_name)
+        return getattr(module, func_name)
+    except ImportError:
+        raise ImportError("Couldn't import {}".format(func_name))
+
+
 def read_config(config_fname):
     """Read the config file in yml format
 
@@ -449,7 +464,7 @@ def get_sorted_names(dir_name):
     :param str dir_name: Image directory name
     :return list of strs im_names: Image names sorted according to indices
     """
-    im_names = [f for f in os.listdir(dir_name) if f.startswith('im_')]
+    im_names = [f for f in os.listdir(dir_name) if f.startswith('im')]
     # Sort image names according to indices
     return natsort.natsorted(im_names)
 
@@ -489,7 +504,7 @@ def get_ids_from_imname(im_name, df_names=DF_NAMES, order="cztp"):
     return meta_row
 
 
-def parse_sms_name(file_name, meta_row, channel_names):
+def parse_sms_name(im_name, df_names=DF_NAMES, channel_names=[]):
     """
     Parse metadata from file name or file path.
     This function is custom for the computational microscopy (SMS)
@@ -498,13 +513,17 @@ def parse_sms_name(file_name, meta_row, channel_names):
         img_channelname_t***_p***_z***.tif
     This function will alter list and dict in place.
 
-    :param str file_name: File name or path
-    :param dict meta_row: Metadata for frame (one row in dataframe)
+    :param str im_name: File name or path
+    :param list of strs df_names: Dataframe col names
     :param list[str] channel_names: Expanding list of channel names
+    :return dict meta_row: One row of metadata given image file name
     """
+    meta_row = dict.fromkeys(df_names)
     # Get rid of path if present
-    file_str = os.path.basename(file_name)[:-4]
-    str_split = file_str.split("_")[1:]
+    im_name = os.path.basename(im_name)
+    meta_row["file_name"] = im_name
+    im_name = im_name[:-4]
+    str_split = im_name.split("_")[1:]
 
     if len(str_split) > 4:
         # this means they have introduced additional _ in the file name
@@ -526,4 +545,6 @@ def parse_sms_name(file_name, meta_row, channel_names):
             meta_row["pos_idx"] = int(s[1:])
         elif s.find("z") == 0 and len(s) == 4:
             meta_row["slice_idx"] = int(s[1:])
+    return meta_row
+
 

@@ -38,7 +38,7 @@ def meta_generator(args):
     """
     Generate metadata from file names for preprocessing.
     Will write found data in frames_metadata.csv in input directory.
-    Assumed file naming convention is:
+    Assumed default file naming convention is:
     dir_name
     |
     |- im_c***_z***_t***_p***.png
@@ -49,23 +49,32 @@ def meta_generator(args):
     t is time
     p is position (FOV)
 
+    Other naming convention is:
+    img_channelname_t***_p***_z***.tif for parse_sms_name
+
     :param list args:    parsed args containing
         str input_dir:   path to input directory containing images
+        str name_parser: Function in aux_utils for parsing indices from file name
     """
-    meta_name = 'frames_meta.csv'
+    # Import name parser
+    parse_func = aux_utils.import_func('utils.aux_utils', args.name_parser)
 
     # Get all image names
     im_names = aux_utils.get_sorted_names(args.input)
     # Create empty dataframe
     frames_meta = aux_utils.make_dataframe(nbr_rows=len(im_names))
+    channel_names = []
     # Fill dataframe with rows from image names
     for i in range(len(im_names)):
-        frames_meta.loc[i] = aux_utils.get_ids_from_imname(
-            im_name=im_names[i],
-            order=args.order,
-        )
+        kwargs = {"im_name": im_names[i]}
+        if args.name_parser == 'get_ids_from_imname':
+            kwargs["order"] = args.order
+        elif args.name_parser == 'parse_sms_name':
+            kwargs["channel_names"] = channel_names
+        frames_meta.loc[i] = parse_func(**kwargs)
     # Write metadata
-    meta_filename = os.path.join(args.input, meta_name)
+    meta_filename = os.path.join(args.input, 'frames_meta.csv')
+    print(meta_filename, frames_meta.shape)
     frames_meta.to_csv(meta_filename, sep=",")
 
 
