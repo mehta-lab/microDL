@@ -287,12 +287,12 @@ def pre_process(pp_config, req_params_dict):
         # the images are resized after flat field correction
         flat_field_dir = None
         pp_config['resize']['resize_dir'] = resize_dir
-        req_params_dict['input_dir'] = resize_dir
-        req_params_dict['slice_ids'] = slice_ids
         init_frames_meta = pd.read_csv(
             os.path.join(req_params_dict['input_dir'], 'frames_meta.csv')
         )
         mask_out_channel = int(init_frames_meta['channel_idx'].max() + 1)
+        req_params_dict['input_dir'] = resize_dir
+        req_params_dict['slice_ids'] = slice_ids
     else:
         mask_out_channel = None
 
