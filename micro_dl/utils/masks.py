@@ -4,7 +4,7 @@ from skimage.filters import threshold_otsu
 from skimage.morphology import disk, ball, binary_opening, binary_erosion
 
 
-def create_mask(input_image, str_elem_size=3):
+def create_otsu_mask(input_image, str_elem_size=3):
     """Create a binary mask using morphological operations
 
     Opening removes small objects in the foreground.
@@ -72,7 +72,7 @@ def get_unimodal_threshold(input_image):
     return best_threshold
 
 
-def unimodal_thresholding(input_image, str_elem_size=3):
+def create_unimodal_mask(input_image, str_elem_size=3):
     """Create a mask with unimodal thresholding and morphological operations
 
     unimodal thresholding seems to oversegment, erode it by a fraction

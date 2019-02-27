@@ -9,7 +9,7 @@ import unittest
 
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.mp_utils as mp_utils
-from micro_dl.utils.masks import create_mask
+from micro_dl.utils.masks import create_otsu_mask
 
 
 class TestMpUtils(unittest.TestCase):
@@ -125,7 +125,7 @@ class TestMpUtils(unittest.TestCase):
                            self.rec_object[:, :, sl_idx])
             numpy.testing.assert_array_equal(
                 mask_image,
-                create_mask(input_image, str_elem_size=1)
+                create_otsu_mask(input_image, str_elem_size=1)
             )
 
     def test_rescale_vol_and_save(self):

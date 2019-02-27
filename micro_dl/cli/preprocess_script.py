@@ -101,6 +101,7 @@ def resize_images(params_dict,
         slice_ids = resize_inst.resize_volumes(num_slices_subvolume)
     else:
         resize_inst.resize_frames()
+        slice_ids = params_dict['slice_ids']
     resize_dir = resize_inst.get_resize_dir()
     return resize_dir, slice_ids
 
@@ -169,6 +170,7 @@ def tile_images(params_dict,
      image_format, depths. optional: min_fraction, mask_channel, mask_dir,
      mask_depth, tile_3d
     :param bool resize_flag: indicator if resize related params in pp_config
+     passed to pre_process()
     :param str flat_field_dir: dir with flat field correction images
     :param str mask_dir: dir with masks (from generate_masks)
     :param int mask_out_channel: channel assigned to generated masks
@@ -215,7 +217,7 @@ def tile_images(params_dict,
                 'Mask channel is not provided'
             mask_out_channel = tile_dict['mask_channel']
 
-        if 'mask_dir' is None:
+        if mask_dir is None:
             assert 'mask_dir' in tile_dict, \
                 'Mask dir is not provided'
             mask_dir = tile_dict['mask_dir']

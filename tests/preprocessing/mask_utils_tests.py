@@ -20,8 +20,8 @@ def test_get_unimodal_threshold():
 
 def test_unimodal_thresholding():
     input_image = gaussian(uni_thr_tst_image, 1)
-    mask = mask_utils.unimodal_thresholding(input_image,
-                                            str_elem_size=0)
+    mask = mask_utils.create_unimodal_mask(input_image,
+                                           str_elem_size=0)
     np.testing.assert_array_equal(mask, input_image > 3.04)
 
 

@@ -65,10 +65,10 @@ def create_save_mask(input_fnames,
         summed_image = np.sum(np.stack(im_stack), axis=3)
     summed_image = summed_image.astype('float32')
     if mask_type == 'otsu':
-        mask = mask_utils.create_mask(summed_image, str_elem_radius)
+        mask = mask_utils.create_otsu_mask(summed_image, str_elem_radius)
     elif mask_type == 'unimodal':
-        mask = mask_utils.unimodal_thresholding(summed_image,
-                                                str_elem_radius)
+        mask = mask_utils.create_unimodal_mask(summed_image,
+                                               str_elem_radius)
 
     # Create mask name for given slice, time and position
     file_name = aux_utils.get_im_name(time_idx=time_idx,
