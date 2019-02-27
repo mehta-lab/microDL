@@ -335,6 +335,6 @@ def rescale_vol_and_save(time_idx,
                 flat_field_image=ff_image
             )
         input_stack.append(cur_img)
-    input_stack = np.stack(input_stack, axis=0)
+    input_stack = np.stack(input_stack, axis=2)
     resc_vol = image_utils.rescale_nd_image(input_stack, scale_factor)
     np.save(output_fname, resc_vol, allow_pickle=True, fix_imports=True)
