@@ -53,7 +53,7 @@ def create_save_mask(input_fnames,
     im_stack = np.squeeze(tile_utils.read_imstack(
         input_fnames,
         flat_field_fname,
-        normalize=False,
+        normalize_im=False,
     ))
     # Combine channel images and generate mask
     if len(im_stack.shape) == 2:
