@@ -11,7 +11,7 @@ def read_imstack(input_fnames,
                  flat_field_fname=None,
                  hist_clip_limits=None,
                  is_mask=False,
-                 normalize=True):
+                 normalize_im=True):
     """
     Read the images in the fnames and assembles a stack.
     If images are masks, make sure they're boolean by setting >0 to True
@@ -20,11 +20,10 @@ def read_imstack(input_fnames,
     :param str flat_field_fname: fname of flat field image
     :param tuple hist_clip_limits: limits for histogram clipping
     :param bool is_mask: Indicator for if files contain masks
-    :param bool normalize: Whether to zscore normalize
+    :param bool normalize_im: Whether to zscore normalize im stack
     :return np.array: input stack flat_field correct and z-scored if regular
         images, booleans if they're masks
     """
-
     im_stack = []
     for idx, fname in enumerate(input_fnames):
         im = read_image(fname)
@@ -55,7 +54,7 @@ def read_imstack(input_fnames,
                 hist_clip_limits[0],
                 hist_clip_limits[1]
             )
-        if normalize:
+        if normalize_im:
             input_image = normalize.zscore(input_image)
     else:
         if input_image.dtype != bool:

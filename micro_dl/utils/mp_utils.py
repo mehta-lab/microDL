@@ -101,7 +101,6 @@ def mp_tile_save(fn_args, workers):
     :param int workers: max number of workers
     :return: list of returned df from tile_and_save
     """
-
     with ProcessPoolExecutor(workers) as ex:
         # can't use map directly as it works only with single arg functions
         res = ex.map(tile_and_save, *zip(*fn_args))
@@ -140,7 +139,6 @@ def tile_and_save(input_fnames,
     :param bool is_mask: Indicates if files are masks
     :return: pd.DataFrame from a list of dicts with metadata
     """
-
     try:
         input_image = tile_utils.read_imstack(
             input_fnames=input_fnames,
