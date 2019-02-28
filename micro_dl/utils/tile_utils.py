@@ -10,7 +10,8 @@ from micro_dl.utils.image_utils import read_image, apply_flat_field_correction
 def read_imstack(input_fnames,
                  flat_field_fname=None,
                  hist_clip_limits=None,
-                 is_mask=False):
+                 is_mask=False,
+                 normalize=True):
     """
     Read the images in the fnames and assembles a stack.
     If images are masks, make sure they're boolean by setting >0 to True
@@ -18,7 +19,8 @@ def read_imstack(input_fnames,
     :param tuple input_fnames: tuple of input fnames with full path
     :param str flat_field_fname: fname of flat field image
     :param tuple hist_clip_limits: limits for histogram clipping
-    :param bool: Indicator for if files contain masks
+    :param bool is_mask: Indicator for if files contain masks
+    :param bool normalize: Whether to zscore normalize
     :return np.array: input stack flat_field correct and z-scored if regular
         images, booleans if they're masks
     """
@@ -53,7 +55,8 @@ def read_imstack(input_fnames,
                 hist_clip_limits[0],
                 hist_clip_limits[1]
             )
-        input_image = normalize.zscore(input_image)
+        if normalize:
+            input_image = normalize.zscore(input_image)
     else:
         if input_image.dtype != bool:
             input_image = input_image > 0

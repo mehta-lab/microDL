@@ -50,11 +50,16 @@ def create_save_mask(input_fnames,
     :return dict cur_meta for each mask
     """
 
-    im_stack = tile_utils.read_imstack(input_fnames,
-                                       flat_field_fname)
+    im_stack = np.squeeze(tile_utils.read_imstack(
+        input_fnames,
+        flat_field_fname,
+        normalize=False,
+    ))
     # Combine channel images and generate mask
-    if len(im_stack.shape) == 3:
-        if len(input_fnames) == 1:
+    if len(im_stack.shape) == 2:
+        summed_image = im_stack
+    elif len(im_stack.shape) == 3:
+        if len(input_fnames) > 1:
             # read a 3d image
             summed_image = im_stack
         else:
