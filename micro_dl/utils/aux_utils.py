@@ -469,7 +469,7 @@ def get_sorted_names(dir_name):
     return natsort.natsorted(im_names)
 
 
-def get_ids_from_imname(im_name, df_names=DF_NAMES, order="cztp"):
+def parse_idx_from_name(im_name, df_names=DF_NAMES, order="cztp"):
     """
     Assumes im_name is e.g. im_c***_z***_p***_t***.png,
     It doesn't care about the extension or the number of digits each index is

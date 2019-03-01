@@ -70,7 +70,7 @@ class TestMpUtils(unittest.TestCase):
                     object1[:, :, z].astype('uint8'),
                 )
             frames_meta = frames_meta.append(
-                aux_utils.get_ids_from_imname(im_name, df_columns),
+                aux_utils.parse_idx_from_name(im_name, df_columns),
                 ignore_index=True
             )
         for z in range(rec.shape[2]):
@@ -82,7 +82,7 @@ class TestMpUtils(unittest.TestCase):
                     rec[:, :, z].astype('uint8'),
                 )
             frames_meta = frames_meta.append(
-                aux_utils.get_ids_from_imname(im_name, df_columns),
+                aux_utils.parse_idx_from_name(im_name, df_columns),
                 ignore_index=True
             )
         # Write metadata

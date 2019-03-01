@@ -60,7 +60,7 @@ class TestTileUtils(unittest.TestCase):
                     sph[:, :, z],
                 )
             frames_meta = frames_meta.append(
-                aux_utils.get_ids_from_imname(im_name, self.df_columns),
+                aux_utils.parse_idx_from_name(im_name, self.df_columns),
                 ignore_index=True
             )
 

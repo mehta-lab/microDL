@@ -16,6 +16,7 @@ def parse_args():
     parser.add_argument(
         '-i',
         '--input',
+        required=True,
         type=str,
         help="Path to folder containing all 2D image frames",
     )
@@ -28,7 +29,7 @@ def parse_args():
     parser.add_argument(
         '--name_parser',
         type=str,
-        default="get_ids_from_imname",
+        default="parse_idx_from_name",
         help="The function in aux_utils that will parse the file name for indices",
     )
     return parser.parse_args()
@@ -67,17 +68,17 @@ def meta_generator(args):
     # Fill dataframe with rows from image names
     for i in range(len(im_names)):
         kwargs = {"im_name": im_names[i]}
-        if args.name_parser == 'get_ids_from_imname':
+        if args.name_parser == 'parse_idx_from_name':
             kwargs["order"] = args.order
         elif args.name_parser == 'parse_sms_name':
             kwargs["channel_names"] = channel_names
         frames_meta.loc[i] = parse_func(**kwargs)
+
     # Write metadata
     meta_filename = os.path.join(args.input, 'frames_meta.csv')
-    print(meta_filename, frames_meta.shape)
     frames_meta.to_csv(meta_filename, sep=",")
 
 
 if __name__ == '__main__':
-    args = parse_args()
-    meta_generator(args)
+    parsed_args = parse_args()
+    meta_generator(parsed_args)
