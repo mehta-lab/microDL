@@ -39,6 +39,7 @@ def test_parse_idx_from_name_no_channel():
     file_name = 'img_phase_t500_p400_z300.tif'
     aux_utils.parse_idx_from_name(file_name)
 
+
 def test_parse_sms_name():
     file_name = 'img_phase_t500_p400_z300.tif'
     channel_names = ['brightfield']

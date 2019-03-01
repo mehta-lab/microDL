@@ -161,11 +161,12 @@ class TestTileUtils(unittest.TestCase):
                                               tile_size=tile_size,
                                               step_size=step_size,
                                               return_index=True)
-        exp_tile_index = [(0, 16, 0, 16, 0, 3), (0, 16, 8, 24, 0, 3),
-                          (0, 16, 16, 32, 0, 3), (8, 24, 0, 16, 0, 3),
-                          (8, 24, 8, 24, 0, 3), (8, 24, 16, 32, 0, 3),
-                          (16, 32, 0, 16, 0, 3), (16, 32, 8, 24, 0, 3),
-                          (16, 32, 16, 32, 0, 3)]
+        exp_tile_index = [(0, 16, 0, 16), (0, 16, 8, 24),
+                          (0, 16, 16, 32), (8, 24, 0, 16),
+                          (8, 24, 8, 24), (8, 24, 16, 32),
+                          (16, 32, 0, 16), (16, 32, 8, 24),
+                          (16, 32, 16, 32)]
+
         numpy.testing.assert_equal(exp_tile_index, tile_index)
 
         # save tiles in place and return meta_df
@@ -217,10 +218,10 @@ class TestTileUtils(unittest.TestCase):
                                               step_size=step_size,
                                               min_fraction=0.3,
                                               return_index=True)
-        exp_tile_index = [(0, 16, 8, 24, 0, 3),
-                          (8, 24, 0, 16, 0, 3), (8, 24, 8, 24, 0, 3),
-                          (8, 24, 16, 32, 0, 3),
-                          (16, 32, 8, 24, 0, 3)]
+        exp_tile_index = [(0, 16, 8, 24),
+                          (8, 24, 0, 16), (8, 24, 8, 24),
+                          (8, 24, 16, 32),
+                          (16, 32, 8, 24)]
         numpy.testing.assert_array_equal(tile_index, exp_tile_index)
 
         # tile_3d

@@ -106,15 +106,18 @@ class TestMpUtils(unittest.TestCase):
                             'im_c002_z00{}_t000_p001.png'.format(sl_idx)]
             input_fnames = [os.path.join(self.temp_path, fname)
                             for fname in input_fnames]
-            cur_meta = mp_utils.create_save_mask(tuple(input_fnames),
-                                                 None,
-                                                 str_elem_radius=1,
-                                                 mask_dir=self.output_dir,
-                                                 mask_channel_idx=3,
-                                                 time_idx=self.time_ids,
-                                                 pos_idx=self.pos_ids,
-                                                 slice_idx=sl_idx,
-                                                 int2str_len=3)
+            cur_meta = mp_utils.create_save_mask(
+                tuple(input_fnames),
+                None,
+                str_elem_radius=1,
+                mask_dir=self.output_dir,
+                mask_channel_idx=3,
+                time_idx=self.time_ids,
+                pos_idx=self.pos_ids,
+                slice_idx=sl_idx,
+                int2str_len=3,
+                mask_type='otsu',
+            )
             fname = aux_utils.get_im_name(time_idx=self.time_ids,
                                           channel_idx=3,
                                           slice_idx=sl_idx,
@@ -145,6 +148,7 @@ class TestMpUtils(unittest.TestCase):
                 self.temp_path,
                 'im_c{}_z0_t0_p0_sc4.1-1.0-1.0.npy'.format(ch_idx)
             )
+            ff_path = None
             mp_utils.rescale_vol_and_save(
                 self.time_ids,
                 self.pos_ids,
@@ -153,9 +157,10 @@ class TestMpUtils(unittest.TestCase):
                 self.frames_meta,
                 op_fname,
                 [4.1, 1.0, 1.0],
-                self.temp_path
+                self.temp_path,
+                ff_path,
             )
-
             resc_vol = np.load(op_fname)
             nose.tools.assert_tuple_equal(resc_vol.shape,
-                                          (33, 32, 32))
+                                          (131, 32, 8))
+            # Used to be (33, 32, 32)
