@@ -19,39 +19,26 @@ DF_NAMES = ["channel_idx",
             "pos_idx"]
 
 
-def import_class(module_name, cls_name):
-    """Imports a class specified in yaml dynamically
-
-    REFACTOR THIS!!
+def import_object(module_name, obj_name, obj_type='class'):
+    """Imports a class or function dynamically
 
     :param str module_name: modules such as input, utils, train etc
-    :param str cls_name: class to find
+    :param str obj_name: class to find
     """
 
     full_module_name = ".".join(('micro_dl', module_name))
     try:
         module = importlib.import_module(full_module_name)
-        obj = getattr(module, cls_name)
-
-        if inspect.isclass(obj):
-            return obj
+        obj = getattr(module, obj_name)
+        if obj_type == 'class':
+            assert inspect.isclass(obj),\
+                "Expected {} to be class".format(obj_name)
+        elif obj_type == 'function':
+            assert inspect.isfunction(obj),\
+                "Expected {} to be function".format(obj_name)
+        return obj
     except ImportError:
         raise
-
-
-def import_func(module_name, func_name):
-    """Imports a function specified dynamically
-
-    :param str module_name: Module such as input, utils, train etc
-    :param str func_name: Function to get attributes from
-    """
-
-    full_module_name = ".".join(('micro_dl', module_name))
-    try:
-        module = importlib.import_module(full_module_name)
-        return getattr(module, func_name)
-    except ImportError:
-        raise ImportError("Couldn't import {}".format(func_name))
 
 
 def read_config(config_fname):

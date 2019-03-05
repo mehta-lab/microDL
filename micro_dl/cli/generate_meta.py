@@ -58,7 +58,7 @@ def meta_generator(args):
         str name_parser: Function in aux_utils for parsing indices from file name
     """
     # Import name parser
-    parse_func = aux_utils.import_func('utils.aux_utils', args.name_parser)
+    parse_func = aux_utils.import_object('utils.aux_utils', args.name_parser, 'function')
 
     # Get all image names
     im_names = aux_utils.get_sorted_names(args.input)
