@@ -123,6 +123,26 @@ class TestPreprocessScript(unittest.TestCase):
             os.path.join(self.output_dir, 'tiles_10-10_step_10-10'),
         )
 
+    def test_pre_process_nonisotropic(self):
+        base_config = self.base_config
+        base_config['uniform_struct'] = False
+        out_config, runtime = pp.pre_process(self.pp_config, base_config)
+
+        self.assertIsInstance(runtime, np.float)
+        self.assertEqual(
+            out_config['resize']['resize_dir'],
+            os.path.join(self.output_dir, 'resized_images')
+        )
+        self.assertEqual(
+            out_config['masks']['mask_dir'],
+            os.path.join(self.output_dir, 'mask_channels_3')
+        )
+        self.assertEqual(out_config['masks']['mask_out_channel'], 4)
+        self.assertEqual(
+            out_config['tile']['tile_dir'],
+            os.path.join(self.output_dir, 'tiles_10-10_step_10-10'),
+        )
+
     def test_save_config(self):
         cur_config = self.pp_config
         cur_config['resize']['resize_dir'] = os.path.join(
