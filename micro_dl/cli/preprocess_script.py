@@ -306,7 +306,6 @@ def pre_process(pp_config, req_params_dict):
                                                         str_elem_radius,
                                                         mask_type,
                                                         mask_out_channel)
-            pp_config['masks']['created_mask_dir'] = mask_dir
         elif 'mask_dir' in pp_config['masks']:
             mask_dir = pp_config['masks']['mask_dir']
             # Get preexisting masks from directory and match to input dir
@@ -344,6 +343,7 @@ def save_config(cur_config, runtime):
     # Read preprocessing.json if exists in input dir
     parent_dir = cur_config['input_dir'].split(os.sep)[:-1]
     parent_dir = os.sep.join(parent_dir)
+
     prior_config_fname = os.path.join(parent_dir, 'preprocessing_info.json')
     prior_pp_config = None
     if os.path.exists(prior_config_fname):
