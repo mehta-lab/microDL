@@ -9,7 +9,8 @@ import pandas as pd
 import tensorflow as tf
 import yaml
 
-from micro_dl.input.dataset import BaseDataSet, DataSetWithMask
+from micro_dl.input.dataset import BaseDataSet
+from micro_dl.input import DataSetWithMask
 from micro_dl.input.training_table import BaseTrainingTable
 from micro_dl.train.model_inference import load_model
 from micro_dl.train.trainer import BaseKerasTrainer

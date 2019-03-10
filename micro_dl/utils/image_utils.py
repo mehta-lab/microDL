@@ -74,12 +74,15 @@ def rescale_nd_image(input_volume, scale_factor):
     return res_image
 
 
-def crop2base(im, base=2):
+def crop2base(im, base=2, crop_z=False):
     """
-    Crop image to nearest smaller factor of the base (usually 2)
+    Crop image to nearest smaller factor of the base (usually 2), assumes xyz
+    format, will work for zyx too but the x_shape, y_shape and z_shape will be
+    z_shape, y_shape and x_shape respectively
 
     :param nd.array im: Image
     :param int base: Base to use, typically 2
+    :param bool crop_z: crop along z dim, only for UNet3D
     :return nd.array im: Cropped image
     :raises AssertionError: if base is less than zero
     """
@@ -96,6 +99,12 @@ def crop2base(im, base=2):
         # Approximate center crop
         start_idx = (im_shape[1] - y_shape) // 2
         im = im[:, start_idx:start_idx + y_shape, ...]
+
+    if len(im_shape) == 3 and crop_z:
+        z_shape = base ** int(math.log(im_shape[2], base))
+        if z_shape < im_shape[2]:
+            start_idx = (im_shape[2] - z_shape) // 2
+            im = im[:, :, start_idx: start_idx + z_shape]
     return im
 
 

@@ -6,7 +6,8 @@ import pandas as pd
 import pickle
 import yaml
 
-from micro_dl.input.dataset import BaseDataSet, DataSetWithMask
+from micro_dl.input.dataset import BaseDataSet
+from micro_dl.input import DataSetWithMask
 from micro_dl.train.model_inference import ModelEvaluator
 import micro_dl.utils.aux_utils as aux_utils
 from micro_dl.utils.train_utils import select_gpu
