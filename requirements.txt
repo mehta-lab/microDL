@@ -1,6 +1,6 @@
 Cython
 keras==2.1.6
-matplotlib
+matplotlib==3.0.3
 natsort
 nose
 numpy
