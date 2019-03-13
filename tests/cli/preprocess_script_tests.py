@@ -88,8 +88,15 @@ class TestPreprocessScript(unittest.TestCase):
 
     def test_pre_process(self):
         out_config, runtime = pp.pre_process(self.pp_config, self.base_config)
-
         self.assertIsInstance(runtime, np.float)
+        self.assertEqual(
+            self.base_config['input_dir'],
+            os.path.join(self.output_dir, 'resized_images')
+        )
+        self.assertEqual(
+            self.base_config['channel_ids'],
+            self.pp_config['channel_ids'],
+        )
         self.assertEqual(
             out_config['flat_field']['flat_field_dir'],
             os.path.join(self.output_dir, 'flat_field_images')
