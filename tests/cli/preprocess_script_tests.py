@@ -26,6 +26,7 @@ class TestPreprocessScript(unittest.TestCase):
         self.time_idx = 5
         self.pos_idx = 7
         self.im = 1500 * np.ones((30, 20), dtype=np.uint16)
+        self.im[10:20, 5:15] = 3000
 
         for c in range(4):
             for p in range(self.pos_idx, self.pos_idx + 3):
@@ -52,11 +53,12 @@ class TestPreprocessScript(unittest.TestCase):
             'output_dir': self.output_dir,
             'input_dir': self.temp_path,
             'channel_ids': [0, 1, 3],
-            'resample_scale': 0.2,
             'num_workers': 4,
-            'correct_flat_field': True,
+            'flat_field': {'estimate': True,
+                           'block_size': 2,
+                           'correct': True},
             'resize': {'scale_factor': 2,
-                        'resize_3d': False},
+                       'resize_3d': False},
             'masks': {'channels': [3],
                       'str_elem_radius': 3},
             'tile': {'tile_size': [10, 10],
@@ -88,6 +90,10 @@ class TestPreprocessScript(unittest.TestCase):
         out_config, runtime = pp.pre_process(self.pp_config, self.base_config)
 
         self.assertIsInstance(runtime, np.float)
+        self.assertEqual(
+            out_config['flat_field']['flat_field_dir'],
+            os.path.join(self.output_dir, 'flat_field_images')
+        )
         self.assertEqual(
             out_config['resize']['resize_dir'],
             os.path.join(self.output_dir, 'resized_images')
