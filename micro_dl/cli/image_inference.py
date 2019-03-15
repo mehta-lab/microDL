@@ -205,9 +205,9 @@ def run_prediction(model_dir,
 
     # Get input channel
     # TODO: Add multi channel support once such models are tested
-    input_channel = dataset_config['input_channels'][0]
-    assert isinstance(input_channel, int),\
-        "Only supporting single input channel for now"
+    input_channel = dataset_config['input_channels']
+    if isinstance(input_channel, int):
+        input_channel = [input_channel]
     # Get data format
     data_format = 'channels_first'
     if 'data_format' in network_config:
@@ -225,28 +225,34 @@ def run_prediction(model_dir,
     for time_idx in metadata_ids['time_idx']:
         for pos_idx in metadata_ids['pos_idx']:
             for slice_idx in metadata_ids['slice_idx']:
-                # TODO: Add flatfield support
-                im_stack = preprocess_imstack(
-                    frames_metadata=frames_meta,
-                    input_dir=image_dir,
-                    depth=depth,
-                    time_idx=time_idx,
-                    channel_idx=input_channel,
-                    slice_idx=slice_idx,
-                    pos_idx=pos_idx,
-                )
-                # Crop image shape to nearest factor of two
-                im_stack = image_utils.crop2base(im_stack)
-                # Change image stack format to zyx
-                im_stack = np.transpose(im_stack, [2, 0, 1])
-                if depth == 1:
-                    # Remove singular z dimension for 2D image
-                    im_stack = np.squeeze(im_stack)
-                # Add channel dimension
+                im_stack = []
+                for channel_idx in input_channel:
+                    # TODO: Add flatfield support
+                    im_stack_1chan = preprocess_imstack(
+                        frames_metadata=frames_meta,
+                        input_dir=image_dir,
+                        depth=depth,
+                        time_idx=time_idx,
+                        channel_idx=channel_idx,
+                        slice_idx=slice_idx,
+                        pos_idx=pos_idx,
+                    )
+
+                    # Crop image shape to nearest factor of two
+                    im_stack_1chan = image_utils.crop2base(im_stack_1chan)
+                    # Change image stack format to zyx
+                    im_stack_1chan = np.transpose(im_stack_1chan, [2, 0, 1])
+                    if depth == 1:
+                        # Remove singular z dimension for 2D image
+                        im_stack_1chan = np.squeeze(im_stack_1chan)
+
+                    im_stack.append(im_stack_1chan)
+                # Stack images of all channels
                 if data_format == 'channels_first':
-                    im_stack = im_stack[np.newaxis, ...]
+                    im_stack = np.stack(im_stack)
                 else:
-                    im_stack = im_stack[..., np.newaxis]
+                    im_stack = np.stack(im_stack, axis=-1)
+
                 # add batch dimensions
                 im_stack = im_stack[np.newaxis, ...]
                 # Predict on large image
@@ -327,8 +333,10 @@ def run_prediction(model_dir,
                 if save_figs:
                     # save predicted images assumes 2D
                     if depth > 1:
-                        im_stack = im_stack[..., depth // 2, :, :]
+                        im_stack = im_stack[..., 0, depth // 2, :, :]
+                        im_stack = im_stack[np.newaxis, ...]
                         im_target = im_target[0, ...]
+                        im_pred = im_pred[0, ...]
                     plot_utils.save_predicted_images(
                         input_batch=im_stack,
                         target_batch=im_target,

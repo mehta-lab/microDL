@@ -192,7 +192,7 @@ def tile_images(params_dict,
               'int2str_len': params_dict['int2strlen']}
 
     if params_dict['uniform_struct']:
-        if 'tile_3d' in tile_dict:
+        if 'tile_3d' in tile_dict and tile_dict['tile_3d']:
             if resize_flag:
                 warnings.warn(
                     'If resize_3d was used, slice_idx corresponds to start'

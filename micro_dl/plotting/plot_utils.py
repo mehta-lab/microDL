@@ -42,8 +42,8 @@ def save_predicted_images(input_batch,
         assert output_fname is not None, 'need fname for saving image'
         fname = os.path.join(output_dir, '{}.{}'.format(output_fname, ext))
 
-
     # 3D images are better saved as movies/gif
+    # assume only 1 target and prediction channel
     if batch_size != 1:
         assert len(input_batch.shape) == 4, 'saves 2D images only'
 
@@ -51,21 +51,28 @@ def save_predicted_images(input_batch,
         cur_input = input_batch[img_idx]
         cur_target = target_batch[img_idx]
         cur_prediction = pred_batch[img_idx]
-        n_channels = cur_input.shape[0]
-        fig, ax = plt.subplots(n_channels, 3)
-        fig.set_size_inches((15, 5 * n_channels))
+        
+        n_ip_channels = cur_input.shape[0]
+        n_op_channels = cur_target.shape[0]
+        n_cols = 3
+        n_rows = (n_ip_channels+2*n_op_channels)//n_cols+1
+        fig, ax = plt.subplots(n_rows, n_cols, squeeze=False)
+        ax = ax.flatten()
+        for axs in ax:
+            axs.axis('off')
+        fig.set_size_inches((15, 5 * n_rows))
         axis_count = 0
-        for channel_idx in range(n_channels):
+        for channel_idx in range(n_ip_channels):
             cur_im = hist_clipping(
                 cur_input[channel_idx],
                 clip_limits,
                 100 - clip_limits,
             )
-            ax[axis_count].imshow(cur_im,  cmap='gray')
+            ax[axis_count].imshow(cur_im, cmap='gray')
             ax[axis_count].axis('off')
-            if axis_count == 0:
-                ax[axis_count].set_title('Input', fontsize=font_size)
+            ax[axis_count].set_title('Input', fontsize=font_size)
             axis_count += 1
+        for channel_idx in range(n_op_channels):
             cur_im = hist_clipping(
                 cur_target[channel_idx],
                 clip_limits,
@@ -73,8 +80,7 @@ def save_predicted_images(input_batch,
             )
             ax[axis_count].imshow(cur_im, cmap='gray')
             ax[axis_count].axis('off')
-            if axis_count == 1:
-                ax[axis_count].set_title('Target', fontsize=font_size)
+            ax[axis_count].set_title('Target', fontsize=font_size)
             axis_count += 1
             cur_im = hist_clipping(
                 cur_prediction[channel_idx],
@@ -83,8 +89,21 @@ def save_predicted_images(input_batch,
             )
             ax[axis_count].imshow(cur_im, cmap='gray')
             ax[axis_count].axis('off')
-            if axis_count == 2:
-                ax[axis_count].set_title('Prediction', fontsize=font_size)
+
+            ax[axis_count].set_title('Prediction', fontsize=font_size)
+            axis_count += 1
+
+            cur_target_8bit = cv2.convertScaleAbs(cur_target_chan - np.min(cur_target_chan),
+                                                  alpha=255/(np.max(cur_target_chan)
+                                                        - np.min(cur_target_chan)))
+            cur_prediction_8bit = cv2.convertScaleAbs(cur_pred_chan - np.min(cur_pred_chan),
+                                                      alpha=255/(np.max(cur_pred_chan)
+                                                            - np.min(cur_pred_chan)))
+            cur_target_pred = np.stack([cur_target_8bit, cur_prediction_8bit,
+                                        cur_target_8bit], axis=2)
+
+            ax[axis_count].imshow(cur_target_pred)
+            ax[axis_count].set_title('Overlay', fontsize=font_size)
             axis_count += 1
         if batch_size != 1:
             fname = os.path.join(
