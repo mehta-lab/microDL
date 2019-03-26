@@ -1,8 +1,10 @@
 """Utility functions for plotting"""
 import cv2
+import glob
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import natsort
 import numpy as np
 import os
 from micro_dl.utils.normalize import hist_clipping
@@ -72,6 +74,76 @@ def save_predicted_images(input_batch, target_batch, pred_batch,
             )
         fig.savefig(fname, dpi=300, bbox_inches='tight')
         plt.close(fig)
+
+
+def plot_xyz(image_dir,
+             pos_idx,
+             fig_name,
+             tol=1,
+             font_size=15,
+             margin=10,
+             scale=10):
+    """
+    Takes a 3D volume, plots the center slice and the yz and xz center
+     cross sections.
+
+    :param str image_dir: Directory containing z-stacks
+    :param int pos_idx: Which FOV to plot
+    :param str fig_name: Full path to figure file name
+    :param float tol: top and bottom % of intensity to saturate
+    :param int font_size: font size of the image title
+    """
+    search_str = os.path.join(image_dir, "*p{:03d}*".format(pos_idx))
+    slice_names = natsort.natsorted(glob.glob(search_str))
+
+    im_stack = []
+    for im_z in slice_names:
+        im_stack.append(cv2.imread(im_z, cv2.IMREAD_ANYDEPTH))
+    im_stack = np.stack(im_stack, axis=-1)
+
+    im_norm = im_stack / im_stack.std() * IM_STD
+    im_norm = im_norm - im_norm.mean() + IM_MEAN
+    # cutoff at 0
+    im_norm[im_norm < 0] = 0.
+    im_norm = im_norm.astype(np.uint16)
+
+    fig, ax = plt.subplots(111)
+
+    center_slice = hist_clipping(
+        im_norm[..., int(len(slice_names) // 2)],
+        tol, 100 - tol,
+    )
+    im_shape = im_stack.shape
+    canvas = IM_MEAN ** np.ones((im_shape[0] + im_shape[2] * scale + margin,
+                      im_shape[1] + im_shape[2] * scale + margin))
+    # Add center slice
+    canvas[0:im_shape[0], 0:im_shape[1]] = center_slice
+    # add yz
+    center_slice = hist_clipping(
+        np.squeeze(im_norm[:, int(im_shape[1] // 2), :]),
+        tol, 100 - tol,
+    )
+    cshape = center_slice.shape
+    resized_slice = cv2.resize(center_slice, (cshape[1] * scale, cshape[0]))
+
+    canvas[0:im_shape[0], im_shape[1] + margin:] = resized_slice
+
+    # add xy
+    center_slice = hist_clipping(
+        np.squeeze(im_norm[int(im_shape[1] // 2), :, :]),
+        tol, 100 - tol,
+    )
+    cshape = center_slice.shape
+    resized_slice = cv2.resize(center_slice, (cshape[1] * scale, cshape[0]))
+
+    canvas[0:im_shape[0], im_shape[1] + margin:] = resized_slice
+
+    plt.imshow(center_slice, cmap='gray')
+    plt.axis('off')
+    ax.set_title('Input', fontsize=font_size)
+
+    fig.savefig(fig_name, dpi=300, bbox_inches='tight')
+    plt.close(fig)
 
 
 def save_mask_overlay(input_image, mask, op_fname, alpha=0.7):
