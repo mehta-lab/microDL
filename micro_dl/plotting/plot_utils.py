@@ -79,6 +79,7 @@ def save_predicted_images(input_batch, target_batch, pred_batch,
 def plot_xyz(image_dir,
              pos_idx,
              fig_name,
+             mean_std,
              tol=1,
              font_size=15,
              margin=10,
@@ -93,6 +94,7 @@ def plot_xyz(image_dir,
     :param float tol: top and bottom % of intensity to saturate
     :param int font_size: font size of the image title
     """
+    (im_mean, im_std) = mean_std
     search_str = os.path.join(image_dir, "*p{:03d}*".format(pos_idx))
     slice_names = natsort.natsorted(glob.glob(search_str))
 
@@ -101,8 +103,8 @@ def plot_xyz(image_dir,
         im_stack.append(cv2.imread(im_z, cv2.IMREAD_ANYDEPTH))
     im_stack = np.stack(im_stack, axis=-1)
 
-    im_norm = im_stack / im_stack.std() * IM_STD
-    im_norm = im_norm - im_norm.mean() + IM_MEAN
+    im_norm = im_stack / im_stack.std() * im_std
+    im_norm = im_norm - im_norm.mean() + im_mean
     # cutoff at 0
     im_norm[im_norm < 0] = 0.
     im_norm = im_norm.astype(np.uint16)
@@ -114,29 +116,30 @@ def plot_xyz(image_dir,
         tol, 100 - tol,
     )
     im_shape = im_stack.shape
-    canvas = IM_MEAN ** np.ones((im_shape[0] + im_shape[2] * scale + margin,
+    canvas = im_mean ** np.ones((im_shape[0] + im_shape[2] * scale + margin,
                       im_shape[1] + im_shape[2] * scale + margin))
     # Add center slice
     canvas[0:im_shape[0], 0:im_shape[1]] = center_slice
     # add yz
-    center_slice = hist_clipping(
+    yz_slice = hist_clipping(
         np.squeeze(im_norm[:, int(im_shape[1] // 2), :]),
         tol, 100 - tol,
     )
-    cshape = center_slice.shape
-    resized_slice = cv2.resize(center_slice, (cshape[1] * scale, cshape[0]))
-
-    canvas[0:im_shape[0], im_shape[1] + margin:] = resized_slice
+    yz_shape = yz_slice.shape
+    yz_slice = cv2.resize(yz_slice, (yz_shape[1] * scale, yz_shape[0]))
+    canvas[0:yz_shape[0], im_shape[1] + margin:] = yz_slice
 
     # add xy
-    center_slice = hist_clipping(
+    xy_slice = hist_clipping(
         np.squeeze(im_norm[int(im_shape[1] // 2), :, :]),
         tol, 100 - tol,
     )
-    cshape = center_slice.shape
-    resized_slice = cv2.resize(center_slice, (cshape[1] * scale, cshape[0]))
+    # Need to rotate to fit this slice on the bottom of canvas
+    xy_slice = np.rot90(xy_slice)
+    xy_shape = xy_slice.shape
+    xy_slice = cv2.resize(xy_slice, (xy_shape[1] * scale, xy_shape[0]))
 
-    canvas[0:im_shape[0], im_shape[1] + margin:] = resized_slice
+    canvas[im_shape[0] + margin:, 0:xy_shape[1]] = xy_slice
 
     plt.imshow(center_slice, cmap='gray')
     plt.axis('off')
