@@ -83,6 +83,7 @@ def plot_xyz(image_dir,
              tol=1,
              font_size=15,
              color_map='gray',
+             fig_title=None,
              margin=20,
              z_scale=5,
              channel_str=None):
@@ -99,6 +100,7 @@ def plot_xyz(image_dir,
     :param float tol: top and bottom % of intensity to saturate (hist clipping)
     :param int font_size: font size of the image title
     :param str color_map: Matplotlib colormap
+    :param str fig_title: Figure title
     :param int margin: Number of pixel margin between xy and xz, yz plots
     :param int z_scale: How much to upsample in z (to be able to see xz and yz)
     :param str channel_str: If there's more than one channel in image_dir
@@ -144,7 +146,7 @@ def plot_xyz(image_dir,
         tol, 100 - tol,
     )
     yz_shape = yz_slice.shape
-    yz_slice = cv2.resize(yz_slice, (yz_shape[1] * z_scale, yz_shape[0]))
+    yz_slice = cv2.resize(yz_slice, (yz_shape[1] * int(z_scale, yz_shape[0])))
     canvas[0:yz_shape[0], im_shape[1] + margin:] = yz_slice
     # add xy center slice
     xy_slice = hist_clipping(
@@ -152,14 +154,15 @@ def plot_xyz(image_dir,
         tol, 100 - tol,
     )
     xy_shape = xy_slice.shape
-    xy_slice = cv2.resize(xy_slice, (xy_shape[1] * z_scale, xy_shape[0]))
+    xy_slice = cv2.resize(xy_slice, (xy_shape[1] * int(z_scale, xy_shape[0])))
     # Need to rotate to fit this slice on the bottom of canvas
     xy_slice = np.rot90(xy_slice)
     canvas[im_shape[0] + margin:, 0:xy_slice.shape[1]] = xy_slice
 
     plt.imshow(canvas, cmap=color_map)
     plt.axis('off')
-    plt.title('Center sections of xy, yz, and xz', fontsize=font_size)
+    if fig_title is not None:
+        plt.title(fig_title, fontsize=font_size)
 
     plt.savefig(fig_name, dpi=300, bbox_inches='tight')
     plt.close()
