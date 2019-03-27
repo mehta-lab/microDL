@@ -79,74 +79,90 @@ def save_predicted_images(input_batch, target_batch, pred_batch,
 def plot_xyz(image_dir,
              pos_idx,
              fig_name,
-             mean_std,
+             mean_std=None,
              tol=1,
              font_size=15,
-             margin=10,
-             scale=10):
+             color_map='gray',
+             margin=20,
+             z_scale=5,
+             channel_str=None):
     """
-    Takes a 3D volume, plots the center slice and the yz and xz center
-     cross sections.
+    Given an image directory, loads a z-stack, plots the center sections of
+    xy, yz and xz.
 
     :param str image_dir: Directory containing z-stacks
     :param int pos_idx: Which FOV to plot
-    :param str fig_name: Full path to figure file name
-    :param float tol: top and bottom % of intensity to saturate
+    :param str fig_name: Full path of where to write figure file
+    :param tuple mean_std: If None, just assume the image will plot well as is,
+        if tuple containing a mean and std (e.g. mean over training data),
+        set z-stack mean and std and convert to uint16
+    :param float tol: top and bottom % of intensity to saturate (hist clipping)
     :param int font_size: font size of the image title
+    :param str color_map: Matplotlib colormap
+    :param int margin: Number of pixel margin between xy and xz, yz plots
+    :param int z_scale: How much to upsample in z (to be able to see xz and yz)
+    :param str channel_str: If there's more than one channel in image_dir
+        (e.g. input image dir as opposed to predictions) use this str to select
+        which channel to build z-stack from
     """
-    (im_mean, im_std) = mean_std
+
     search_str = os.path.join(image_dir, "*p{:03d}*".format(pos_idx))
     slice_names = natsort.natsorted(glob.glob(search_str))
+
+    if channel_str is not None:
+        slice_names = [s for s in slice_names if channel_str in s]
 
     im_stack = []
     for im_z in slice_names:
         im_stack.append(cv2.imread(im_z, cv2.IMREAD_ANYDEPTH))
     im_stack = np.stack(im_stack, axis=-1)
+    # If mean and std tuple exist, scale, otherwise leave as is
+    im_norm = im_stack
+    if isinstance(mean_std, tuple):
+        im_norm = im_stack / im_stack.std() * mean_std[0]
+        im_norm = im_norm - im_norm.mean() + mean_std[1]
+        # cutoff at 0
+        im_norm[im_norm < 0] = 0.
+        # Convert to uint16
+        im_norm = im_norm.astype(np.uint16)
 
-    im_norm = im_stack / im_stack.std() * im_std
-    im_norm = im_norm - im_norm.mean() + im_mean
-    # cutoff at 0
-    im_norm[im_norm < 0] = 0.
-    im_norm = im_norm.astype(np.uint16)
-
-    fig, ax = plt.subplots(111)
-
+    # Add xy center slice to plot image (canvas)
     center_slice = hist_clipping(
         im_norm[..., int(len(slice_names) // 2)],
         tol, 100 - tol,
     )
     im_shape = im_stack.shape
-    canvas = im_mean ** np.ones((im_shape[0] + im_shape[2] * scale + margin,
-                      im_shape[1] + im_shape[2] * scale + margin))
-    # Add center slice
+    canvas = center_slice.max() * np.ones(
+        (im_shape[0] + im_shape[2] * z_scale + margin,
+         im_shape[1] + im_shape[2] * z_scale + margin),
+        dtype=np.uint16,
+    )
     canvas[0:im_shape[0], 0:im_shape[1]] = center_slice
-    # add yz
+    # add yz center slice
     yz_slice = hist_clipping(
         np.squeeze(im_norm[:, int(im_shape[1] // 2), :]),
         tol, 100 - tol,
     )
     yz_shape = yz_slice.shape
-    yz_slice = cv2.resize(yz_slice, (yz_shape[1] * scale, yz_shape[0]))
+    yz_slice = cv2.resize(yz_slice, (yz_shape[1] * z_scale, yz_shape[0]))
     canvas[0:yz_shape[0], im_shape[1] + margin:] = yz_slice
-
-    # add xy
+    # add xy center slice
     xy_slice = hist_clipping(
         np.squeeze(im_norm[int(im_shape[1] // 2), :, :]),
         tol, 100 - tol,
     )
+    xy_shape = xy_slice.shape
+    xy_slice = cv2.resize(xy_slice, (xy_shape[1] * z_scale, xy_shape[0]))
     # Need to rotate to fit this slice on the bottom of canvas
     xy_slice = np.rot90(xy_slice)
-    xy_shape = xy_slice.shape
-    xy_slice = cv2.resize(xy_slice, (xy_shape[1] * scale, xy_shape[0]))
+    canvas[im_shape[0] + margin:, 0:xy_slice.shape[1]] = xy_slice
 
-    canvas[im_shape[0] + margin:, 0:xy_shape[1]] = xy_slice
-
-    plt.imshow(center_slice, cmap='gray')
+    plt.imshow(canvas, cmap=color_map)
     plt.axis('off')
-    ax.set_title('Input', fontsize=font_size)
+    plt.title('Center sections of xy, yz, and xz', fontsize=font_size)
 
-    fig.savefig(fig_name, dpi=300, bbox_inches='tight')
-    plt.close(fig)
+    plt.savefig(fig_name, dpi=300, bbox_inches='tight')
+    plt.close()
 
 
 def save_mask_overlay(input_image, mask, op_fname, alpha=0.7):
