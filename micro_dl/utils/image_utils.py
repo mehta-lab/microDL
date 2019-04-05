@@ -74,10 +74,10 @@ def rescale_nd_image(input_volume, scale_factor):
     return res_image
 
 
-def crop2base(im, base=2, crop_z=False):
+def crop2base(im, base=2):
     """
     Crop image to nearest smaller factor of the base (usually 2), assumes xyz
-    format, will work for zyx too but the x_shape, y_shape and z_shape will be
+    format, will work for zxy too but the x_shape, y_shape and z_shape will be
     z_shape, y_shape and x_shape respectively
 
     :param nd.array im: Image
@@ -99,12 +99,6 @@ def crop2base(im, base=2, crop_z=False):
         # Approximate center crop
         start_idx = (im_shape[1] - y_shape) // 2
         im = im[:, start_idx:start_idx + y_shape, ...]
-
-    if len(im_shape) == 3 and crop_z:
-        z_shape = base ** int(math.log(im_shape[2], base))
-        if z_shape < im_shape[2]:
-            start_idx = (im_shape[2] - z_shape) // 2
-            im = im[:, :, start_idx: start_idx + z_shape]
     return im
 
 
@@ -202,3 +196,23 @@ def read_image(file_path):
         except IOError as e:
             raise e
     return im
+
+
+def center_crop_to_shape(input_image, output_shape):
+    """Center crop the image to a given shape
+
+    :param np.array input_image: input image to be cropped
+    :param list output_shape: desired crop shape
+    """
+
+    input_shape = input_image.shape
+    assert output_shape < input_shape, \
+        'output shape is larger than image shape, use resize or rescale'
+
+    start_0 = (input_shape[0] - output_shape[0]) // 2
+    start_1 = (input_shape[1] - output_shape[1]) // 2
+    start_2 = (input_shape[2] - output_shape[2]) // 2
+    center_block = input_image[start_0: start_0 + output_shape[0],
+                               start_1: start_1 + output_shape[1],
+                               start_2: start_2 + output_shape[2]]
+    return center_block
