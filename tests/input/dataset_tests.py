@@ -52,7 +52,7 @@ class TestBaseDataSet(unittest.TestCase):
             target_fnames=self.target_fnames,
             dataset_config=dataset_config,
             batch_size=self.batch_size,
-            image_format='yxz',
+            image_format='xyz',
         )
 
     def tearDown(self):
@@ -147,9 +147,9 @@ class TestBaseDataSet(unittest.TestCase):
     def test_augment_image_m1(self):
         self.data_inst._augment_image(self.im, -1)
 
-    def test_augment_image_lr_zyx(self):
+    def test_augment_image_lr_zxy(self):
         im_test = np.transpose(self.im, [2, 0, 1])
-        self.data_inst.image_format = 'zyx'
+        self.data_inst.image_format = 'zxy'
         trans_im = self.data_inst._augment_image(im_test, 1)
         for i in range(2):
             np.testing.assert_array_equal(
@@ -157,9 +157,9 @@ class TestBaseDataSet(unittest.TestCase):
                 np.fliplr(im_test[i, ...]),
             )
 
-    def test_augment_image_ud_zyx(self):
+    def test_augment_image_ud_zxy(self):
         im_test = np.transpose(self.im, [2, 0, 1])
-        self.data_inst.image_format = 'zyx'
+        self.data_inst.image_format = 'zxy'
         trans_im = self.data_inst._augment_image(im_test, 2)
         for i in range(2):
             np.testing.assert_array_equal(
@@ -169,7 +169,7 @@ class TestBaseDataSet(unittest.TestCase):
 
     def test_augment_image_rot90_channels_first(self):
         im_test = np.transpose(self.im, [2, 0, 1])
-        self.data_inst.image_format = 'zyx'
+        self.data_inst.image_format = 'zxy'
         trans_im = self.data_inst._augment_image(im_test, 3)
         for i in range(2):
             np.testing.assert_array_equal(
@@ -177,9 +177,9 @@ class TestBaseDataSet(unittest.TestCase):
                 np.rot90(im_test[i, ...], k=1),
             )
 
-    def test_augment_image_rot180_zyx(self):
+    def test_augment_image_rot180_zxy(self):
         im_test = np.transpose(self.im, [2, 0, 1])
-        self.data_inst.image_format = 'zyx'
+        self.data_inst.image_format = 'zxy'
         trans_im = self.data_inst._augment_image(im_test, 4)
         for i in range(2):
             np.testing.assert_array_equal(
@@ -187,9 +187,9 @@ class TestBaseDataSet(unittest.TestCase):
                 np.rot90(im_test[i, ...], k=2),
             )
 
-    def test_augment_image_rot270_zyx(self):
+    def test_augment_image_rot270_zxy(self):
         im_test = np.transpose(self.im, [2, 0, 1])
-        self.data_inst.image_format = 'zyx'
+        self.data_inst.image_format = 'zxy'
         trans_im = self.data_inst._augment_image(im_test, 5)
         for i in range(2):
             np.testing.assert_array_equal(

@@ -95,7 +95,7 @@ class TestImageTilerUniform(unittest.TestCase):
                           'tile_size': [5, 5],
                           'step_size': [4, 4],
                           'depths': 3,
-                          'image_format': 'zyx',
+                          'image_format': 'zxy',
                           'tile_3d': False}
         self.tile_inst = tile_images.ImageTilerUniform(
             input_dir=self.temp_path,
@@ -162,7 +162,7 @@ class TestImageTilerUniform(unittest.TestCase):
         nose.tools.assert_equal(self.tile_inst.tile_size, [5, 5])
         nose.tools.assert_equal(self.tile_inst.step_size, [4, 4])
         nose.tools.assert_equal(self.tile_inst.hist_clip_limits, None)
-        nose.tools.assert_equal(self.tile_inst.image_format, 'zyx')
+        nose.tools.assert_equal(self.tile_inst.image_format, 'zxy')
         nose.tools.assert_equal(self.tile_inst.num_workers, 4)
         nose.tools.assert_equal(self.tile_inst.str_tile_step,
                                 'tiles_5-5_step_4-4',)
@@ -320,7 +320,7 @@ class TestImageTilerUniform(unittest.TestCase):
         nose.tools.assert_equal(cur_args[4], self.channel_idx)
         nose.tools.assert_equal(cur_args[5], 7)
         nose.tools.assert_equal(cur_args[6], 16)
-        nose.tools.assert_equal(cur_args[8], 'zyx')
+        nose.tools.assert_equal(cur_args[8], 'zxy')
         nose.tools.assert_equal(cur_args[9], self.tile_inst.tile_dir)
         nose.tools.assert_equal(cur_args[10], self.int2str_len)
 
@@ -385,7 +385,7 @@ class TestImageTilerUniform(unittest.TestCase):
         nose.tools.assert_list_equal(cur_args[7], self.tile_inst.tile_size)
         nose.tools.assert_list_equal(cur_args[8], self.tile_inst.step_size)
         nose.tools.assert_equal(cur_args[9], 0.3)
-        nose.tools.assert_equal(cur_args[10], 'zyx')
+        nose.tools.assert_equal(cur_args[10], 'zxy')
         nose.tools.assert_equal(cur_args[11], self.tile_inst.tile_dir)
         nose.tools.assert_equal(cur_args[12], self.int2str_len)
 
