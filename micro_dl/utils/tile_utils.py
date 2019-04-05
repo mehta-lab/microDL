@@ -66,7 +66,8 @@ def preprocess_imstack(frames_metadata,
                        slice_idx,
                        pos_idx,
                        flat_field_im=None,
-                       hist_clip_limits=None):
+                       hist_clip_limits=None,
+                       normalize=True):
     """
     Preprocess image given by indices: flatfield correction, histogram
     clipping and z-score normalization is performed.
@@ -80,7 +81,8 @@ def preprocess_imstack(frames_metadata,
     :param int pos_idx: Position (FOV) index
     :param np.array flat_field_im: Flat field image for channel
     :param list hist_clip_limits: Limits for histogram clipping (size 2)
-    :return np.array im: 2D preprocessed image
+    :param bool normalize: indicator to z-score the image or not
+    :return np.array im: 3D preprocessed image
     """
 
     margin = 0 if depth == 1 else depth // 2
@@ -119,7 +121,9 @@ def preprocess_imstack(frames_metadata,
             hist_clip_limits[0],
             hist_clip_limits[1],
         )
-    return normalize.zscore(im_stack)
+    if normalize:
+        im_stack = normalize.zscore(im_stack)
+    return im_stack
 
 
 def tile_image(input_image,
@@ -353,7 +357,7 @@ def write_tile(tile, save_dict, img_id):
                                       int2str_len=save_dict['int2str_len'],
                                       extra_field=img_id)
     op_fname = os.path.join(save_dict['save_dir'], file_name)
-    if save_dict['image_format'] == 'zyx' and len(tile.shape) > 2:
+    if save_dict['image_format'] == 'zxy' and len(tile.shape) > 2:
         tile = np.transpose(tile, (2, 0, 1))
     np.save(op_fname, tile, allow_pickle=True, fix_imports=True)
     return file_name

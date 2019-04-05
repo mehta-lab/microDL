@@ -178,7 +178,7 @@ class TestTileUtils(unittest.TestCase):
                      'channel_idx': self.channel_ids,
                      'slice_idx': 4,
                      'pos_idx': self.pos_ids,
-                     'image_format': 'zyx',
+                     'image_format': 'zxy',
                      'int2str_len': 3,
                      'save_dir': tile_dir}
         tile_meta_df = tile_utils.tile_image(input_image,
@@ -285,7 +285,7 @@ class TestTileUtils(unittest.TestCase):
                      'channel_idx': self.channel_ids,
                      'slice_idx': 4,
                      'pos_idx': self.pos_ids,
-                     'image_format': 'zyx',
+                     'image_format': 'zxy',
                      'int2str_len': 3,
                      'save_dir': tile_dir}
 
@@ -326,7 +326,7 @@ class TestTileUtils(unittest.TestCase):
                      'channel_idx': self.channel_ids,
                      'slice_idx': 4,
                      'pos_idx': self.pos_ids,
-                     'image_format': 'zyx',
+                     'image_format': 'zxy',
                      'int2str_len': 3,
                      'save_dir': tile_dir}
 
@@ -352,7 +352,7 @@ class TestTileUtils(unittest.TestCase):
                      'channel_idx': self.channel_ids,
                      'slice_idx': 4,
                      'pos_idx': self.pos_ids,
-                     'image_format': 'zyx',
+                     'image_format': 'zxy',
                      'int2str_len': 3,
                      'save_dir': tile_dir}
 

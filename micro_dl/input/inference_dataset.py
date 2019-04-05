@@ -16,7 +16,7 @@ class InferenceDataset(keras.utils.Sequence):
                  dataset_config,
                  network_config,
                  df_meta,
-                 image_format='zyx',
+                 image_format='zxy',
                  flat_field_dir=None):
         """Init
 
@@ -25,23 +25,18 @@ class InferenceDataset(keras.utils.Sequence):
         :param dict network_config: dict with network related params
         :param pd.Dataframe df_meta: dataframe with time, channel, pos and
          slice indices
-        :param str image_format: xyz or zyx format
-        :param str flat_field_dir:
+        :param str image_format: xyz or zxy format
+        :param str flat_field_dir: dir with flat field images
         """
 
         # no augmentation needed for inference
         self.augmentations = False
         self.shuffle = False
-        # the raw input images have to be normalized (z-score) typically
-        self.normalize = True
         self.flat_field_dir = flat_field_dir
 
-        # use the entire split
-        self.train_fraction = 1.0
-
         self.image_dir = image_dir
-        assert image_format in {'yxz', 'zyx'}, \
-            "Image format should be yxz or zyx, not {}".format(image_format)
+        assert image_format in {'xyz', 'zxy'}, \
+            "Image format should be xyz or zxy, not {}".format(image_format)
         self.image_format = image_format
 
         # Check if model task (regression or segmentation) is specified
@@ -60,20 +55,20 @@ class InferenceDataset(keras.utils.Sequence):
 
         self.df_meta = df_meta
 
-        # if Unet2D, remove the singleton dimension for 4D tensor, else 5D
+        # if Unet2D 4D tensor, remove the singleton dimension, else 5D
         self.squeeze = False
-        self.n_dims = 5
         if network_cls == 'UNet2D':
             self.squeeze = True
-            self.n_dims = 4
+
+        self.im_3d = False
+        if network_cls == 'UNet3D':
+            self.im_3d = True
 
         self.data_format = network_config['data_format']
 
         self.input_channels = dataset_config['input_channels']
         self.target_channels = dataset_config['target_channels']
-        df_idx = df_meta.index[
-            df_meta['channel_idx'] == dataset_config['target_channels'][0]
-        ]
+        df_idx = (df_meta['channel_idx'] == dataset_config['target_channels'][0])
         self.df_iteration_meta = df_meta[df_idx]
         self.num_samples = len(self.df_iteration_meta)
 
@@ -81,8 +76,9 @@ class InferenceDataset(keras.utils.Sequence):
     def adjust_slice_indices(df_meta, depth):
         """Adjust slice indices if stackto2d or stacktostack
 
-        :param pd.Dataframe df_meta:
-        :param int depth:
+        :param pd.Dataframe df_meta: dataframe with info for all slices
+        :param int depth: depth of stack for UNetStackto2D and UNetStackToStack
+        :return pd.Dataframe df_meta: with rows corr. to end slices removed
         """
 
         # these networks will have a depth > 1
@@ -107,8 +103,14 @@ class InferenceDataset(keras.utils.Sequence):
 
         return self.num_samples
 
-    def _get_image(self, cur_row, channel_ids):
-        """Assemble one image"""
+    def _get_image(self, cur_row, channel_ids, normalize):
+        """Assemble one input/target tensor
+
+        :param pd.Series cur_row:
+        :param int/list channel_ids:
+        :param bool normalize:
+        :return np.array (3D / 4D) cur_stack:
+        """
 
         cur_slice_idx = cur_row['slice_idx']
         cur_time_idx = cur_row['time_idx']
@@ -122,6 +124,7 @@ class InferenceDataset(keras.utils.Sequence):
                     'flat-field_channel-{}.npy'.format(ch_idx)
                 )
                 cur_flat_field_im = np.load(cur_flat_field_fname)
+
             cur_image = preprocess_imstack(
                 frames_metadata=self.df_meta,
                 input_dir=self.image_dir,
@@ -130,13 +133,14 @@ class InferenceDataset(keras.utils.Sequence):
                 channel_idx=ch_idx,
                 slice_idx=cur_slice_idx,
                 pos_idx=cur_pos_idx,
-                flat_field_im=cur_flat_field_im
+                flat_field_im=cur_flat_field_im,
+                normalize=normalize
             )
 
-            # Crop image shape to nearest factor of two
-            cur_image = crop2base(cur_image)
+            # Crop image to nearest factor of two in xy
+            cur_image = crop2base(cur_image)  # crop_z=self.im_3d)
 
-            if self.image_format == 'zyx':
+            if self.image_format == 'zxy':
                 cur_image = np.transpose(cur_image, [2, 0, 1])
             if self.squeeze:
                 cur_image = np.squeeze(cur_image)
@@ -156,8 +160,12 @@ class InferenceDataset(keras.utils.Sequence):
         target_stack = []
 
         cur_row = self.df_iteration_meta.iloc[index]
-        cur_input = self._get_image(cur_row, self.input_channels)
-        cur_target = self._get_image(cur_row, self.target_channels)
+        cur_input = self._get_image(cur_row,
+                                    self.input_channels,
+                                    normalize=True)
+        # the raw input images have to be normalized (z-score typically)
+        normalize = True if self.model_task is 'regression' else False
+        cur_target = self._get_image(cur_row, self.target_channels, normalize)
         input_stack.append(cur_input)
         target_stack.append(cur_target)
         # stack for batch dimension

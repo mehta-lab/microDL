@@ -22,7 +22,7 @@ tile:
     tile_size: [128, 128, 64]
     step_size: [96, 96, 48]
     depths: [1, 1]
-    image_format: 'zyx'
+    image_format: 'zxy'
     tile_3d: True
     mask_channel: 8
     min_fraction: 0.25

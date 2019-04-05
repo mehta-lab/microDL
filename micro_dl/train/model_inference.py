@@ -26,6 +26,8 @@ def load_model(network_config, model_fname, predict=False):
     network_config['width'] = None
     network_config['height'] = None
     network_cls = network_config['class']
+    if network_cls == 'UNet3D':
+        network_config['depth'] = None
     # not ideal as more networks get added
     network_cls = aux_utils.import_object('networks', network_cls)
     network = network_cls(network_config, predict)
@@ -393,9 +395,9 @@ class ModelEvaluator:
             tp_dir = str(os.sep).join(test_ip0_fnames[0].split(os.sep)[:-2])
             test_image = np.load(test_ip0_fnames[0])
             _, crop_indices = tile_utils.tile_image(test_image,
-                                         tile_size,
-                                         step_size,
-                                         return_index=True)
+                                                    tile_size,
+                                                    step_size,
+                                                    return_index=True)
             pred_dir = os.path.join(self.config['trainer']['model_dir'],
                                     'predicted_images', 'tp_{}'.format(tp))
             for fname in test_image_fnames:
