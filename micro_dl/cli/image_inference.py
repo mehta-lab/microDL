@@ -11,7 +11,7 @@ import yaml
 import keras.backend as K
 
 import micro_dl.plotting.plot_utils as plot_utils
-import micro_dl.train.model_inference as inference
+import micro_dl.inference.model_inference as inference
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.image_utils as image_utils
 from micro_dl.utils.tile_utils import preprocess_imstack

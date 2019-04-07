@@ -6,9 +6,9 @@ import os
 import pandas as pd
 
 from micro_dl.input.inference_dataset import InferenceDataset
-import micro_dl.train.model_inference as inference
-from micro_dl.train.evaluation_metrics import MetricsEstimator
-from micro_dl.train.stitch_predictions import ImageStitcher
+import micro_dl.inference.model_inference as inference
+from micro_dl.inference.evaluation_metrics import MetricsEstimator
+from micro_dl.inference.stitch_predictions import ImageStitcher
 import micro_dl.utils.aux_utils as aux_utils
 from micro_dl.utils.image_utils import center_crop_to_shape
 from micro_dl.utils.train_utils import set_keras_session
