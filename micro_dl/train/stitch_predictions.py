@@ -37,16 +37,14 @@ class ImageStitcher:
             else [1, 2, 3]
         self.img_dim = img_dim
         if data_format == 'channels_first':
-            x_dim = 3 if image_format == 'zxy' else x_dim = 2
-            z_dim = 2 if image_format == 'zxy' else z_dim = 4
+            x_dim = 3 if image_format == 'zxy' else 2
         elif data_format == 'channels_last':
-            x_dim = 2 if image_format == 'zxy' else x_dim = 1
-            z_dim = 1 if image_format == 'zxy' else z_dim = 3
+            x_dim = 2 if image_format == 'zxy' else 1
         y_dim = x_dim + 1
 
         self.x_dim = x_dim
         self.y_dim = y_dim
-        self.z_dim = z_dim
+        self.z_dim = overlap_dict['z_dim']
         self.image_format = image_format
 
     def _place_block_z(self,
