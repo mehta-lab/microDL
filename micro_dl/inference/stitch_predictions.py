@@ -44,7 +44,7 @@ class ImageStitcher:
 
         self.x_dim = x_dim
         self.y_dim = y_dim
-        self.z_dim = overlap_dict['z_dim']
+        self.z_dim = overlap_dict['z_dim
         self.image_format = image_format
 
     def _place_block_z(self,
