@@ -54,8 +54,8 @@ def save_predicted_images(input_batch,
         
         n_ip_channels = cur_input.shape[0]
         n_op_channels = cur_target.shape[0]
-        n_cols = 3
-        n_rows = (n_ip_channels+2*n_op_channels)//n_cols+1
+        n_rows = int(np.squrt((n_ip_channels+2*n_op_channels+1)/2))
+        n_cols = np.ceil((n_ip_channels+2*n_op_channels+1)/n_rows).astype(np.uint32)
         fig, ax = plt.subplots(n_rows, n_cols, squeeze=False)
         ax = ax.flatten()
         for axs in ax:
@@ -73,21 +73,21 @@ def save_predicted_images(input_batch,
             ax[axis_count].set_title('Input', fontsize=font_size)
             axis_count += 1
         for channel_idx in range(n_op_channels):
-            cur_im = hist_clipping(
+            cur_target_chan = hist_clipping(
                 cur_target[channel_idx],
                 clip_limits,
                 100 - clip_limits,
             )
-            ax[axis_count].imshow(cur_im, cmap='gray')
+            ax[axis_count].imshow(cur_target_chan, cmap='gray')
             ax[axis_count].axis('off')
             ax[axis_count].set_title('Target', fontsize=font_size)
             axis_count += 1
-            cur_im = hist_clipping(
+            cur_pred_chan = hist_clipping(
                 cur_prediction[channel_idx],
                 clip_limits,
                 100 - clip_limits,
             )
-            ax[axis_count].imshow(cur_im, cmap='gray')
+            ax[axis_count].imshow(cur_pred_chan, cmap='gray')
             ax[axis_count].axis('off')
 
             ax[axis_count].set_title('Prediction', fontsize=font_size)

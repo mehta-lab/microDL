@@ -333,10 +333,9 @@ def run_prediction(model_dir,
                 if save_figs:
                     # save predicted images assumes 2D
                     if depth > 1:
-                        im_stack = im_stack[..., 0, depth // 2, :, :]
-                        im_stack = im_stack[np.newaxis, ...]
-                        im_target = im_target[0, ...]
-                        im_pred = im_pred[0, ...]
+                        im_stack = im_stack[..., depth // 2, :, :]
+                        im_target = im_target[..., 0, :, :]
+                        im_pred = im_pred[..., 0, :, :]
                     plot_utils.save_predicted_images(
                         input_batch=im_stack,
                         target_batch=im_target,
