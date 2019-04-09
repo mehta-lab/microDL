@@ -205,14 +205,18 @@ def center_crop_to_shape(input_image, output_shape):
     :param list output_shape: desired crop shape
     """
 
-    input_shape = input_image.shape
-    assert output_shape < input_shape, \
+    input_shape = np.array(input_image.shape)
+    singleton_dims = np.where(input_shape == 1)[0]
+    input_image = np.squeeze(input_image)
+    assert np.all(np.array(output_shape) < np.array(input_image.shape)), \
         'output shape is larger than image shape, use resize or rescale'
 
-    start_0 = (input_shape[0] - output_shape[0]) // 2
-    start_1 = (input_shape[1] - output_shape[1]) // 2
-    start_2 = (input_shape[2] - output_shape[2]) // 2
+    start_0 = (input_image.shape[0] - output_shape[0]) // 2
+    start_1 = (input_image.shape[1] - output_shape[1]) // 2
+    start_2 = (input_image.shape[2] - output_shape[2]) // 2
     center_block = input_image[start_0: start_0 + output_shape[0],
-                               start_1: start_1 + output_shape[1],
-                               start_2: start_2 + output_shape[2]]
+                   start_1: start_1 + output_shape[1],
+                   start_2: start_2 + output_shape[2]]
+    for idx in singleton_dims:
+        center_block = np.expand_dims(center_block, axis=idx)
     return center_block
