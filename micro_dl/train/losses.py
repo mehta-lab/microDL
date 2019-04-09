@@ -58,6 +58,8 @@ def dssim_loss(y_true, y_pred):
 def ms_ssim_loss(y_true, y_pred):
     """
     Multiscale structural dissimilarity loss + L1 loss
+    Uses the same combination weight as the original paper by Wang et al.:
+    https://live.ece.utexas.edu/publications/2003/zw_asil2003_msssim.pdf
 
     :param tensor y_true: Labeled ground truth
     :param tensor y_pred: Predicted labels, potentially non-binary
