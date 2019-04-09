@@ -88,7 +88,7 @@ class MetricsEstimator:
         assert available_metrics.issubset(metrics_list), \
             'only ssim, r2, correlation, mse and mae are currently supported'
         self.metrics_list = metrics_list
-        self.pd_col_names = ['r2', 'ssim', 'corr', 'tar_fname']
+        self.pd_col_names = metrics_list
 
         self.masked_metrics = masked_metrics
         if masked_metrics:
@@ -139,6 +139,7 @@ class MetricsEstimator:
                 'The shape of target and mask are not same: {}, {}'.format(
                     target.shape, mask.shape
                 )
+            assert mask.dtype == 'bool', 'mask is not boolean'
 
         fn_mapping = {'mae_metric': mae_metric,
                       'mse_metric': mse_metric,
@@ -154,10 +155,12 @@ class MetricsEstimator:
                 cur_metric_list = metric_fn(target=target,
                                             prediction=prediction,
                                             mask=mask)
+                vol_frac = np.mean(mask)
             else:
                 cur_metric = metric_fn(target=target,
                                        prediction=prediction)
             if self.masked_metrics:
+                self.df_metrics.loc[self.row_idx]['vol_frac'] = vol_frac
                 self.df_metrics.loc[self.row_idx][cur_metric] = \
                     cur_metric_list[0]
                 metric_name = '{}_masked'.format(cur_metric)

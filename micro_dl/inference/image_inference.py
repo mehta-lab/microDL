@@ -35,8 +35,8 @@ class ImagePredictor:
         :param str model_fname: fname of the hdf5 file with model weights
         :param str image_dir: dir containing images AND NOT TILES!
         :param dict image_param_dict: dict with keys image_format,
-         flat_field_dir, im_ext. im_ext: npy or png or tiff. FOR 3D IMAGES USE
-         NPY AS PNG AND TIFF ARE CURRENTLY NOT SUPPORTED
+         flat_field_dir, im_ext, crop_shape. im_ext: npy or png or tiff.
+         FOR 3D IMAGES USE NPY AS PNG AND TIFF ARE CURRENTLY NOT SUPPORTED
         :params int gpu_id: gpu to use
         :params float gpu_mem_frac: Memory fractions to use corresponding
          to gpu_ids
@@ -401,7 +401,6 @@ class ImagePredictor:
                 pred_image = inference.predict_on_larger_image(
                     model=self.model_inst, input_image=center_block
                 )
-                cur_input = center_block
             elif self.tile_option == 'tile_z':
                 pred_block_list, start_end_idx = \
                     self._predict_sub_block_z(cur_input)
