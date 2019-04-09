@@ -13,16 +13,19 @@ def mask_decorator(metric_function):
     def wrapper_metric_function(**kwargs):
         """Expected inputs cur_target, prediction, mask"""
 
-        metric = metric_function(**kwargs)
+        metric = metric_function(target=kwargs['target'],
+                                 prediction=kwargs['prediction'])
         if 'mask' in kwargs:
             mask = kwargs['mask']
             cur_target = kwargs['target']
             cur_pred = kwargs['prediction']
-            masked_metric = metric_function(cur_target[mask],
-                                            cur_pred[mask])
-            return metric, masked_metric
+            masked_metric = metric_function(target=cur_target[mask],
+                                            prediction=cur_pred[mask])
+            return [metric, masked_metric]
+
         return metric
     return wrapper_metric_function
+
 
 @mask_decorator
 def mse_metric(target, prediction):
@@ -30,11 +33,13 @@ def mse_metric(target, prediction):
 
     return np.mean((target - prediction) ** 2)
 
+
 @mask_decorator
 def mae_metric(target, prediction):
     """MAE of target and prediction"""
 
     return np.mean(np.abs(target - prediction))
+
 
 @mask_decorator
 def r2_metric(target, prediction):
@@ -45,6 +50,7 @@ def r2_metric(target, prediction):
     cur_r2 = 1 - (ss_res / (ss_tot + 1e-8))
     return cur_r2
 
+
 @mask_decorator
 def corr_metric(target, prediction):
     """Pearson correlation of target and prediction"""
@@ -52,15 +58,20 @@ def corr_metric(target, prediction):
     cur_corr = pearsonr(target.flatten(), prediction.flatten())[0]
     return cur_corr
 
-@mask_decorator
-def ssim_metric(target, prediction):
+
+def ssim_metric(target, prediction, mask=None):
     """SSIM of target and prediction"""
 
-    cur_ssim_img = ssim(target, prediction,
-                        data_range=target.max() - target.min(),
-                        full=True)
-    cur_ssim = np.mean(cur_ssim_img)
-    return cur_ssim
+    if mask is None:
+        cur_ssim = ssim(target, prediction,
+                        data_range=target.max() - target.min())
+        return cur_ssim
+    else:
+        cur_ssim, cur_ssim_img = ssim(target, prediction,
+                                      data_range=target.max() - target.min(),
+                                      full=True)
+        cur_ssim_masked = np.mean(cur_ssim_img[mask])
+        return [cur_ssim, cur_ssim_masked]
 
 
 class MetricsEstimator:
@@ -86,6 +97,7 @@ class MetricsEstimator:
                 cur_col_name = '{}_masked'.format(metric)
                 self.pd_col_names.append(cur_col_name)
 
+        self.pd_col_names.append('tar_fname')
         df_metrics = pd.DataFrame(
             index=range(len_data_split),
             columns=self.pd_col_names
@@ -134,18 +146,23 @@ class MetricsEstimator:
                       'corr_metric': corr_metric,
                       'ssim_metric': ssim_metric}
 
-        self.df_metrics[self.row_idx]['tar_fname'] = pred_fname
+        self.df_metrics.loc[self.row_idx]['tar_fname'] = pred_fname
         for cur_metric in self.metrics_list:
             metric_fn_name = '{}_metric'.format(cur_metric)
             metric_fn = fn_mapping[metric_fn_name]
-            kwargs = {'target': target, 'prediction': prediction)
             if self.masked_metrics:
-                kwargs['mask'] = mask
-            cur_metric = metric_fn(kwargs)
+                cur_metric_list = metric_fn(target=target,
+                                            prediction=prediction,
+                                            mask=mask)
+            else:
+                cur_metric = metric_fn(target=target,
+                                       prediction=prediction)
             if self.masked_metrics:
-                self.df_metrics.loc[self.row_idx][cur_metric] = cur_metric[0]
+                self.df_metrics.loc[self.row_idx][cur_metric] = \
+                    cur_metric_list[0]
                 metric_name = '{}_masked'.format(cur_metric)
-                self.df_metrics.loc[self.row_idx][metric_name] = cur_metric[1]
+                self.df_metrics.loc[self.row_idx][metric_name] = \
+                    cur_metric_list[1]
             else:
                 self.df_metrics.loc[self.row_idx][cur_metric] = cur_metric
         self.row_idx += 1

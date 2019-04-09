@@ -66,17 +66,21 @@ class ImagePredictor:
         assert ('image_format' in image_param_dict and
                 'im_ext' in image_param_dict), \
             'image_format and/or im_ext not in image_param_dict'
+        flat_field_dir = None
+        if 'flat_field_dir' in image_param_dict:
+            flat_field_dir = image_param_dict['flat_field_dir']
         dataset_inst = InferenceDataset(
             image_dir=image_dir,
             dataset_config=config['dataset'],
             network_config=config['network'],
             df_meta=df_split_meta,
             image_format=image_param_dict['image_format'],
-            flat_field_dir=image_param_dict['flat_field_dir']
+            flat_field_dir=flat_field_dir
         )
+
         self.dataset_inst = dataset_inst
         self.image_format = image_param_dict['image_format']
-        self.image_ext = image_param_dict['image_ext']
+        self.image_ext = image_param_dict['im_ext']
 
         # Create image subdirectory to write predicted images
         model_dir = config['trainer']['model_dir']
@@ -202,6 +206,7 @@ class ImagePredictor:
                 if 'num_overlap' in vol_inf_dict else [0, 0, 0]
         elif 'inf_shape' in vol_inf_dict:
             tile_option = 'infer_on_center'
+            num_overlap = 0
 
         snitch_inst = None
         # create an instance of ImageStitcher
@@ -344,6 +349,7 @@ class ImagePredictor:
                 np.save(file_name, predicted_image, allow_pickle=True)
             else:
                 raise ValueError('Unsupported file extension')
+        return im_name
 
     def estimate_metrics(self,
                          cur_target,
@@ -388,9 +394,11 @@ class ImagePredictor:
             if self.tile_option == 'infer_on_center':
                 inf_shape = self.vol_inf_dict['inf_shape']
                 center_block = center_crop_to_shape(cur_input, inf_shape)
+                cur_target = center_crop_to_shape(cur_target, inf_shape)
                 pred_image = inference.predict_on_larger_image(
                     model=self.model_inst, input_image=center_block
                 )
+                cur_input = center_block
             elif self.tile_option == 'tile_z':
                 pred_block_list, start_end_idx = \
                     self._predict_sub_block_z(cur_input)
@@ -431,10 +439,23 @@ class ImagePredictor:
                 slice_idx=cur_row['slice_idx']
             )
             if self.metrics_est_inst is not None:
-                self.estimate_metrics(cur_target,
-                                      pred_image,
-                                      pred_fname,
-                                      cur_row)
+                pred_image = pred_image.astype('float')
+                im_name = aux_utils.get_im_name(
+                    time_idx=cur_row['time_idx'],
+                    channel_idx=self.mask_param_dict['mask_channel'],
+                    slice_idx=cur_row['slice_idx'],
+                    pos_idx=cur_row['pos_idx'],
+                )
+                mask_fname = os.path.join(self.mask_param_dict['mask_dir'],
+                                          im_name)
+                mask = np.load(mask_fname)
+                mask = np.transpose(mask, [2, 0, 1])
+                if self.tile_option == 'infer_on_center':
+                    mask = center_crop_to_shape(mask, inf_shape)
+                self.metrics_est_inst.estimate_metrics(cur_target,
+                                                       pred_image,
+                                                       pred_fname,
+                                                       mask=mask)
         if self.metrics_est_inst is not None:
             df_metrics = self.metrics_est_inst.get_metrics_df()
             df_metrics.to_csv(
