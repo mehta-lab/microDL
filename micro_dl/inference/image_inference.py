@@ -209,12 +209,13 @@ class ImagePredictor:
             num_overlap = 0
 
         snitch_inst = None
+        z_dim_3D = 0 if image_param_dict['image_format'] == 'zxy' else 2
         # create an instance of ImageStitcher
         if tile_option in ['tile_z', 'tile_xyz']:
             overlap_dict = {
                 'overlap_shape': num_overlap,
                 'overlap_operation': vol_inf_dict['overlap_operation'],
-                'z_dim': z_dim
+                'z_dim': z_dim_3D
             }
             snitch_inst = ImageStitcher(
                 tile_option=tile_option,
@@ -263,7 +264,6 @@ class ImagePredictor:
         num_blocks = np.ceil(
             num_z / (num_slices - self.num_overlap)
         ).astype('int')
-        print('block pred:', num_blocks)
         for block_idx in range(num_blocks):
             start_idx = block_idx * (num_slices - self.num_overlap)
             end_idx = start_idx + num_slices
@@ -277,8 +277,10 @@ class ImagePredictor:
                 model=self.model_inst,
                 input_image=cur_block
             )
-            pred_imgs_list.append(pred_block)
-            start_end_idx.append(start_idx, end_idx)
+            # model.predict is a 5D tensor
+            # TODO (Anitha): extend for multichannel
+            pred_imgs_list.append(np.squeeze(pred_block))
+            start_end_idx.append((start_idx, end_idx))
         return pred_imgs_list, start_end_idx
 
     def _predict_sub_block_xyz(self,
@@ -305,7 +307,8 @@ class ImagePredictor:
                 model=self.model_inst,
                 input_image=cur_block
             )
-            pred_imgs_list.append(pred_block)
+            # TODO (Anitha): extend for multichannel
+            pred_imgs_list.append(np.squeeze(pred_block))
             start_end_idx.append(crop_idx)
         return pred_imgs_list, start_end_idx
 
@@ -403,7 +406,7 @@ class ImagePredictor:
                 pred_block_list, start_end_idx = \
                     self._predict_sub_block_z(cur_input)
                 pred_image = self.snitch_inst.stitch_predictions(
-                    cur_input.shape,
+                    np.squeeze(cur_input).shape,
                     pred_block_list,
                     start_end_idx
                 )

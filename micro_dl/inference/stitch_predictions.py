@@ -24,7 +24,7 @@ class ImageStitcher:
             'tile_option not in [tile_z, tile_xyz]'
 
         allowed_overlap_opn = ['mean', 'any']
-        assert ('overlap_operation' in  overlap_dict and
+        assert ('overlap_operation' in overlap_dict and
                 overlap_dict['overlap_operation'] in allowed_overlap_opn), \
             'overlap_operation not provided or not in [mean, any]'
         assert image_format in ['zxy', 'xyz'], 'image_format not in [zxy, xyz]'
@@ -71,10 +71,10 @@ class ImageStitcher:
         # initialize all indices to :
         idx_in_img = []
         idx_in_block = []
-        for dim_idx in range(len(pred_image).shape):
+        for dim_idx in range(len(pred_image.shape)):
             idx_in_img.append(np.s_[:])
             idx_in_block.append(np.s_[:])
-        idx_in_img[z_dim] = np.s_[start_idx + num_overlap : end_idx]
+        idx_in_img[z_dim] = np.s_[start_idx + num_overlap: end_idx]
         idx_in_block[z_dim] = np.s_[num_overlap:]
         pred_image[idx_in_img] = pred_block[idx_in_block]
         if start_idx > 0:
@@ -83,8 +83,8 @@ class ImageStitcher:
                 idx_in_block[z_dim] = sl_idx
                 if overlap_operation == 'mean':
                     pred_image[idx_in_img] = \
-                        (forward_wts[sl_idx] * pred_image[idx_in_img] +
-                         reverse_wts[sl_idx] * pred_block[idx_in_block])
+                        (reverse_wts[sl_idx] * pred_image[idx_in_img] +
+                         forward_wts[sl_idx] * pred_block[idx_in_block])
                 elif overlap_operation == 'any':
                     pred_block[idx_in_img] = np.any(pred_image[idx_in_img],
                                                     pred_block[idx_in_block])
