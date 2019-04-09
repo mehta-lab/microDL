@@ -146,7 +146,7 @@ class ImageStitcher:
         # assign non-overlapping regions
         for idx, dim_idx in enumerate(self.img_dim):
             idx_in_block[dim_idx] = np.s_[crop_index[idx * 2]:
-                                           crop_index[idx * 2 + 1]]
+                                          crop_index[idx * 2 + 1]]
             idx_in_img[dim_idx] = np.s_[overlap_shape[idx]:]
         pred_image[idx_in_img] = pred_block[idx_in_block]
         # overlap along left and top borders, top now
@@ -159,12 +159,12 @@ class ImageStitcher:
                 for idx in range(overlap_shape[dim_idx]):
                     idx_in_img[cur_dim] = (
                         np.s_[crop_index[2 * dim_idx]:
-                               crop_index[2 * dim_idx] + overlap_shape[dim_idx]]
+                              crop_index[2 * dim_idx] + overlap_shape[dim_idx]]
                     )
                     if overlap_operation == 'mean':
                         pred_image[idx_in_img] = \
-                            (forward_wts[idx] * pred_image[idx_in_img] +
-                             reverse_wts[idx] * pred_block[idx_in_block])
+                            (reverse_wts[idx] * pred_image[idx_in_img] +
+                             forward_wts[idx] * pred_block[idx_in_block])
                     elif overlap_operation == 'any':
                         pred_block[idx_in_img] = np.any(
                             pred_image[idx_in_img], pred_block[idx_in_block]
@@ -172,7 +172,7 @@ class ImageStitcher:
             else:
                 idx_in_img[cur_dim] = (
                     np.s_[crop_index[2 * dim_idx]:
-                           crop_index[2 * dim_idx] + overlap_shape[dim_idx]]
+                          crop_index[2 * dim_idx] + overlap_shape[dim_idx]]
                 )
                 pred_image[idx_in_img] = pred_block[idx_in_block]
         return pred_image
