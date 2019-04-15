@@ -318,8 +318,7 @@ def read_meta(input_dir, meta_fname='frames_meta.csv'):
     try:
         frames_metadata = pd.read_csv(meta_fname[0], index_col=0)
     except IOError as e:
-        e.args += 'cannot read metadata csv file'
-        raise
+        raise Exception('cannot read metadata csv file: {}'.format(e))
     return frames_metadata
 
 

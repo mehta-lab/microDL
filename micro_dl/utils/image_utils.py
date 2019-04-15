@@ -208,7 +208,7 @@ def center_crop_to_shape(input_image, output_shape):
     input_shape = np.array(input_image.shape)
     singleton_dims = np.where(input_shape == 1)[0]
     input_image = np.squeeze(input_image)
-    assert np.all(np.array(output_shape) < np.array(input_image.shape)), \
+    assert np.all(np.array(output_shape) <= np.array(input_image.shape)), \
         'output shape is larger than image shape, use resize or rescale'
 
     start_0 = (input_image.shape[0] - output_shape[0]) // 2

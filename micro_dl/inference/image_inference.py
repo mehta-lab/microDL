@@ -4,6 +4,7 @@ import natsort
 import numpy as np
 import os
 import pandas as pd
+import warnings
 
 from micro_dl.input.inference_dataset import InferenceDataset
 import micro_dl.inference.model_inference as inference
@@ -35,8 +36,8 @@ class ImagePredictor:
         :param str model_fname: fname of the hdf5 file with model weights
         :param str image_dir: dir containing images AND NOT TILES!
         :param dict image_param_dict: dict with keys image_format,
-         flat_field_dir, im_ext, crop_shape. im_ext: npy or png or tiff.
-         FOR 3D IMAGES USE NPY AS PNG AND TIFF ARE CURRENTLY NOT SUPPORTED
+         flat_field_dir, im_ext. im_ext: npy or png or tiff. FOR 3D IMAGES USE
+         NPY AS PNG AND TIFF ARE CURRENTLY NOT SUPPORTED
         :params int gpu_id: gpu to use
         :params float gpu_mem_frac: Memory fractions to use corresponding
          to gpu_ids
@@ -77,10 +78,13 @@ class ImagePredictor:
             image_format=image_param_dict['image_format'],
             flat_field_dir=flat_field_dir
         )
-
         self.dataset_inst = dataset_inst
         self.image_format = image_param_dict['image_format']
         self.image_ext = image_param_dict['im_ext']
+        crop_shape = None
+        if 'crop_shape' in image_param_dict:
+            crop_shape = image_param_dict['crop_shape']
+        self.crop_shape = crop_shape
 
         # Create image subdirectory to write predicted images
         model_dir = config['trainer']['model_dir']
@@ -187,6 +191,9 @@ class ImagePredictor:
 
         if 'num_slices' in vol_inf_dict and vol_inf_dict['num_slices'] > 1:
             tile_option = 'tile_z'
+            warnings.warn('Please have >= num of slices used for training.'
+                          'Inference on reduced num of slices gives sub-optimal'
+                          'results', Warning)
             num_slices = vol_inf_dict['num_slices']
             assert self.config['network']['class'] == 'UNet3D', \
                 'num_slices is used for splitting a volume into block ' \
@@ -277,8 +284,6 @@ class ImagePredictor:
                 model=self.model_inst,
                 input_image=cur_block
             )
-            # model.predict is a 5D tensor
-            # TODO (Anitha): extend for multichannel
             pred_imgs_list.append(np.squeeze(pred_block))
             start_end_idx.append((start_idx, end_idx))
         return pred_imgs_list, start_end_idx
@@ -296,19 +301,18 @@ class ImagePredictor:
         start_end_idx = []
         for crop_idx in crop_indices:
             if self.data_format == 'channels_first':
-                cur_block = input_image[:, :, crop_idx[0]: crop_indices[1],
-                                        crop_idx[2]: crop_indices[3],
-                                        crop_idx[4]: crop_indices[5]]
+                cur_block = input_image[:, :, crop_idx[0]: crop_idx[1],
+                                        crop_idx[2]: crop_idx[3],
+                                        crop_idx[4]: crop_idx[5]]
             elif self.data_format == 'channels_last':
-                cur_block = input_image[:, crop_idx[0]: crop_indices[1],
-                                        crop_idx[2]: crop_indices[3],
-                                        crop_idx[4]: crop_indices[5], :]
+                cur_block = input_image[:, crop_idx[0]: crop_idx[1],
+                                        crop_idx[2]: crop_idx[3],
+                                        crop_idx[4]: crop_idx[5], :]
             pred_block = inference.predict_on_larger_image(
                 model=self.model_inst,
                 input_image=cur_block
             )
-            # TODO (Anitha): extend for multichannel
-            pred_imgs_list.append(np.squeeze(pred_block))
+            pred_imgs_list.append(pred_block)
             start_end_idx.append(crop_idx)
         return pred_imgs_list, start_end_idx
 
@@ -372,14 +376,12 @@ class ImagePredictor:
                    'pred_fname': cur_pred_fname}
 
         if self.mask_param_dict is not None:
-            # mask_channel = 9
             mask_fname = aux_utils.get_im_name(
                 time_idx=cur_row['time_idx'],
                 channel_idx=self.mask_param_dict['mask_channel'],
                 slice_idx=cur_row['slice_idx'],
                 pos_idx=cur_row['pos_idx']
             )
-            # mask_dir = '/data/kidney_tiles/mask_channels_2',
             mask_fname = os.path.join(self.mask_param_dict['mask_dir'],
                                       mask_fname)
             cur_mask = np.load(mask_fname)
@@ -391,9 +393,13 @@ class ImagePredictor:
         """Run prediction for entire 2D image or a 3D stack"""
 
         crop_indices = None
-        for ds_idx in range(len(self.dataset_inst)):
+        for ds_idx in range(1):  # len(self.dataset_inst)):
+            print('{}/{}'.format(ds_idx, len(self.dataset_inst)))
             cur_input, cur_target = self.dataset_inst.__getitem__(ds_idx)
-            # get blocks with an overlap of one slice
+            if self.crop_shape is not None:
+                cur_input = center_crop_to_shape(cur_input, self.crop_shape)
+                cur_target = center_crop_to_shape(cur_target, self.crop_shape)
+
             if self.tile_option == 'infer_on_center':
                 inf_shape = self.vol_inf_dict['inf_shape']
                 center_block = center_crop_to_shape(cur_input, inf_shape)
@@ -401,6 +407,7 @@ class ImagePredictor:
                 pred_image = inference.predict_on_larger_image(
                     model=self.model_inst, input_image=center_block
                 )
+                cur_input = center_block
             elif self.tile_option == 'tile_z':
                 pred_block_list, start_end_idx = \
                     self._predict_sub_block_z(cur_input)
@@ -410,21 +417,23 @@ class ImagePredictor:
                     start_end_idx
                 )
             elif self.tile_option == 'tile_xyz':
-                step_size = (self.vol_inf_dict['tile_shape'] -
-                             self.num_overlap)
+                step_size = (np.array(self.vol_inf_dict['tile_shape']) -
+                             np.array(self.num_overlap))
                 if crop_indices is None:
+                    # TODO tile_image works for 2D/3D imgs, modify for multichannel
                     _, crop_indices = tile_utils.tile_image(
-                        input_image=cur_input,
+                        input_image=np.squeeze(cur_input),
                         tile_size=self.vol_inf_dict['tile_shape'],
                         step_size=step_size,
                         return_index=True
                     )
                 pred_block_list, crop_indices = \
                     self._predict_sub_block_xyz(cur_input, crop_indices)
-                pred_image = \
-                    self.snitch_inst.stitch_predictions(cur_input.shape,
-                                                        pred_block_list,
-                                                        crop_indices)
+                pred_image = self.snitch_inst.stitch_predictions(
+                    np.squeeze(cur_input).shape,
+                    pred_block_list,
+                    crop_indices
+                )
             else:
                 pred_image = inference.predict_on_larger_image(
                     model=self.model_inst, input_image=cur_input
@@ -452,12 +461,15 @@ class ImagePredictor:
                                           im_name)
                 mask = np.load(mask_fname)
                 mask = np.transpose(mask, [2, 0, 1])
+                if self.crop_shape is not None:
+                    mask = center_crop_to_shape(mask, self.crop_shape)
                 if self.tile_option == 'infer_on_center':
                     mask = center_crop_to_shape(mask, inf_shape)
                 self.metrics_est_inst.estimate_metrics(cur_target,
                                                        pred_image,
                                                        pred_fname,
                                                        mask=mask)
+                del cur_input, cur_target, pred_image
         if self.metrics_est_inst is not None:
             df_metrics = self.metrics_est_inst.get_metrics_df()
             df_metrics.to_csv(
