@@ -88,7 +88,7 @@ class MetricsEstimator:
         assert available_metrics.issubset(metrics_list), \
             'only ssim, r2, correlation, mse and mae are currently supported'
         self.metrics_list = metrics_list
-        self.pd_col_names = metrics_list
+        self.pd_col_names = metrics_list.copy()
 
         self.masked_metrics = masked_metrics
         if masked_metrics:
