@@ -36,8 +36,10 @@ class ImagePredictor:
         :param str model_fname: fname of the hdf5 file with model weights
         :param str image_dir: dir containing images AND NOT TILES!
         :param dict image_param_dict: dict with keys image_format,
-         flat_field_dir, im_ext. im_ext: npy or png or tiff. FOR 3D IMAGES USE
-         NPY AS PNG AND TIFF ARE CURRENTLY NOT SUPPORTED
+         flat_field_dir, im_ext, crop_shape. im_ext: npy or png or tiff.
+         FOR 3D IMAGES USE NPY AS PNG AND TIFF ARE CURRENTLY NOT SUPPORTED.
+         crop_shape: center crop the image to a specified shape before tiling
+         for inference
         :params int gpu_id: gpu to use
         :params float gpu_mem_frac: Memory fractions to use corresponding
          to gpu_ids
@@ -48,7 +50,8 @@ class ImagePredictor:
          num_slices - in case of 3D, the full volume will not fit in GPU
          memory, specify the number of slices to use and this will depend on
          the network depth, for ex 8 for a network of depth 4. inf_shape -
-         inference on a center sub volume.
+         inference on a center sub volume. tile_shape - shape of tile for
+         tiling along xyz. num_overlap - int for tile_z, list for tile_xyz
         """
 
         self.config = config
@@ -147,7 +150,7 @@ class ImagePredictor:
         return model
 
     def _get_split_meta(self, image_dir, data_split='test'):
-        """Get the cztp indices for the data split: train, test, val or all
+        """Get the meta dataframe for data_split
 
         :param str image_dir: dir containing images AND NOT TILES!
         :param str data_split: in [train, val, test]
@@ -179,8 +182,8 @@ class ImagePredictor:
     def _assign_vol_inf_options(self, image_param_dict, vol_inf_dict):
         """Assign vol inf options
 
-        :param dict image_param_dict:
-        :param dict vol_inf_dict:
+        :param dict image_param_dict: same as in __init__
+        :param dict vol_inf_dict: same as in __init__
         """
 
         # assign zdim if not Unet2D
@@ -192,8 +195,8 @@ class ImagePredictor:
         if 'num_slices' in vol_inf_dict and vol_inf_dict['num_slices'] > 1:
             tile_option = 'tile_z'
             warnings.warn('Please have >= num of slices used for training.'
-                          'Inference on reduced num of slices gives sub-optimal'
-                          'results', Warning)
+                          'Inference on reduced num of slices gives sub'
+                          'optimal results', Warning)
             num_slices = vol_inf_dict['num_slices']
             assert self.config['network']['class'] == 'UNet3D', \
                 'num_slices is used for splitting a volume into block ' \
@@ -216,13 +219,11 @@ class ImagePredictor:
             num_overlap = 0
 
         snitch_inst = None
-        z_dim_3D = 0 if image_param_dict['image_format'] == 'zxy' else 2
         # create an instance of ImageStitcher
         if tile_option in ['tile_z', 'tile_xyz']:
             overlap_dict = {
                 'overlap_shape': num_overlap,
-                'overlap_operation': vol_inf_dict['overlap_operation'],
-                'z_dim': z_dim_3D
+                'overlap_operation': vol_inf_dict['overlap_operation']
             }
             snitch_inst = ImageStitcher(
                 tile_option=tile_option,
@@ -238,7 +239,7 @@ class ImagePredictor:
                          end_z_idx):
         """Get the sub block along z given start and end slice indices
 
-        :param np.array input_image: 3D image
+        :param np.array input_image: 5D tensor with the entire 3D volume
         :param int start_z_idx: start slice for the current block
         :param int end_z_idx: end slice for the current block
         :return np.array cur_block: sub block / volume
@@ -261,7 +262,9 @@ class ImagePredictor:
     def _predict_sub_block_z(self, input_image):
         """Predict sub blocks along z
 
-        :param np.array input_image:
+        :param np.array input_image: 5D tensor with the entire 3D volume
+        :return list pred_imgs_list - list of predicted sub blocks
+         list start_end_idx - list of tuples with start and end z indices
         """
 
         pred_imgs_list = []
@@ -284,6 +287,7 @@ class ImagePredictor:
                 model=self.model_inst,
                 input_image=cur_block
             )
+            # reduce predictions from 5D to 3D for simplicity
             pred_imgs_list.append(np.squeeze(pred_block))
             start_end_idx.append((start_idx, end_idx))
         return pred_imgs_list, start_end_idx
@@ -293,12 +297,12 @@ class ImagePredictor:
                                crop_indices):
         """Predict sub blocks along xyz
 
-        :param np.array input_image:
-        :param list crop_indices:
+        :param np.array input_image: 5D tensor with the entire 3D volume
+        :param list crop_indices: list of crop indices
+        :return list pred_imgs_list - list of predicted sub blocks
         """
 
         pred_imgs_list = []
-        start_end_idx = []
         for crop_idx in crop_indices:
             if self.data_format == 'channels_first':
                 cur_block = input_image[:, :, crop_idx[0]: crop_idx[1],
@@ -312,9 +316,9 @@ class ImagePredictor:
                 model=self.model_inst,
                 input_image=cur_block
             )
+            # retain the full 5D tensor to experiment for multichannel case
             pred_imgs_list.append(pred_block)
-            start_end_idx.append(crop_idx)
-        return pred_imgs_list, start_end_idx
+        return pred_imgs_list
 
     def save_pred_image(self,
                         predicted_image,
@@ -365,10 +369,13 @@ class ImagePredictor:
                          cur_row):
         """Estimate evaluation metrics
 
-        :param np.array cur_target:
-        :param np.array cur_prediction:
-        :param str cur_pred_fname:
-        :param pd.Series cur_row:
+        The row of metrics gets added to metrics_est.df_metrics
+
+        :param np.array cur_target: ground truth
+        :param np.array cur_prediction: model prediction
+        :param str cur_pred_fname: fname for saving model predictions
+        :param pd.Series cur_row: row with indices for time, position, channel
+         and slice
         """
 
         kw_args = {'target': cur_target,
@@ -393,7 +400,7 @@ class ImagePredictor:
         """Run prediction for entire 2D image or a 3D stack"""
 
         crop_indices = None
-        for ds_idx in range(1):  # len(self.dataset_inst)):
+        for ds_idx in range(len(self.dataset_inst)):
             print('{}/{}'.format(ds_idx, len(self.dataset_inst)))
             cur_input, cur_target = self.dataset_inst.__getitem__(ds_idx)
             if self.crop_shape is not None:
@@ -427,8 +434,8 @@ class ImagePredictor:
                         step_size=step_size,
                         return_index=True
                     )
-                pred_block_list, crop_indices = \
-                    self._predict_sub_block_xyz(cur_input, crop_indices)
+                pred_block_list = self._predict_sub_block_xyz(cur_input,
+                                                              crop_indices)
                 pred_image = self.snitch_inst.stitch_predictions(
                     np.squeeze(cur_input).shape,
                     pred_block_list,

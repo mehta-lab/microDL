@@ -7,11 +7,21 @@ from scipy.stats import pearsonr
 
 
 def mask_decorator(metric_function):
-    """Decorator for masking the metrics"""
+    """Decorator for masking the metrics
+
+    :param function metric_function: a python function that takes target and
+     prediction arrays as input
+    :return function wrapper_metric_function: input function that returns
+     metrics and masked_metrics if mask was passed as param to input function
+    """
 
     @functools.wraps(metric_function)
     def wrapper_metric_function(**kwargs):
-        """Expected inputs cur_target, prediction, mask"""
+        """Expected inputs cur_target, prediction, mask
+
+        :param dict kwargs: with keys target, prediction and mask all of which
+         are np.arrays
+        """
 
         metric = metric_function(target=kwargs['target'],
                                  prediction=kwargs['prediction'])
@@ -22,28 +32,42 @@ def mask_decorator(metric_function):
             masked_metric = metric_function(target=cur_target[mask],
                                             prediction=cur_pred[mask])
             return [metric, masked_metric]
-
         return metric
     return wrapper_metric_function
 
 
 @mask_decorator
 def mse_metric(target, prediction):
-    """MSE of target and prediction"""
+    """MSE of target and prediction
+
+    :param np.array target: ground truth array
+    :param np.array prediction: model prediction
+    :return float mean squared error
+    """
 
     return np.mean((target - prediction) ** 2)
 
 
 @mask_decorator
 def mae_metric(target, prediction):
-    """MAE of target and prediction"""
+    """MAE of target and prediction
+
+    :param np.array target: ground truth array
+    :param np.array prediction: model prediction
+    :return float mean absolute error
+    """
 
     return np.mean(np.abs(target - prediction))
 
 
 @mask_decorator
 def r2_metric(target, prediction):
-    """Coefficient of determination of target and prediction"""
+    """Coefficient of determination of target and prediction
+
+    :param np.array target: ground truth array
+    :param np.array prediction: model prediction
+    :return float coefficient of determination
+    """
 
     ss_res = np.sum((target - prediction) ** 2)
     ss_tot = np.sum((target - np.mean(target)) ** 2)
@@ -53,14 +77,24 @@ def r2_metric(target, prediction):
 
 @mask_decorator
 def corr_metric(target, prediction):
-    """Pearson correlation of target and prediction"""
+    """Pearson correlation of target and prediction
+
+    :param np.array target: ground truth array
+    :param np.array prediction: model prediction
+    :return float Pearson correlation
+    """
 
     cur_corr = pearsonr(target.flatten(), prediction.flatten())[0]
     return cur_corr
 
 
 def ssim_metric(target, prediction, mask=None):
-    """SSIM of target and prediction"""
+    """SSIM of target and prediction
+
+    :param np.array target: ground truth array
+    :param np.array prediction: model prediction
+    :return float/list ssim and ssim_masked
+    """
 
     if mask is None:
         cur_ssim = ssim(target, prediction,
@@ -82,6 +116,8 @@ class MetricsEstimator:
 
         :param list metrics_list: list of strings with name of metrics
         :param bool masked_metrics: get the metrics for the masked region
+        :param int len_data_split: number of positions / FOV in the test /
+         split set
         """
 
         available_metrics = {'ssim', 'corr', 'r2', 'mse', 'mae'}
@@ -116,10 +152,10 @@ class MetricsEstimator:
                          mask=None):
         """Estimate metrics for the current input, target pair
 
-        :param np.array target:
-        :param np.array prediction:
-        :param str pred_fname:
-        :param np.array mask:
+        :param np.array target: ground truth
+        :param np.array prediction: model prediction
+        :param str pred_fname: filename used for saving model prediction
+        :param np.array mask: binary mask with foreground / background
         """
 
         assert isinstance(pred_fname, str), \
