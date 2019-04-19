@@ -105,7 +105,6 @@ class ImagePredictor:
             metrics_est_inst = MetricsEstimator(
                 metrics_list=metrics_list,
                 masked_metrics=True,
-                len_data_split=len(dataset_inst)
             )
         self.mask_param_dict = mask_param_dict
         self.metrics_est_inst = metrics_est_inst
@@ -472,13 +471,15 @@ class ImagePredictor:
                     mask = center_crop_to_shape(mask, self.crop_shape)
                 if self.tile_option == 'infer_on_center':
                     mask = center_crop_to_shape(mask, inf_shape)
-                self.metrics_est_inst.estimate_metrics(cur_target,
-                                                       pred_image,
-                                                       pred_fname,
-                                                       mask=mask)
+                self.metrics_est_inst.estimate_xyz_metrics(
+                    target=cur_target,
+                    prediction=pred_image,
+                    pred_name=pred_fname,
+                    mask=mask,
+                )
                 del cur_input, cur_target, pred_image
         if self.metrics_est_inst is not None:
-            df_metrics = self.metrics_est_inst.get_metrics_df()
+            df_metrics = self.metrics_est_inst.get_metrics_xyz()
             df_metrics.to_csv(
                 os.path.join(self.config['trainer']['model_dir'],
                              'test_metrics.csv'),
