@@ -111,55 +111,64 @@ def ssim_metric(target, prediction, mask=None):
 class MetricsEstimator:
     """Estimate metrics for evaluating a trained model"""
 
-    def __init__(self, metrics_list, masked_metrics, len_data_split):
+    def __init__(self,
+                 metrics_list,
+                 masked_metrics):
         """Init
 
         :param list metrics_list: list of strings with name of metrics
         :param bool masked_metrics: get the metrics for the masked region
-        :param int len_data_split: number of positions / FOV in the test /
-         split set
         """
 
         available_metrics = {'ssim', 'corr', 'r2', 'mse', 'mae'}
-        assert available_metrics.issubset(metrics_list), \
+        assert set(metrics_list).issubset(available_metrics), \
             'only ssim, r2, correlation, mse and mae are currently supported'
         self.metrics_list = metrics_list
         self.pd_col_names = metrics_list.copy()
-
         self.masked_metrics = masked_metrics
-        if masked_metrics:
+        self.metrics_xyz = None
+        self.metrics_xy = None
+        self.metrics_xz = None
+        self.metrics_yz = None
+
+        if self.masked_metrics:
             self.pd_col_names.append('vol_frac')
             for metric in metrics_list:
                 cur_col_name = '{}_masked'.format(metric)
                 self.pd_col_names.append(cur_col_name)
 
-        self.pd_col_names.append('tar_fname')
-        df_metrics = pd.DataFrame(
-            index=range(len_data_split),
-            columns=self.pd_col_names
-        )
-        self.df_metrics = df_metrics
-        self.row_idx = 0
+        self.pd_col_names.append('pred_name')
+        self.fn_mapping = {
+            'mae_metric': mae_metric,
+            'mse_metric': mse_metric,
+            'r2_metric': r2_metric,
+            'corr_metric': corr_metric,
+            'ssim_metric': ssim_metric,
+        }
 
-    def get_metrics_df(self):
-        """Return self.df_metrics"""
+    def get_metrics_xyz(self):
+        """Return 3D metrics"""
+        return self.metrics_xyz
 
-        return self.df_metrics
+    def get_metrics_xy(self):
+        """Return xy metrics"""
+        return self.metrics_xy
 
-    def estimate_metrics(self, target,
-                         prediction,
-                         pred_fname,
-                         mask=None):
-        """Estimate metrics for the current input, target pair
+    def get_metrics_xz(self):
+        """Return xz metrics"""
+        return self.metrics_xz
 
-        :param np.array target: ground truth
-        :param np.array prediction: model prediction
-        :param str pred_fname: filename used for saving model prediction
-        :param np.array mask: binary mask with foreground / background
-        """
+    def get_metrics_yz(self):
+        """Return yz metrics"""
+        return self.metrics_yz
 
-        assert isinstance(pred_fname, str), \
-            'more than one pred_fname is passed. Only one target-pred pair ' \
+    @staticmethod
+    def assert_input(target,
+                     prediction,
+                     pred_name,
+                     mask=None):
+        assert isinstance(pred_name, str), \
+            'more than one pred_name is passed. Only one target-pred pair ' \
             'is handled per function call'
         assert target.shape == prediction.shape, \
             'The shape of target and prediction are not same: {}, {}'.format(
@@ -169,7 +178,6 @@ class MetricsEstimator:
             'The dtype of target and prediction are not same: {}, {}'.format(
                 target.dtype, prediction.dtype
             )
-
         if mask is not None:
             assert target.shape == mask.shape, \
                 'The shape of target and mask are not same: {}, {}'.format(
@@ -177,31 +185,163 @@ class MetricsEstimator:
                 )
             assert mask.dtype == 'bool', 'mask is not boolean'
 
-        fn_mapping = {'mae_metric': mae_metric,
-                      'mse_metric': mse_metric,
-                      'r2_metric': r2_metric,
-                      'corr_metric': corr_metric,
-                      'ssim_metric': ssim_metric}
+    def compute_metrics_row(self,
+                            target,
+                            prediction,
+                            pred_name,
+                            mask):
+        """
+        Compute one row in metrics dataframe.
 
-        self.df_metrics.loc[self.row_idx]['tar_fname'] = pred_fname
-        for cur_metric in self.metrics_list:
-            metric_fn_name = '{}_metric'.format(cur_metric)
-            metric_fn = fn_mapping[metric_fn_name]
+        :param np.array target: ground truth
+        :param np.array prediction: model prediction
+        :param str pred_name: filename used for saving model prediction
+        :param np.array mask: binary mask with foreground / background
+        :return: dict metrics_row: a row for a metrics dataframe
+        """
+        metrics_row = dict.fromkeys(self.pd_col_names)
+        metrics_row['pred_name'] = pred_name
+        for metric_name in self.metrics_list:
+            metric_fn_name = '{}_metric'.format(metric_name)
+            metric_fn = self.fn_mapping[metric_fn_name]
             if self.masked_metrics:
-                cur_metric_list = metric_fn(target=target,
-                                            prediction=prediction,
-                                            mask=mask)
+                cur_metric_list = metric_fn(
+                    target=target,
+                    prediction=prediction,
+                    mask=mask,
+                )
                 vol_frac = np.mean(mask)
+                metrics_row['vol_frac'] = vol_frac
+                metrics_row[metric_name] = cur_metric_list[0]
+                metric_name = '{}_masked'.format(metric_name)
+                metrics_row[metric_name] = cur_metric_list[1]
             else:
-                cur_metric = metric_fn(target=target,
-                                       prediction=prediction)
-            if self.masked_metrics:
-                self.df_metrics.loc[self.row_idx]['vol_frac'] = vol_frac
-                self.df_metrics.loc[self.row_idx][cur_metric] = \
-                    cur_metric_list[0]
-                metric_name = '{}_masked'.format(cur_metric)
-                self.df_metrics.loc[self.row_idx][metric_name] = \
-                    cur_metric_list[1]
-            else:
-                self.df_metrics.loc[self.row_idx][cur_metric] = cur_metric
-        self.row_idx += 1
+                cur_metric = metric_fn(
+                    target=target,
+                    prediction=prediction,
+                )
+                metrics_row[metric_name] = cur_metric
+        return metrics_row
+
+    def estimate_xyz_metrics(self,
+                             target,
+                             prediction,
+                             pred_name,
+                             mask=None):
+        """
+        Estimate metrics for the current input, target pair
+
+        :param np.array target: ground truth
+        :param np.array prediction: model prediction
+        :param str pred_name: filename used for saving model prediction
+        :param np.array mask: binary mask with foreground / background
+        """
+        self.assert_input(target, prediction, pred_name, mask)
+        self.metrics_xyz = pd.DataFrame(columns=self.pd_col_names)
+        metrics_row = self.compute_metrics_row(
+            target=target,
+            prediction=prediction,
+            pred_name=pred_name,
+            mask=mask,
+        )
+        # Append to existing dataframe
+        self.metrics_xyz = self.metrics_xyz.append(
+            metrics_row,
+            ignore_index=True,
+        )
+
+    def estimate_xy_metrics(self,
+                            target,
+                            prediction,
+                            pred_name,
+                            mask=None):
+        """
+        Estimate metrics for the current input, target pair
+        along each xy slice (in plane)
+
+        :param np.array target: ground truth
+        :param np.array prediction: model prediction
+        :param str pred_name: filename used for saving model prediction
+        :param np.array mask: binary mask with foreground / background
+        """
+        self.assert_input(target, prediction, pred_name, mask)
+        assert len(target.shape) == 3, 'Dataset is assumed to be 3D'
+        self.metrics_xy = pd.DataFrame(columns=self.pd_col_names)
+        # Loop through slices
+        for slice_idx in range(target.shape[2]):
+            slice_name = "{}_xy{}".format(pred_name, slice_idx)
+            metrics_row = self.compute_metrics_row(
+                target=target[..., slice_idx],
+                prediction=prediction[..., slice_idx],
+                pred_name=slice_name,
+                mask=mask,
+            )
+            # Append to existing dataframe
+            self.metrics_xy = self.metrics_xy.append(
+                metrics_row,
+                ignore_index=True,
+            )
+
+    def estimate_xz_metrics(self,
+                            target,
+                            prediction,
+                            pred_name,
+                            mask=None):
+        """
+        Estimate metrics for the current input, target pair
+        along each xz slice
+
+        :param np.array target: ground truth
+        :param np.array prediction: model prediction
+        :param str pred_name: filename used for saving model prediction
+        :param np.array mask: binary mask with foreground / background
+        """
+        self.assert_input(target, prediction, pred_name, mask)
+        assert len(target.shape) == 3, 'Dataset is assumed to be 3D'
+        self.metrics_xz = pd.DataFrame(columns=self.pd_col_names)
+        # Loop through slices
+        for slice_idx in range(target.shape[0]):
+            slice_name = "{}_xz{}".format(pred_name, slice_idx)
+            metrics_row = self.compute_metrics_row(
+                target=target[slice_idx, ...],
+                prediction=prediction[slice_idx, ...],
+                pred_name=slice_name,
+                mask=mask,
+            )
+            # Append to existing dataframe
+            self.metrics_xz = self.metrics_xz.append(
+                metrics_row,
+                ignore_index=True,
+            )
+
+    def estimate_yz_metrics(self,
+                            target,
+                            prediction,
+                            pred_name,
+                            mask=None):
+        """
+        Estimate metrics for the current input, target pair
+        along each yz slice
+
+        :param np.array target: ground truth
+        :param np.array prediction: model prediction
+        :param str pred_name: filename used for saving model prediction
+        :param np.array mask: binary mask with foreground / background
+        """
+        self.assert_input(target, prediction, pred_name, mask)
+        assert len(target.shape) == 3, 'Dataset is assumed to be 3D'
+        self.metrics_yz = pd.DataFrame(columns=self.pd_col_names)
+        # Loop through slices
+        for slice_idx in range(target.shape[1]):
+            slice_name = "{}_yz{}".format(pred_name, slice_idx)
+            metrics_row = self.compute_metrics_row(
+                target=target[:, slice_idx, :],
+                prediction=prediction[:, slice_idx, :],
+                pred_name=slice_name,
+                mask=mask,
+            )
+            # Append to existing dataframe
+            self.metrics_yz = self.metrics_yz.append(
+                metrics_row,
+                ignore_index=True,
+            )
