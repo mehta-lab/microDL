@@ -113,7 +113,7 @@ class MetricsEstimator:
 
     def __init__(self,
                  metrics_list,
-                 masked_metrics):
+                 masked_metrics=False):
         """Init
 
         :param list metrics_list: list of strings with name of metrics
