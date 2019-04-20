@@ -69,18 +69,6 @@ def parse_args():
         nargs='*',
         help='Evaluate metrics along these orientations (xy, xz, yz, xyz)'
     )
-    parser.add_argument(
-        '--start_z',
-        type=int,
-        default=None,
-        help="If none, start at first slice",
-    )
-    parser.add_argument(
-        '--end_z',
-        type=int,
-        default=None,
-        help="If none, end at last slice",
-    )
     return parser.parse_args()
 
 
@@ -111,12 +99,13 @@ def compute_metrics(args):
 
     # Find other indices to iterate over than split index name
     # E.g. if split is position, we also need to iterate over time and slice
+    test_meta = pd.read_csv(os.path.join(args.model_dir, 'test_metadata.csv'))
     metadata_ids = {split_idx_name: test_ids}
     iter_ids = ['slice_idx', 'pos_idx', 'time_idx']
 
     for id in iter_ids:
         if id != split_idx_name:
-            metadata_ids[id] = np.unique(frames_meta[id])
+            metadata_ids[id] = np.unique(test_meta[id])
 
     # Create image subdirectory to write predicted images
     pred_dir = os.path.join(args.model_dir, 'predictions')
@@ -132,7 +121,6 @@ def compute_metrics(args):
                 slice_ids=metadata_ids['slice_idx'],
                 depth=depth,
             )
-    print(metadata_ids['slice_idx'])
     # Get input channel(s)
     input_channels = config['dataset']['input_channels']
     pred_channel = input_channels[0]
@@ -175,9 +163,7 @@ def compute_metrics(args):
                 )
                 pred_fname = os.path.join(pred_dir, pred_fname)
                 pred_fnames.append(pred_fname)
-            print(pred_fnames)
-            print('----------------------')
-            print(target_fnames)
+
             target_stack = tile_utils.read_imstack(
                 input_fnames=tuple(target_fnames),
             )
@@ -188,8 +174,7 @@ def compute_metrics(args):
                 # Remove singular z dimension for 2D image
                 target_stack = np.squeeze(target_stack)
                 pred_stack = np.squeeze(pred_stack)
-            print(target_stack.shape, pred_stack.shape)
-
+            target_stack = target_stack.astype(np.float32)
             pred_name = "t{}_p{}".format(time_idx, pos_idx)
             if 'xy' in orientations_list:
                 metrics_inst.estimate_xy_metrics(
