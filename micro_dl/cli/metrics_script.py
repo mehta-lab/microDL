@@ -116,11 +116,7 @@ def compute_metrics(args):
     depth = 1
     if 'depth' in config['network']:
         depth = config['network']['depth']
-        if depth > 1:
-            metadata_ids['slice_idx'] = aux_utils.adjust_slice_margins(
-                slice_ids=metadata_ids['slice_idx'],
-                depth=depth,
-            )
+
     # Get input channel(s)
     input_channels = config['dataset']['input_channels']
     pred_channel = input_channels[0]
@@ -200,7 +196,6 @@ def compute_metrics(args):
                     prediction=pred_stack,
                     pred_name=pred_name,
                 )
-                temp_metrics = metrics_mapping[orientation]()
                 df_mapping[orientation] = df_mapping[orientation].append(
                     metrics_mapping[orientation](),
                     ignore_index=True,
