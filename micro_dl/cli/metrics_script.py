@@ -131,10 +131,25 @@ def compute_metrics(args):
     available_orientations = {'xy', 'xz', 'yz', 'xyz'}
     assert set(orientations_list).issubset(available_orientations), \
         "Orientations must be subset of {}".format(available_orientations)
-    metrics_xy = pd.DataFrame()
-    metrics_xz = pd.DataFrame()
-    metrics_yz = pd.DataFrame()
-    metrics_xyz = pd.DataFrame()
+
+    fn_mapping = {
+        'xy': metrics_inst.estimate_xy_metrics,
+        'xz': metrics_inst.estimate_xz_metrics,
+        'yz': metrics_inst.estimate_yz_metrics,
+        'xyz': metrics_inst.estimate_xyz_metrics,
+    }
+    metrics_mapping = {
+        'xy': metrics_inst.get_metrics_xy,
+        'xz': metrics_inst.get_metrics_xz(),
+        'yz': metrics_inst.get_metrics_yz(),
+        'xyz': metrics_inst.get_metrics_xyz(),
+    }
+    df_mapping = {
+        'xy': pd.DataFrame(),
+        'xz': pd.DataFrame(),
+        'yz': pd.DataFrame(),
+        'xyz': pd.DataFrame(),
+    }
 
     # Iterate over all indices for test data
     for time_idx in metadata_ids['time_idx']:
@@ -176,59 +191,23 @@ def compute_metrics(args):
                 pred_stack = np.squeeze(pred_stack)
             target_stack = target_stack.astype(np.float32)
             pred_name = "t{}_p{}".format(time_idx, pos_idx)
-            if 'xy' in orientations_list:
-                metrics_inst.estimate_xy_metrics(
-                    target=target_stack,
-                    prediction=pred_stack,
-                    pred_name = pred_name,
-                )
-                metrics_xy = metrics_xy.append(
-                    metrics_inst.get_metrics_xy(),
-                    ignore_index=True,
-                )
-            if 'xz' in orientations_list:
-                metrics_inst.estimate_xz_metrics(
-                    target=target_stack,
-                    prediction=pred_stack,
-                    pred_name = pred_name,
-                )
-                metrics_xz = metrics_xz.append(
-                    metrics_inst.get_metrics_xz(),
-                    ignore_index=True,
-                )
-            if 'yz' in orientations_list:
-                metrics_inst.estimate_yz_metrics(
+            for orientation in orientations_list:
+                metric_fn = fn_mapping[orientation]
+                metric_fn(
                     target=target_stack,
                     prediction=pred_stack,
                     pred_name=pred_name,
                 )
-                metrics_yz = metrics_yz.append(
-                    metrics_inst.get_metrics_yz(),
+                df_mapping[orientation] = df_mapping[orientation].append(
+                    metrics_mapping[orientation],
                     ignore_index=True,
                 )
-            if 'xyz' in orientations_list:
-                metrics_inst.estimate_xyz_metrics(
-                    target=target_stack,
-                    prediction=pred_stack,
-                    pred_name = pred_name,
-                )
-                metrics_xyz = metrics_xyz.append(
-                    metrics_inst.get_metrics_xyz(),
-                    ignore_index=True,
-                )
-
-    if not metrics_xy.empty:
-        metrics_name = os.path.join(pred_dir, 'metrics_xy.csv')
-        metrics_xy.to_csv(metrics_name, sep=",")
-    if not metrics_xz.empty:
-        metrics_name = os.path.join(pred_dir, 'metrics_xz.csv')
-        metrics_xz.to_csv(metrics_name, sep=",")
-    if not metrics_yz.empty:
-        metrics_name = os.path.join(pred_dir, 'metrics_yz.csv')
-        metrics_yz.to_csv(metrics_name, sep=",")
-    if not metrics_xyz.empty:
-        metrics_name = os.path.join(pred_dir, 'metrics_xyz.csv')
-        metrics_xyz.to_csv(metrics_name, sep=",")
+    # Save non-empty dataframes
+    for orientation in orientations_list:
+        metrics_df = df_mapping[orientation]
+        df_name = 'metrics_{}.csv'.format(orientation)
+        metrics_name = os.path.join(pred_dir, df_name)
+        metrics_df.to_csv(metrics_name, sep=",")
 
 
 if __name__ == '__main__':
