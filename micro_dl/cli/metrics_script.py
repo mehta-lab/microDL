@@ -140,9 +140,9 @@ def compute_metrics(args):
     }
     metrics_mapping = {
         'xy': metrics_inst.get_metrics_xy,
-        'xz': metrics_inst.get_metrics_xz(),
-        'yz': metrics_inst.get_metrics_yz(),
-        'xyz': metrics_inst.get_metrics_xyz(),
+        'xz': metrics_inst.get_metrics_xz,
+        'yz': metrics_inst.get_metrics_yz,
+        'xyz': metrics_inst.get_metrics_xyz,
     }
     df_mapping = {
         'xy': pd.DataFrame(),
@@ -184,12 +184,14 @@ def compute_metrics(args):
             )
             pred_stack = tile_utils.read_imstack(
                 input_fnames=tuple(pred_fnames),
+                normalize_im=False,
             )
             if depth == 1:
                 # Remove singular z dimension for 2D image
                 target_stack = np.squeeze(target_stack)
                 pred_stack = np.squeeze(pred_stack)
-            target_stack = target_stack.astype(np.float32)
+            if target_stack.dtype == np.float64:
+                target_stack = target_stack.astype(np.float32)
             pred_name = "t{}_p{}".format(time_idx, pos_idx)
             for orientation in orientations_list:
                 metric_fn = fn_mapping[orientation]
@@ -198,10 +200,12 @@ def compute_metrics(args):
                     prediction=pred_stack,
                     pred_name=pred_name,
                 )
+                temp_metrics = metrics_mapping[orientation]()
                 df_mapping[orientation] = df_mapping[orientation].append(
-                    metrics_mapping[orientation],
+                    metrics_mapping[orientation](),
                     ignore_index=True,
                 )
+                
     # Save non-empty dataframes
     for orientation in orientations_list:
         metrics_df = df_mapping[orientation]
