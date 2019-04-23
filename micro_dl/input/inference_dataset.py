@@ -3,6 +3,7 @@
 import keras
 import numpy as np
 import os
+import pandas as pd
 
 from micro_dl.utils.image_utils import crop2base
 from micro_dl.utils.tile_utils import preprocess_imstack
@@ -68,8 +69,14 @@ class InferenceDataset(keras.utils.Sequence):
 
         self.input_channels = dataset_config['input_channels']
         self.target_channels = dataset_config['target_channels']
-        df_idx = (df_meta['channel_idx'] == dataset_config['target_channels'][0])
-        self.df_iteration_meta = df_meta[df_idx]
+        df_idx = (df_meta['channel_idx'] ==
+                  dataset_config['target_channels'][0])
+        df_iteration_meta = df_meta[df_idx]
+        # check if sorted values look right
+        df_iteration_meta = df_iteration_meta.sort_values(
+            ['pos_idx',  'slice_idx'], ascending=[True, True]
+        )
+        self.df_iteration_meta = df_iteration_meta
         self.num_samples = len(self.df_iteration_meta)
 
     @staticmethod
@@ -164,7 +171,7 @@ class InferenceDataset(keras.utils.Sequence):
                                     self.input_channels,
                                     normalize=True)
         # the raw input images have to be normalized (z-score typically)
-        normalize = True if self.model_task is 'regression' else False
+        normalize = True if self.model_task == 'regression' else False
         cur_target = self._get_image(cur_row, self.target_channels, normalize)
         input_stack.append(cur_input)
         target_stack.append(cur_target)
