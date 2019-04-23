@@ -202,7 +202,6 @@ def run_prediction(model_dir,
     depth = 1
     if 'depth' in network_config:
         depth = network_config['depth']
-
     # Get input channel
     # TODO: Add multi channel support once such models are tested
     input_channel = dataset_config['input_channels']
