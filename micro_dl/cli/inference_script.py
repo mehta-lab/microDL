@@ -61,6 +61,7 @@ def run_prediction(args, gpu_ids, gpu_mem_frac):
         gpu_id=gpu_ids,
         gpu_mem_frac=gpu_mem_frac,
         metrics_list=inf_config['metrics'],
+        metrics_orientations=inf_config['metrics_orientations'],
         mask_param_dict=inf_config['mask_params_dict'],
         vol_inf_dict=inf_config['vol_inf_dict'])
     image_pred_inst.run_prediction()

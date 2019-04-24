@@ -130,6 +130,10 @@ class ImagePredictor:
         if metrics_orientations is not None:
             assert set(metrics_orientations).issubset(pos_orientations), \
                 'orientation not in [xy, xyz, xz, yz]'
+            self.df_xy = pd.DataFrame()
+            self.df_xyz = pd.DataFrame()
+            self.df_xz = pd.DataFrame()
+            self.df_yz = pd.DataFrame()
         self.metrics_orientations = metrics_orientations
 
     def _create_model(self, model_fname):
@@ -388,19 +392,52 @@ class ImagePredictor:
 
         kw_args = {'target': cur_target,
                    'prediction': cur_prediction,
-                   'pred_fname': cur_pred_fname}
+                   'pred_name': cur_pred_fname}
 
         if cur_mask is not None:
-            kw_args['cur_mask'] = cur_mask
+            kw_args['mask'] = cur_mask
 
         if 'xy' in self.metrics_orientations:
-            self.metrics_est_inst.estimate_xy_metrics(kw_args)
+            self.metrics_est_inst.estimate_xy_metrics(**kw_args)
+            self.df_xy = self.df_xy.append(
+                self.metrics_est_inst.get_metrics_xy()
+            )
         if 'xyz' in self.metrics_orientations:
-            self.metrics_est_inst.estimate_xyz_metrics(kw_args)
+            self.metrics_est_inst.estimate_xyz_metrics(**kw_args)
+            self.df_xyz = self.df_xyz.append(
+                self.metrics_est_inst.get_metrics_xyz()
+            )
         if 'xz' in self.metrics_orientations:
-            self.metrics_est_inst.estimate_xz_metrics(kw_args)
+            self.metrics_est_inst.estimate_xz_metrics(**kw_args)
+            self.df_xz = self.df_xz.append(
+                self.metrics_est_inst.get_metrics_xz()
+            )
         if 'yz' in self.metrics_orientations:
-            self.metrics_est_inst.estimate_yz_metrics(kw_args)
+            self.metrics_est_inst.estimate_yz_metrics(**kw_args)
+            self.df_yz = self.df_yz.append(
+                self.metrics_est_inst.get_metrics_yz()
+            )
+
+    def get_mask(self, cur_row, transpose=False):
+        """Get mask"""
+
+        mask_fname = aux_utils.get_im_name(
+            time_idx=cur_row['time_idx'],
+            channel_idx=self.mask_param_dict['mask_channel'],
+            slice_idx=cur_row['slice_idx'],
+            pos_idx=cur_row['pos_idx']
+        )
+        mask_fname = os.path.join(
+            self.mask_param_dict['mask_dir'],
+            mask_fname)
+        cur_mask = np.load(mask_fname)
+        # moves z from last axis to first axis
+        if transpose:
+            cur_mask = np.transpose(cur_mask, [2, 0, 1])
+        if self.crop_shape is not None:
+            cur_mask = center_crop_to_shape(cur_mask,
+                                            self.crop_shape)
+        return cur_mask
 
     def run_prediction(self):
         """Run prediction for entire 2D image or a 3D stack"""
@@ -408,10 +445,10 @@ class ImagePredictor:
         crop_indices = None
         df_iteration_meta = self.dataset_inst.get_df_iteration_meta()
         pos_idx = df_iteration_meta['pos_idx'].unique()
-        for p_idx in pos_idx:
-            print('{}/{}'.format(p_idx, len(pos_idx)))
+        for idx, p_idx in enumerate(pos_idx):
+            print(p_idx, ',{}/{}'.format(idx, len(pos_idx)))
             p_row_idx = df_iteration_meta.index[
-                            df_iteration_meta['pos_idx'] == p_idx]
+                            df_iteration_meta['pos_idx'] == p_idx].values
             if self.tile_option is None:
                 # 2D, 2.5D
                 max_sl = df_iteration_meta[p_row_idx]['slice_idx'].max()
@@ -446,16 +483,7 @@ class ImagePredictor:
                     cur_sl = df_iteration_meta[row_idx]['slice_idx']
                     # get mask
                     if self.mask_param_dict is not None:
-                        mask_fname = aux_utils.get_im_name(
-                            time_idx=cur_row['time_idx'],
-                            channel_idx=self.mask_param_dict['mask_channel'],
-                            slice_idx=cur_row['slice_idx'],
-                            pos_idx=cur_row['pos_idx']
-                        )
-                        mask_fname = os.path.join(
-                            self.mask_param_dict['mask_dir'],
-                            mask_fname)
-                        cur_mask = np.load(mask_fname)
+                        cur_mask = self.get_mask(cur_row)
                         mask_vol[:, :, cur_sl] = cur_mask
 
                     # add to vol
@@ -470,7 +498,7 @@ class ImagePredictor:
                     'more than one matching row found for position ' \
                     '{}'.format(p_idx)
                 cur_input, cur_target = \
-                    self.dataset_inst.__getitem__(p_row_idx)
+                    self.dataset_inst.__getitem__(p_row_idx[0])
                 if self.crop_shape is not None:
                     cur_input = center_crop_to_shape(cur_input,
                                                      self.crop_shape)
@@ -513,7 +541,7 @@ class ImagePredictor:
                 pred_image = np.squeeze(pred_image)
                 target_image = np.squeeze(cur_target)
                 # save prediction
-                cur_row = self.df_iteration_meta.iloc[p_row_idx]
+                cur_row = self.df_iteration_meta.iloc[p_row_idx[0]]
                 self.save_pred_image(predicted_image=pred_image,
                                      time_idx=cur_row['time_idx'],
                                      tar_ch_idx=cur_row['channel_idx'],
@@ -521,17 +549,11 @@ class ImagePredictor:
                                      slice_idx=cur_row['slice_idx'])
                 # get mask
                 if self.mask_param_dict is not None:
-                    mask_fname = aux_utils.get_im_name(
-                        time_idx=cur_row['time_idx'],
-                        channel_idx=self.mask_param_dict['mask_channel'],
-                        slice_idx=cur_row['slice_idx'],
-                        pos_idx=cur_row['pos_idx']
-                    )
-                    mask_fname = os.path.join(
-                        self.mask_param_dict['mask_dir'],
-                        mask_fname)
-                    cur_mask = np.load(mask_fname)
-                    mask_vol = np.transpose(cur_mask, [2, 0, 1])
+                    mask_vol = self.get_mask(cur_row, transpose=True)
+                # 3D uses zxy, estimate metrics expects xyz
+                pred_image = np.transpose(pred_image, [1, 2, 0])
+                target_image = np.transpose(target_image, [1, 2, 0])
+                mask_vol = np.transpose(mask_vol, [1, 2, 0])
 
             pred_fname = 'im_t{}_c{}_p{}'.format(cur_row['time_idx'],
                                                  cur_row['channel_idx'],
@@ -546,10 +568,10 @@ class ImagePredictor:
             del pred_image, target_image
             if self.metrics_est_inst is not None:
                 metrics_mapping = {
-                    'xy': self.metrics_est_inst.get_metrics_xy,
-                    'xz': self.metrics_est_inst.get_metrics_xz,
-                    'yz': self.metrics_est_inst.get_metrics_yz,
-                    'xyz': self.metrics_est_inst.get_metrics_xyz,
+                    'xy': self.df_xy,
+                    'xz': self.df_xz,
+                    'yz': self.df_yz,
+                    'xyz': self.df_xyz,
                 }
                 for orientation in self.metrics_orientations:
                     metrics_df = metrics_mapping[orientation]
