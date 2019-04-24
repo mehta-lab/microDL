@@ -81,7 +81,7 @@ class TestImageTilerNonUniform(unittest.TestCase):
                           'tile_size': [5, 5],
                           'step_size': [4, 4],
                           'depths': 3,
-                          'image_format': 'zxy',
+                          'image_format': 'zyx',
                           'tile_3d': False}
         self.tile_inst = tile_images.ImageTilerNonUniform(
             input_dir=self.temp_path,

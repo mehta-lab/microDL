@@ -13,7 +13,7 @@ class DataSetWithMask(BaseDataSet):
                  mask_fnames,
                  dataset_config,
                  batch_size,
-                 image_format='zxy'):
+                 image_format='zyx'):
         """Init
 
         https://stackoverflow.com/questions/44747288/keras-sample-weight-array-error
@@ -28,7 +28,7 @@ class DataSetWithMask(BaseDataSet):
          mask filenames
         :param dict dataset_config: Dataset part of the main config file
         :param int batch_size: num of datasets in each batch
-        :param str image_format: Tile shape order: 'xyz' or 'zxy'
+        :param str image_format: Tile shape order: 'xyz' or 'zyx'
         """
 
         super().__init__(tile_dir,
@@ -49,7 +49,7 @@ class DataSetWithMask(BaseDataSet):
         :param int index: batch index
         :return: np.ndarrays input_image and target_image of shape
          [batch_size, num_channels, z, y, x] and mask_image of shape
-         [batch_size, z, x, y] for shape order zxy,
+         [batch_size, z, x, y] for shape order zyx,
          otherwise [..., x, y, z]
         """
 

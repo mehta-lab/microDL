@@ -83,7 +83,7 @@ def create_datasets(df_meta,
     :param str tile_dir: directory containing training image tiles
     :param dict dataset_config: dict with dataset related params
     :param dict trainer_config: dict with params related to training
-    :param str image_format: Tile shape order: 'xyz' or 'zxy'
+    :param str image_format: Tile shape order: 'xyz' or 'zyx'
     :param bool masked_loss: Whether or not to use masks
     :return: Dict containing
      :BaseDataSet df_train: training dataset
@@ -180,7 +180,7 @@ def get_image_dir_format(dataset_config):
 
     # tile dir pass directly as data_dir
     tile_dir = dataset_config['data_dir']
-    image_format = 'zxy'
+    image_format = 'zyx'
 
     # If the parent dir with tile dir, mask dir is passed as data_dir,
     # it should contain a json with directory names

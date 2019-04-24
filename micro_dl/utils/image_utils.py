@@ -77,7 +77,7 @@ def rescale_nd_image(input_volume, scale_factor):
 def crop2base(im, base=2):
     """
     Crop image to nearest smaller factor of the base (usually 2), assumes xyz
-    format, will work for zxy too but the x_shape, y_shape and z_shape will be
+    format, will work for zyx too but the x_shape, y_shape and z_shape will be
     z_shape, y_shape and x_shape respectively
 
     :param nd.array im: Image

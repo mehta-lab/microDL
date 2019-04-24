@@ -65,7 +65,7 @@ class TestPreprocessScript(unittest.TestCase):
                      'step_size': [10, 10],
                      'depths': [1, 1, 1],
                      'mask_depth': 1,
-                     'image_format': 'zxy'},
+                     'image_format': 'zyx'},
         }
         self.base_config = {
             'input_dir': self.temp_path,

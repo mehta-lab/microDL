@@ -270,11 +270,12 @@ class MetricsEstimator:
         # Loop through slices
         for slice_idx in range(target.shape[2]):
             slice_name = "{}_xy{}".format(pred_name, slice_idx)
+            cur_mask = mask[..., slice_idx] if mask is not None else None
             metrics_row = self.compute_metrics_row(
                 target=target[..., slice_idx],
                 prediction=prediction[..., slice_idx],
                 pred_name=slice_name,
-                mask=mask[..., slice_idx],
+                mask=cur_mask,
             )
             # Append to existing dataframe
             self.metrics_xy = self.metrics_xy.append(
@@ -302,11 +303,12 @@ class MetricsEstimator:
         # Loop through slices
         for slice_idx in range(target.shape[0]):
             slice_name = "{}_xz{}".format(pred_name, slice_idx)
+            cur_mask = mask[slice_idx, ...] if mask is not None else None
             metrics_row = self.compute_metrics_row(
                 target=target[slice_idx, ...],
                 prediction=prediction[slice_idx, ...],
                 pred_name=slice_name,
-                mask=mask[slice_idx, ...],
+                mask=cur_mask,
             )
             # Append to existing dataframe
             self.metrics_xz = self.metrics_xz.append(
@@ -334,11 +336,12 @@ class MetricsEstimator:
         # Loop through slices
         for slice_idx in range(target.shape[1]):
             slice_name = "{}_yz{}".format(pred_name, slice_idx)
+            cur_mask = mask[:, slice_idx, :] if mask is not None else None
             metrics_row = self.compute_metrics_row(
                 target=target[:, slice_idx, :],
                 prediction=prediction[:, slice_idx, :],
                 pred_name=slice_name,
-                mask=mask[:, slice_idx, :],
+                mask=cur_mask,
             )
             # Append to existing dataframe
             self.metrics_yz = self.metrics_yz.append(
