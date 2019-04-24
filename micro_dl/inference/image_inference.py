@@ -199,7 +199,7 @@ class ImagePredictor:
         """
 
         # assign zdim if not Unet2D
-        if image_param_dict['image_format'] == 'zxy':
+        if image_param_dict['image_format'] == 'zyx':
             z_dim = 2 if self.data_format == 'channels_first' else 1
         elif image_param_dict['image_format'] == 'xyz':
             z_dim = 4 if self.data_format == 'channels_first' else 3
@@ -264,10 +264,10 @@ class ImagePredictor:
         elif self.image_format == 'xyz' and \
                 self.data_format == 'channels_last':
             cur_block = input_image[:, :, :, start_z_idx: end_z_idx, :]
-        elif self.image_format == 'zxy' and \
+        elif self.image_format == 'zyx' and \
                 self.data_format == 'channels_first':
             cur_block = input_image[:, :, start_z_idx: end_z_idx, :, :]
-        elif self.image_format == 'zxy' and \
+        elif self.image_format == 'zyx' and \
                 self.data_format == 'channels_last':
             cur_block = input_image[:, start_z_idx: end_z_idx, :, :, :]
         return cur_block
@@ -550,7 +550,7 @@ class ImagePredictor:
                 # get mask
                 if self.mask_param_dict is not None:
                     mask_vol = self.get_mask(cur_row, transpose=True)
-                # 3D uses zxy, estimate metrics expects xyz
+                # 3D uses zyx, estimate metrics expects xyz
                 pred_image = np.transpose(pred_image, [1, 2, 0])
                 target_image = np.transpose(target_image, [1, 2, 0])
                 mask_vol = np.transpose(mask_vol, [1, 2, 0])

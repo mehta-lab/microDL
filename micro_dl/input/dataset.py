@@ -20,13 +20,13 @@ class BaseDataSet(keras.utils.Sequence):
                  target_fnames,
                  dataset_config,
                  batch_size,
-                 image_format='zxy'):
+                 image_format='zyx'):
         """Init
 
         The images could be normalized at the image level during tiling
         (default, normalize=False). If images were not normalized during tiling
         set the normalize flag to normalize at the tile-level
-        Works for tile shapes with z first (zxy) or last (xyz).
+        Works for tile shapes with z first (zyx) or last (xyz).
         Tiles will be loaded as is, and shape order will be determined
         from the preprocessing config file which is saved in your training
         data dir as preprocessing_info.json.
@@ -39,15 +39,15 @@ class BaseDataSet(keras.utils.Sequence):
          filenames for one target
         :param dict dataset_config: Dataset part of the main config file
         :param int batch_size: num of datasets in each batch
-        :param str image_format: Tile shape order: 'xyz' or 'zxy'
+        :param str image_format: Tile shape order: 'xyz' or 'zyx'
         """
         self.tile_dir = tile_dir
         self.input_fnames = input_fnames
         self.target_fnames = target_fnames
         self.num_samples = len(self.input_fnames)
         self.batch_size = batch_size
-        assert image_format in {'xyz', 'zxy'},\
-            "Image format should be xyz or zxy, not {}".format(image_format)
+        assert image_format in {'xyz', 'zyx'},\
+            "Image format should be xyz or zyx, not {}".format(image_format)
         self.image_format = image_format
 
         # Check if model task (regression or segmentation) is specified
@@ -138,7 +138,7 @@ class BaseDataSet(keras.utils.Sequence):
         """
         # We need to flip over different dimensions depending on data format
         add_dim = 0
-        if self.image_format == 'zxy' and not self.squeeze:
+        if self.image_format == 'zyx' and not self.squeeze:
             add_dim = 1
 
         if aug_idx == 0:

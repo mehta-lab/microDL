@@ -17,7 +17,7 @@ class InferenceDataset(keras.utils.Sequence):
                  dataset_config,
                  network_config,
                  df_meta,
-                 image_format='zxy',
+                 image_format='zyx',
                  flat_field_dir=None):
         """Init
 
@@ -26,7 +26,7 @@ class InferenceDataset(keras.utils.Sequence):
         :param dict network_config: dict with network related params
         :param pd.Dataframe df_meta: dataframe with time, channel, pos and
          slice indices
-        :param str image_format: xyz or zxy format
+        :param str image_format: xyz or zyx format
         :param str flat_field_dir: dir with flat field images
         """
 
@@ -36,8 +36,8 @@ class InferenceDataset(keras.utils.Sequence):
         self.flat_field_dir = flat_field_dir
 
         self.image_dir = image_dir
-        assert image_format in {'xyz', 'zxy'}, \
-            "Image format should be xyz or zxy, not {}".format(image_format)
+        assert image_format in {'xyz', 'zyx'}, \
+            "Image format should be xyz or zyx, not {}".format(image_format)
         self.image_format = image_format
 
         # Check if model task (regression or segmentation) is specified
@@ -148,7 +148,7 @@ class InferenceDataset(keras.utils.Sequence):
             # Crop image to nearest factor of two in xy
             cur_image = crop2base(cur_image)  # crop_z=self.im_3d)
 
-            if self.image_format == 'zxy':
+            if self.image_format == 'zyx':
                 cur_image = np.transpose(cur_image, [2, 0, 1])
             if self.squeeze:
                 cur_image = np.squeeze(cur_image)

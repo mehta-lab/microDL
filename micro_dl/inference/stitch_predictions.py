@@ -10,14 +10,14 @@ class ImageStitcher:
 
     def __init__(self, tile_option,
                  overlap_dict,
-                 image_format='zxy',
+                 image_format='zyx',
                  data_format='channels_first'):
         """Init
 
         :param str tile_option: 'tile_z' or 'tile_xyz'
         :param dict overlap_dict: with keys overlap_shape, overlap_operation.
          overlap_shape is an int for tile_z and list of len 3 for tile_xyz.
-        :param str image_format: xyz or zxy
+        :param str image_format: xyz or zyx
         :param str data_format: channels_first or channels_last
         """
 
@@ -28,7 +28,7 @@ class ImageStitcher:
         assert ('overlap_operation' in overlap_dict and
                 overlap_dict['overlap_operation'] in allowed_overlap_opn), \
             'overlap_operation not provided or not in [mean, any]'
-        assert image_format in ['zxy', 'xyz'], 'image_format not in [zxy, xyz]'
+        assert image_format in ['zyx', 'xyz'], 'image_format not in [zyx, xyz]'
 
         self.tile_option = tile_option
         self.overlap_dict = overlap_dict
@@ -38,18 +38,19 @@ class ImageStitcher:
             else [1, 2, 3]
         self.img_dim = img_dim
         if data_format == 'channels_first':
-            x_dim = 3 if image_format == 'zxy' else 2
-            z_dim = 2 if image_format == 'zxy' else 4
+            x_dim = 4 if image_format == 'zyx' else 2
+            z_dim = 2 if image_format == 'zyx' else 4
+            y_dim = 3
         elif data_format == 'channels_last':
-            x_dim = 2 if image_format == 'zxy' else 1
-            z_dim = 1 if image_format == 'zxy' else 3
-        y_dim = x_dim + 1
+            x_dim = 3 if image_format == 'zyx' else 1
+            z_dim = 1 if image_format == 'zyx' else 3
+            y_dim = 2
 
         self.x_dim = x_dim
         self.y_dim = y_dim
         self.z_dim = z_dim
 
-        z_dim_3d = 0 if image_format == 'zxy' else 2
+        z_dim_3d = 0 if image_format == 'zyx' else 2
         self.z_dim_3d = z_dim_3d
         self.image_format = image_format
 
@@ -171,14 +172,14 @@ class ImageStitcher:
             idx_in_block[idx_5D] = np.s_[overlap_shape[idx_3D]:]
         pred_image[idx_in_img] = pred_block[idx_in_block]
 
-        if self.image_format == 'zxy':
-            overlap_dim = [self.z_dim, self.x_dim, self.y_dim]
+        if self.image_format == 'zyx':
+            overlap_dim = [self.z_dim, self.y_dim, self.x_dim]
         else:  # 'xyz'
             overlap_dim = [self.x_dim, self.y_dim, self.z_dim]
         idx_in_block, idx_in_img = _init_block_img_idx(task='assign')
 
         for idx_3d, idx_5d in enumerate(overlap_dim):  # dim_idx, cur_dim
-            # 0 - zdim (front), 1 - xdim (top), 2 - ydim (left) if zxy
+            # 0 - zdim (front), 1 - ydim (top), 2 - xdim (left) if zyx
             forward_wts = np.linspace(0, 1.0, overlap_shape[idx_3d] + 2)[1:-1]
             reverse_wts = forward_wts[::-1]
             if crop_index[2 * idx_3d] > 0:

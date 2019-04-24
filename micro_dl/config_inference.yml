@@ -2,7 +2,7 @@ train_config: '/data/models/config_train.yml'
 model_fname: '/data/models/kidney_3d/Model_2019.hdf5'
 image_dir: '/data/kidney_tiles/resized_images'
 image_params_dict:
-    image_format: 'zxy'
+    image_format: 'zyx'
     im_ext: '.npy'
     crop_shape: [96, 2048, 2048]
 metrics: ['r2', 'corr', 'ssim']
