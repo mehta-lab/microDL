@@ -76,6 +76,7 @@ class InferenceDataset(keras.utils.Sequence):
         df_iteration_meta = df_iteration_meta.sort_values(
             ['pos_idx',  'slice_idx'], ascending=[True, True]
         )
+        df_iteration_meta = df_iteration_meta.reset_index(drop=True)
         self.df_iteration_meta = df_iteration_meta
         self.num_samples = len(self.df_iteration_meta)
 

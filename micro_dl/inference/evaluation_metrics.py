@@ -274,7 +274,7 @@ class MetricsEstimator:
                 target=target[..., slice_idx],
                 prediction=prediction[..., slice_idx],
                 pred_name=slice_name,
-                mask=mask,
+                mask=mask[..., slice_idx],
             )
             # Append to existing dataframe
             self.metrics_xy = self.metrics_xy.append(
@@ -306,7 +306,7 @@ class MetricsEstimator:
                 target=target[slice_idx, ...],
                 prediction=prediction[slice_idx, ...],
                 pred_name=slice_name,
-                mask=mask,
+                mask=mask[slice_idx, ...],
             )
             # Append to existing dataframe
             self.metrics_xz = self.metrics_xz.append(
@@ -338,7 +338,7 @@ class MetricsEstimator:
                 target=target[:, slice_idx, :],
                 prediction=prediction[:, slice_idx, :],
                 pred_name=slice_name,
-                mask=mask,
+                mask=mask[:, slice_idx, :],
             )
             # Append to existing dataframe
             self.metrics_yz = self.metrics_yz.append(
