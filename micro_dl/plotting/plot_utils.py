@@ -219,9 +219,19 @@ def save_mask_overlay(input_image, mask, op_fname, alpha=0.7):
     im_rgb = input_image / input_image.max() * 255
     im_rgb = im_rgb.astype(np.uint8)
     im_rgb = cv2.cvtColor(im_rgb, cv2.COLOR_GRAY2RGB)
-    _, contours, _ = cv2.findContours(mask.astype(np.uint8),
-                                      cv2.RETR_TREE,
-                                      cv2.CHAIN_APPROX_SIMPLE)
+    try:
+        _, contours, _ = cv2.findContours(
+            mask.astype(np.uint8),
+            cv2.RETR_TREE,
+            cv2.CHAIN_APPROX_SIMPLE,
+        )
+    except ValueError:
+        # Older versions of opencv expects two return values
+        contours, _ = cv2.findContours(
+            mask.astype(np.uint8),
+            cv2.RETR_TREE,
+            cv2.CHAIN_APPROX_SIMPLE,
+        )
     # Draw contours in green with linewidth 2
     im_rgb = cv2.drawContours(im_rgb, contours, -1, (0, 255, 0), 2)
     ax[2].imshow(im_rgb)
