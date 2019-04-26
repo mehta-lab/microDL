@@ -21,15 +21,9 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '--model_dir',
+        required=True,
         type=str,
-        default=None,
         help='Directory containing model weights, config and csv files',
-    )
-    parser.add_argument(
-        '--model_fname',
-        type=str,
-        default=None,
-        help='File name of weights in model dir (.hdf5). If None grab newest.',
     )
     parser.add_argument(
         '--test_data',
@@ -45,8 +39,8 @@ def parse_args():
     parser.set_defaults(test_data=True)
     parser.add_argument(
         '--image_dir',
+        required=True,
         type=str,
-        default=None,
         help="Directory containing images",
     )
     parser.add_argument(
@@ -73,11 +67,25 @@ def parse_args():
 
 
 def compute_metrics(args):
+    """
+    Compute specified metrics for given orientations for predictions, which
+    are assumed to be stored in model_dir/predictions. Targets are stored in
+    image_dir.
+    Writes metrics csv files for each orientation in model_dir/predictions.
+
+    :param argparse args:
+    str model_dir: Assumed to contain config, split_samples.json and predictions/
+    bool test_data: Uses test indices in split_samples.json, otherwise all indices
+    str image_dir: Dir containing targets
+    str ext: Prediction image extension
+    list metrics: See inference/evaluation_metrics.py for options
+    list orientations: Any subset of {xy, xz, yz, xyz}
+    """
 
     # Load config file
     config_name = os.path.join(args.model_dir, 'config.yml')
     with open(config_name, 'r') as f:
-        config = yaml.load(f)
+        config = yaml.safe_load(f)
     # Load frames metadata and determine indices
     frames_meta = pd.read_csv(os.path.join(args.image_dir, 'frames_meta.csv'))
 
@@ -109,17 +117,9 @@ def compute_metrics(args):
 
     # Create image subdirectory to write predicted images
     pred_dir = os.path.join(args.model_dir, 'predictions')
-
+    # Get target and prediction channels
     target_channel = config['dataset']['target_channels'][0]
-
-    # If network depth is > 3 determine depth margins for +-z
-    depth = 1
-    if 'depth' in config['network']:
-        depth = config['network']['depth']
-
-    # Get input channel(s)
-    input_channels = config['dataset']['input_channels']
-    pred_channel = input_channels[0]
+    pred_channel = config['dataset']['input_channels'][0]
 
     orientations_list = args.orientations
     if isinstance(orientations_list, str):
@@ -182,12 +182,13 @@ def compute_metrics(args):
                 input_fnames=tuple(pred_fnames),
                 normalize_im=False,
             )
-            if depth == 1:
-                # Remove singular z dimension for 2D image
-                target_stack = np.squeeze(target_stack)
-                pred_stack = np.squeeze(pred_stack)
-            if target_stack.dtype == np.float64:
+            # Remove singular z dimension for 2D image
+            target_stack = np.squeeze(target_stack)
+            pred_stack = np.squeeze(pred_stack)
+            if target_stack.dtype == np.float64 or target_stack.dtype == np.uint16:
                 target_stack = target_stack.astype(np.float32)
+            if pred_stack.dtype == np.float64 or pred_stack.dtype == np.uint16:
+                pred_stack = pred_stack.astype(np.float32)
             pred_name = "t{}_p{}".format(time_idx, pos_idx)
             for orientation in orientations_list:
                 metric_fn = fn_mapping[orientation]
