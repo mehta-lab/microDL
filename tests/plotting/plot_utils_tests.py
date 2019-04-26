@@ -55,8 +55,7 @@ def test_save_mask_overlay():
         save_path = os.path.join(image_dir, 'test_plot.png')
         im = 100 * np.ones((10, 15), dtype=np.uint8)
         mask = np.zeros((10, 15), dtype=np.uint8)
-        mask[5:10, 5:10] = 1
-        mask = mask > 0
+        mask[5:7, 5:8] = 1
         plot_utils.save_mask_overlay(im, mask, save_path)
         fig_glob = glob.glob(os.path.join(image_dir, '*'))
         nose.tools.assert_equal(len(fig_glob), 1)
