@@ -1,7 +1,5 @@
 import argparse
 import cv2
-import itertools
-import natsort
 import nose.tools
 import numpy as np
 import os

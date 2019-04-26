@@ -16,7 +16,7 @@ def save_predicted_images(input_batch,
                           output_dir,
                           batch_idx=None,
                           output_fname=None,
-                          ext='.jpg',
+                          ext='jpg',
                           clip_limits=1,
                           font_size=15):
     """
@@ -131,12 +131,12 @@ def save_center_slices(image_dir,
     :param str color_map: Matplotlib colormap
     :param str fig_title: Figure title
     """
-
     search_str = os.path.join(image_dir, "*p{:03d}*".format(pos_idx))
     slice_names = natsort.natsorted(glob.glob(search_str))
 
     if channel_str is not None:
         slice_names = [s for s in slice_names if channel_str in s]
+
     # Remove a given nbr of slices from front and back of names
     if z_range is not None:
         assert len(z_range) == 2, 'Z-range must consist of two values'
@@ -195,7 +195,7 @@ def save_center_slices(image_dir,
         plt.title(fig_title, fontsize=font_size)
 
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
-    plt.close(fig)
+    plt.close()
 
 
 def save_mask_overlay(input_image, mask, op_fname, alpha=0.7):
