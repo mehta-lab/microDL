@@ -379,6 +379,7 @@ if __name__ == '__main__':
     args = parse_args()
 
     pp_config = aux_utils.read_config(args.config)
+
     input_dir = pp_config['input_dir']
     output_dir = pp_config['output_dir']
 

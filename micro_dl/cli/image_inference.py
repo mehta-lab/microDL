@@ -94,7 +94,15 @@ def parse_args():
     return args
 
 
-def run_prediction(args, gpu_ids, gpu_mem_frac):
+def run_prediction(model_dir,
+                   image_dir,
+                   gpu_ids,
+                   gpu_mem_frac,
+                   model_fname=None,
+                   metrics=None,
+                   test_data=True,
+                   ext='.tif',
+                   save_figs=False):
     """
     Predict images given model + weights.
     If the test_data flag is set to True, the test indices in
@@ -105,37 +113,53 @@ def run_prediction(args, gpu_ids, gpu_mem_frac):
     also be saved as is in .npy format.
     If saving figures, it assumes that input as well as target channels are
     present in image_dir.
+
+    :param str model_dir: Model directory
+    :param str image_dir: Directory containing images for inference
+    :param int gpu_ids: GPU ID to use for session
+    :param float gpu_mem_frac: What fraction of GPU memory to use
+    :param str model_fname: Model weights file name (in model dir)
+    :param str metrics: String or list thereof of train/metrics.py functions
+        to be computed during inference
+    :param bool test_data: Use test indices from metadata, else use all
+    :param str ext: File extension for inference output
+    :param bool save_figs: Save plots of input/target/prediction
     """
     if gpu_ids >= 0:
         sess = train_utils.set_keras_session(
             gpu_ids=gpu_ids, gpu_mem_frac=gpu_mem_frac
         )
     # Load config file
-    config_name = os.path.join(args.model_dir, 'config.yml')
+    config_name = os.path.join(model_dir, 'config.yml')
     with open(config_name, 'r') as f:
         config = yaml.load(f)
     # Load frames metadata and determine indices
     network_config = config['network']
     dataset_config = config['dataset']
     trainer_config = config['trainer']
-    frames_meta = pd.read_csv(os.path.join(args.image_dir, 'frames_meta.csv'),
-                              index_col=0)
-    test_tile_meta = pd.read_csv(os.path.join(args.model_dir, 'test_metadata.csv'),
-                              index_col=0)
+    frames_meta = pd.read_csv(
+        os.path.join(image_dir, 'frames_meta.csv'),
+        index_col=0,
+    )
+    test_tile_meta = pd.read_csv(
+        os.path.join(model_dir, 'test_metadata.csv'),
+        index_col=0,
+    )
     # TODO: generate test_frames_meta.csv together with tile csv during training
-    test_frames_meta_filename = os.path.join(args.model_dir, 'test_frames_meta.csv')
-    metrics = trainer_config['metrics']
-    if args.metrics:
-        metrics = args.metrics
-    if isinstance(metrics, str):
-        metrics = [metrics]
-    loss = trainer_config['loss']
+    test_frames_meta_filename = os.path.join(
+        model_dir,
+        'test_frames_meta.csv',
+    )
+    if metrics is not None:
+        if isinstance(metrics, str):
+            metrics = [metrics]
     metrics_cls = train_utils.get_metrics(metrics)
+    loss = trainer_config['loss']
     loss_cls = train_utils.get_loss(loss)
     split_idx_name = dataset_config['split_by_column']
     K.set_image_data_format(network_config['data_format'])
-    if args.test_data:
-        idx_fname = os.path.join(args.model_dir, 'split_samples.json')
+    if test_data:
+        idx_fname = os.path.join(model_dir, 'split_samples.json')
         try:
             split_samples = aux_utils.read_json(idx_fname)
             test_ids = split_samples['test']
@@ -158,20 +182,19 @@ def run_prediction(args, gpu_ids, gpu_mem_frac):
         columns=frames_meta.columns.values.tolist()+metrics
     )
     # Get model weight file name, if none, load latest saved weights
-    model_fname = args.model_fname
     if model_fname is None:
-        fnames = [f for f in os.listdir(args.model_dir) if f.endswith('.hdf5')]
+        fnames = [f for f in os.listdir(model_dir) if f.endswith('.hdf5')]
         assert len(fnames) > 0, 'No weight files found in model dir'
         fnames = natsort.natsorted(fnames)
         model_fname = fnames[-1]
-    weights_path = os.path.join(args.model_dir, model_fname)
+    weights_path = os.path.join(model_dir, model_fname)
 
     # Create image subdirectory to write predicted images
-    pred_dir = os.path.join(args.model_dir, 'predictions')
+    pred_dir = os.path.join(model_dir, 'predictions')
     os.makedirs(pred_dir, exist_ok=True)
     target_channel = dataset_config['target_channels'][0]
     # If saving figures, create another subdirectory to predictions
-    if args.save_figs:
+    if save_figs:
         fig_dir = os.path.join(pred_dir, 'figures')
         os.makedirs(fig_dir, exist_ok=True)
 
@@ -179,11 +202,7 @@ def run_prediction(args, gpu_ids, gpu_mem_frac):
     depth = 1
     if 'depth' in network_config:
         depth = network_config['depth']
-        if depth > 1:
-            metadata_ids['slice_idx'] = aux_utils.adjust_slice_margins(
-                slice_ids=metadata_ids['slice_idx'],
-                depth=depth,
-            )
+
     # Get input channel
     # TODO: Add multi channel support once such models are tested
     input_channel = dataset_config['input_channels'][0]
@@ -210,7 +229,7 @@ def run_prediction(args, gpu_ids, gpu_mem_frac):
                 # TODO: Add flatfield support
                 im_stack = preprocess_imstack(
                     frames_metadata=frames_meta,
-                    input_dir=args.image_dir,
+                    input_dir=image_dir,
                     depth=depth,
                     time_idx=time_idx,
                     channel_idx=input_channel,
@@ -244,20 +263,20 @@ def run_prediction(args, gpu_ids, gpu_mem_frac):
                     channel_idx=input_channel,
                     slice_idx=slice_idx,
                     pos_idx=pos_idx,
-                    ext=args.ext,
+                    ext=ext,
                 )
                 file_name = os.path.join(pred_dir, im_name)
-                if args.ext == '.png':
+                if ext == '.png':
                     # Convert to uint16 for now
                     im_pred = 2 ** 16 * (im_pred - im_pred.min()) / \
                               (im_pred.max() - im_pred.min())
                     im_pred = im_pred.astype(np.uint16)
                     cv2.imwrite(file_name, np.squeeze(im_pred))
-                if args.ext == '.tif':
+                if ext == '.tif':
                     # Convert to float32 and remove batch dimension
                     im_pred = im_pred.astype(np.float32)
                     cv2.imwrite(file_name, np.squeeze(im_pred))
-                elif args.ext == '.npy':
+                elif ext == '.npy':
                     np.save(file_name, im_pred, allow_pickle=True)
                 else:
                     raise ValueError('Unsupported file extension')
@@ -275,7 +294,7 @@ def run_prediction(args, gpu_ids, gpu_mem_frac):
                 test_frames_meta_row = frames_meta.loc[meta_idx]
                 im_target = preprocess_imstack(
                     frames_metadata=frames_meta,
-                    input_dir=args.image_dir,
+                    input_dir=image_dir,
                     depth=1,
                     time_idx=time_idx,
                     channel_idx=target_channel,
@@ -308,7 +327,7 @@ def run_prediction(args, gpu_ids, gpu_mem_frac):
                 )
                 test_row_ind += 1
                 # Save figures if specified
-                if args.save_figs:
+                if save_figs:
                     # save predicted images assumes 2D
                     if depth > 1:
                         im_stack = im_stack[..., depth // 2, :, :]
@@ -336,4 +355,14 @@ if __name__ == '__main__':
         args.gpu,
         args.gpu_mem_frac,
     )
-    run_prediction(args, gpu_id, gpu_mem_frac)
+    run_prediction(
+        model_dir=args.model_dir,
+        image_dir=args.image_dir,
+        gpu_ids=gpu_id,
+        gpu_mem_frac=gpu_mem_frac,
+        model_fname=args.model_fname,
+        metrics=args.metrics,
+        test_data=args.test_data,
+        ext=args.ext,
+        save_figs=args.save_figs,
+    )

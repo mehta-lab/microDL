@@ -202,18 +202,26 @@ def get_image_dir_format(dataset_config):
     return tile_dir, image_format
 
 
-def run_action(args, gpu_ids, gpu_mem_frac):
-    """Performs training or tune hyper parameters
+def run_action(action,
+               config_path,
+               gpu_ids,
+               gpu_mem_frac,
+               model_fname=None):
+    """Performs training or tunes hyper parameters
 
     Lambda layers throw errors when converting to yaml!
     model_yaml = self.model.to_yaml()
 
-    :param Namespace args: namespace containing the arguments passed
+    :param str action: Currently the only supported action is 'train'
+    :param str config_path: Full path to config yaml file
     :param int gpu_ids: GPU ID
     :param float gpu_mem_frac: Available GPU memory fraction
+    :param str model_fname: Full path to model weights if not starting
+        training from scratch
     """
-    action = args.action
-    config = aux_utils.read_config(args.config)
+    assert action in {'train'}, "Currently only supported action is train"
+
+    config = aux_utils.read_config(config_path)
     dataset_config = config['dataset']
     trainer_config = config['trainer']
     network_config = config['network']
@@ -262,10 +270,10 @@ def run_action(args, gpu_ids, gpu_mem_frac):
                 gpu_mem_frac=gpu_mem_frac,
             )
 
-        if args.model_fname:
+        if model_fname:
             # load model only loads the weights, have to save intermediate
             # states of gradients to resume training
-            model = load_model(network_config, args.model_fname)
+            model = load_model(network_config, model_fname)
         else:
             with open(os.path.join(trainer_config['model_dir'],
                                    'config.yml'), 'w') as f:
@@ -277,14 +285,16 @@ def run_action(args, gpu_ids, gpu_mem_frac):
                        show_shapes=True, show_layer_names=True)
 
         num_target_channels = network_config['num_target_channels']
-        trainer = BaseKerasTrainer(sess=sess,
-                                   train_config=trainer_config,
-                                   train_dataset=all_datasets['df_train'],
-                                   val_dataset=all_datasets['df_val'],
-                                   model=model,
-                                   num_target_channels=num_target_channels,
-                                   gpu_ids=args.gpu,
-                                   gpu_mem_frac=args.gpu_mem_frac)
+        trainer = BaseKerasTrainer(
+            sess=sess,
+            train_config=trainer_config,
+            train_dataset=all_datasets['df_train'],
+            val_dataset=all_datasets['df_val'],
+            model=model,
+            num_target_channels=num_target_channels,
+            gpu_ids=gpu_ids,
+            gpu_mem_frac=gpu_mem_frac,
+        )
         trainer.train()
 
     else:
@@ -300,5 +310,11 @@ if __name__ == '__main__':
         args.gpu,
         args.gpu_mem_frac,
     )
-    run_action(args, gpu_id, gpu_mem_frac)
+    run_action(
+        action=args.action,
+        config_path=args.config,
+        gpu_ids=gpu_id,
+        gpu_mem_frac=gpu_mem_frac,
+        model_fname=args.model_fname,
+    )
 
