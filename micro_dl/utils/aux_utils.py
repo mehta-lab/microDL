@@ -438,7 +438,7 @@ def write_json(json_dict, json_filename):
     :param dict json_dict: Dictionary to be written
     :param str json_filename: Full path file name of json
     """
-    json_dump = json.dumps(json_dict)
+    json_dump = json.dumps(json_dict, indent=4)
     with open(json_filename, "w") as write_file:
         write_file.write(json_dump)
 

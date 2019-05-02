@@ -91,10 +91,10 @@ class BaseKerasTrainer:
         for cb_dict in callbacks_config:
             cb_cls = getattr(keras_callbacks, cb_dict)
             if cb_dict == 'ModelCheckpoint':
-                if callbacks_config[cb_dict]['save_best_only']:
-                    assert callbacks_config[cb_dict]['monitor'] == 'val_loss',\
-                        'cannot checkpoint best_model if monitor' \
-                        'is not val_loss'
+                # if callbacks_config[cb_dict]['save_best_only']:
+                #     assert callbacks_config[cb_dict]['monitor'] == 'val_loss',\
+                #         'cannot checkpoint best_model if monitor' \
+                #         'is not val_loss'
                 timestamp = time.strftime("%Y-%m-%d-%H-%M-%S",
                                           time.localtime())
                 model_name = '{}_{}.hdf5'.format('Model', timestamp)
