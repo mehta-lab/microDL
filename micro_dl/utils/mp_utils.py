@@ -97,6 +97,7 @@ def create_save_mask(input_fnames,
                 'file_name': file_name}
     return cur_meta
 
+
 def mp_tile_save(fn_args, workers):
     """Tile and save with multiprocessing
     https://stackoverflow.com/questions/42074501/python-concurrent-futures-processpoolexecutor-performance-of-submit-vs-map

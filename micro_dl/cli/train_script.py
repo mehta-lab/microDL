@@ -203,7 +203,7 @@ def get_image_dir_format(dataset_config):
 
 
 def run_action(action,
-               config_path,
+               config,
                gpu_ids,
                gpu_mem_frac,
                model_fname=None):
@@ -213,7 +213,7 @@ def run_action(action,
     model_yaml = self.model.to_yaml()
 
     :param str action: Currently the only supported action is 'train'
-    :param str config_path: Full path to config yaml file
+    :param dict config: Training config
     :param int gpu_ids: GPU ID
     :param float gpu_mem_frac: Available GPU memory fraction
     :param str model_fname: Full path to model weights if not starting
@@ -221,7 +221,6 @@ def run_action(action,
     """
     assert action in {'train'}, "Currently only supported action is train"
 
-    config = aux_utils.read_config(config_path)
     dataset_config = config['dataset']
     trainer_config = config['trainer']
     network_config = config['network']
@@ -310,9 +309,10 @@ if __name__ == '__main__':
         args.gpu,
         args.gpu_mem_frac,
     )
+    config = aux_utils.read_config(args.config_path)
     run_action(
         action=args.action,
-        config_path=args.config,
+        config=config,
         gpu_ids=gpu_id,
         gpu_mem_frac=gpu_mem_frac,
         model_fname=args.model_fname,

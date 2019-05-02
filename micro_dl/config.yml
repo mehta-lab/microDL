@@ -1,10 +1,8 @@
 dataset:
-    preprocess: False
     data_dir: '/data/anitha/label_free/image_tile_256-256_step_256-256'
     input_channels: [3]
     target_channels: [0]
-    train_fraction: 0.25
-    split_by_column: sample_num
+    split_by_column: pos_idx
     split_ratio:
         train: 0.7
         val: 0.15
@@ -15,44 +13,45 @@ verbose: 10
 trainer:
     model_dir: '/home/krishnan/models_labelfree/tile256_bs16_mse'
     batch_size: 32
-    max_epochs: 200
-    metrics: coeff_determination
-    loss: mean_squared_error
+    max_epochs: 10
+    metrics: pearson_corr
+    loss: mae_loss
     callbacks:
         EarlyStopping:
             mode: min
-            monitor: val_loss
-            patience: 50
+            monitor: val_pearson_corr
+            patience: 1
             verbose: True
         ModelCheckpoint:
             mode: min
-            monitor: val_loss
+            monitor: val_pearson_corr
             save_best_only: True
             verbose: True
         TensorBoard:
             histogram_freq: 0
             verbose: True
     optimizer:
-        lr: 0.0001
+        lr: 0.001
         name: Adam
 network:
-    class: UNet3D
+    class: UNet2D
     num_input_channels: 1
+    num_target_channels: 1
     data_format: 'channels_first'
     height: 256
     width: 256
-    depth: 8
+    depth: 1
     batch_norm: True
-    pooling_type: max
+    pooling_type: average
     filter_size: 3
     activation:
         type: relu
     dropout: 0.2
-    num_filters_per_block: [16, 32, 48]
+    dropout_dense: 0.4
+    num_filters_per_block: [8, 16, 32, 64, 128]
     num_convs_per_block: 2
     block_sequence: conv-activation-bn
     skip_merge_type: concat
     upsampling: bilinear
     residual: True
-    num_target_channels: 1
     final_activation: linear
