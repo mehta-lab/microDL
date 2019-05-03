@@ -19,12 +19,12 @@ trainer:
     callbacks:
         EarlyStopping:
             mode: min
-            monitor: val_pearson_corr
+            monitor: val_loss
             patience: 1
             verbose: True
         ModelCheckpoint:
             mode: min
-            monitor: val_pearson_corr
+            monitor: val_loss
             save_best_only: True
             verbose: True
         TensorBoard:
