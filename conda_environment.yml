@@ -14,10 +14,11 @@ dependencies:
   - pandas
   - pydot
   - PyYAML
-  - tensorflow
+  - tensorflow-gpu
   - testfixtures
   - scikit-image
   - scikit-learn
   - scipy
+  - pip
   - pip:
     - keras==2.1.6
