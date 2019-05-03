@@ -20,7 +20,7 @@ trainer:
         EarlyStopping:
             mode: min
             monitor: val_loss
-            patience: 1
+            patience: 4
             verbose: True
         ModelCheckpoint:
             mode: min

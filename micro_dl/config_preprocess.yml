@@ -1,7 +1,7 @@
 output_dir: '/Users/jenny.folkesson/Data/SMS-2018-07-03-18-35-00-0010_train_data'
 verbose: 10
 input_dir: '/Users/jenny.folkesson/Data/SMS-2018-07-03-18-35-00-0010'
-slice_ids: [10, 11, 12, 13, 14, 15]
+slice_ids: [10, 11, 12, 13, 14]
 pos_ids: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 channel_ids: [0, 1, 2]
 num_workers: 4
