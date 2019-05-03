@@ -145,11 +145,7 @@ def run_prediction(model_dir,
         os.path.join(model_dir, 'test_metadata.csv'),
         index_col=0,
     )
-    # TODO: generate test_frames_meta.csv together with tile csv during training
-    test_frames_meta_filename = os.path.join(
-        model_dir,
-        'test_frames_meta.csv',
-    )
+    # Get metrics
     if metrics is not None:
         if isinstance(metrics, str):
             metrics = [metrics]
@@ -172,14 +168,12 @@ def run_prediction(model_dir,
     # E.g. if split is position, we also need to iterate over time and slice
     metadata_ids = {split_idx_name: test_ids}
     iter_ids = ['slice_idx', 'pos_idx', 'time_idx']
-    n_test_row = len(test_ids)
     for id in iter_ids:
         if id != split_idx_name:
             metadata_ids[id] = np.unique(test_tile_meta[id])
-            n_test_row *= len(metadata_ids[id])
     # create empty dataframe for test image metadata
     test_frames_meta = pd.DataFrame(
-        columns=frames_meta.columns.values.tolist()+metrics
+        columns=frames_meta.columns.values.tolist()+metrics,
     )
     # Get model weight file name, if none, load latest saved weights
     if model_fname is None:
@@ -219,9 +213,9 @@ def run_prediction(model_dir,
         predict=True,
     )
     print(model.summary())
+
     optimizer = trainer_config['optimizer']['name']
     model.compile(loss=loss_cls, optimizer=optimizer, metrics=metrics_cls)
-    test_row_ind = 0
     # Iterate over all indices for test data
     for time_idx in metadata_ids['time_idx']:
         for pos_idx in metadata_ids['pos_idx']:
@@ -291,7 +285,7 @@ def run_prediction(model_dir,
                     pos_idx,
                 )
                 # get a single row of frame meta data
-                test_frames_meta_row = frames_meta.loc[meta_idx]
+                test_frames_meta_row = frames_meta.loc[meta_idx].copy()
                 im_target = preprocess_imstack(
                     frames_metadata=frames_meta,
                     input_dir=image_dir,
@@ -323,9 +317,8 @@ def run_prediction(model_dir,
 
                 test_frames_meta = test_frames_meta.append(
                     test_frames_meta_row,
-                    ignore_index=True
+                    ignore_index=True,
                 )
-                test_row_ind += 1
                 # Save figures if specified
                 if save_figs:
                     # save predicted images assumes 2D
@@ -345,7 +338,10 @@ def run_prediction(model_dir,
     # calculate means of the metrics
     test_frames_meta = test_frames_meta.append(
         test_frames_meta[metrics].agg('mean'), ignore_index=True)
-    test_frames_meta.to_csv(test_frames_meta_filename, sep=",")
+    test_frames_meta.to_csv(
+        os.path.join(pred_dir, 'inference_meta.csv'),
+        sep=",",
+    )
 
 
 if __name__ == '__main__':

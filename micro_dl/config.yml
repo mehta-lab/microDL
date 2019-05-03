@@ -1,12 +1,13 @@
 dataset:
     data_dir: '/data/anitha/label_free/image_tile_256-256_step_256-256'
+    random_seed: 42
     input_channels: [3]
     target_channels: [0]
     split_by_column: pos_idx
     split_ratio:
-        train: 0.7
-        val: 0.15
-        test: 0.15
+        train: 0.6
+        val: 0.2
+        test: 0.2
     height: 256
     width: 256
 verbose: 10
@@ -20,7 +21,7 @@ trainer:
         EarlyStopping:
             mode: min
             monitor: val_loss
-            patience: 4
+            patience: 5
             verbose: True
         ModelCheckpoint:
             mode: min
