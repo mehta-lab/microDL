@@ -335,9 +335,7 @@ def run_prediction(model_dir,
                         clip_limits=1,
                         font_size=15
                     )
-    # calculate means of the metrics
-    test_frames_meta = test_frames_meta.append(
-        test_frames_meta[metrics].agg('mean'), ignore_index=True)
+    # Write metrics csv file
     test_frames_meta.to_csv(
         os.path.join(pred_dir, 'inference_meta.csv'),
         sep=",",
