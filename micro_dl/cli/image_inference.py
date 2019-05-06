@@ -132,7 +132,7 @@ def run_prediction(model_dir,
     # Load config file
     config_name = os.path.join(model_dir, 'config.yml')
     with open(config_name, 'r') as f:
-        config = yaml.load(f)
+        config = yaml.safe_load(f)
     # Load frames metadata and determine indices
     network_config = config['network']
     dataset_config = config['dataset']
