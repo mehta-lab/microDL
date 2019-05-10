@@ -14,7 +14,7 @@ verbose: 10
 trainer:
     model_dir: '/home/krishnan/models_labelfree/tile256_bs16_mse'
     batch_size: 32
-    max_epochs: 10
+    max_epochs: 6
     metrics: pearson_corr
     loss: mae_loss
     callbacks:
@@ -47,7 +47,7 @@ network:
     filter_size: 3
     activation:
         type: relu
-    dropout: 0.2
+    dropout: 0
     dropout_dense: 0.4
     num_filters_per_block: [8, 16, 32, 64, 128]
     num_convs_per_block: 2
