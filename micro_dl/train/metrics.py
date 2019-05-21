@@ -4,21 +4,35 @@ import tensorflow as tf
 
 
 def coeff_determination(y_true, y_pred):
-    """R^2 Goodness of fit, using as a proxy for accuracy in regression"""
+    """
+    R^2 Goodness of fit, using as a proxy for accuracy in regression
+
+    :param y_true: Ground truth
+    :param y_pred: Prediction
+    :return float r2: Coefficient of determination
+    """
 
     ss_res = K.sum(K.square(y_true - y_pred))
     ss_tot = K.sum(K.square(y_true - K.mean(y_true)))
-    return 1 - ss_res/(ss_tot + K.epsilon())
+    return 1 - ss_res / (ss_tot + K.epsilon())
 
 
 def mask_coeff_determination(n_channels):
     """split y_true into y_true and mask
 
-    If masked_loss: add a function/method to convert split y_true and pass to
-    loss, metrics and callbacks
+    For masked_loss there's an added function/method to convert split
+    y_true and pass to loss, metrics and callbacks.
+
+    :param int n_channels: Number of channels
     """
     def coeff_deter(y_true, y_pred):
+        """
+        Coefficient of determination (R2)
 
+        :param y_true: Ground truth
+        :param y_pred: Prediction
+        :return float r2: Coefficient of determination
+        """
         if K.image_data_format() == "channels_last":
             split_axis = -1
         else:
@@ -43,6 +57,7 @@ def dice_coef(y_true, y_pred, smooth=1.):
     where s is smoothing constant.
     Although y_pred is not binary, it is assumed to be near binary
     (sigmoid transformed) so |y_pred|^2 is approximated by sum(y_pred).
+
     :param tensor y_true: Labeled ground truth
     :param tensor y_pred: Predicted labels, potentially non-binary
     :param float smooth: Constant added for smoothing and to avoid
@@ -59,20 +74,16 @@ def dice_coef(y_true, y_pred, smooth=1.):
 
 def flip_dimensions(func):
     """
-    Decorator to convert channels first tensor to channels last
+    Decorator to convert channels first tensor to channels last.
+
     :param func: Function to be decorated
     """
-    def wrap_function(y_true, y_pred, max_val):
-
-        if K.ndim(y_true) > 4:
-            if K.image_data_format() == 'channels_first':
+    def wrap_function(y_true, y_pred, max_val=6):
+        if K.image_data_format() == 'channels_first':
+            if K.ndim(y_true) > 4:
                 y_true = tf.transpose(y_true, [0, 2, 3, 4, 1])
                 y_pred = tf.transpose(y_pred, [0, 2, 3, 4, 1])
-            # remove the singular z dimension
-            y_true = K.squeeze(y_true, axis=1)
-            y_pred = K.squeeze(y_pred, axis=1)
-        else:
-            if K.image_data_format() == 'channels_first':
+            else:
                 y_true = tf.transpose(y_true, [0, 2, 3, 1])
                 y_pred = tf.transpose(y_pred, [0, 2, 3, 1])
         return func(y_true, y_pred, max_val)
@@ -82,24 +93,27 @@ def flip_dimensions(func):
 @flip_dimensions
 def ssim(y_true, y_pred, max_val=6):
     """Structural similarity
-    Use max_val=5 to approximate maximum of normalized images
-    tensorflow does not support SSIM for 3D images. Need a different
-    way to compute SSIM for 5D tensor
+    Uses a default max_val=6 to approximate maximum of normalized images.
+    Tensorflow does not support SSIM for 3D images. Need a different
+    way to compute SSIM for 5D tensor (e.g. skimage).
+
     :param tensor y_true: Labeled ground truth
     :param tensor y_pred: Predicted labels, potentially non-binary
     :param float max_val: The dynamic range of the images (i.e., the
         difference between the maximum the and minimum allowed values).
     :return float K.mean(ssim): mean SSIM over images in the batch
     """
-    ssim = tf.image.ssim(y_true, y_pred, max_val=max_val)
-    return K.mean(ssim)
+    ssim = K.mean(tf.image.ssim(y_true, y_pred, max_val=max_val))
+    return ssim
 
 
 @flip_dimensions
-def ms_ssim(y_true, y_pred, max_val=6):
+def ms_ssim(y_true, y_pred, max_val=None):
     """
-    MS-SSIM for 2D images
-    Use max_val=6 to approximate maximum of normalized images
+    MS-SSIM for 2D images over batches.
+    Use max_val=6 to approximate maximum of normalized images.
+    Tensorflow uses average pooling for each scale, so your tensor
+    has to be relatively large (>170 pixel in x and y) for this to work.
 
     :param tensor y_true: Labeled ground truth
     :param tensor y_pred: Predicted labels, potentially non-binary
@@ -107,18 +121,20 @@ def ms_ssim(y_true, y_pred, max_val=6):
         difference between the maximum the and minimum allowed values).
     :return float ms_ssim: Mean SSIM over images in the batch
     """
-    ssim = tf.image.ssim_multiscale(y_true, y_pred, max_val=max_val)
-    return K.mean(ssim)
+    ssim = K.mean(tf.image.ssim_multiscale(y_true, y_pred, max_val=max_val))
+    # If you're getting nans
+    if ssim != ssim:
+        ssim = 0.
+    return ssim
 
 
 def pearson_corr(y_true, y_pred):
     """Pearson correlation
     :param tensor y_true: Labeled ground truth
     :param tensor y_pred: Predicted label,
-    :param float max_val: The dynamic range of the images (i.e., the
-        difference between the maximum the and minimum allowed values).
-    :return float : Pearson over all images in the batch
+    :return float r: Pearson over all images in the batch
     """
-    covariance = K.mean((y_pred - K.mean(y_pred))
-                        * (y_true - K.mean(y_true)))
-    return covariance/K.std(y_pred)/K.std(y_true)
+    covariance = K.mean((y_pred - K.mean(y_pred)) *
+                        (y_true - K.mean(y_true)))
+    r = covariance / (K.std(y_pred) * K.std(y_true) + K.epsilon())
+    return r

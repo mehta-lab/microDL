@@ -14,7 +14,6 @@ def mae_loss(y_true, y_pred, mean_loss=True):
     image_format='channels_last'. The arrays do not seem to batch flattened,
     change axis if using 'channels_first
     """
-
     if not mean_loss:
         return K.abs(y_pred - y_true)
 
@@ -23,8 +22,12 @@ def mae_loss(y_true, y_pred, mean_loss=True):
 
 
 def mse_loss(y_true, y_pred, mean_loss=True):
-    """Mean squared loss"""
+    """Mean squared loss
 
+    :param y_true: Ground truth
+    :param y_pred: Prediction
+    :return float: Mean absolute error loss
+    """
     if not mean_loss:
         return K.square(y_pred - y_true)
 
@@ -33,20 +36,24 @@ def mse_loss(y_true, y_pred, mean_loss=True):
 
 
 def kl_divergence_loss(y_true, y_pred):
-    """KL divergence loss"""
+    """KL divergence loss
+    D(y||y') = sum(p(y)*log(p(y)/p(y'))
 
+    :param y_true: Ground truth
+    :param y_pred: Prediction
+    :return float: KL divergence loss
+    """
     y_true = K.clip(y_true, K.epsilon(), 1)
     y_pred = K.clip(y_pred, K.epsilon(), 1)
-    if K.image_data_format() == 'channels_last':
-        return K.sum(y_true * K.log(y_true / y_pred), axis=-1)
-    else:
-        return K.sum(y_true * K.log(y_true / y_pred), axis=1)
+    channel_axis = get_channel_axis(K.image_data_format())
+    return K.sum(y_true * K.log(y_true / y_pred), axis=channel_axis)
 
 
 def dssim_loss(y_true, y_pred):
     """Structural dissimilarity loss + L1 loss
     DSSIM is defined as (1-SSIM)/2
     https://en.wikipedia.org/wiki/Structural_similarity
+
     :param tensor y_true: Labeled ground truth
     :param tensor y_pred: Predicted labels, potentially non-binary
     :return float: 0.8 * DSSIM + 0.2 * L1
