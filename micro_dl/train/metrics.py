@@ -103,8 +103,8 @@ def ssim(y_true, y_pred, max_val=6):
         difference between the maximum the and minimum allowed values).
     :return float K.mean(ssim): mean SSIM over images in the batch
     """
-    ssim = K.mean(tf.image.ssim(y_true, y_pred, max_val=max_val))
-    return ssim
+    ssim_val = K.mean(tf.image.ssim(y_true, y_pred, max_val=max_val))
+    return ssim_val
 
 
 @flip_dimensions
@@ -121,11 +121,12 @@ def ms_ssim(y_true, y_pred, max_val=None):
         difference between the maximum the and minimum allowed values).
     :return float ms_ssim: Mean SSIM over images in the batch
     """
-    ssim = K.mean(tf.image.ssim_multiscale(y_true, y_pred, max_val=max_val))
+    msssim = K.mean(tf.image.ssim_multiscale(y_true, y_pred, max_val=max_val))
     # If you're getting nans
-    if ssim != ssim:
-        ssim = 0.
-    return ssim
+    msssim = tf.where(tf.is_nan(msssim), 0., msssim)
+    if msssim is None:
+        msssim = K.constant(0.)
+    return msssim
 
 
 def pearson_corr(y_true, y_pred):
