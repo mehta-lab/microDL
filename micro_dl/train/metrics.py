@@ -123,7 +123,7 @@ def ms_ssim(y_true, y_pred, max_val=None):
     """
     msssim = K.mean(tf.image.ssim_multiscale(y_true, y_pred, max_val=max_val))
     # If you're getting nans
-    msssim = tf.where(tf.is_nan(msssim), 0., msssim)
+    msssim = K.where(K.is_nan(msssim), 0., msssim)
     if msssim is None:
         msssim = K.constant(0.)
     return msssim
