@@ -80,6 +80,14 @@ def flip_dimensions(func):
     :param func: Function to be decorated
     """
     def wrap_function(y_true, y_pred):
+        """
+        Shifts dimensions to channels last if applicable, before
+        calling func.
+
+        :param tensor y_true: Gound truth data
+        :param tensor y_pred: Predicted data
+        :return: function called with channels last
+        """
         if K.image_data_format() == 'channels_first':
             if K.ndim(y_true) > 4:
                 y_true = tf.transpose(y_true, [0, 2, 3, 4, 1])
@@ -98,8 +106,8 @@ def ssim(y_true, y_pred):
     Tensorflow does not support SSIM for 3D images. Need a different
     way to compute SSIM for 5D tensor (e.g. skimage).
 
-    :param tensor y_true: Labeled ground truth
-    :param tensor y_pred: Predicted labels, potentially non-binary
+    :param tensor y_true: Gound truth data
+    :param tensor y_pred: Predicted data
     :return float K.mean(ssim): mean SSIM over images in the batch
     """
     # Get value range
@@ -118,13 +126,12 @@ def ms_ssim(y_true, y_pred):
     Use max_val=6 to approximate maximum of normalized images.
     Tensorflow uses average pooling for each scale, so your tensor
     has to be relatively large (>170 pixel in x and y) for this to work.
-    Warning: when using normalized images you often get nans since you'll
-    compute small values to the power of small weights,
-    so this implementation moves all images values up to positives in a
-    hacky way by adding 255 to your prediction and target.
+    When using normalized images you often get nans since you'll
+    compute small values to the power of small weights, so this
+    implementation moves all targets and predictions up to a positive range.
 
-    :param tensor y_true: Labeled ground truth
-    :param tensor y_pred: Predicted labels, potentially non-binary
+    :param tensor y_true: Gound truth data
+    :param tensor y_pred: Predicted data
     :return float ms_ssim: Mean SSIM over images in the batch
     """
     # Move images positive range to avoid nans when doing ^weights
