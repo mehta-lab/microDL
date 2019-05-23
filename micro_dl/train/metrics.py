@@ -79,7 +79,7 @@ def flip_dimensions(func):
 
     :param func: Function to be decorated
     """
-    def wrap_function(y_true, y_pred, max_val=6):
+    def wrap_function(y_true, y_pred):
         if K.image_data_format() == 'channels_first':
             if K.ndim(y_true) > 4:
                 y_true = tf.transpose(y_true, [0, 2, 3, 4, 1])
@@ -87,12 +87,12 @@ def flip_dimensions(func):
             else:
                 y_true = tf.transpose(y_true, [0, 2, 3, 1])
                 y_pred = tf.transpose(y_pred, [0, 2, 3, 1])
-        return func(y_true, y_pred, max_val)
+        return func(y_true, y_pred)
     return wrap_function
 
 
 @flip_dimensions
-def ssim(y_true, y_pred, max_val=6):
+def ssim(y_true, y_pred):
     """Structural similarity
     Uses a default max_val=6 to approximate maximum of normalized images.
     Tensorflow does not support SSIM for 3D images. Need a different
@@ -100,101 +100,19 @@ def ssim(y_true, y_pred, max_val=6):
 
     :param tensor y_true: Labeled ground truth
     :param tensor y_pred: Predicted labels, potentially non-binary
-    :param float max_val: The dynamic range of the images (i.e., the
-        difference between the maximum the and minimum allowed values).
     :return float K.mean(ssim): mean SSIM over images in the batch
     """
+    # Get value range
+    min_tensor = tf.stack([K.min(y_true), K.min(y_pred)])
+    max_tensor = tf.stack([K.max(y_true), K.max(y_pred)])
+    min_val = K.min(min_tensor)
+    max_val = K.max(max_tensor) - min_val
     ssim_val = K.mean(tf.image.ssim(y_true, y_pred, max_val=max_val))
     return ssim_val
 
 
-def _tf_fspecial_gauss(size, sigma):
-    """
-    Function to mimic the 'fspecial' gaussian MATLAB function
-    """
-    x_data, y_data = np.mgrid[-size // 2 + 1:size // 2 + 1,
-                              -size // 2 + 1:size // 2 + 1]
-
-    x_data = x_data[:, np.newaxis, np.newaxis]
-    y_data = y_data[:, np.newaxis, np.newaxis]
-
-    x = tf.constant(x_data, dtype=tf.float32)
-    y = tf.constant(y_data, dtype=tf.float32)
-
-    gauss = tf.exp(-((x ** 2 + y ** 2)/(2.0 * sigma ** 2)))
-    return gauss / tf.reduce_sum(gauss)
-
-
-def tf_ssim(img1, img2, im_range=255, cs_map=False, mean_metric=True, size=11, sigma=1.5):
-    """
-    Tensorflow implementation of SSIM
-
-    :param img1:
-    :param img2:
-    :param cs_map:
-    :param mean_metric:
-    :param size:
-    :param sigma:
-    :return:
-    """
-    # window shape [size, size]
-    window = _tf_fspecial_gauss(size, sigma)
-    C1 = (0.01 * im_range) ** 2
-    C2 = (0.03 * im_range) ** 2
-    mu1 = tf.nn.conv2d(img1, window, strides=[1, 1, 1, 1], padding='VALID')
-    mu2 = tf.nn.conv2d(img2, window, strides=[1, 1, 1, 1], padding='VALID')
-    mu1_sq = mu1 * mu1
-    mu2_sq = mu2 * mu2
-    mu1_mu2 = mu1 * mu2
-    sigma1_sq = tf.nn.conv2d(img1 * img1, window, strides=[1,1,1,1], padding='VALID') - mu1_sq
-    sigma2_sq = tf.nn.conv2d(img2*img2, window, strides=[1,1,1,1],padding='VALID') - mu2_sq
-    sigma12 = tf.nn.conv2d(img1*img2, window, strides=[1,1,1,1],padding='VALID') - mu1_mu2
-    if cs_map:
-        value = (((2*mu1_mu2 + C1)*(2*sigma12 + C2))/((mu1_sq + mu2_sq + C1)*
-                    (sigma1_sq + sigma2_sq + C2)),
-                (2.0*sigma12 + C2)/(sigma1_sq + sigma2_sq + C2))
-    else:
-        value = ((2*mu1_mu2 + C1)*(2*sigma12 + C2))/((mu1_sq + mu2_sq + C1)*
-                    (sigma1_sq + sigma2_sq + C2))
-
-    if mean_metric:
-        value = tf.reduce_mean(value)
-    return value
-
-
-def tf_ms_ssim(im1, im2, mean_metric=True, level=5):
-    """
-    Tensorflow implementation of MS-SSIM
-    :param im1:
-    :param im2:
-    :param mean_metric:
-    :param level:
-    :return:
-    """
-    weight = tf.constant([0.0448, 0.2856, 0.3001, 0.2363, 0.1333], dtype=tf.float32)
-    mssim = []
-    mcs = []
-    for l in range(level):
-        ssim_map, cs_map = tf_ssim(im1, im2, cs_map=True, mean_metric=False)
-        mssim.append(tf.reduce_mean(ssim_map))
-        mcs.append(tf.reduce_mean(cs_map))
-        im1 = tf.nn.avg_pool(im1, [1, 2, 2, 1], [1, 2, 2, 1], padding='SAME')
-        im2 = tf.nn.avg_pool(im2, [1, 2, 2, 1], [1, 2, 2, 1], padding='SAME')
-
-    # list to tensor of dim D+1
-    mssim = tf.stack(mssim, axis=0)
-    mcs = tf.stack(mcs, axis=0)
-
-    value = (tf.reduce_prod(mcs[0:level-1]**weight[0:level-1])*
-                            (mssim[level-1]**weight[level-1]))
-
-    if mean_metric:
-        value = tf.reduce_mean(value)
-    return value
-
-
 @flip_dimensions
-def ms_ssim(y_true, y_pred, max_val=None):
+def ms_ssim(y_true, y_pred):
     """
     MS-SSIM for 2D images over batches.
     Use max_val=6 to approximate maximum of normalized images.
@@ -207,13 +125,15 @@ def ms_ssim(y_true, y_pred, max_val=None):
 
     :param tensor y_true: Labeled ground truth
     :param tensor y_pred: Predicted labels, potentially non-binary
-    :param float max_val: The dynamic range of the images (i.e., the
-        difference between the maximum the and minimum allowed values).
     :return float ms_ssim: Mean SSIM over images in the batch
     """
-    # Re-normalize images to avoid nans when doing the weights exponential
-    y_t = y_true + 255.
-    y_p = y_pred + 255.
+    # Move images positive range to avoid nans when doing ^weights
+    min_tensor = tf.stack([K.min(y_true), K.min(y_pred)])
+    max_tensor = tf.stack([K.max(y_true), K.max(y_pred)])
+    min_val = K.min(min_tensor)
+    max_val = K.max(max_tensor) - min_val
+    y_t = y_true + min_val
+    y_p = y_pred + min_val
     msssim = K.mean(tf.image.ssim_multiscale(y_t, y_p, max_val=max_val))
     # If you're getting nans
     msssim = tf.where(tf.is_nan(msssim), 0., msssim)

@@ -66,21 +66,21 @@ def test_ssim():
     y_pred[10:24, 5:27, :] = 1.
     y_true = tf.convert_to_tensor(y_true, dtype=tf.float32)
     y_pred = tf.convert_to_tensor(y_pred, dtype=tf.float32)
-    ssim = metrics.ssim(y_true=y_true, y_pred=y_pred, max_val=1)
+    ssim = metrics.ssim(y_true=y_true, y_pred=y_pred)
     with tf.Session() as sess:
         nose.tools.assert_equal(sess.run(ssim), 1.0)
 
 
 def test_ms_ssim():
-    y_true = np.zeros((175, 230, 3), np.float)
+    y_true = np.zeros((175, 230, 3), np.float) - 1.
     y_pred = np.zeros_like(y_true)
-    y_true[50:150, 5:27, :] = 1.
+    y_true[50:150, 5:27, :] = 0.
     y_pred[50:150, 5:27, :] = 1.
     y_true = tf.convert_to_tensor(y_true, dtype=tf.float32)
     y_pred = tf.convert_to_tensor(y_pred, dtype=tf.float32)
-    ssim = metrics.ms_ssim(y_true=y_true, y_pred=y_pred, max_val=1)
+    ssim = metrics.ms_ssim(y_true=y_true, y_pred=y_pred)
     with tf.Session() as sess:
-        nose.tools.assert_equal(sess.run(ssim), 1.0)
+        nose.tools.assert_greater(sess.run(ssim), 0.9)
 
 
 def test_ssim_channels_first():
@@ -91,7 +91,7 @@ def test_ssim_channels_first():
     y_pred[2, :, :, 10:24, 5:20] = 1.
     y_true = K.tf.convert_to_tensor(y_true, dtype=tf.float32)
     y_pred = K.tf.convert_to_tensor(y_pred, dtype=tf.float32)
-    ssim = metrics.ssim(y_true=y_true, y_pred=y_pred, max_val=1)
+    ssim = metrics.ssim(y_true=y_true, y_pred=y_pred)
     with K.tf.Session() as sess:
         K.set_session(sess)
         nose.tools.assert_greater(1, sess.run(ssim))
@@ -106,7 +106,7 @@ def test_ms_ssim_channels_first():
     y_pred[2, :, :, 100:140, 5:120] = 1.
     y_true = K.tf.convert_to_tensor(y_true, dtype=tf.float32)
     y_pred = K.tf.convert_to_tensor(y_pred, dtype=tf.float32)
-    ssim = metrics.ms_ssim(y_true=y_true, y_pred=y_pred, max_val=1)
+    ssim = metrics.ms_ssim(y_true=y_true, y_pred=y_pred)
     with K.tf.Session() as sess:
         K.set_session(sess)
         res = sess.run(ssim)
