@@ -70,7 +70,7 @@ def test_ms_ssim_loss():
     with tf.Session() as sess:
         res = sess.run(dssim_loss)
         nose.tools.assert_tuple_equal(res.shape, (180, 170))
-        nose.tools.assert_greater(np.min(res), .4)
+        nose.tools.assert_greater(np.min(res), .3)
         nose.tools.assert_greater(1., np.min(res))
 
 
