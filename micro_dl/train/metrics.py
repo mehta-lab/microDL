@@ -1,5 +1,6 @@
 """Custom metrics"""
 import keras.backend as K
+import numpy as np
 import tensorflow as tf
 
 
@@ -107,6 +108,91 @@ def ssim(y_true, y_pred, max_val=6):
     return ssim_val
 
 
+def _tf_fspecial_gauss(size, sigma):
+    """
+    Function to mimic the 'fspecial' gaussian MATLAB function
+    """
+    x_data, y_data = np.mgrid[-size // 2 + 1:size // 2 + 1,
+                              -size // 2 + 1:size // 2 + 1]
+
+    x_data = x_data[:, np.newaxis, np.newaxis]
+    y_data = y_data[:, np.newaxis, np.newaxis]
+
+    x = tf.constant(x_data, dtype=tf.float32)
+    y = tf.constant(y_data, dtype=tf.float32)
+
+    gauss = tf.exp(-((x ** 2 + y ** 2)/(2.0 * sigma ** 2)))
+    return gauss / tf.reduce_sum(gauss)
+
+
+def tf_ssim(img1, img2, im_range=255, cs_map=False, mean_metric=True, size=11, sigma=1.5):
+    """
+    Tensorflow implementation of SSIM
+
+    :param img1:
+    :param img2:
+    :param cs_map:
+    :param mean_metric:
+    :param size:
+    :param sigma:
+    :return:
+    """
+    # window shape [size, size]
+    window = _tf_fspecial_gauss(size, sigma)
+    C1 = (0.01 * im_range) ** 2
+    C2 = (0.03 * im_range) ** 2
+    mu1 = tf.nn.conv2d(img1, window, strides=[1, 1, 1, 1], padding='VALID')
+    mu2 = tf.nn.conv2d(img2, window, strides=[1, 1, 1, 1], padding='VALID')
+    mu1_sq = mu1 * mu1
+    mu2_sq = mu2 * mu2
+    mu1_mu2 = mu1 * mu2
+    sigma1_sq = tf.nn.conv2d(img1 * img1, window, strides=[1,1,1,1], padding='VALID') - mu1_sq
+    sigma2_sq = tf.nn.conv2d(img2*img2, window, strides=[1,1,1,1],padding='VALID') - mu2_sq
+    sigma12 = tf.nn.conv2d(img1*img2, window, strides=[1,1,1,1],padding='VALID') - mu1_mu2
+    if cs_map:
+        value = (((2*mu1_mu2 + C1)*(2*sigma12 + C2))/((mu1_sq + mu2_sq + C1)*
+                    (sigma1_sq + sigma2_sq + C2)),
+                (2.0*sigma12 + C2)/(sigma1_sq + sigma2_sq + C2))
+    else:
+        value = ((2*mu1_mu2 + C1)*(2*sigma12 + C2))/((mu1_sq + mu2_sq + C1)*
+                    (sigma1_sq + sigma2_sq + C2))
+
+    if mean_metric:
+        value = tf.reduce_mean(value)
+    return value
+
+
+def tf_ms_ssim(im1, im2, mean_metric=True, level=5):
+    """
+    Tensorflow implementation of MS-SSIM
+    :param im1:
+    :param im2:
+    :param mean_metric:
+    :param level:
+    :return:
+    """
+    weight = tf.constant([0.0448, 0.2856, 0.3001, 0.2363, 0.1333], dtype=tf.float32)
+    mssim = []
+    mcs = []
+    for l in range(level):
+        ssim_map, cs_map = tf_ssim(im1, im2, cs_map=True, mean_metric=False)
+        mssim.append(tf.reduce_mean(ssim_map))
+        mcs.append(tf.reduce_mean(cs_map))
+        im1 = tf.nn.avg_pool(im1, [1, 2, 2, 1], [1, 2, 2, 1], padding='SAME')
+        im2 = tf.nn.avg_pool(im2, [1, 2, 2, 1], [1, 2, 2, 1], padding='SAME')
+
+    # list to tensor of dim D+1
+    mssim = tf.stack(mssim, axis=0)
+    mcs = tf.stack(mcs, axis=0)
+
+    value = (tf.reduce_prod(mcs[0:level-1]**weight[0:level-1])*
+                            (mssim[level-1]**weight[level-1]))
+
+    if mean_metric:
+        value = tf.reduce_mean(value)
+    return value
+
+
 @flip_dimensions
 def ms_ssim(y_true, y_pred, max_val=None):
     """
@@ -114,6 +200,10 @@ def ms_ssim(y_true, y_pred, max_val=None):
     Use max_val=6 to approximate maximum of normalized images.
     Tensorflow uses average pooling for each scale, so your tensor
     has to be relatively large (>170 pixel in x and y) for this to work.
+    Warning: when using normalized images you often get nans since you'll
+    compute small values to the power of small weights,
+    so this implementation moves all images values up to positives in a
+    hacky way by adding 255 to your prediction and target.
 
     :param tensor y_true: Labeled ground truth
     :param tensor y_pred: Predicted labels, potentially non-binary
@@ -121,9 +211,12 @@ def ms_ssim(y_true, y_pred, max_val=None):
         difference between the maximum the and minimum allowed values).
     :return float ms_ssim: Mean SSIM over images in the batch
     """
-    msssim = K.mean(tf.image.ssim_multiscale(y_true, y_pred, max_val=max_val))
+    # Re-normalize images to avoid nans when doing the weights exponential
+    y_t = y_true + 255.
+    y_p = y_pred + 255.
+    msssim = K.mean(tf.image.ssim_multiscale(y_t, y_p, max_val=max_val))
     # If you're getting nans
-    msssim = K.where(K.is_nan(msssim), 0., msssim)
+    msssim = tf.where(tf.is_nan(msssim), 0., msssim)
     if msssim is None:
         msssim = K.constant(0.)
     return msssim
