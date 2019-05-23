@@ -99,6 +99,22 @@ def flip_dimensions(func):
     return wrap_function
 
 
+def _get_max_min_val(y_true, y_pred):
+    """
+    Get intensity range and min of ground truth and prediction
+
+    :param tensor y_true: Gound truth data
+    :param tensor y_pred: Predicted data
+    :return float max_val: Value range (max - min)
+    :return float min_val: Minimum value of true and pred
+    """
+    min_tensor = tf.stack([K.min(y_true), K.min(y_pred)])
+    max_tensor = tf.stack([K.max(y_true), K.max(y_pred)])
+    min_val = K.min(min_tensor)
+    max_val = K.max(max_tensor) - min_val
+    return max_val, min_val
+
+
 @flip_dimensions
 def ssim(y_true, y_pred):
     """Structural similarity
@@ -111,10 +127,7 @@ def ssim(y_true, y_pred):
     :return float K.mean(ssim): mean SSIM over images in the batch
     """
     # Get value range
-    min_tensor = tf.stack([K.min(y_true), K.min(y_pred)])
-    max_tensor = tf.stack([K.max(y_true), K.max(y_pred)])
-    min_val = K.min(min_tensor)
-    max_val = K.max(max_tensor) - min_val
+    max_val, _ = _get_max_min_val(y_true, y_pred)
     ssim_val = K.mean(tf.image.ssim(y_true, y_pred, max_val=max_val))
     return ssim_val
 
@@ -128,19 +141,17 @@ def ms_ssim(y_true, y_pred):
     has to be relatively large (>170 pixel in x and y) for this to work.
     When using normalized images you often get nans since you'll
     compute small values to the power of small weights, so this
-    implementation moves all targets and predictions up to a positive range.
+    implementation moves all targets and predictions up to a positive
+    (>1) intensity range.
 
     :param tensor y_true: Gound truth data
     :param tensor y_pred: Predicted data
     :return float ms_ssim: Mean SSIM over images in the batch
     """
     # Move images positive range to avoid nans when doing ^weights
-    min_tensor = tf.stack([K.min(y_true), K.min(y_pred)])
-    max_tensor = tf.stack([K.max(y_true), K.max(y_pred)])
-    min_val = K.min(min_tensor)
-    max_val = K.max(max_tensor) - min_val
-    y_t = y_true + min_val
-    y_p = y_pred + min_val
+    max_val, min_val = _get_max_min_val(y_true, y_pred)
+    y_t = y_true - min_val
+    y_p = y_pred - min_val
     msssim = K.mean(tf.image.ssim_multiscale(y_t, y_p, max_val=max_val))
     # If you're getting nans
     msssim = tf.where(tf.is_nan(msssim), 0., msssim)

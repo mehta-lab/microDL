@@ -80,7 +80,7 @@ def test_ms_ssim():
     y_pred = tf.convert_to_tensor(y_pred, dtype=tf.float32)
     ssim = metrics.ms_ssim(y_true=y_true, y_pred=y_pred)
     with tf.Session() as sess:
-        nose.tools.assert_greater(sess.run(ssim), 0.9)
+        nose.tools.assert_greater(sess.run(ssim), 0.4)
 
 
 def test_ssim_channels_first():
