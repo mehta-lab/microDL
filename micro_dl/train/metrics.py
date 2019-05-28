@@ -139,24 +139,25 @@ def ms_ssim(y_true, y_pred):
     Use max_val=6 to approximate maximum of normalized images.
     Tensorflow uses average pooling for each scale, so your tensor
     has to be relatively large (>170 pixel in x and y) for this to work.
-    When using normalized images you often get nans since you'll
-    compute small values to the power of small weights, so this
-    implementation moves all targets and predictions up to a positive
-    (>1) intensity range.
+    When using normalized images you often get imaginary numbers (nans)
+    since you'll compute negative values to the power of small weights,
+    so this implementation uses the definition in NVIDIA's loss paper:
+    https://research.nvidia.com/sites/default/files/pubs/2017-03_Loss-Functions-for/NN_ImgProc.pdf
 
     :param tensor y_true: Gound truth data
     :param tensor y_pred: Predicted data
-    :return float ms_ssim: Mean SSIM over images in the batch
+    :return float ms_ssim: Mean MS-SSIM over images in the batch
     """
-    # Move images positive range to avoid nans when doing ^weights
     max_val, min_val = _get_max_min_val(y_true, y_pred)
-    y_t = y_true - min_val
-    y_p = y_pred - min_val
-    msssim = K.mean(tf.image.ssim_multiscale(y_t, y_p, max_val=max_val))
-    # If you're getting nans
-    msssim = tf.where(tf.is_nan(msssim), 0., msssim)
-    if msssim is None:
-        msssim = K.constant(0.)
+    MSSSIM_WEIGHTS = (1, 1, 1, 1, 1)
+
+    msssim = tf.image.ssim_multiscale(
+        y_true,
+        y_pred,
+        max_val=max_val,
+        power_factors=MSSSIM_WEIGHTS,
+    )
+    msssim = K.mean(msssim)
     return msssim
 
 
