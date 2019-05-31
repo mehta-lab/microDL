@@ -21,7 +21,7 @@ def coeff_determination(y_true, y_pred):
 def mask_coeff_determination(n_channels):
     """split y_true into y_true and mask
 
-    For masked_loss there's an added function/method to convert split
+    For masked_loss there's an added function/method to split
     y_true and pass to loss, metrics and callbacks.
 
     :param int n_channels: Number of channels
@@ -117,8 +117,8 @@ def _get_max_min_val(y_true, y_pred):
 
 @flip_dimensions
 def ssim(y_true, y_pred):
-    """Structural similarity
-    Uses a default max_val=6 to approximate maximum of normalized images.
+    """
+    Structural similarity
     Tensorflow does not support SSIM for 3D images. Need a different
     way to compute SSIM for 5D tensor (e.g. skimage).
 
@@ -136,7 +136,6 @@ def ssim(y_true, y_pred):
 def ms_ssim(y_true, y_pred):
     """
     MS-SSIM for 2D images over batches.
-    Use max_val=6 to approximate maximum of normalized images.
     Tensorflow uses average pooling for each scale, so your tensor
     has to be relatively large (>170 pixel in x and y) for this to work.
     When using normalized images you often get imaginary numbers (nans)
@@ -149,11 +148,14 @@ def ms_ssim(y_true, y_pred):
     :return float ms_ssim: Mean MS-SSIM over images in the batch
     """
     max_val, min_val = _get_max_min_val(y_true, y_pred)
+    # Move values to positive range to avoid sign changes in luminance
+    y_t = y_true - min_val
+    y_p = y_pred - min_val
     MSSSIM_WEIGHTS = (1, 1, 1, 1, 1)
 
     msssim = tf.image.ssim_multiscale(
-        y_true,
-        y_pred,
+        y_t,
+        y_p,
         max_val=max_val,
         power_factors=MSSSIM_WEIGHTS,
     )

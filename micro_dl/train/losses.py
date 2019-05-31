@@ -26,7 +26,7 @@ def mse_loss(y_true, y_pred, mean_loss=True):
 
     :param y_true: Ground truth
     :param y_pred: Prediction
-    :return float: Mean absolute error loss
+    :return float: Mean squared error loss
     """
     if not mean_loss:
         return K.square(y_pred - y_true)
