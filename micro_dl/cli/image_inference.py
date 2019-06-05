@@ -45,6 +45,21 @@ def parse_args():
         default=None,
         help='File name of weights in model dir (.hdf5). If None grab newest.',
     )
+
+    parser.add_argument(
+        '--save_to_image_dir',
+        dest='save_to_image_dir',
+        action='store_true',
+        help='write predicted images to image directory',
+    )
+
+    parser.add_argument(
+        '--save_to_model_dir',
+        dest='save_to_image_dir',
+        action='store_false',
+        help='write predicted images to model directory',
+    )
+    parser.set_defaults(save_to_model_dir=False)
     parser.add_argument(
         '--test_data',
         dest='test_data',
@@ -102,7 +117,8 @@ def run_prediction(model_dir,
                    metrics=None,
                    test_data=True,
                    ext='.tif',
-                   save_figs=False):
+                   save_figs=False,
+                   save_to_image_dir=False):
     """
     Predict images given model + weights.
     If the test_data flag is set to True, the test indices in
@@ -131,6 +147,14 @@ def run_prediction(model_dir,
         )
     # Load config file
     config_name = os.path.join(model_dir, 'config.yml')
+    # Create image subdirectory to write predicted images
+    if save_to_image_dir:
+        pred_dir = os.path.join(image_dir, os.path.basename(model_dir))
+        test_frames_meta_filename = os.path.join(image_dir, os.path.basename(model_dir), 'test_frames_meta.csv')
+    else:
+        pred_dir = os.path.join(model_dir, 'predictions')
+        test_frames_meta_filename = os.path.join(model_dir, 'test_frames_meta.csv')
+
     with open(config_name, 'r') as f:
         config = yaml.safe_load(f)
     # Load frames metadata and determine indices
@@ -146,10 +170,7 @@ def run_prediction(model_dir,
         index_col=0,
     )
     # TODO: generate test_frames_meta.csv together with tile csv during training
-    test_frames_meta_filename = os.path.join(
-        model_dir,
-        'test_frames_meta.csv',
-    )
+
     if metrics is not None:
         if isinstance(metrics, str):
             metrics = [metrics]
