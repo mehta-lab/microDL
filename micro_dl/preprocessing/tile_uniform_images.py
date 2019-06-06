@@ -25,7 +25,8 @@ class ImageTilerUniform:
                  flat_field_dir=None,
                  image_format='zyx',
                  num_workers=4,
-                 int2str_len=3):
+                 int2str_len=3,
+                 normalize_im='stack'):
         """
         Normalizes images using z-score, then tiles them.
         If tile_dir already exist, it will check which channels are already
@@ -57,6 +58,7 @@ class ImageTilerUniform:
         :param int num_workers: number of workers for multiprocessing
         :param int int2str_len: number of characters for each idx to be used
          in file names
+        :param None or str normalize_im: normalization scheme for input images
         """
         self.input_dir = input_dir
         self.output_dir = output_dir
@@ -77,6 +79,11 @@ class ImageTilerUniform:
             image_format = tile_dict['image_format']
             assert image_format in {'zyx', 'xyz'}, \
                 'Data format must be zyx or xyz'
+        if 'normalize_im' in tile_dict:
+            normalize_im = tile_dict['normalize_im']
+            assert normalize_im in [None, 'stack', 'volume', 'dataset'], \
+                'normalize_im must be None or "stack" or "volume" or "dataset"'
+
         self.depths = depths
         self.tile_size = tile_size
         self.step_size = step_size
@@ -153,6 +160,7 @@ class ImageTilerUniform:
         )
         self.int2str_len = int2str_len
         self.tile_3d = tile_dict['tile_3d']
+        self.normalize_im = normalize_im
 
     def get_tile_dir(self):
         """
@@ -325,6 +333,56 @@ class ImageTilerUniform:
             im_fnames.append(file_path)
         return im_fnames
 
+    def _get_zscore_params(self,
+                           time_idx,
+                           channel_idx,
+                           slice_idx,
+                           pos_idx
+                           ):
+        """Get zscore mean and standard deviation
+
+        :param int time_idx: Time index
+        :param int channel_idx: Channel index
+        :param int slice_idx: Slice (z) index
+        :param int pos_idx: Position (FOV) index
+        :param str mask_dir: Directory containing masks
+        :return: list of input fnames
+        """
+
+        depth = self.channel_depth[channel_idx]
+
+        margin = 0 if depth == 1 else depth // 2
+        if self.normalize_im is None:
+            # No normalization
+            zscore_mean = 0
+            zscore_std = 1
+            return zscore_mean, zscore_std
+
+        if self.normalize_im == 'dataset':
+            meta_idxs = aux_utils.get_row_idx(
+                self.frames_metadata,
+                time_idx,
+                channel_idx,
+            )
+        elif self.normalize_im in ['stack', 'volume']:
+            meta_idxs = []
+            if self.normalize_im == 'stack':
+                z_range = list(range(slice_idx - margin, slice_idx + margin + 1))
+            else:
+                z_range = self.slice_ids
+            for z in z_range:
+                meta_idx = aux_utils.get_meta_idx(
+                    self.frames_metadata,
+                    time_idx,
+                    channel_idx,
+                    z,
+                    pos_idx,
+                )
+                meta_idxs.append(meta_idx)
+        zscore_mean = self.frames_metadata.loc[meta_idxs, 'mean'].mean()
+        zscore_std = self.frames_metadata.loc[meta_idxs, 'std'].mean()
+        return zscore_mean, zscore_std
+
     def get_crop_tile_args(self,
                            channel_idx,
                            time_idx,
@@ -355,10 +413,11 @@ class ImageTilerUniform:
             pos_idx=pos_idx,
             mask_dir=mask_dir
         )
-
-        # no flat field correction for mask
+        # no flat field correction and normalization for masks
         flat_field_fname = None
         hist_clip_limits = None
+        zscore_mean = None
+        zscore_std = None
         is_mask = False
         if mask_dir is None:
             if self.flat_field_dir is not None:
@@ -371,10 +430,15 @@ class ImageTilerUniform:
                 hist_clip_limits = tuple(
                     self.hist_clip_limits
                 )
+            zscore_mean, zscore_std = self._get_zscore_params(
+                time_idx=time_idx,
+                channel_idx=channel_idx,
+                slice_idx=slice_idx,
+                pos_idx=pos_idx
+            )
         else:
             # Using masks, need to make sure they're bool
             is_mask = True
-
         if task_type == 'crop':
             cur_args = (tuple(input_fnames),
                         flat_field_fname,
@@ -388,7 +452,9 @@ class ImageTilerUniform:
                         self.tile_dir,
                         self.int2str_len,
                         is_mask,
-                        self.tile_3d)
+                        self.tile_3d,
+                        zscore_mean,
+                        zscore_std)
         elif task_type == 'tile':
             cur_args = (tuple(input_fnames),
                         flat_field_fname,
@@ -403,7 +469,9 @@ class ImageTilerUniform:
                         self.image_format,
                         self.tile_dir,
                         self.int2str_len,
-                        is_mask)
+                        is_mask,
+                        zscore_mean,
+                        zscore_std)
         return cur_args
 
     def tile_stack(self):

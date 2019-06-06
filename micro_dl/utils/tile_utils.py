@@ -11,7 +11,9 @@ def read_imstack(input_fnames,
                  flat_field_fname=None,
                  hist_clip_limits=None,
                  is_mask=False,
-                 normalize_im=True):
+                 normalize_im=True,
+                 zscore_mean=0,
+                 zscore_std=1):
     """
     Read the images in the fnames and assembles a stack.
     If images are masks, make sure they're boolean by setting >0 to True
@@ -51,7 +53,10 @@ def read_imstack(input_fnames,
                 hist_clip_limits[1]
             )
         if normalize_im:
-            input_image = normalize.zscore(input_image)
+            input_image = normalize.zscore(
+                input_image, mean=zscore_mean,
+                std=zscore_std
+            )
     else:
         if input_image.dtype != bool:
             input_image = input_image > 0
@@ -67,7 +72,9 @@ def preprocess_imstack(frames_metadata,
                        pos_idx,
                        flat_field_im=None,
                        hist_clip_limits=None,
-                       normalize_im=True):
+                       zscore_mean=0,
+                       zscore_std=1
+                       ):
     """
     Preprocess image given by indices: flatfield correction, histogram
     clipping and z-score normalization is performed.
@@ -121,8 +128,11 @@ def preprocess_imstack(frames_metadata,
             hist_clip_limits[0],
             hist_clip_limits[1],
         )
-    if normalize_im:
-        im_stack = normalize.zscore(im_stack)
+
+    im_stack = normalize.zscore(
+        im_stack, mean=zscore_mean,
+        std=zscore_std
+    )
     return im_stack
 
 

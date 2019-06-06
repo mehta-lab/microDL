@@ -23,3 +23,4 @@ tile:
     image_format: 'zyx'
     save_tiled_masks: True
     min_fraction: 0.25
+    normalize_im: 'stack'

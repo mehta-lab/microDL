@@ -2,8 +2,9 @@
 
 import argparse
 import os
-
+import numpy as np
 import micro_dl.utils.aux_utils as aux_utils
+from micro_dl.utils.image_utils import read_image
 
 
 def parse_args():
@@ -72,7 +73,12 @@ def meta_generator(args):
             kwargs["order"] = args.order
         elif args.name_parser == 'parse_sms_name':
             kwargs["channel_names"] = channel_names
-        frames_meta.loc[i] = parse_func(**kwargs)
+        meta_row = parse_func(**kwargs)
+        im_path = os.path.join(args.input, im_names[i])
+        im = read_image(im_path)
+        meta_row['mean'] = np.nanmean(im)
+        meta_row['std'] = np.nanstd(im)
+        frames_meta.loc[i] = meta_row
 
     # Write metadata
     meta_filename = os.path.join(args.input, 'frames_meta.csv')

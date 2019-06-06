@@ -124,7 +124,10 @@ def tile_and_save(input_fnames,
                   image_format,
                   save_dir,
                   int2str_len=3,
-                  is_mask=False):
+                  is_mask=False,
+                  zscore_mean=None,
+                  zscore_std=None
+                  ):
     """Crop image into tiles at given indices and save
 
     :param tuple input_fnames: tuple of input fnames with full path
@@ -149,6 +152,9 @@ def tile_and_save(input_fnames,
             flat_field_fname=flat_field_fname,
             hist_clip_limits=hist_clip_limits,
             is_mask=is_mask,
+            normalize_im=True,
+            zscore_mean=zscore_mean,
+            zscore_std=zscore_std
         )
         save_dict = {'time_idx': time_idx,
                      'channel_idx': channel_idx,
@@ -202,7 +208,10 @@ def crop_at_indices_save(input_fnames,
                          save_dir,
                          int2str_len=3,
                          is_mask=False,
-                         tile_3d=False):
+                         tile_3d=False,
+                         zscore_mean=None,
+                         zscore_std=None
+                         ):
     """Crop image into tiles at given indices and save
 
     :param tuple input_fnames: tuple of input fnames with full path
@@ -227,6 +236,9 @@ def crop_at_indices_save(input_fnames,
             flat_field_fname=flat_field_fname,
             hist_clip_limits=hist_clip_limits,
             is_mask=is_mask,
+            normalize_im=True,
+            zscore_mean=zscore_mean,
+            zscore_std=zscore_std
         )
         save_dict = {'time_idx': time_idx,
                      'channel_idx': channel_idx,
