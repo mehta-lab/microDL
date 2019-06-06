@@ -34,15 +34,16 @@ def create_save_mask(input_fnames,
                      int2str_len,
                      mask_type,
                      mask_ext):
+
     """Create and save mask
     When >1 channel are used to generate the mask, mask of each channel is
     generated then added together
     :param tuple input_fnames: tuple of input fnames with full path
     :param str flat_field_fname: fname of flat field image
     :param int str_elem_radius: size of structuring element used for binary
-         opening. str_elem: disk or ball
+     opening. str_elem: disk or ball
     :param str mask_dir: dir to save masks
-    :param int mask_channel_idx: channel number of maskß
+    :param int mask_channel_idx: channel number of mask
     :param int time_idx: time points to use for generating mask
     :param int pos_idx: generate masks for given position / sample ids
     :param int slice_idx: generate masks for given slice ids
@@ -50,7 +51,7 @@ def create_save_mask(input_fnames,
     :param str mask_type: thresholding type used for masking or str to map to
      masking function
     :param str mask_ext: 'npy' or 'png'. Save the mask as uint8 PNG or
-         NPY files
+     NPY files
     :return dict cur_meta for each mask
     """
 

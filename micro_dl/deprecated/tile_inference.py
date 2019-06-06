@@ -56,7 +56,7 @@ def run_inference(args, gpu_id, gpu_mem_frac):
     """Evaluate model performance"""
 
     with open(args.config, 'r') as f:
-        config = yaml.load(f)
+        config = yaml.safe_load(f)
     df_test = pd.read_csv(os.path.join(config['trainer']['model_dir'],
                                        'test_metadata.csv'))
 

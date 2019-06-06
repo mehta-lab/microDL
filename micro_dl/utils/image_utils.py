@@ -82,7 +82,6 @@ def crop2base(im, base=2):
 
     :param nd.array im: Image
     :param int base: Base to use, typically 2
-    :param bool crop_z: crop along z dim, only for UNet3D
     :return nd.array im: Cropped image
     :raises AssertionError: if base is less than zero
     """

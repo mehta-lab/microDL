@@ -77,7 +77,7 @@ def compute_metrics(args):
     # Load config file
     config_name = os.path.join(args.model_dir, 'config.yml')
     with open(config_name, 'r') as f:
-        config = yaml.load(f)
+        config = yaml.safe_load(f)
     # Load frames metadata and determine indices
     frames_meta = pd.read_csv(os.path.join(args.image_dir, 'frames_meta.csv'))
 

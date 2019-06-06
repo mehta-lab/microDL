@@ -1,5 +1,5 @@
-train_config: '/data/models/config_train.yml'
-model_fname: '/data/models/kidney_3d/Model_2019.hdf5'
+model_dir: '/data/models'
+model_fname: 'kidney_3d/Model_2019.hdf5'
 image_dir: '/data/kidney_tiles/resized_images'
 image_params_dict:
     image_format: 'zyx'

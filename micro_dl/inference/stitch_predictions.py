@@ -61,11 +61,12 @@ class ImageStitcher:
                        end_idx):
         """Place the current block prediction in the larger vol
 
+        pred_image mutated in-place
+
         :param np.array pred_block: current prediction block
         :param np.array pred_image: full 3D prediction image with zeros
         :param int start_idx: start slice of pred_block
         :param int end_idx: end slice of pred block
-        :return np.array pred_image: with pred_block placed accordingly
         """
 
         num_overlap = self.overlap_dict['overlap_shape']
@@ -99,7 +100,7 @@ class ImageStitcher:
             idx_in_img[z_dim] = np.s_[start_idx: start_idx + num_overlap]
             idx_in_block[z_dim] = np.s_[0: num_overlap]
             pred_image[idx_in_img] = pred_block[idx_in_block]
-        return pred_image
+        return
 
     def _stitch_along_z(self,
                         tile_imgs_list,
@@ -120,10 +121,10 @@ class ImageStitcher:
         for idx, sub_block in enumerate(tile_imgs_list):
             try:
                 cur_sl_idx = block_indices_list[idx]
-                stitched_img = self._place_block_z(pred_block=sub_block,
-                                                   pred_image=stitched_img,
-                                                   start_idx=cur_sl_idx[0],
-                                                   end_idx=cur_sl_idx[1])
+                self._place_block_z(pred_block=sub_block,
+                                    pred_image=stitched_img,
+                                    start_idx=cur_sl_idx[0],
+                                    end_idx=cur_sl_idx[1])
             except Exception as e:
                 raise Exception('error in _stitch_along_z:{}'.format(e))
         return stitched_img
@@ -133,6 +134,8 @@ class ImageStitcher:
                          pred_image,
                          crop_index):
         """Place the current block prediction in the larger vol
+
+        pred_image mutated in-place
 
         :param np.array pred_block: current prediction block
         :param np.array pred_image: full 3D prediction image with zeros
@@ -206,7 +209,7 @@ class ImageStitcher:
                                        overlap_shape[idx_3d]:
                                        crop_index[2 * idx_3d + 1]]
             idx_in_block[idx_5d] = np.s_[overlap_shape[idx_3d]:]
-        return pred_image
+        return
 
     def _stitch_along_xyz(self,
                           tile_imgs_list,
@@ -224,9 +227,9 @@ class ImageStitcher:
         for idx, cur_tile in enumerate(tile_imgs_list):
             try:
                 cur_crop_idx = block_indices_list[idx]
-                stitched_img = self._place_block_xyz(pred_block=cur_tile,
-                                                     pred_image=stitched_img,
-                                                     crop_index=cur_crop_idx)
+                self._place_block_xyz(pred_block=cur_tile,
+                                      pred_image=stitched_img,
+                                      crop_index=cur_crop_idx)
             except Exception as e:
                 raise Exception('error in _stitch_along_xyz:{}'.format(e))
         return stitched_img
@@ -242,6 +245,7 @@ class ImageStitcher:
          each prediction. Individual list of: len=2 when tile_z (start_slice,
          end_slice), len=6 for tile_xyz with start and end indices for each
          dimension
+        :return np.array stitched_img: tile_imgs_list stitched into a 3D image
         """
 
         assert len(tile_imgs_list) == len(block_indices_list), \

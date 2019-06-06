@@ -51,7 +51,7 @@ def read_config(config_fname):
     """
 
     with open(config_fname, 'r') as f:
-        config = yaml.load(f)
+        config = yaml.safe_load(f)
 
     return config
 

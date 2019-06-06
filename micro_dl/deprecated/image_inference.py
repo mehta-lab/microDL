@@ -113,7 +113,7 @@ def run_prediction(args, gpu_ids, gpu_mem_frac):
     # Load config file
     config_name = os.path.join(args.model_dir, 'config.yml')
     with open(config_name, 'r') as f:
-        config = yaml.load(f)
+        config = yaml.safe_load(f)
     # Load frames metadata and determine indices
     network_config = config['network']
     dataset_config = config['dataset']
