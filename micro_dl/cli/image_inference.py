@@ -290,7 +290,7 @@ def run_prediction(model_dir,
                     pos_idx,
                 )
                 # get a single row of frame meta data
-                test_frames_meta_row = frames_meta.loc[meta_idx]
+                test_frames_meta_row = frames_meta.loc[meta_idx].copy()
                 im_target = preprocess_imstack(
                     frames_metadata=frames_meta,
                     input_dir=image_dir,
@@ -316,7 +316,7 @@ def run_prediction(model_dir,
                 im_target = im_target[np.newaxis, ...]
 
                 metric_vals = model.evaluate(x=im_stack, y=im_target)
-                for metric, metric_val in zip([loss]+metrics, metric_vals):
+                for metric, metric_val in zip([loss] + metrics, metric_vals):
                     test_frames_meta_row[metric] = metric_val
 
                 test_frames_meta = test_frames_meta.append(
