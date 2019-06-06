@@ -308,7 +308,7 @@ if __name__ == '__main__':
         args.gpu,
         args.gpu_mem_frac,
     )
-    config = aux_utils.read_config(args.config_path)
+    config = aux_utils.read_config(args.config)
     run_action(
         action=args.action,
         config=config,
