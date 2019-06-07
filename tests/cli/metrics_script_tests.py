@@ -78,6 +78,7 @@ class TestMetricsScript(unittest.TestCase):
                 'target_channels': [2],
                 'split_by_column': 'slice_idx'
             },
+            'network': {}
         }
         config_name = os.path.join(self.model_dir, 'config.yml')
         with open(config_name, 'w') as outfile:
