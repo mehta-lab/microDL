@@ -22,7 +22,7 @@ def parse_args():
     parser.add_argument(
         '--model_dir',
         type=str,
-        default=None,
+        required=True,
         help='Directory containing model weights, config and csv files',
     )
     parser.add_argument(
@@ -46,7 +46,7 @@ def parse_args():
     parser.add_argument(
         '--image_dir',
         type=str,
-        default=None,
+        required=True,
         help="Directory containing images",
     )
     parser.add_argument(
@@ -58,14 +58,14 @@ def parse_args():
     parser.add_argument(
         '--metrics',
         type=str,
-        default=None,
+        required=True,
         nargs='*',
         help='Metrics for model evaluation'
     )
     parser.add_argument(
         '--orientations',
         type=str,
-        default=None,
+        default='xyz',
         nargs='*',
         help='Evaluate metrics along these orientations (xy, xz, yz, xyz)'
     )
