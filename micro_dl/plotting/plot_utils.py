@@ -121,7 +121,7 @@ def save_center_slices(image_dir,
     :param float clip_limits: top and bottom % of intensity to saturate
         in histogram clipping
     :param int margin: Number of pixel margin between the three center slices
-        xy and xz, yzin
+        xy and xz, yz
     :param int z_scale: How much to upsample in z (to be able to see xz and yz)
     :param list z_range: Min and max z slice from given stack
     :param str channel_str: If there's more than one channel in image_dir
