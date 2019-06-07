@@ -28,7 +28,7 @@ def test_r2_metric():
 
 def test_corr_metric():
     corr = metrics.corr_metric(target=target_im, prediction=pred_im)
-    nose.tools.assert_equal(corr, 1)
+    nose.tools.assert_greater(corr, 0.999)
 
 
 def test_ssim_metric():
