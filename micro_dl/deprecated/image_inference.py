@@ -148,11 +148,10 @@ def run_prediction(args, gpu_ids, gpu_mem_frac):
     # E.g. if split is position, we also need to iterate over time and slice
     metadata_ids = {split_idx_name: test_ids}
     iter_ids = ['slice_idx', 'pos_idx', 'time_idx']
-    n_test_row = len(test_ids)
     for id in iter_ids:
         if id != split_idx_name:
             metadata_ids[id] = np.unique(test_tile_meta[id])
-            n_test_row *= len(metadata_ids[id])
+
     # create empty dataframe for test image metadata
     test_frames_meta = pd.DataFrame(
         columns=frames_meta.columns.values.tolist()+metrics
@@ -179,11 +178,7 @@ def run_prediction(args, gpu_ids, gpu_mem_frac):
     depth = 1
     if 'depth' in network_config:
         depth = network_config['depth']
-        if depth > 1:
-            metadata_ids['slice_idx'] = aux_utils.adjust_slice_margins(
-                slice_ids=metadata_ids['slice_idx'],
-                depth=depth,
-            )
+
     # Get input channel
     # TODO: Add multi channel support once such models are tested
     input_channel = dataset_config['input_channels'][0]
@@ -323,9 +318,7 @@ def run_prediction(args, gpu_ids, gpu_mem_frac):
                         clip_limits=1,
                         font_size=15
                     )
-    # calculate means of the metrics
-    test_frames_meta = test_frames_meta.append(
-        test_frames_meta[metrics].agg('mean'), ignore_index=True)
+    # Save test meta
     test_frames_meta.to_csv(test_frames_meta_filename, sep=",")
 
 

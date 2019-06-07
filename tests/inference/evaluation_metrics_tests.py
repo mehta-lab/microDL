@@ -74,6 +74,32 @@ def test_xy_metrics():
     nose.tools.assert_list_equal(list(metrics_xy), metrics_list)
 
 
+def test_xy_metrics_mask():
+    metrics_list = ['corr', 'r2']
+    pred_name = 'test_pred'
+    mask = np.zeros_like(target_im)
+    mask[5:10, 5:10, :] = 1
+    mask = mask > 0
+
+    metrics_inst = metrics.MetricsEstimator(
+        metrics_list=metrics_list,
+        masked_metrics=True,
+    )
+    metrics_inst.estimate_xy_metrics(
+        target=target_im,
+        prediction=pred_im,
+        pred_name=pred_name,
+        mask=mask,
+    )
+    metrics_xy = metrics_inst.get_metrics_xy()
+    print(metrics_xy)
+    nose.tools.assert_tuple_equal(metrics_xy.shape, (im_shape[2], 6))
+    expected_list = [
+        'corr', 'r2', 'vol_frac', 'corr_masked', 'r2_masked', 'pred_name',
+    ]
+    nose.tools.assert_list_equal(list(metrics_xy), expected_list)
+
+
 def test_xz_metrics():
     metrics_list = ['ssim', 'corr']
     pred_name = 'test_pred'

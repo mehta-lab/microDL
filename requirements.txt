@@ -4,12 +4,12 @@ matplotlib==3.0.3
 natsort
 nose
 numpy
-opencv-python
+opencv-python==4.1.0.25
 pandas
 pydot
 PyYAML
 scikit-image
 scikit-learn
 scipy
-tensorflow==1.10.0
+tensorflow>=1.12.1
 testfixtures

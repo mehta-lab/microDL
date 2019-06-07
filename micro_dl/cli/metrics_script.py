@@ -73,6 +73,20 @@ def parse_args():
 
 
 def compute_metrics(args):
+    """
+    Compute specified metrics for given orientations for predictions, which
+    are assumed to be stored in model_dir/predictions. Targets are stored in
+    image_dir.
+    Writes metrics csv files for each orientation in model_dir/predictions.
+
+    :param argparse args:
+    str model_dir: Assumed to contain config, split_samples.json and predictions/
+    bool test_data: Uses test indices in split_samples.json, otherwise all indices
+    str image_dir: Dir containing targets
+    str ext: Prediction image extension
+    list metrics: See inference/evaluation_metrics.py for options
+    list orientations: Any subset of {xy, xz, yz, xyz}
+    """
 
     # Load config file
     config_name = os.path.join(args.model_dir, 'config.yml')
@@ -182,6 +196,7 @@ def compute_metrics(args):
                 input_fnames=tuple(pred_fnames),
                 normalize_im=False,
             )
+
             if depth == 1:
                 # Remove singular z dimension for 2D image
                 target_stack = np.squeeze(target_stack)

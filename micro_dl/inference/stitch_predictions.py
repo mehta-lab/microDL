@@ -263,3 +263,4 @@ class ImageStitcher:
             stitched_img = self._stitch_along_xyz(tile_imgs_list,
                                                   block_indices_list)
         return stitched_img
+
