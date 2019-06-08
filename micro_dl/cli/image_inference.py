@@ -211,7 +211,6 @@ def run_prediction(model_dir,
     weights_path = os.path.join(model_dir, model_fname)
 
     # Create image subdirectory to write predicted images
-    pred_dir = os.path.join(model_dir, 'predictions')
     os.makedirs(pred_dir, exist_ok=True)
     target_channel = dataset_config['target_channels'][0]
     # If saving figures, create another subdirectory to predictions
@@ -241,6 +240,21 @@ def run_prediction(model_dir,
     print(model.summary())
     optimizer = trainer_config['optimizer']['name']
     model.compile(loss=loss_cls, optimizer=optimizer, metrics=metrics_cls)
+    # Get image normalization scheme from preprocessing json
+    # If the parent dir with tile dir, mask dir is passed as data_dir,
+    # it should contain a json with directory names
+    json_fname = os.path.join(dataset_config['data_dir'],
+                              'preprocessing_info.json')
+    if os.path.exists(json_fname):
+        preprocessing_info = aux_utils.read_json(json_filename=json_fname)
+
+        # Preprocessing_info is a list of jsons. Use the last json. If a tile
+        # (training data) dir is specified and exists in info json use that
+        recent_json = preprocessing_info[-1]
+        pp_config = recent_json['config']
+        if 'tile' in pp_config and 'normalize_im' in pp_config['tile']:
+            normalize_im = pp_config['tile']['normalize_im']
+
     # Iterate over all indices for test data
     for time_idx in metadata_ids['time_idx']:
         for pos_idx in metadata_ids['pos_idx']:
@@ -248,6 +262,7 @@ def run_prediction(model_dir,
                 im_stack = []
                 for channel_idx in input_channel:
                     # TODO: Add flatfield support
+
                     im_stack_1chan = preprocess_imstack(
                         frames_metadata=frames_meta,
                         input_dir=image_dir,
@@ -256,6 +271,7 @@ def run_prediction(model_dir,
                         channel_idx=channel_idx,
                         slice_idx=slice_idx,
                         pos_idx=pos_idx,
+                        normalize_im=normalize_im
                     )
 
                     # Crop image shape to nearest factor of two
@@ -325,6 +341,7 @@ def run_prediction(model_dir,
                     channel_idx=target_channel,
                     slice_idx=slice_idx,
                     pos_idx=pos_idx,
+                    normalize_im=normalize_im
                 )
                 im_target = image_utils.crop2base(im_target)
                 #TODO: Add image_format option to network config

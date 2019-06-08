@@ -81,8 +81,6 @@ class ImageTilerUniform:
                 'Data format must be zyx or xyz'
         if 'normalize_im' in tile_dict:
             normalize_im = tile_dict['normalize_im']
-            assert normalize_im in [None, 'stack', 'volume', 'dataset'], \
-                'normalize_im must be None or "stack" or "volume" or "dataset"'
 
         self.depths = depths
         self.tile_size = tile_size
@@ -333,56 +331,6 @@ class ImageTilerUniform:
             im_fnames.append(file_path)
         return im_fnames
 
-    def _get_zscore_params(self,
-                           time_idx,
-                           channel_idx,
-                           slice_idx,
-                           pos_idx
-                           ):
-        """Get zscore mean and standard deviation
-
-        :param int time_idx: Time index
-        :param int channel_idx: Channel index
-        :param int slice_idx: Slice (z) index
-        :param int pos_idx: Position (FOV) index
-        :param str mask_dir: Directory containing masks
-        :return: list of input fnames
-        """
-
-        depth = self.channel_depth[channel_idx]
-
-        margin = 0 if depth == 1 else depth // 2
-        if self.normalize_im is None:
-            # No normalization
-            zscore_mean = 0
-            zscore_std = 1
-            return zscore_mean, zscore_std
-
-        if self.normalize_im == 'dataset':
-            meta_idxs = aux_utils.get_row_idx(
-                self.frames_metadata,
-                time_idx,
-                channel_idx,
-            )
-        elif self.normalize_im in ['stack', 'volume']:
-            meta_idxs = []
-            if self.normalize_im == 'stack':
-                z_range = list(range(slice_idx - margin, slice_idx + margin + 1))
-            else:
-                z_range = self.slice_ids
-            for z in z_range:
-                meta_idx = aux_utils.get_meta_idx(
-                    self.frames_metadata,
-                    time_idx,
-                    channel_idx,
-                    z,
-                    pos_idx,
-                )
-                meta_idxs.append(meta_idx)
-        zscore_mean = self.frames_metadata.loc[meta_idxs, 'mean'].mean()
-        zscore_std = self.frames_metadata.loc[meta_idxs, 'std'].mean()
-        return zscore_mean, zscore_std
-
     def get_crop_tile_args(self,
                            channel_idx,
                            time_idx,
@@ -430,11 +378,15 @@ class ImageTilerUniform:
                 hist_clip_limits = tuple(
                     self.hist_clip_limits
                 )
-            zscore_mean, zscore_std = self._get_zscore_params(
-                time_idx=time_idx,
-                channel_idx=channel_idx,
-                slice_idx=slice_idx,
-                pos_idx=pos_idx
+            zscore_mean, zscore_std = aux_utils.get_zscore_params(
+                time_idx,
+                channel_idx,
+                slice_idx,
+                pos_idx,
+                self.channel_depth[channel_idx],
+                self.slice_ids,
+                self.normalize_im,
+                self.frames_metadata
             )
         else:
             # Using masks, need to make sure they're bool
@@ -497,6 +449,7 @@ class ImageTilerUniform:
                         if tile_indices is None:
                             # tile and save first image
                             # get meta data and tile_indices
+
                             im = tile_utils.preprocess_imstack(
                                 frames_metadata=self.frames_metadata,
                                 input_dir=self.input_dir,
@@ -506,7 +459,8 @@ class ImageTilerUniform:
                                 slice_idx=slice_idx,
                                 pos_idx=pos_idx,
                                 flat_field_im=flat_field_im,
-                                hist_clip_limits=self.hist_clip_limits
+                                hist_clip_limits=self.hist_clip_limits,
+                                normalize_im=self.normalize_im
                             )
                             save_dict = {'time_idx': time_idx,
                                          'channel_idx': channel_idx,

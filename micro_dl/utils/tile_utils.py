@@ -72,8 +72,7 @@ def preprocess_imstack(frames_metadata,
                        pos_idx,
                        flat_field_im=None,
                        hist_clip_limits=None,
-                       zscore_mean=0,
-                       zscore_std=1
+                       normalize_im='stack'
                        ):
     """
     Preprocess image given by indices: flatfield correction, histogram
@@ -88,10 +87,16 @@ def preprocess_imstack(frames_metadata,
     :param int pos_idx: Position (FOV) index
     :param np.array flat_field_im: Flat field image for channel
     :param list hist_clip_limits: Limits for histogram clipping (size 2)
-    :param bool normalize_im: indicator to z-score the image or not
+    :param str normalize_im: options to z-score the image
     :return np.array im: 3D preprocessed image
     """
 
+    metadata_ids, _ = aux_utils.validate_metadata_indices(
+        frames_metadata=frames_metadata,
+        slice_ids=-1,
+        uniform_structure=True
+    )
+    slice_ids = metadata_ids['slice_ids']
     margin = 0 if depth == 1 else depth // 2
     im_stack = []
     for z in range(slice_idx - margin, slice_idx + margin + 1):
@@ -128,6 +133,17 @@ def preprocess_imstack(frames_metadata,
             hist_clip_limits[0],
             hist_clip_limits[1],
         )
+
+    zscore_mean, zscore_std = aux_utils.get_zscore_params(
+        time_idx=time_idx,
+        channel_idx=channel_idx,
+        slice_idx=slice_idx,
+        pos_idx=pos_idx,
+        depth=depth,
+        slice_ids=slice_ids,
+        normalize_im=normalize_im,
+        frames_metadata=frames_metadata
+    )
 
     im_stack = normalize.zscore(
         im_stack, mean=zscore_mean,
