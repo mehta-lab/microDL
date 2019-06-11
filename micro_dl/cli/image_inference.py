@@ -59,7 +59,7 @@ def parse_args():
         action='store_false',
         help='write predicted images to model directory',
     )
-    parser.set_defaults(save_to_model_dir=False)
+    parser.set_defaults(save_to_image_dir=False)
     parser.add_argument(
         '--test_data',
         dest='test_data',
@@ -405,5 +405,6 @@ if __name__ == '__main__':
         test_data=args.test_data,
         ext=args.ext,
         save_figs=args.save_figs,
+        save_to_image_dir=args.save_to_image_dir,
     )
 
