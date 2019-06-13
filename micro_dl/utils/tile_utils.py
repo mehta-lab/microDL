@@ -23,6 +23,8 @@ def read_imstack(input_fnames,
     :param tuple hist_clip_limits: limits for histogram clipping
     :param bool is_mask: Indicator for if files contain masks
     :param bool normalize_im: Whether to zscore normalize im stack
+    :param float zscore_mean: mean for z-scoring the image
+    :param float zscore_std: std for z-scoring the image
     :return np.array: input stack flat_field correct and z-scored if regular
         images, booleans if they're masks
     """

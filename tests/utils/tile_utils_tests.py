@@ -59,8 +59,12 @@ class TestTileUtils(unittest.TestCase):
                     os.path.join(self.temp_path, im_name),
                     sph[:, :, z],
                 )
+            meta_row = aux_utils.parse_idx_from_name(
+                im_name, self.df_columns)
+            meta_row['mean'] = np.nanmean(sph)
+            meta_row['std'] = np.nanstd(sph)
             frames_meta = frames_meta.append(
-                aux_utils.parse_idx_from_name(im_name, self.df_columns),
+                meta_row,
                 ignore_index=True
             )
 

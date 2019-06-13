@@ -46,9 +46,13 @@ class TestImageTilerUniform(unittest.TestCase):
                     os.path.join(self.temp_path, im_name),
                     self.im,
                 )
+            meta_row = aux_utils.parse_idx_from_name(
+                im_name)
+            meta_row['mean'] = np.nanmean(self.im)
+            meta_row['std'] = np.nanstd(self.im)
             frames_meta = frames_meta.append(
-                aux_utils.parse_idx_from_name(im_name),
-                ignore_index=True,
+                meta_row,
+                ignore_index=True
             )
 
         for z in range(15, 20):
@@ -65,9 +69,13 @@ class TestImageTilerUniform(unittest.TestCase):
                     os.path.join(self.temp_path, im_name),
                     self.im2,
                 )
+            meta_row = aux_utils.parse_idx_from_name(
+                im_name)
+            meta_row['mean'] = np.nanmean(self.im2)
+            meta_row['std'] = np.nanstd(self.im2)
             frames_meta = frames_meta.append(
-                aux_utils.parse_idx_from_name(im_name),
-                ignore_index=True,
+                meta_row,
+                ignore_index=True
             )
 
         # Write metadata
@@ -148,7 +156,7 @@ class TestImageTilerUniform(unittest.TestCase):
                             [4, 9, 0, 5], [4, 9, 4, 9], [4, 9, 6, 11],
                             [8, 13, 0, 5], [8, 13, 4, 9], [8, 13, 6, 11]]
         self.exp_tile_indices = exp_tile_indices
-
+        print(frames_meta)
     def tearDown(self):
         """Tear down temporary folder and file structure"""
 

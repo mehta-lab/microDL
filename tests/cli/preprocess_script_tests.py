@@ -38,10 +38,14 @@ class TestPreprocessScript(unittest.TestCase):
                         pos_idx=p,
                         ext='.png',
                     )
+                    im = self.im + c * 100
                     cv2.imwrite(os.path.join(self.temp_path, im_name),
-                                self.im + c * 100)
+                                im)
+                    meta_row = aux_utils.parse_idx_from_name(im_name)
+                    meta_row['mean'] = np.nanmean(im)
+                    meta_row['std'] = np.nanstd(im)
                     self.frames_meta = self.frames_meta.append(
-                        aux_utils.parse_idx_from_name(im_name),
+                        meta_row,
                         ignore_index=True,
                     )
         # Write metadata
