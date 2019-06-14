@@ -159,6 +159,7 @@ def get_zscore_params(time_idx,
     :return float zscore_mean: mean for z-scoring the image
     :return float zscore_std: std for z-scoring the image
     """
+
     assert normalize_im in [None, 'stack', 'volume', 'dataset'], \
         'normalize_im must be None or "stack" or "volume" or "dataset"'
 
@@ -190,6 +191,7 @@ def get_zscore_params(time_idx,
                 pos_idx,
             )
             meta_idxs.append(meta_idx)
+    # Approximate stack and volume standard deviations with mean of slice standard deviations
     zscore_mean = frames_metadata.loc[meta_idxs, 'mean'].mean()
     zscore_std = frames_metadata.loc[meta_idxs, 'std'].mean()
     return zscore_mean, zscore_std

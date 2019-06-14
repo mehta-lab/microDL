@@ -30,6 +30,7 @@ class TestImageTilerUniform(unittest.TestCase):
         self.pos_idx1 = 7
         self.pos_idx2 = 8
         self.int2str_len = 3
+        self.normalize_im = None
 
         # Write test images with 4 z and 2 pos idx
         for z in range(15, 20):
@@ -110,6 +111,7 @@ class TestImageTilerUniform(unittest.TestCase):
             output_dir=self.output_dir,
             tile_dict=self.tile_dict,
             flat_field_dir=self.flat_field_dir,
+            normalize_im=self.normalize_im,
         )
         exp_fnames = ['im_c001_z015_t005_p007.png',
                       'im_c001_z016_t005_p007.png',
@@ -156,7 +158,6 @@ class TestImageTilerUniform(unittest.TestCase):
                             [4, 9, 0, 5], [4, 9, 4, 9], [4, 9, 6, 11],
                             [8, 13, 0, 5], [8, 13, 4, 9], [8, 13, 6, 11]]
         self.exp_tile_indices = exp_tile_indices
-        print(frames_meta)
     def tearDown(self):
         """Tear down temporary folder and file structure"""
 
@@ -350,9 +351,9 @@ class TestImageTilerUniform(unittest.TestCase):
         self.assertSetEqual(set(frames_meta.col_start.tolist()), {0, 4, 6})
 
         # Read and validate tiles
-        im_val = np.mean(norm_util.zscore(self.im / self.ff_im))
+        im_val = np.mean(norm_util.zscore(self.im / self.ff_im, mean=0, std=1))
         im_norm = im_val * np.ones((3, 5, 5))
-        im_val = np.mean(norm_util.zscore(self.im2 / self.ff_im))
+        im_val = np.mean(norm_util.zscore(self.im2 / self.ff_im, mean=0, std=1))
         im2_norm = im_val * np.ones((3, 5, 5))
         for i, row in frames_meta.iterrows():
             tile = np.load(os.path.join(tile_dir, row.file_name))

@@ -61,13 +61,14 @@ class TestTileUtils(unittest.TestCase):
                 )
             meta_row = aux_utils.parse_idx_from_name(
                 im_name, self.df_columns)
-            meta_row['mean'] = np.nanmean(sph)
-            meta_row['std'] = np.nanstd(sph)
+            meta_row['mean'] = np.nanmean(sph[:, :, z])
+            meta_row['std'] = np.nanstd(sph[:, :, z])
             frames_meta = frames_meta.append(
                 meta_row,
                 ignore_index=True
             )
-
+        self.dataset_mean = frames_meta['mean'].mean()
+        self.dataset_std = frames_meta['std'].mean()
         # Write metadata
         frames_meta.to_csv(os.path.join(self.temp_path, meta_fname), sep=',')
         self.frames_meta = frames_meta
@@ -82,6 +83,8 @@ class TestTileUtils(unittest.TestCase):
             'channel_name': '3d_test',
             'file_name': 'im_c001_z000_t000_p001_3d.npy',
             'pos_idx': 1,
+            'mean': self.dataset_mean,
+            'std': self.dataset_std,
         }])
         self.meta_3d = meta_3d
 
@@ -98,8 +101,12 @@ class TestTileUtils(unittest.TestCase):
         fnames = self.frames_meta['file_name'][:3]
         fnames = [os.path.join(self.temp_path, fname) for fname in fnames]
         # non-boolean
-        im_stack = tile_utils.read_imstack(fnames)
-        exp_stack = zscore(self.sph[:, :, :3])
+        im_stack = tile_utils.read_imstack(fnames,
+                                           zscore_mean=self.dataset_mean,
+                                           zscore_std=self.dataset_std)
+        exp_stack = zscore(self.sph[:, :, :3],
+                           mean=self.dataset_mean,
+                           std=self.dataset_std)
         numpy.testing.assert_equal(im_stack.shape, (32, 32, 3))
         numpy.testing.assert_array_equal(exp_stack[:, :, :3],
                                          im_stack)
@@ -121,10 +128,13 @@ class TestTileUtils(unittest.TestCase):
                                                  time_idx=self.time_ids,
                                                  channel_idx=self.channel_ids,
                                                  slice_idx=2,
-                                                 pos_idx=self.pos_ids)
+                                                 pos_idx=self.pos_ids,
+                                                 normalize_im='dataset')
 
         numpy.testing.assert_equal(im_stack.shape, (32, 32, 3))
-        exp_stack = zscore(self.sph[:, :, 1:4])
+        exp_stack = zscore(self.sph[:, :, 1:4],
+                           mean=self.dataset_mean,
+                           std=self.dataset_std)
         numpy.testing.assert_array_equal(im_stack, exp_stack)
 
         # preprocess a 3D image
@@ -134,8 +144,13 @@ class TestTileUtils(unittest.TestCase):
                                                  time_idx=0,
                                                  channel_idx=1,
                                                  slice_idx=0,
-                                                 pos_idx=1)
+                                                 pos_idx=1,
+                                                 normalize_im='dataset')
         numpy.testing.assert_equal(im_stack.shape, (32, 32, 8))
+        exp_stack = zscore(self.sph,
+                           mean=self.dataset_mean,
+                           std=self.dataset_std)
+        numpy.testing.assert_array_equal(im_stack, exp_stack)
 
     def test_tile_image(self):
         """Test tile_image"""
