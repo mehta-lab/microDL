@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.ndimage
 from scipy.ndimage import binary_fill_holes
 from skimage.filters import threshold_otsu
 from skimage.morphology import disk, ball, binary_opening, binary_erosion
@@ -94,3 +95,61 @@ def create_unimodal_mask(input_image, str_elem_size=3):
     thr_image = binary_opening(input_image > thr, str_elem)
     mask = binary_erosion(thr_image, str_elem)
     return mask
+
+
+def make_weight_map(mask, w0=10, sigma=5):
+    """
+    Generate the weight map for borders as specified in the UNet paper for a binary mask.
+    Parameters
+    ----------
+    mask: array-like
+        A 2D array of shape (image_height, image_width) one binary mask.
+
+    Returns
+    -------
+    array-like
+        A 2D array of shape (image_height, image_width)
+    """
+
+    # class balance weights w_c(x)
+    unique_values = np.unique(mask).tolist()
+    weight_map = [0] * len(unique_values)
+    for index, unique_value in enumerate(unique_values):
+        mask = np.zeros((mask.shape[0], mask.shape[1]), dtype=np.float64)
+        mask[mask == unique_value] = 1
+        weight_map[index] = 1 / mask.sum()
+
+    # this normalization is important - foreground pixels must have weight 1
+    weight_map = weight_map / max(weight_map)
+
+    wc = np.zeros((mask.shape[0], mask.shape[1]), dtype=np.float64)
+    for index, unique_value in enumerate(unique_values):
+        wc[mask == unique_value] = weight_map[index]
+
+    # cells instances for distance computation
+    labeled_array, _ = scipy.ndimage.measurements.label(mask)
+
+    # cells distance map
+    border_loss_map = np.zeros((mask.shape[0], mask.shape[1]), dtype=np.float64)
+    distance_maps = np.zeros((mask.shape[0], mask.shape[1], np.max(labeled_array)), dtype=np.float64)
+    if np.max(labeled_array) >= 2:
+        for index, label in enumerate(range(1, np.max(labeled_array) + 1)):
+            print(index, label)
+            mask = np.ones_like(labeled_array)
+            mask[labeled_array == label] = 0
+            print(mask.sum())
+            distance_maps[:, :, index] = scipy.ndimage.distance_transform_edt(mask)
+
+    distance_maps = np.sort(distance_maps, 2)
+    d1 = distance_maps[:, :, 0]
+    d2 = distance_maps[:, :, 1]
+    border_loss_map = w0 * np.exp((-1 * (d1 + d2) ** 2) / (2 * (sigma ** 2)))
+
+    zero_label = np.zeros((mask.shape[0], mask.shape[1]), dtype=np.float64)
+    zero_label[labeled_array == 0] = 1
+    border_loss_map = np.multiply(border_loss_map, zero_label)
+
+    # unet weight map mask
+    weight_map_mask = wc + border_loss_map
+
+    return weight_map_mask
