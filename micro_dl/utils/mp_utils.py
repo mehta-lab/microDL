@@ -33,7 +33,8 @@ def create_save_mask(input_fnames,
                      slice_idx,
                      int2str_len,
                      mask_type,
-                     mask_ext):
+                     mask_ext,
+                     channel_thrs):
 
     """Create and save mask
     When >1 channel are used to generate the mask, mask of each channel is
@@ -63,10 +64,13 @@ def create_save_mask(input_fnames,
     masks = []
     for idx in range(im_stack.shape[-1]):
         im = im_stack[..., idx].astype('float32')
+        thr = channel_thrs[idx]
         if mask_type == 'otsu':
             mask = mask_utils.create_otsu_mask(im, str_elem_radius)
         elif mask_type == 'unimodal':
             mask = mask_utils.create_unimodal_mask(im,  str_elem_radius)
+        elif mask_type == 'dataset otsu':
+            mask = mask_utils.create_otsu_mask(im, str_elem_radius, thr)
         masks += [mask]
     masks = np.stack(masks, axis=-1)
     mask = np.any(masks, axis=-1)

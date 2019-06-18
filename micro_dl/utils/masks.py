@@ -4,7 +4,7 @@ from skimage.filters import threshold_otsu
 from skimage.morphology import disk, ball, binary_opening, binary_erosion
 
 
-def create_otsu_mask(input_image, str_elem_size=3):
+def create_otsu_mask(input_image, str_elem_size=3, thr=None):
     """Create a binary mask using morphological operations
 
     Opening removes small objects in the foreground.
@@ -14,10 +14,11 @@ def create_otsu_mask(input_image, str_elem_size=3):
     :return: mask of input_image, np.array
     """
 
-    if np.min(input_image) == np.max(input_image):
-        thr = np.unique(input_image)
-    else:
-        thr = threshold_otsu(input_image, nbins=512)
+    if thr is None:
+        if np.min(input_image) == np.max(input_image):
+            thr = np.unique(input_image)
+        else:
+            thr = threshold_otsu(input_image, nbins=512)
     if len(input_image.shape) == 2:
         str_elem = disk(str_elem_size)
     else:

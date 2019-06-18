@@ -131,7 +131,7 @@ def generate_masks(params_dict,
      str mask_dir: dir with created masks
      int mask_out_channel: channel number assigned to masks
     """
-    assert mask_type in {'otsu', 'unimodal'},\
+    assert mask_type in {'otsu', 'unimodal', 'dataset otsu'},\
         "Supported mask types: 'otsu', 'unimodal', not {}".format(mask_type)
 
     # Instantiate channel to mask processor

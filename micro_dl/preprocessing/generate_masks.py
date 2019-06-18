@@ -4,7 +4,7 @@ import pandas as pd
 
 import micro_dl.utils.aux_utils as aux_utils
 from micro_dl.utils.mp_utils import mp_create_save_mask
-
+from skimage.filters import threshold_otsu
 
 class MaskProcessor:
     """Generate masks from channels"""
@@ -87,10 +87,17 @@ class MaskProcessor:
         self.uniform_struct = uniform_struct
         self.nested_id_dict = nested_id_dict
 
-        assert mask_type in ['otsu', 'unimodal'], \
+        assert mask_type in ['otsu', 'unimodal', 'dataset otsu'], \
             'Masking method invalid, Otsu and unimodal are currently supported'
         self.mask_type = mask_type
         self.mask_ext = mask_ext
+        channel_thrs = []
+        for channel_idx in channel_ids:
+            row_idxs = self.frames_metadata['channel_idx'] == channel_idx
+            im_means = self.frames_metadata.loc[row_idxs, 'mean'].values
+            channel_thr = threshold_otsu(im_means, nbins=64)
+            channel_thrs.append(channel_thr)
+        self.channel_thrs = channel_thrs
 
     def get_mask_dir(self):
         """
@@ -191,7 +198,8 @@ class MaskProcessor:
                                     slice_idx,
                                     self.int2str_len,
                                     self.mask_type,
-                                    self.mask_ext)
+                                    self.mask_ext,
+                                    self.channel_thrs)
                         fn_args.append(cur_args)
         else:
             for tp_idx, tp_dict in self.nested_id_dict.items():
