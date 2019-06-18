@@ -66,7 +66,9 @@ def create_save_mask(input_fnames,
         if mask_type == 'otsu':
             mask = mask_utils.create_otsu_mask(im, str_elem_radius)
         elif mask_type == 'unimodal':
-            mask = mask_utils.create_unimodal_mask(im,  str_elem_radius)
+            mask = mask_utils.create_unimodal_mask(im, str_elem_radius)
+        elif mask_type == 'borders_weight_loss_map':
+            mask = mask_utils.get_unet_border_weight_map(im)
         masks += [mask]
     masks = np.stack(masks, axis=-1)
     mask = np.any(masks, axis=-1)
@@ -97,6 +99,7 @@ def create_save_mask(input_fnames,
                 'pos_idx': pos_idx,
                 'file_name': file_name}
     return cur_meta
+
 
 def mp_tile_save(fn_args, workers):
     """Tile and save with multiprocessing

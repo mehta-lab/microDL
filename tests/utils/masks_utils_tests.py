@@ -13,7 +13,7 @@ def test_get_unet_border_weight_map():
     mask = np.zeros((64, 64), dtype=np.uint8)
     for i, (cx, cy, radius) in enumerate(params):
         rr, cc = draw.circle(cx, cy, radius)
-        mask[rr, cc] = 1
+        mask[rr, cc] = i + 1
 
     weight_map = masks_utils.get_unet_border_weight_map(mask)
 
@@ -22,6 +22,5 @@ def test_get_unet_border_weight_map():
     # as there is more weight when two objects boundaries overlap
     y_coord = params[0][1]
     for x_coord in range(params[0][0] + radius, params[1][0] - radius):
-        print(x_coord, y_coord)
         distance_near_intersection = weight_map[x_coord, y_coord]
         nose.tools.assert_equal(max_weight_map, distance_near_intersection)

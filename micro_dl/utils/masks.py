@@ -97,26 +97,29 @@ def create_unimodal_mask(input_image, str_elem_size=3):
     return mask
 
 
-def get_unet_border_weight_map(binary_mask, w0=10, sigma=5):
+def get_unet_border_weight_map(annotation, w0=10, sigma=5):
     """
-    Generate the weight map for borders as specified in the UNet paper for a binary mask.
+    Generate the weight map for borders as specified in the UNet paper for an annotation.
     Parameters
     ----------
-    mask: array-like
-        A 2D array of shape (image_height, image_width) one binary mask.
+    annotation: array-like
+        A 2D array of shape (image_height, image_width) contains annotation with each class labeled as an integer.
 
     Returns
     -------
     array-like
         A 2D array of shape (image_height, image_width)
+
+    TODO: Calculate boundaries directly and calculate distance from boundary of cells to another
+    TODO: The below method only works for UNet Segmentation only
     """
 
-    assert binary_mask.dtype == np.uint8
+    assert annotation.dtype == np.uint8
     # class balance weights w_c(x)
-    unique_values = np.unique(binary_mask).tolist()
+    unique_values = np.unique(annotation).tolist()
     weight_map = [0] * len(unique_values)
     for index, unique_value in enumerate(unique_values):
-        mask = np.zeros((binary_mask.shape[0], binary_mask.shape[1]), dtype=np.float64)
+        mask = np.zeros((annotation.shape[0], annotation.shape[1]), dtype=np.float64)
         mask[mask == unique_value] = 1
         weight_map[index] = 1 / mask.sum()
 
@@ -128,11 +131,11 @@ def get_unet_border_weight_map(binary_mask, w0=10, sigma=5):
         wc[mask == unique_value] = weight_map[index]
 
     # cells instances for distance computation
-    labeled_array, _ = scipy.ndimage.measurements.label(binary_mask)
+    labeled_array, _ = scipy.ndimage.measurements.label(annotation)
 
     # cells distance map
-    border_loss_map = np.zeros((binary_mask.shape[0], binary_mask.shape[1]), dtype=np.float64)
-    distance_maps = np.zeros((binary_mask.shape[0], binary_mask.shape[1], np.max(labeled_array)), dtype=np.float64)
+    border_loss_map = np.zeros((annotation.shape[0], annotation.shape[1]), dtype=np.float64)
+    distance_maps = np.zeros((annotation.shape[0], annotation.shape[1], np.max(labeled_array)), dtype=np.float64)
     if np.max(labeled_array) >= 2:
         for index, label in enumerate(range(1, np.max(labeled_array) + 1)):
             mask = np.ones_like(labeled_array)
@@ -144,7 +147,7 @@ def get_unet_border_weight_map(binary_mask, w0=10, sigma=5):
     d2 = distance_maps[:, :, 1]
     border_loss_map = w0 * np.exp((-1 * (d1 + d2) ** 2) / (2 * (sigma ** 2)))
 
-    zero_label = np.zeros((binary_mask.shape[0], binary_mask.shape[1]), dtype=np.float64)
+    zero_label = np.zeros((annotation.shape[0], annotation.shape[1]), dtype=np.float64)
     zero_label[labeled_array == 0] = 1
     border_loss_map = np.multiply(border_loss_map, zero_label)
 
