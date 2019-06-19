@@ -114,17 +114,20 @@ def get_unet_border_weight_map(annotation, w0=10, sigma=5):
     TODO: The below method only works for UNet Segmentation only
     """
 
-    assert annotation.dtype == np.uint8
+    assert annotation.dtype == np.uint8, "datatype expected uint8, it is {}".format(annotation.dtype)
     # class balance weights w_c(x)
     unique_values = np.unique(annotation).tolist()
     weight_map = [0] * len(unique_values)
     for index, unique_value in enumerate(unique_values):
         mask = np.zeros((annotation.shape[0], annotation.shape[1]), dtype=np.float64)
         mask[mask == unique_value] = 1
-        weight_map[index] = 1 / mask.sum()
+        if mask.sum() != 0:
+            weight_map[index] = 1 / mask.sum()
+        else:
+            weight_map[index] = 1
 
     # this normalization is important - foreground pixels must have weight 1
-    weight_map = weight_map / max(weight_map)
+    weight_map = [i / max(weight_map) for i in weight_map]
 
     wc = np.zeros((mask.shape[0], mask.shape[1]), dtype=np.float64)
     for index, unique_value in enumerate(unique_values):
@@ -132,7 +135,6 @@ def get_unet_border_weight_map(annotation, w0=10, sigma=5):
 
     # cells instances for distance computation
     labeled_array, _ = scipy.ndimage.measurements.label(annotation)
-
     # cells distance map
     border_loss_map = np.zeros((annotation.shape[0], annotation.shape[1]), dtype=np.float64)
     distance_maps = np.zeros((annotation.shape[0], annotation.shape[1], np.max(labeled_array)), dtype=np.float64)
