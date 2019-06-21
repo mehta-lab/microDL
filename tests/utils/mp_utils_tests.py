@@ -184,10 +184,10 @@ class TestMpUtilsBorderWeightMap(TestMpUtilsBaseClass):
 
     def get_touching_circles(self, shape=(64, 64)):
         # Creating a test image with 3 circles, 2 close to each other and one far away
-        radius = 10
-        params = [(20, 16, radius), (44, 16, radius), (47, 47, radius)]
+        self.radius = 10
+        self.params = [(20, 16, self.radius), (44, 16, self.radius), (47, 47, self.radius)]
         mask = np.zeros(shape, dtype=np.uint8)
-        for i, (cx, cy, radius) in enumerate(params):
+        for i, (cx, cy, radius) in enumerate(self.params):
             rr, cc = draw.circle(cx, cy, radius)
             mask[rr, cc] = i + 1
         mask = mask[:, :, np.newaxis]
@@ -242,14 +242,22 @@ class TestMpUtilsBorderWeightMap(TestMpUtilsBaseClass):
             nose.tools.assert_equal(os.path.exists(op_fname),
                                     True)
 
-            mask_image = image_utils.read_image(op_fname)
-            if mask_image.dtype != bool:
-                mask_image = mask_image > 0
+            weight_map = image_utils.read_image(op_fname)
+            max_weight_map = np.max(weight_map)
+            # weight map between 20, 16 and 44, 16 should be maximum
+            # as there is more weight when two objects boundaries overlap
+            y_coord = self.params[0][1]
+            for x_coord in range(self.params[0][0] + self.radius, self.params[1][0] - self.radius):
+                distance_near_intersection = weight_map[x_coord, y_coord]
+                nose.tools.assert_equal(max_weight_map, distance_near_intersection)
+
+            if weight_map.dtype != bool:
+                weight_map = weight_map > 0
             input_image = (self.touching_circles_object[:, :, sl_idx],
                            self.touching_circles_object[:, :, sl_idx])
             mask_stack = np.stack([get_unet_border_weight_map(input_image[0]),
                                   get_unet_border_weight_map(input_image[1])])
             mask_exp = np.any(mask_stack, axis=0)
             numpy.testing.assert_array_equal(
-                mask_image, mask_exp
+                weight_map, mask_exp
             )

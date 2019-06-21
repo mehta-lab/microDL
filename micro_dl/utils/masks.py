@@ -80,7 +80,7 @@ def create_unimodal_mask(input_image, str_elem_size=3):
 
     :param np.array input_image: generate masks from this image
     :param int str_elem_size: size of the structuring element. typically 3, 5
-    :return: mask of input_image, np.array
+    :return mask of input_image, np.array
     """
 
     if np.min(input_image) == np.max(input_image):
@@ -99,32 +99,31 @@ def create_unimodal_mask(input_image, str_elem_size=3):
 
 def get_unet_border_weight_map(annotation, w0=10, sigma=5):
     """
-    Generate the weight map for borders as specified in the UNet paper for an annotation.
-    Parameters
-    ----------
-    annotation: array-like
-        A 2D array of shape (image_height, image_width) contains annotation with each class labeled as an integer.
+    Return weight map for borders as specified in UNet paper
+    :param annotation A 2D array of shape (image_height, image_width)
+     contains annotation with each class labeled as an integer.
+    :param w0 multiplier to the exponential distance loss
+     default 10 as mentioned in UNet paper
+    :param sigma standard deviation in the exponential distance term
+     e^(-d1 + d2) ** 2 / 2 (sigma ^ 2)
+     default 5 as mentioned in UNet paper
+    :return weight mapt for borders as specified in UNet
 
-    Returns
-    -------
-    array-like
-        A 2D array of shape (image_height, image_width)
-
-    TODO: Calculate boundaries directly and calculate distance from boundary of cells to another
+    TODO: Calculate boundaries directly and calculate distance
+    from boundary of cells to another
     TODO: The below method only works for UNet Segmentation only
     """
 
-    assert annotation.dtype == np.uint8, "datatype expected uint8, it is {}".format(annotation.dtype)
+    assert annotation.dtype == np.uint8, (
+        "datatype expected uint8, it is {}".format(annotation.dtype))
     # class balance weights w_c(x)
     unique_values = np.unique(annotation).tolist()
     weight_map = [0] * len(unique_values)
     for index, unique_value in enumerate(unique_values):
-        mask = np.zeros((annotation.shape[0], annotation.shape[1]), dtype=np.float64)
-        mask[mask == unique_value] = 1
-        if mask.sum() != 0:
-            weight_map[index] = 1 / mask.sum()
-        else:
-            weight_map[index] = 1
+        mask = np.zeros(
+            (annotation.shape[0], annotation.shape[1]), dtype=np.float64)
+        mask[annotation == unique_value] = 1
+        weight_map[index] = 1 / mask.sum()
 
     # this normalization is important - foreground pixels must have weight 1
     weight_map = [i / max(weight_map) for i in weight_map]
@@ -136,20 +135,26 @@ def get_unet_border_weight_map(annotation, w0=10, sigma=5):
     # cells instances for distance computation
     labeled_array, _ = scipy.ndimage.measurements.label(annotation)
     # cells distance map
-    border_loss_map = np.zeros((annotation.shape[0], annotation.shape[1]), dtype=np.float64)
-    distance_maps = np.zeros((annotation.shape[0], annotation.shape[1], np.max(labeled_array)), dtype=np.float64)
+    border_loss_map = np.zeros(
+        (annotation.shape[0], annotation.shape[1]), dtype=np.float64)
+    distance_maps = np.zeros(
+        (annotation.shape[0], annotation.shape[1], np.max(labeled_array)),
+        dtype=np.float64)
+
     if np.max(labeled_array) >= 2:
-        for index, label in enumerate(range(1, np.max(labeled_array) + 1)):
+        for index in range(np.max(labeled_array)):
             mask = np.ones_like(labeled_array)
-            mask[labeled_array == label] = 0
-            distance_maps[:, :, index] = scipy.ndimage.distance_transform_edt(mask)
+            mask[labeled_array == index + 1] = 0
+            distance_maps[:, :, index] = \
+                scipy.ndimage.distance_transform_edt(mask)
 
     distance_maps = np.sort(distance_maps, 2)
     d1 = distance_maps[:, :, 0]
     d2 = distance_maps[:, :, 1]
     border_loss_map = w0 * np.exp((-1 * (d1 + d2) ** 2) / (2 * (sigma ** 2)))
 
-    zero_label = np.zeros((annotation.shape[0], annotation.shape[1]), dtype=np.float64)
+    zero_label = np.zeros(
+        (annotation.shape[0], annotation.shape[1]), dtype=np.float64)
     zero_label[labeled_array == 0] = 1
     border_loss_map = np.multiply(border_loss_map, zero_label)
 
