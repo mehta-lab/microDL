@@ -123,14 +123,15 @@ def get_unet_border_weight_map(annotation, w0=10, sigma=5):
         mask = np.zeros(
             (annotation.shape[0], annotation.shape[1]), dtype=np.float64)
         mask[annotation == unique_value] = 1
-        weight_map[index] = 1 / mask.sum()
+        print(mask.sum())
+        weight_map[index] = mask.sum()
 
-    # this normalization is important - foreground pixels must have weight 1
+    # this normalization is important - background pixels must have weight 1
     weight_map = [i / max(weight_map) for i in weight_map]
 
-    wc = np.zeros((mask.shape[0], mask.shape[1]), dtype=np.float64)
+    wc = np.zeros((annotation.shape[0], annotation.shape[1]), dtype=np.float64)
     for index, unique_value in enumerate(unique_values):
-        wc[mask == unique_value] = weight_map[index]
+        wc[annotation == unique_value] = weight_map[index]
 
     # cells instances for distance computation
     labeled_array, _ = scipy.ndimage.measurements.label(annotation)
