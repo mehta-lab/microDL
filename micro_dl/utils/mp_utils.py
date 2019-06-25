@@ -71,8 +71,13 @@ def create_save_mask(input_fnames,
             im = tile_utils.read_image(input_fnames[idx])
             mask = mask_utils.get_unet_border_weight_map(im)
         masks += [mask]
+
     masks = np.stack(masks, axis=-1)
     mask = np.any(masks, axis=-1)
+
+    # Border weight map mask is a float mask not binary like otsu or unimodal, so keep it as is
+    if mask_type == 'borders_weight_loss_map' and im_stack.shape[-1] == 1:
+        mask = mask
 
     # Create mask name for given slice, time and position
     file_name = aux_utils.get_im_name(time_idx=time_idx,
@@ -91,6 +96,9 @@ def create_save_mask(input_fnames,
         file_name = file_name[:-3] + 'png'
         # Covert mask to uint8
         mask = mask.astype(np.uint8) * (2 ** 8 - 1)
+        # Border weight map mask is a float mask not binary like otsu or unimodal, so keep it as is
+        if mask_type == 'borders_weight_loss_map' and im_stack.shape[-1] == 1:
+            mask = mask
         cv2.imwrite(os.path.join(mask_dir, file_name), mask)
     else:
         raise ValueError("mask_ext can only be 'npy' or 'png'")

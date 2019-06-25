@@ -123,7 +123,6 @@ def get_unet_border_weight_map(annotation, w0=10, sigma=5):
         mask = np.zeros(
             (annotation.shape[0], annotation.shape[1]), dtype=np.float64)
         mask[annotation == unique_value] = 1
-        print(mask.sum())
         weight_map[index] = mask.sum()
 
     # this normalization is important - background pixels must have weight 1
