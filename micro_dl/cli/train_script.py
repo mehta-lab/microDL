@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """Train neural network models in keras"""
+import sys
+sys.path.append(".")
 import argparse
 from keras import Model
 import keras.backend as K
