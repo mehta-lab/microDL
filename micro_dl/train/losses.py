@@ -121,9 +121,10 @@ def masked_loss(loss_fn, n_channels):
     :return function masked_loss_fn
     """
 
+    print(n_channels)
     def masked_loss_fn(y_true, y_pred):
         y_true, mask_image = _split_ytrue_mask(y_true, n_channels)
-        loss = loss_fn(y_true, y_pred, mean_loss=False)
+        loss = loss_fn(y_true, y_pred)
         total_loss = 0.0
         for ch_idx in range(n_channels):
             cur_loss = loss[:, ch_idx]

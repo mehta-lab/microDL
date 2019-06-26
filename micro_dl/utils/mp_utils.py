@@ -51,7 +51,7 @@ def create_save_mask(input_fnames,
     :param str mask_type: thresholding type used for masking or str to map to
      masking function
     :param str mask_ext: 'npy' or 'png'. Save the mask as uint8 PNG or
-     NPY files
+     NPY files for otsu, unimodal masks, float64 for borders_weight_loss_map masks
     :return dict cur_meta for each mask
     """
 
@@ -71,13 +71,12 @@ def create_save_mask(input_fnames,
             im = tile_utils.read_image(input_fnames[idx])
             mask = mask_utils.get_unet_border_weight_map(im)
         masks += [mask]
-
-    masks = np.stack(masks, axis=-1)
-    mask = np.any(masks, axis=-1)
-
     # Border weight map mask is a float mask not binary like otsu or unimodal, so keep it as is
-    if mask_type == 'borders_weight_loss_map' and im_stack.shape[-1] == 1:
+    if mask_type == 'borders_weight_loss_map':
         mask = mask
+    else:
+        masks = np.stack(masks, axis=-1)
+        mask = np.any(masks, axis=-1)
 
     # Create mask name for given slice, time and position
     file_name = aux_utils.get_im_name(time_idx=time_idx,
@@ -95,10 +94,11 @@ def create_save_mask(input_fnames,
     elif mask_ext == 'png':
         file_name = file_name[:-3] + 'png'
         # Covert mask to uint8
-        mask = mask.astype(np.uint8) * (2 ** 8 - 1)
         # Border weight map mask is a float mask not binary like otsu or unimodal, so keep it as is
         if mask_type == 'borders_weight_loss_map' and im_stack.shape[-1] == 1:
             mask = mask
+        else:
+            mask = mask.astype(np.uint8) * (2 ** 8 - 1)
         cv2.imwrite(os.path.join(mask_dir, file_name), mask)
     else:
         raise ValueError("mask_ext can only be 'npy' or 'png'")
@@ -156,6 +156,13 @@ def tile_and_save(input_fnames,
     :return: pd.DataFrame from a list of dicts with metadata
     """
     try:
+        # TODO Hack to create and save the whole float64 borders_weight_loss_map mask as is
+        # without converting to a boolean image
+        # When the min_fraction is 1, the mask is not boolean, we want to look at the whole
+        # mask
+        if min_fraction == 1:
+            is_mask = False
+            min_fraction = None
         input_image = tile_utils.read_imstack(
             input_fnames=input_fnames,
             flat_field_fname=flat_field_fname,
