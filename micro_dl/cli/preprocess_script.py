@@ -1,5 +1,7 @@
 """Script for preprocessing stack"""
 
+import sys
+sys.path.append(".")  # NOQA
 import argparse
 import numpy as np
 import os
@@ -179,7 +181,6 @@ def tile_images(params_dict,
     :param str flat_field_dir: dir with flat field correction images
     :return str tile_dir: dir with tiled images
     """
-
     kwargs = {'input_dir': params_dict['input_dir'],
               'output_dir': params_dict['output_dir'],
               'tile_dict': tile_dict,
