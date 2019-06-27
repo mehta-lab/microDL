@@ -113,10 +113,6 @@ def create_datasets(df_meta,
         random_seed=random_seed
     )
     all_metadata, split_samples = tt.train_test_split()
-    print("all_metadata")
-    print(all_metadata)
-    print("split_samples")
-    print(split_samples)
     csv_names = ['train_metadata.csv', 'val_metadata.csv', 'test_metadata.csv']
     df_names = ['df_train', 'df_val', 'df_test']
     all_datasets = {}
@@ -126,7 +122,6 @@ def create_datasets(df_meta,
             all_datasets[df_names[i]] = None
         else:
             if masked_loss:
-                print("DataSetWithMask")
                 dataset = DataSetWithMask(
                     tile_dir=tile_dir,
                     input_fnames=metadata['fpaths_input'],
@@ -244,8 +239,6 @@ def run_action(action,
     masked_loss = False
     if 'masked_loss' in trainer_config:
         masked_loss = trainer_config["masked_loss"]
-    print("Masked loss in train_script {}".format(masked_loss))
-    print("action {}".format(action))
 
     tile_dir, image_format = get_image_dir_format(dataset_config)
 
