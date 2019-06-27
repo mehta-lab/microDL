@@ -81,7 +81,7 @@ def preprocess_imstack(frames_metadata,
     :param int pos_idx: Position (FOV) index
     :param np.array flat_field_im: Flat field image for channel
     :param list hist_clip_limits: Limits for histogram clipping (size 2)
-    :param bool normalize_im: indicator to z-score the image or not
+    :param bool normalize_im: indicator to normalize image based on z-score or not
     :return np.array im: 3D preprocessed image
     """
 

@@ -27,7 +27,7 @@ class ImageTilerUniform:
                  num_workers=4,
                  int2str_len=3):
         """
-        Normalizes images using z-score, then tiles them.
+        Tiles images.
         If tile_dir already exist, it will check which channels are already
         tiled, get indices from them and tile from indices only on the channels
         not already present.
@@ -124,6 +124,9 @@ class ImageTilerUniform:
             uniform_structure=True
         )
         self.channel_ids = metadata_ids['channel_ids']
+        self.normalize_channels = tile_dict.get('normalize_channels', None)
+        if self.normalize_channels is None:
+            self.normalize_channels = [False] * len(self.channel_ids)
         self.time_ids = metadata_ids['time_ids']
         self.slice_ids = metadata_ids['slice_ids']
         self.pos_ids = metadata_ids['pos_ids']
@@ -333,7 +336,8 @@ class ImageTilerUniform:
                            task_type,
                            tile_indices=None,
                            mask_dir=None,
-                           min_fraction=None):
+                           min_fraction=None,
+                           normalize_im=False):
         """Gather arguments for cropping or tiling
 
         :param int channel_idx: channel index for current image
@@ -344,6 +348,7 @@ class ImageTilerUniform:
         :param list tile_indices: list of tile indices
         :param str mask_dir: dir containing image level masks
         :param float min_fraction: min foreground volume fraction for use tile
+        :param bool normalize_im: indicator to normalize image based on z-score or not
         :return list cur_args: tuple of arguments for tiling
                 list tile_indices: tile indices for current image
         """
@@ -388,7 +393,8 @@ class ImageTilerUniform:
                         self.tile_dir,
                         self.int2str_len,
                         is_mask,
-                        self.tile_3d)
+                        self.tile_3d,
+                        normalize_im)
         elif task_type == 'tile':
             cur_args = (tuple(input_fnames),
                         flat_field_fname,
@@ -403,7 +409,8 @@ class ImageTilerUniform:
                         self.image_format,
                         self.tile_dir,
                         self.int2str_len,
-                        is_mask)
+                        is_mask,
+                        normalize_im)
         return cur_args
 
     def tile_stack(self):
@@ -438,7 +445,8 @@ class ImageTilerUniform:
                                 slice_idx=slice_idx,
                                 pos_idx=pos_idx,
                                 flat_field_im=flat_field_im,
-                                hist_clip_limits=self.hist_clip_limits
+                                hist_clip_limits=self.hist_clip_limit,
+                                normalize_im=self.normalize_channels[channel_idx]
                             )
                             save_dict = {'time_idx': time_idx,
                                          'channel_idx': channel_idx,
@@ -462,7 +470,8 @@ class ImageTilerUniform:
                                 slice_idx,
                                 pos_idx,
                                 task_type='crop',
-                                tile_indices=tile_indices
+                                tile_indices=tile_indices,
+                                normalize_im=normalize_channels[channel_idx]
                             )
                             fn_args.append(cur_args)
         tiled_meta_df_list = mp_crop_save(fn_args,

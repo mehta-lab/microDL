@@ -22,7 +22,8 @@ class MaskProcessor:
                  num_workers=4,
                  mask_type='otsu',
                  mask_out_channel=None,
-                 mask_ext='npy'):
+                 mask_ext='npy',
+                 normalize_im=False):
         """
         :param str input_dir: Directory with image frames
         :param str output_dir: Base output directory
@@ -47,12 +48,14 @@ class MaskProcessor:
          dir, which could lead to wrong mask channel being assigned.
         :param str mask_ext: 'npy' or 'png'. Save the mask as uint8 PNG or
          NPY files
+        :param bool normalize_im: indicator to normalize image based on z-score or not
         """
 
         self.input_dir = input_dir
         self.output_dir = output_dir
         self.flat_field_dir = flat_field_dir
         self.num_workers = num_workers
+        self.normalize_im = normalize_im
 
         self.frames_metadata = aux_utils.read_meta(self.input_dir)
         # Create a unique mask channel number so masks can be treated
@@ -191,7 +194,8 @@ class MaskProcessor:
                                     slice_idx,
                                     self.int2str_len,
                                     self.mask_type,
-                                    self.mask_ext)
+                                    self.mask_ext,
+                                    self.normalize_im)
                         fn_args.append(cur_args)
         else:
             for tp_idx, tp_dict in self.nested_id_dict.items():
@@ -214,7 +218,8 @@ class MaskProcessor:
                                     sl_idx,
                                     self.int2str_len,
                                     self.mask_type,
-                                    self.mask_ext)
+                                    self.mask_ext,
+                                    self.normalize_im)
                         fn_args.append(cur_args)
 
         mask_meta_list = mp_create_save_mask(fn_args, self.num_workers)

@@ -33,7 +33,8 @@ def create_save_mask(input_fnames,
                      slice_idx,
                      int2str_len,
                      mask_type,
-                     mask_ext):
+                     mask_ext,
+                     normalize_im=False):
 
     """Create and save mask
     When >1 channel are used to generate the mask, mask of each channel is
@@ -52,13 +53,14 @@ def create_save_mask(input_fnames,
      masking function
     :param str mask_ext: 'npy' or 'png'. Save the mask as uint8 PNG or
      NPY files for otsu, unimodal masks, float64 for borders_weight_loss_map masks
+    :param bool normalize_im: indicator to normalize image based on z-score or not
     :return dict cur_meta for each mask
     """
 
     im_stack = tile_utils.read_imstack(
         input_fnames,
         flat_field_fname,
-        normalize_im=False,
+        normalize_im=normalize_im,
     )
     masks = []
     for idx in range(im_stack.shape[-1]):
@@ -136,7 +138,8 @@ def tile_and_save(input_fnames,
                   image_format,
                   save_dir,
                   int2str_len=3,
-                  is_mask=False):
+                  is_mask=False,
+                  normalize_im=False):
     """Crop image into tiles at given indices and save
 
     :param tuple input_fnames: tuple of input fnames with full path
@@ -153,6 +156,7 @@ def tile_and_save(input_fnames,
     :param str save_dir: output dir to save tiles
     :param int int2str_len: len of indices for creating file names
     :param bool is_mask: Indicates if files are masks
+    :param bool normalize_im: Indicates if normalizing using z score is needed
     :return: pd.DataFrame from a list of dicts with metadata
     """
     try:
@@ -168,6 +172,7 @@ def tile_and_save(input_fnames,
             flat_field_fname=flat_field_fname,
             hist_clip_limits=hist_clip_limits,
             is_mask=is_mask,
+            normalize_im=normalize_im
         )
         save_dict = {'time_idx': time_idx,
                      'channel_idx': channel_idx,
@@ -221,7 +226,8 @@ def crop_at_indices_save(input_fnames,
                          save_dir,
                          int2str_len=3,
                          is_mask=False,
-                         tile_3d=False):
+                         tile_3d=False,
+                         normalize_im=False):
     """Crop image into tiles at given indices and save
 
     :param tuple input_fnames: tuple of input fnames with full path
@@ -237,6 +243,7 @@ def crop_at_indices_save(input_fnames,
     :param int int2str_len: len of indices for creating file names
     :param bool is_mask: Indicates if files are masks
     :param bool tile_3d: indicator for tiling in 3D
+    :param bool normalize_im: Indicates if normalizing using z score is needed
     :return: pd.DataFrame from a list of dicts with metadata
     """
 
@@ -246,6 +253,7 @@ def crop_at_indices_save(input_fnames,
             flat_field_fname=flat_field_fname,
             hist_clip_limits=hist_clip_limits,
             is_mask=is_mask,
+            normalize_im=normalize_im
         )
         save_dict = {'time_idx': time_idx,
                      'channel_idx': channel_idx,
