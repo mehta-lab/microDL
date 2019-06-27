@@ -1,8 +1,5 @@
 """Script for preprocessing stack"""
 
-import sys
-sys.path.append(".")  # NOQA
-
 import argparse
 import numpy as np
 import os

@@ -1,7 +1,5 @@
 #!/usr/bin/python
 
-import sys
-sys.path.append(".")
 import argparse
 import os
 
