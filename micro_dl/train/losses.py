@@ -122,7 +122,10 @@ def masked_loss(loss_fn, n_channels):
     """
 
     print(n_channels)
+
     def masked_loss_fn(y_true, y_pred):
+        print(y_true.shape)
+        print(y_pred.shape)
         y_true, mask_image = _split_ytrue_mask(y_true, n_channels)
         loss = loss_fn(y_true, y_pred)
         total_loss = 0.0
