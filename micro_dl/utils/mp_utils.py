@@ -97,7 +97,8 @@ def create_save_mask(input_fnames,
         file_name = file_name[:-3] + 'png'
         # Covert mask to uint8
         # Border weight map mask is a float mask not binary like otsu or unimodal, so keep it as is
-        if mask_type == 'borders_weight_loss_map' and im_stack.shape[-1] == 1:
+        if mask_type == 'borders_weight_loss_map':
+            assert im_stack.shape[-1] == 1
             mask = mask
         else:
             mask = mask.astype(np.uint8) * (2 ** 8 - 1)
