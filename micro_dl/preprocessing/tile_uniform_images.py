@@ -103,7 +103,7 @@ class ImageTilerUniform:
             # tracking job success / fail
             os.makedirs(os.path.join(self.tile_dir, 'meta_dir'),
                         exist_ok=False)
-        except:
+        except FileExistsError as e:
             print("Tile dir exists. Only add untiled channels.")
             self.tiles_exist = True
 
@@ -131,8 +131,9 @@ class ImageTilerUniform:
         # If more than one depth is specified, length must match channel ids
         if isinstance(self.depths, list):
             assert len(self.depths) == len(self.channel_ids),\
-                ("depths ({}) and channels ({}) length mismatch".format(
-                 len(self.depths), len(self.channel_ids)))
+             "depths ({}) and channels ({}) length mismatch".format(
+                len(self.depths), len(self.channel_ids)
+            )
             # Get max of all specified depths
             max_depth = max(self.depths)
             # Convert channels + depths to dict for lookup
