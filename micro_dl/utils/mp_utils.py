@@ -52,7 +52,9 @@ def create_save_mask(input_fnames,
     :param str mask_type: thresholding type used for masking or str to map to
      masking function
     :param str mask_ext: 'npy' or 'png'. Save the mask as uint8 PNG or
-     NPY files for otsu, unimodal masks, float64 for borders_weight_loss_map masks
+     NPY files for otsu, unimodal masks, recommended to save as npy
+     float64 for borders_weight_loss_map masks to avoid loss due to scaling it
+     to uint8.
     :param bool normalize_im: indicator to normalize image based on z-score or not
     :return dict cur_meta for each mask
     """
@@ -99,6 +101,7 @@ def create_save_mask(input_fnames,
         # Border weight map mask is a float mask not binary like otsu or unimodal, so keep it as is
         if mask_type == 'borders_weight_loss_map':
             assert im_stack.shape[-1] == 1
+            # Note: Border weight map mask should only be generated from one binary image
             mask = mask
         else:
             mask = mask.astype(np.uint8) * (2 ** 8 - 1)
