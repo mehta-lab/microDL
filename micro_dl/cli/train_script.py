@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Train neural network models in keras"""
 import sys
-sys.path.append("."). # NOQA
+sys.path.append(".")  # NOQA
 
 import argparse
 from keras import Model
