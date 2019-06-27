@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """Train neural network models in keras"""
 import sys
-sys.path.append(".")
+sys.path.append("."). # NOQA
+
 import argparse
 from keras import Model
 import keras.backend as K
@@ -112,6 +113,10 @@ def create_datasets(df_meta,
         random_seed=random_seed
     )
     all_metadata, split_samples = tt.train_test_split()
+    print("all_metadata")
+    print(all_metadata)
+    print("split_samples")
+    print(split_samples)
     csv_names = ['train_metadata.csv', 'val_metadata.csv', 'test_metadata.csv']
     df_names = ['df_train', 'df_val', 'df_test']
     all_datasets = {}
@@ -121,6 +126,7 @@ def create_datasets(df_meta,
             all_datasets[df_names[i]] = None
         else:
             if masked_loss:
+                print("DataSetWithMask")
                 dataset = DataSetWithMask(
                     tile_dir=tile_dir,
                     input_fnames=metadata['fpaths_input'],
@@ -257,6 +263,7 @@ def run_action(action,
             image_format,
             masked_loss,
         )
+        print("Masked loss in train_script {}".format(masked_loss))
         # Save train, validation and test indices
         split_idx_fname = os.path.join(trainer_config['model_dir'],
                                        'split_samples.json')
