@@ -95,6 +95,8 @@ class DataSetWithMask(BaseDataSet):
                                 self.label_weights[label_idx]
                 cur_mask = wtd_mask
             cur_target = np.concatenate((cur_target, cur_mask), axis=0)
+            print("cur_target shape {}".format(cur_target.shape))
+            print("cur_input shape {}".format(cur_input.shape))
 
             input_image.append(cur_input)
             target_image.append(cur_target)
