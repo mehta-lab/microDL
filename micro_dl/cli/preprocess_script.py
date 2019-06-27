@@ -182,6 +182,7 @@ def tile_images(params_dict,
     :param str flat_field_dir: dir with flat field correction images
     :return str tile_dir: dir with tiled images
     """
+    normalize_channels = params_dict['normalize_channels'] + [tile_dict['normalize_im']]
     kwargs = {'input_dir': params_dict['input_dir'],
               'output_dir': params_dict['output_dir'],
               'tile_dict': tile_dict,
@@ -191,7 +192,8 @@ def tile_images(params_dict,
               'pos_ids': params_dict['pos_ids'],
               'flat_field_dir': flat_field_dir,
               'num_workers': params_dict['num_workers'],
-              'int2str_len': params_dict['int2strlen']}
+              'int2str_len': params_dict['int2strlen'],
+              'normalize_channels': normalize_channels}
 
     if params_dict['uniform_struct']:
         if 'tile_3d' in tile_dict:
@@ -255,7 +257,6 @@ def pre_process(pp_config, req_params_dict):
     """
 
     time_start = time.time()
-
     # estimate flat field images
     flat_field_dir = None
     if 'flat_field' in pp_config:
@@ -315,8 +316,9 @@ def pre_process(pp_config, req_params_dict):
             mask_ext = 'npy'
             if 'mask_ext' in pp_config['masks']:
                 mask_ext = pp_config['masks']['mask_ext']
-
-            normalize_im = pp_config['masks']['normalize_im']
+            normalize_im = False
+            if 'normalize_im' in pp_config['masks']:
+                normalize_im = pp_config['masks']['normalize_im']
             mask_dir, mask_out_channel = generate_masks(req_params_dict,
                                                         mask_from_channel,
                                                         flat_field_dir,
@@ -386,6 +388,7 @@ if __name__ == '__main__':
     pp_config = aux_utils.read_config(args.config)
     input_dir = pp_config['input_dir']
     output_dir = pp_config['output_dir']
+    normalize_channels = pp_config['normalize_channels']
 
     slice_ids = -1
     if 'slice_ids' in pp_config:
@@ -423,7 +426,8 @@ if __name__ == '__main__':
                    'channel_ids': channel_ids,
                    'uniform_struct': uniform_struct,
                    'int2strlen': int2str_len,
-                   'num_workers': num_workers}
+                   'num_workers': num_workers,
+                   'normalize_channels': normalize_channels}
 
     pp_config, runtime = pre_process(pp_config, base_config)
     save_config(pp_config, runtime)

@@ -89,6 +89,7 @@ class TestImageTilerUniform(unittest.TestCase):
             allow_pickle=True,
             fix_imports=True
         )
+        self.normalize_channels = [True, True]
         # Instantiate tiler class
         self.output_dir = os.path.join(self.temp_path, 'tile_dir')
         self.tile_dict = {'channels': [1],
@@ -100,6 +101,7 @@ class TestImageTilerUniform(unittest.TestCase):
         self.tile_inst = tile_images.ImageTilerUniform(
             input_dir=self.temp_path,
             output_dir=self.output_dir,
+            normalize_channels=self.normalize_channels,
             tile_dict=self.tile_dict,
             flat_field_dir=self.flat_field_dir,
         )

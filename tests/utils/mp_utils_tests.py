@@ -206,7 +206,7 @@ class TestMpUtilsBorderWeightMap(TestMpUtilsBaseClass):
         os.makedirs(self.output_dir, exist_ok=True)
 
     def test_create_save_mask_border_map(self):
-        """test create_save_mask otsu"""
+        """test create_save_mask border weight map"""
         self.write_mask_data()
         for sl_idx in range(1):
             input_fnames = ['im_c001_z00{}_t000_p001.png'.format(sl_idx),
@@ -244,6 +244,8 @@ class TestMpUtilsBorderWeightMap(TestMpUtilsBaseClass):
 
             weight_map = image_utils.read_image(op_fname)
             max_weight_map = np.max(weight_map)
+            print(np.unique(weight_map))
+            print(max_weight_map)
             # weight map between 20, 16 and 44, 16 should be maximum
             # as there is more weight when two objects boundaries overlap
             y_coord = self.params[0][1]

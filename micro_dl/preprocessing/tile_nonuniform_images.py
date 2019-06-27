@@ -14,6 +14,7 @@ class ImageTilerNonUniform(ImageTilerUniform):
     def __init__(self,
                  input_dir,
                  output_dir,
+                 normalize_channels,
                  tile_dict,
                  tile_size=[256, 256],
                  step_size=[64, 64],
@@ -37,6 +38,7 @@ class ImageTilerNonUniform(ImageTilerUniform):
 
         super().__init__(input_dir,
                          output_dir,
+                         normalize_channels,
                          tile_dict,
                          tile_size,
                          step_size,
@@ -101,7 +103,8 @@ class ImageTilerNonUniform(ImageTilerUniform):
                             pos_idx=pos_idx,
                             task_type='tile',
                             mask_dir=cur_mask_dir,
-                            min_fraction=min_fraction
+                            min_fraction=min_fraction,
+                            normalize_im=self.normalize_channels[ch_idx]
                         )
                         fn_args.append(cur_args)
 
@@ -150,7 +153,8 @@ class ImageTilerNonUniform(ImageTilerUniform):
                                 sl_idx,
                                 pos_idx,
                                 task_type='crop',
-                                tile_indices=cur_tile_indices
+                                tile_indices=cur_tile_indices,
+                                normalize_im=self.normalize_channels[ch_idx]
                             )
                             fn_args.append(cur_args)
 

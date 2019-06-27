@@ -13,6 +13,7 @@ class ImageTilerUniform:
     def __init__(self,
                  input_dir,
                  output_dir,
+                 normalize_channels,
                  tile_dict,
                  tile_size=[256, 256],
                  step_size=[64, 64],
@@ -56,10 +57,16 @@ class ImageTilerUniform:
         :param str image_format: zyx (preferred) or xyz
         :param int num_workers: number of workers for multiprocessing
         :param int int2str_len: number of characters for each idx to be used
-         in file names
+        in file names
+        :param list normalize_channels: list of booleans indicating if
+        channel should be normalized or not,
+        Ex: If there is a False and True at indices 0, 1
+        then the channel 0 will not be normalized and 1 will be normalized,
+        if there is None at index it indicates channels absence
         """
         self.input_dir = input_dir
         self.output_dir = output_dir
+        self.normalize_channels = normalize_channels
 
         if 'depths' in tile_dict:
             depths = tile_dict['depths']
@@ -124,9 +131,7 @@ class ImageTilerUniform:
             uniform_structure=True
         )
         self.channel_ids = metadata_ids['channel_ids']
-        self.normalize_channels = tile_dict.get('normalize_channels', None)
-        if self.normalize_channels is None:
-            self.normalize_channels = [False] * len(self.channel_ids)
+        self.normalize_channels = normalize_channels
         self.time_ids = metadata_ids['time_ids']
         self.slice_ids = metadata_ids['slice_ids']
         self.pos_ids = metadata_ids['pos_ids']
@@ -445,7 +450,7 @@ class ImageTilerUniform:
                                 slice_idx=slice_idx,
                                 pos_idx=pos_idx,
                                 flat_field_im=flat_field_im,
-                                hist_clip_limits=self.hist_clip_limit,
+                                hist_clip_limits=self.hist_clip_limits,
                                 normalize_im=self.normalize_channels[channel_idx]
                             )
                             save_dict = {'time_idx': time_idx,
@@ -471,7 +476,7 @@ class ImageTilerUniform:
                                 pos_idx,
                                 task_type='crop',
                                 tile_indices=tile_indices,
-                                normalize_im=normalize_channels[channel_idx]
+                                normalize_im=self.normalize_channels[channel_idx]
                             )
                             fn_args.append(cur_args)
         tiled_meta_df_list = mp_crop_save(fn_args,
