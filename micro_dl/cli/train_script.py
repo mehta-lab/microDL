@@ -244,6 +244,8 @@ def run_action(action,
     masked_loss = False
     if 'masked_loss' in trainer_config:
         masked_loss = trainer_config["masked_loss"]
+    print("Masked loss in train_script {}".format(masked_loss))
+    print("action {}".format(action))
 
     tile_dir, image_format = get_image_dir_format(dataset_config)
 
@@ -263,7 +265,6 @@ def run_action(action,
             image_format,
             masked_loss,
         )
-        print("Masked loss in train_script {}".format(masked_loss))
         # Save train, validation and test indices
         split_idx_fname = os.path.join(trainer_config['model_dir'],
                                        'split_samples.json')
