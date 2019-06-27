@@ -3,7 +3,6 @@
 import keras
 import numpy as np
 import os
-import pandas as pd
 
 
 class BaseDataSet(keras.utils.Sequence):
@@ -45,6 +44,7 @@ class BaseDataSet(keras.utils.Sequence):
         self.input_fnames = input_fnames
         self.target_fnames = target_fnames
         self.num_samples = len(self.input_fnames)
+        print("num_samples {}".format(self.num_samples))
         self.batch_size = batch_size
         assert image_format in {'xyz', 'zyx'},\
             "Image format should be xyz or zyx, not {}".format(image_format)

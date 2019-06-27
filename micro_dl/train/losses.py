@@ -2,6 +2,7 @@
 from keras import backend as K
 from keras.losses import mean_absolute_error
 import tensorflow as tf
+import numpy as np
 
 import micro_dl.train.metrics as metrics
 from micro_dl.utils.aux_utils import get_channel_axis
@@ -127,6 +128,8 @@ def masked_loss(loss_fn, n_channels):
         print("y_true shape {}".format(y_true.shape))
         print("y_pred shape {}".format(y_pred.shape))
         y_true, mask_image = _split_ytrue_mask(y_true, n_channels)
+        print("y_true shape {}".format(y_true.shape))
+        print("mask_image shape {}".format(mask_image.shape))
         loss = loss_fn(y_true, y_pred)
         total_loss = 0.0
         for ch_idx in range(n_channels):
@@ -150,3 +153,20 @@ def dice_coef_loss(y_true, y_pred):
     :return: Dice loss
     """
     return 1. - metrics.dice_coef(y_true, y_pred)
+
+
+def binary_crossentropy_loss(y_true, y_pred, mean_loss=True):
+    """Binary cross entropy loss
+
+    :param y_true: Ground truth
+    :param y_pred: Prediction
+    :return float: Binary cross entropy loss
+    """
+    assert len(np.unique(y_true).tolist()) <= 2
+    assert len(np.unique(y_pred).tolist()) <= 2
+
+    if not mean_loss:
+        return K.binary_crossentropy(y_true, y_pred)
+
+    channel_axis = get_channel_axis(K.image_data_format())
+    return K.mean(K.binary_crossentropy(y_true, y_pred), axis=channel_axis)
