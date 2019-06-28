@@ -194,6 +194,8 @@ def tile_images(params_dict,
               'int2str_len': params_dict['int2strlen'],
               'normalize_channels': params_dict["normalize_channels"]}
 
+    print("normalize_channels in tile_images {}".format(normalize_channels))
+
     if params_dict['uniform_struct']:
         if 'tile_3d' in tile_dict:
             if resize_flag:
@@ -318,6 +320,7 @@ def pre_process(pp_config, req_params_dict):
             normalize_im = False
             if 'normalize_im' in pp_config['masks']:
                 normalize_im = pp_config['masks']['normalize_im']
+            print("normalize_im mask {}".format(normalize_im))
             mask_dir, mask_out_channel = generate_masks(req_params_dict,
                                                         mask_from_channel,
                                                         flat_field_dir,
@@ -388,6 +391,8 @@ if __name__ == '__main__':
     input_dir = pp_config['input_dir']
     output_dir = pp_config['output_dir']
     normalize_channels = pp_config['tile']['normalize_channels'] + [pp_config['masks']['normalize_im']]
+
+    print("normalize_channels {}".format(normalize_channels))
 
     slice_ids = -1
     if 'slice_ids' in pp_config:
