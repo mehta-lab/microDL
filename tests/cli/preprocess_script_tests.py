@@ -60,13 +60,15 @@ class TestPreprocessScript(unittest.TestCase):
             'resize': {'scale_factor': 2,
                        'resize_3d': False},
             'masks': {'channels': [3],
-                      'str_elem_radius': 3},
+                      'str_elem_radius': 3,
+                      'normalize_im': False},
             'tile': {'tile_size': [10, 10],
                      'step_size': [10, 10],
                      'depths': [1, 1, 1],
                      'mask_depth': 1,
                      'image_format': 'zyx',
-                     'normalize_im': False},
+                     'normalize_channels': [False, False, False]
+                     },
         }
         self.base_config = {
             'input_dir': self.temp_path,
@@ -78,7 +80,7 @@ class TestPreprocessScript(unittest.TestCase):
             'uniform_struct': True,
             'int2strlen': 3,
             'num_workers': 4,
-            'normalize_channels': [False, False, False]
+            'normalize_channels': [False, False, False, True]
         }
 
     def tearDown(self):

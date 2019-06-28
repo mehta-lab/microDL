@@ -412,6 +412,7 @@ class TestImageTilerUniform(unittest.TestCase):
         """Test tile_mask_stack"""
 
         self.tile_inst.pos_ids = [7]
+        self.tile_inst.normalize_channels = [True, True, True, True]
 
         # use the saved masks to tile other channels
         self.tile_inst.tile_mask_stack(
