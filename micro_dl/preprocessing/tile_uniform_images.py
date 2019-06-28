@@ -544,6 +544,7 @@ class ImageTilerUniform:
                             task_type='tile',
                             mask_dir=mask_dir,
                             min_fraction=min_fraction,
+                            normalize_im=self.normalize_channels[mask_channel]
                         )
                         mask_fn_args.append(cur_args)
 
@@ -555,7 +556,6 @@ class ImageTilerUniform:
             mask_meta_df = mask_meta_df.sort_values(by=['file_name'])
             mask_meta_df.to_csv(os.path.join(self.tile_dir, 'frames_meta.csv'),
                                 sep=',')
-
         # remove mask_channel from self.channel_ids if included
         _ = [self.channel_ids.pop(idx)
              for idx, val in enumerate(self.channel_ids)
@@ -581,7 +581,8 @@ class ImageTilerUniform:
                                 slice_idx,
                                 pos_idx,
                                 task_type='crop',
-                                tile_indices=cur_tile_indices
+                                tile_indices=cur_tile_indices,
+                                normalize_im=self.normalize_channels[channel_idx]
                             )
                             fn_args.append(cur_args)
         tiled_meta_df_list = mp_crop_save(fn_args,

@@ -182,7 +182,6 @@ def tile_images(params_dict,
     :param str flat_field_dir: dir with flat field correction images
     :return str tile_dir: dir with tiled images
     """
-    normalize_channels = params_dict['normalize_channels'] + [tile_dict['normalize_im']]
     kwargs = {'input_dir': params_dict['input_dir'],
               'output_dir': params_dict['output_dir'],
               'tile_dict': tile_dict,
@@ -388,7 +387,7 @@ if __name__ == '__main__':
     pp_config = aux_utils.read_config(args.config)
     input_dir = pp_config['input_dir']
     output_dir = pp_config['output_dir']
-    normalize_channels = pp_config['normalize_channels']
+    normalize_channels = pp_config['tile']['normalize_channels'] + [pp_config['masks']['normalize_im']]
 
     slice_ids = -1
     if 'slice_ids' in pp_config:
