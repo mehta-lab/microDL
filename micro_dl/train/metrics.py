@@ -1,6 +1,7 @@
 """Custom metrics"""
 import keras.backend as K
 import tensorflow as tf
+from sklearn.metrics import accuracy_score
 
 
 def coeff_determination(y_true, y_pred):
@@ -15,6 +16,36 @@ def coeff_determination(y_true, y_pred):
     ss_res = K.sum(K.square(y_true - y_pred))
     ss_tot = K.sum(K.square(y_true - K.mean(y_true)))
     return 1 - ss_res / (ss_tot + K.epsilon())
+
+
+def accuracy(y_true, y_pred):
+    accuracy_score(y_true, y_pred)
+
+
+def mask_accuracy(n_channels):
+    """split y_true into y_true and mask
+
+    For masked_loss there's an added function/method to split
+    y_true and pass to loss, metrics and callbacks.
+
+    :param int n_channels: Number of channels
+    """
+    def acc(y_true, y_pred):
+        """
+        Accuracy
+
+        :param y_true: Ground truth
+        :param y_pred: Prediction
+        :return Accuracy
+        """
+        if K.image_data_format() == "channels_last":
+            split_axis = -1
+        else:
+            split_axis = 1
+        y_true_split, mask = tf.split(y_true, [n_channels, 1], axis=split_axis)
+        a = accuracy(y_true_split, y_pred)
+        return a
+    return acc
 
 
 def mask_coeff_determination(n_channels):
