@@ -358,8 +358,6 @@ class ImageTilerUniform:
         :return list cur_args: tuple of arguments for tiling
                 list tile_indices: tile indices for current image
         """
-        print("normalize_im in get_crop_tile_args {}".format(normalize_im))
-
         input_fnames = self._get_input_fnames(
             time_idx=time_idx,
             channel_idx=channel_idx,
