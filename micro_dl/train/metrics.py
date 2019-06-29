@@ -1,7 +1,6 @@
 """Custom metrics"""
 import keras.backend as K
 import tensorflow as tf
-from sklearn.metrics import accuracy_score
 
 
 def coeff_determination(y_true, y_pred):
@@ -18,8 +17,11 @@ def coeff_determination(y_true, y_pred):
     return 1 - ss_res / (ss_tot + K.epsilon())
 
 
-def accuracy(y_true, y_pred):
-    accuracy_score(y_true, y_pred)
+def binary_accuracy(y_true, y_pred):
+    '''Calculates the mean accuracy rate across all predictions for binary
+    classification problems.
+    '''
+    return K.mean(K.equal(y_true, K.round(y_pred)))
 
 
 def mask_accuracy(n_channels):
@@ -43,7 +45,7 @@ def mask_accuracy(n_channels):
         else:
             split_axis = 1
         y_true_split, mask = tf.split(y_true, [n_channels, 1], axis=split_axis)
-        a = accuracy(y_true_split, y_pred)
+        a = binary_accuracy(y_true_split, y_pred)
         return a
     return acc
 
