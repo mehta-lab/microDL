@@ -94,8 +94,6 @@ class DataSetWithMask(BaseDataSet):
                     wtd_mask += (cur_mask == label_idx) * \
                                 self.label_weights[label_idx]
                 cur_mask = wtd_mask
-            print('tar:', cur_target.dtype, cur_target.shape, cur_target.min(), cur_target.max())
-            print('mask:', cur_mask.dtype, cur_mask.shape, cur_mask.min(), cur_mask.max())
             cur_target = np.concatenate((cur_target, cur_mask), axis=0)
 
             input_image.append(cur_input)
