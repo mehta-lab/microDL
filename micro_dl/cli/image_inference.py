@@ -329,7 +329,7 @@ def run_prediction(model_dir,
                     pos_idx=pos_idx,
                 )
                 im_target = image_utils.crop2base(im_target)
-                #TODO: Add image_format option to network config
+                # TODO: Add image_format option to network config
                 # Change image stack format to zyx
                 im_target = np.transpose(im_target, [2, 0, 1])
                 if depth == 1:
@@ -343,7 +343,7 @@ def run_prediction(model_dir,
                 # add batch dimensions
                 im_target = im_target[np.newaxis, ...]
 
-                metric_vals = model.evaluate(x=im_stack, y=im_target)
+                metric_vals = model.evaluate(x=im_pred, y=im_target)
                 for metric, metric_val in zip([loss] + metrics, metric_vals):
                     test_frames_meta_row[metric] = metric_val
 

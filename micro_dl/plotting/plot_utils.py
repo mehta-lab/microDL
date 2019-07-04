@@ -42,7 +42,6 @@ def save_predicted_images(input_batch,
         assert output_fname is not None, 'need fname for saving image'
         fname = os.path.join(output_dir, '{}.{}'.format(output_fname, ext))
 
-
     # 3D images are better saved as movies/gif
     if batch_size != 1:
         assert len(input_batch.shape) == 4, 'saves 2D images only'
@@ -56,31 +55,37 @@ def save_predicted_images(input_batch,
         fig.set_size_inches((15, 5 * n_channels))
         axis_count = 0
         for channel_idx in range(n_channels):
+            print(cur_input[channel_idx].shape, cur_input[channel_idx].dtype, cur_input[channel_idx].min(), cur_input[channel_idx].max())
             cur_im = hist_clipping(
                 cur_input[channel_idx],
                 clip_limits,
                 100 - clip_limits,
             )
-            ax[axis_count].imshow(cur_im,  cmap='gray')
+            print(cur_im.shape, cur_im.dtype, cur_im.min(), cur_im.max())
+            ax[axis_count].imshow(cur_im, cmap='gray')
             ax[axis_count].axis('off')
             if axis_count == 0:
                 ax[axis_count].set_title('Input', fontsize=font_size)
             axis_count += 1
+            print(cur_target[channel_idx].shape, cur_target[channel_idx].dtype, cur_target[channel_idx].min(), cur_target[channel_idx].max())
             cur_im = hist_clipping(
                 cur_target[channel_idx],
                 clip_limits,
                 100 - clip_limits,
             )
+            print(cur_im.shape, cur_im.dtype, cur_im.min(), cur_im.max())
             ax[axis_count].imshow(cur_im, cmap='gray')
             ax[axis_count].axis('off')
             if axis_count == 1:
                 ax[axis_count].set_title('Target', fontsize=font_size)
             axis_count += 1
+            print(cur_prediction[channel_idx].shape, cur_prediction[channel_idx].dtype, cur_prediction[channel_idx].min(), cur_prediction[channel_idx].max())
             cur_im = hist_clipping(
                 cur_prediction[channel_idx],
                 clip_limits,
                 100 - clip_limits,
             )
+            print(cur_im.shape, cur_im.dtype, cur_im.min(), cur_im.max())
             ax[axis_count].imshow(cur_im, cmap='gray')
             ax[axis_count].axis('off')
             if axis_count == 2:
