@@ -84,7 +84,8 @@ def preprocess_imstack(frames_metadata,
     :param bool normalize_im: indicator to normalize image based on z-score or not
     :return np.array im: 3D preprocessed image
     """
-
+    print("frames_metadata in tile_utils {}".format(frames_metadata))
+    print("normalize_im in tile_utils {}".format(normalize_im))
     margin = 0 if depth == 1 else depth // 2
     im_stack = []
     for z in range(slice_idx - margin, slice_idx + margin + 1):
