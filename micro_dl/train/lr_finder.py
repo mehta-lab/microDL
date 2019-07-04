@@ -54,7 +54,7 @@ class LRFinder(Callback):
 
         K.set_value(self.model.optimizer.lr, self.base_lr)
         self.total_steps = self.max_epochs * self.params['steps']
-        self.step_size = (self.max_lr - self.base_lr) / self.total_steps
+        self.step_size = 0.001
 
     def on_batch_end(self, batch, logs=None):
         """
