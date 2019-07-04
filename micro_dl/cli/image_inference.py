@@ -153,7 +153,9 @@ def run_prediction(model_dir,
     if metrics is not None:
         if isinstance(metrics, str):
             metrics = [metrics]
-    metrics_cls = train_utils.get_metrics(metrics)
+        metrics_cls = train_utils.get_metrics(metrics)
+    else:
+        metrics_cls = metrics
     loss = trainer_config['loss']
     loss_cls = train_utils.get_loss(loss)
     split_idx_name = dataset_config['split_by_column']
@@ -177,9 +179,14 @@ def run_prediction(model_dir,
             metadata_ids[id] = np.unique(test_tile_meta[id])
 
     # create empty dataframe for test image metadata
-    test_frames_meta = pd.DataFrame(
-        columns=frames_meta.columns.values.tolist() + metrics,
-    )
+    if metrics is not None:
+        test_frames_meta = pd.DataFrame(
+            columns=frames_meta.columns.values.tolist() + metrics,
+        )
+    else:
+        test_frames_meta = pd.DataFrame(
+            columns=frames_meta.columns.values.tolist()
+        )
     # Get model weight file name, if none, load latest saved weights
     model_fname = model_fname
     if model_fname is None:

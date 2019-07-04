@@ -21,6 +21,7 @@ def binary_accuracy(y_true, y_pred):
     '''Calculates the mean accuracy rate across all predictions for binary
     classification problems.
     '''
+    print(y_true, y_pred)
     return K.mean(K.equal(y_true, K.round(y_pred)))
 
 
