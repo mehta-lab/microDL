@@ -68,11 +68,7 @@ def save_predicted_images(input_batch,
                 ax[axis_count].set_title('Input', fontsize=font_size)
             axis_count += 1
             print(cur_target[channel_idx].shape, cur_target[channel_idx].dtype, cur_target[channel_idx].min(), cur_target[channel_idx].max())
-            cur_im = hist_clipping(
-                cur_target[channel_idx],
-                clip_limits,
-                100 - clip_limits,
-            )
+            cur_im = cur_target[channel_idx]
             print(cur_im.shape, cur_im.dtype, cur_im.min(), cur_im.max())
             ax[axis_count].imshow(cur_im, cmap='gray')
             ax[axis_count].axis('off')

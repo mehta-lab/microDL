@@ -95,6 +95,7 @@ def _split_ytrue_mask(y_true, n_channels):
         split_axis = get_channel_axis(K.image_data_format())
         y_true_split, mask_image = tf.split(y_true, [n_channels, 1],
                                             axis=split_axis)
+        return y_true_split, mask_image
     except Exception as e:
         print('cannot separate mask and y_true' + str(e))
 
@@ -150,7 +151,6 @@ def dice_coef_loss(y_true, y_pred):
 
 def binary_crossentropy_loss(y_true, y_pred, mean_loss=True):
     """Binary cross entropy loss
-
     :param y_true: Ground truth
     :param y_pred: Prediction
     :return float: Binary cross entropy loss
@@ -163,3 +163,4 @@ def binary_crossentropy_loss(y_true, y_pred, mean_loss=True):
 
     channel_axis = get_channel_axis(K.image_data_format())
     return K.mean(K.binary_crossentropy(y_true, y_pred), axis=channel_axis)
+
