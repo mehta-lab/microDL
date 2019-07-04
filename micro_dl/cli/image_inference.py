@@ -76,18 +76,26 @@ def parse_args():
         help="Saves input, target, prediction plots. Assumes you have target channel",
     )
     parser.add_argument(
-        '--normalize_im',
-        default=False,
-        type=bool,
-        help="Don't normalize input"
-    )
-    parser.add_argument(
         '--no_figs',
         dest='save_figs',
         action='store_false',
         help="Don't save plots"
     )
     parser.set_defaults(save_figs=False)
+
+    parser.add_argument(
+        '--normalize_im',
+        dest='normalize_im',
+        action='store_true',
+        help="normalizes input image",
+    )
+    parser.add_argument(
+        '--dont_normalize_im',
+        dest='normalize_im',
+        action='store_false',
+        help="Don't normalize input image"
+    )
+    parser.set_defaults(normalize_im=False)
 
     parser.add_argument(
         '--metrics',
@@ -240,6 +248,7 @@ def run_prediction(model_dir,
         for pos_idx in metadata_ids['pos_idx']:
             for slice_idx in metadata_ids['slice_idx']:
                 # TODO: Add flatfield support
+                print("normalize_im in run_prediction {}".format(normalize_im))
                 im_stack = preprocess_imstack(
                     frames_metadata=frames_meta,
                     input_dir=image_dir,
@@ -366,6 +375,7 @@ if __name__ == '__main__':
         args.gpu,
         args.gpu_mem_frac,
     )
+    print("normalize_im in image_inference {}".format(args.normalize_im))
     run_prediction(
         model_dir=args.model_dir,
         image_dir=args.image_dir,
