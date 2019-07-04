@@ -76,6 +76,12 @@ def parse_args():
         help="Saves input, target, prediction plots. Assumes you have target channel",
     )
     parser.add_argument(
+        '--normalize_im',
+        default=False,
+        type=bool,
+        help="Don't normalize input"
+    )
+    parser.add_argument(
         '--no_figs',
         dest='save_figs',
         action='store_false',
@@ -102,7 +108,8 @@ def run_prediction(model_dir,
                    metrics=None,
                    test_data=True,
                    ext='.tif',
-                   save_figs=False):
+                   save_figs=False,
+                   normalize_im=False):
     """
     Predict images given model + weights.
     If the test_data flag is set to True, the test indices in
@@ -241,6 +248,7 @@ def run_prediction(model_dir,
                     channel_idx=input_channel,
                     slice_idx=slice_idx,
                     pos_idx=pos_idx,
+                    normalize_im=normalize_im
                 )
                 # Crop image shape to nearest factor of two
                 im_stack = image_utils.crop2base(im_stack)
@@ -368,5 +376,6 @@ if __name__ == '__main__':
         test_data=args.test_data,
         ext=args.ext,
         save_figs=args.save_figs,
+        normalize_im=args.normalize_im
     )
 

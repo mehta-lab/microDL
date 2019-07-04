@@ -88,8 +88,6 @@ def preprocess_imstack(frames_metadata,
     margin = 0 if depth == 1 else depth // 2
     im_stack = []
     for z in range(slice_idx - margin, slice_idx + margin + 1):
-        print(frames_metadata)
-        print(time_idx, channel_idx, z, pos_idx)
         meta_idx = aux_utils.get_meta_idx(
             frames_metadata,
             time_idx,
