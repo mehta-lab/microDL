@@ -254,8 +254,7 @@ def save_plot(x, y, fig_fname, fig_labels=None):
 
     fig = plt.figure(figsize=(8, 5))
     ax = fig.add_subplot(111)
-    print(x, y)
-    ax.plot(x[1:], y[1:])
+    ax.plot(x, y)
     if fig_labels is not None:
         assert len(fig_labels) >= 2, "At least x and y labels must be present"
         ax.set_xlabel(fig_labels[0])

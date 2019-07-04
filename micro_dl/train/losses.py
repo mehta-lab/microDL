@@ -95,7 +95,6 @@ def _split_ytrue_mask(y_true, n_channels):
         split_axis = get_channel_axis(K.image_data_format())
         y_true_split, mask_image = tf.split(y_true, [n_channels, 1],
                                             axis=split_axis)
-        return y_true_split, mask_image
     except Exception as e:
         print('cannot separate mask and y_true' + str(e))
 
