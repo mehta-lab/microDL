@@ -67,7 +67,7 @@ def preprocess_imstack(frames_metadata,
                        pos_idx,
                        flat_field_im=None,
                        hist_clip_limits=None,
-                       normalize_im=True):
+                       normalize_im=False):
     """
     Preprocess image given by indices: flatfield correction, histogram
     clipping and z-score normalization is performed.
