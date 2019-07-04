@@ -95,9 +95,6 @@ def _split_ytrue_mask(y_true, n_channels):
         split_axis = get_channel_axis(K.image_data_format())
         y_true_split, mask_image = tf.split(y_true, [n_channels, 1],
                                             axis=split_axis)
-        print(y_true_split.min(), y_true_split.max(), y_true.dtype)
-        print(mask_image.min(), mask_image.max(), mask_image.dtype)    
-        return y_true_split, mask_image
     except Exception as e:
         print('cannot separate mask and y_true' + str(e))
 
@@ -165,6 +162,4 @@ def binary_crossentropy_loss(y_true, y_pred, mean_loss=True):
         return K.binary_crossentropy(y_true, y_pred)
 
     channel_axis = get_channel_axis(K.image_data_format())
-    print(y_true.min(), y_true.max(), y_true.dtype)
-    print(y_pred.min(), y_pred.max(), y_pred.dtype)
     return K.mean(K.binary_crossentropy(y_true, y_pred), axis=channel_axis)
