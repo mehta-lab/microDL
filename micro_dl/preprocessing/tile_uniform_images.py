@@ -67,7 +67,6 @@ class ImageTilerUniform:
         self.input_dir = input_dir
         self.output_dir = output_dir
         self.normalize_channels = normalize_channels
-        print("normalize_channels in tile_images {}".format(normalize_channels))
 
         if 'depths' in tile_dict:
             depths = tile_dict['depths']
@@ -441,7 +440,6 @@ class ImageTilerUniform:
                         if tile_indices is None:
                             # tile and save first image
                             # get meta data and tile_indices
-                            print("tile_stack normalize_im {}".format(self.normalize_channels[channel_idx]))
                             im = tile_utils.preprocess_imstack(
                                 frames_metadata=self.frames_metadata,
                                 input_dir=self.input_dir,
@@ -470,7 +468,6 @@ class ImageTilerUniform:
                                     save_dict=save_dict
                                 )
                         else:
-                            print("tile_stack normalize_im {}".format(self.normalize_channels[channel_idx]))
                             cur_args = self.get_crop_tile_args(
                                 channel_idx,
                                 time_idx,
