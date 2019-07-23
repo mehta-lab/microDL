@@ -164,13 +164,6 @@ def tile_and_save(input_fnames,
     :return: pd.DataFrame from a list of dicts with metadata
     """
     try:
-        # TODO Hack to create and save the whole float64 borders_weight_loss_map mask as is
-        # without converting to a boolean image
-        # When the min_fraction is 1, the mask is not boolean, we want to look at the whole
-        # mask
-        if min_fraction == 1:
-            is_mask = False
-            min_fraction = None
         input_image = tile_utils.read_imstack(
             input_fnames=input_fnames,
             flat_field_fname=flat_field_fname,
