@@ -193,9 +193,8 @@ def tile_images(params_dict,
               'num_workers': params_dict['num_workers'],
               'int2str_len': params_dict['int2strlen'],
               'normalize_channels': params_dict["normalize_channels"]}
-
     if params_dict['uniform_struct']:
-        if 'tile_3d' in tile_dict:
+        if 'tile_3d' in tile_dict and tile_dict['tile_3d']:
             if resize_flag:
                 warnings.warn(
                     'If resize_3d was used, slice_idx corresponds to start'
@@ -337,7 +336,7 @@ def pre_process(pp_config, req_params_dict):
         pp_config['masks']['mask_dir'] = mask_dir
         pp_config['masks']['mask_out_channel'] = mask_out_channel
 
-    # Tile frames
+    # Tile image, target mask frames
     if 'tile' in pp_config:
         resize_flag = False
         if 'resize' not in pp_config:
@@ -351,7 +350,27 @@ def pre_process(pp_config, req_params_dict):
                                pp_config['tile'],
                                resize_flag,
                                flat_field_dir)
-        pp_config['tile']['tile_dir'] = tile_dir
+        tiles_frame_meta = pd.read_csv(
+            os.path.join(tile_dir, 'frames_meta.csv'), index_col=0)
+
+    if 'masks' in pp_config:
+        req_params_dict["input_dir"] = mask_dir
+        pp_config['tile']['channels'] = [mask_out_channel]
+        req_params_dict['normalize_channels'] = req_params_dict['normalize_channels'] + [pp_config['masks']['normalize_im']]
+        tile_dir = tile_images(req_params_dict,
+                               pp_config['tile'],
+                               resize_flag,
+                               flat_field_dir)
+        tiles_frame_meta_mask = pd.read_csv(
+            os.path.join(tile_dir, 'frames_meta.csv'), index_col=0)
+    tiles_metadata = pd.concat([tiles_frame_meta, tiles_frame_meta_mask], ignore_index=True)
+    dropped = tiles_metadata.drop_duplicates()
+    dropped = dropped.reset_index(drop=True)
+    dropped.to_csv(
+        os.path.join(tile_dir, "frames_meta.csv"),
+        sep=','
+    )
+    pp_config['tile']['tile_dir'] = tile_dir
 
     # Write in/out/mask/tile paths and config to json in output directory
     time_el = time.time() - time_start
@@ -430,4 +449,3 @@ if __name__ == '__main__':
 
     pp_config, runtime = pre_process(pp_config, base_config)
     save_config(pp_config, runtime)
-

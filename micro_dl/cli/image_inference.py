@@ -228,7 +228,6 @@ def run_prediction(model_dir,
     # Get input channel
     # TODO: Add multi channel support once such models are tested
     input_channel = dataset_config['input_channels'][0]
-    print(input_channel)
     assert isinstance(input_channel, int),\
         "Only supporting single input channel for now"
     # Get data format
@@ -249,8 +248,6 @@ def run_prediction(model_dir,
         for pos_idx in metadata_ids['pos_idx']:
             for slice_idx in metadata_ids['slice_idx']:
                 # TODO: Add flatfield support
-                print(depth, input_channel, time_idx, slice_idx, pos_idx)
-                print("normalize_im in run_prediction {}".format(normalize_im))
                 im_stack = preprocess_imstack(
                     frames_metadata=frames_meta,
                     input_dir=image_dir,
@@ -277,12 +274,10 @@ def run_prediction(model_dir,
                 im_stack = im_stack[np.newaxis, ...]
                 # Predict on large image
                 start = time.time()
-                print(im_stack.shape, im_stack.dtype, im_stack.min(), im_stack.max())
                 im_pred = inference.predict_on_larger_image(
                     model=model,
                     input_image=im_stack,
                 )
-                print(im_pred.shape, im_pred.dtype, im_pred.min(), im_pred.max())
                 print("Inference time:", time.time() - start)
                 # Write prediction image
                 im_name = aux_utils.get_im_name(
@@ -379,7 +374,6 @@ if __name__ == '__main__':
         args.gpu,
         args.gpu_mem_frac,
     )
-    print("normalize_im in image_inference {}".format(args.normalize_im))
     run_prediction(
         model_dir=args.model_dir,
         image_dir=args.image_dir,
