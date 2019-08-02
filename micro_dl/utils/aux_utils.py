@@ -56,23 +56,28 @@ def read_config(config_fname):
     return config
 
 
-def get_row_idx(frames_metadata, time_idx,
-                channel_idx, slice_idx=-1):
-    """Get the indices for images with timepoint_idx and channel_idx
+def get_row_idx(frames_metadata,
+                time_idx,
+                channel_idx,
+                slice_idx=-1,
+                pos_idx=-1):
+    """
+    Get the indices for images with timepoint_idx and channel_idx
 
     :param pd.DataFrame frames_metadata: DF with columns time_idx,
      channel_idx, slice_idx, file_name]
     :param int time_idx: get info for this timepoint
     :param int channel_idx: get info for this channel
     :param int slice_idx: get info for this focal plane (2D)
+    :param int pos_idx: Specify FOV (default to all if -1)
     """
+    row_idx = ((frames_metadata['time_idx'] == time_idx) &
+               (frames_metadata['channel_idx'] == channel_idx))
     if slice_idx > -1:
-        row_idx = ((frames_metadata['time_idx'] == time_idx) &
-                   (frames_metadata['channel_idx'] == channel_idx) &
-                   (frames_metadata['slice_idx'] == slice_idx))
-    else:
-        row_idx = ((frames_metadata['time_idx'] == time_idx) &
-                   (frames_metadata['channel_idx'] == channel_idx))
+        row_idx = (row_idx & (frames_metadata['slice_idx'] == slice_idx))
+    if pos_idx > -1:
+        row_idx = (row_idx & (frames_metadata['pos_idx'] == pos_idx))
+
     return row_idx
 
 
