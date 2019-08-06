@@ -95,8 +95,8 @@ class MaskProcessor:
         for channel_idx in channel_ids:
             row_idxs = self.frames_metadata['channel_idx'] == channel_idx
             im_means = self.frames_metadata.loc[row_idxs, 'mean'].values
-            channel_thr = threshold_otsu(im_means, nbins=64)
-            channel_thrs.append(channel_thr)
+            channel_thr = threshold_otsu(im_means, nbins=32)
+            channel_thrs.append(0.3*channel_thr)
         self.channel_thrs = channel_thrs
 
     def get_mask_dir(self):

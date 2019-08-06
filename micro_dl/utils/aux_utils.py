@@ -12,11 +12,12 @@ import pandas as pd
 import yaml
 
 DF_NAMES = ["channel_idx",
+            "pos_idx",
             "slice_idx",
             "time_idx",
             "channel_name",
+            "dir_name",
             "file_name",
-            "pos_idx",
             "mean",
             "std"]
 
@@ -58,8 +59,11 @@ def read_config(config_fname):
     return config
 
 
-def get_row_idx(frames_metadata, time_idx,
-                channel_idx, slice_idx=-1):
+def get_row_idx(frames_metadata,
+                time_idx,
+                channel_idx,
+                slice_idx=-1,
+                dir_names=None):
     """Get the indices for images with timepoint_idx and channel_idx
 
     :param pd.DataFrame frames_metadata: DF with columns time_idx,
@@ -68,13 +72,20 @@ def get_row_idx(frames_metadata, time_idx,
     :param int channel_idx: get info for this channel
     :param int slice_idx: get info for this focal plane (2D)
     """
+    if dir_names is None:
+        dir_names = frames_metadata['dir_name'].unique()
+    if not isinstance(dir_names, list):
+        dir_names = [dir_names]
+
     if slice_idx > -1:
         row_idx = ((frames_metadata['time_idx'] == time_idx) &
                    (frames_metadata['channel_idx'] == channel_idx) &
-                   (frames_metadata['slice_idx'] == slice_idx))
+                   (frames_metadata['slice_idx'] == slice_idx) &
+                    frames_metadata['dir_name'].isin(dir_names))
     else:
         row_idx = ((frames_metadata['time_idx'] == time_idx) &
-                   (frames_metadata['channel_idx'] == channel_idx))
+                   (frames_metadata['channel_idx'] == channel_idx) &
+                    frames_metadata['dir_name'].isin(dir_names))
     return row_idx
 
 
@@ -136,6 +147,46 @@ def get_im_name(time_idx=None,
     im_name += ext
     return im_name
 
+def get_sms_im_name(time_idx=None,
+                    channel_name=None,
+                    slice_idx=None,
+                    pos_idx=None,
+                    extra_field=None,
+                    ext='.npy',
+                    int2str_len=3):
+    """
+    Create an image name given parameters and extension
+    This function is custom for the computational microscopy (SMS)
+    group, who has the following file naming convention:
+    File naming convention is assumed to be:
+        img_channelname_t***_p***_z***.tif
+    This function will alter list and dict in place.
+
+    :param int time_idx: Time index
+    :param str channel_name: Channel name
+    :param int slice_idx: Slice (z) index
+    :param int pos_idx: Position (FOV) index
+    :param str extra_field: Any extra string you want to include in the name
+    :param str ext: Extension, e.g. '.png'
+    :param int int2str_len: Length of string of the converted integers
+    :return st im_name: Image file name
+    """
+
+    im_name = "img"
+    if channel_name is not None:
+        im_name += "_" + str(channel_name)
+    if time_idx is not None:
+        im_name += "_t" + str(time_idx).zfill(int2str_len)
+    if pos_idx is not None:
+        im_name += "_p" + str(pos_idx).zfill(int2str_len)
+    if slice_idx is not None:
+        im_name += "_z" + str(slice_idx).zfill(int2str_len)
+    if extra_field is not None:
+        im_name += "_" + extra_field
+    im_name += ext
+
+    return im_name
+
 def get_zscore_params(time_idx,
                       channel_idx,
                       slice_idx,
@@ -163,6 +214,14 @@ def get_zscore_params(time_idx,
     assert normalize_im in [None, 'stack', 'volume', 'dataset'], \
         'normalize_im must be None or "stack" or "volume" or "dataset"'
 
+    meta_idx = get_meta_idx(
+        frames_metadata,
+        time_idx,
+        channel_idx,
+        slice_idx,
+        pos_idx,
+    )
+    dir_name = frames_metadata.loc[meta_idx, 'dir_name']
     margin = 0 if depth == 1 else depth // 2
     if normalize_im is None:
         # No normalization
@@ -175,6 +234,7 @@ def get_zscore_params(time_idx,
             frames_metadata,
             time_idx,
             channel_idx,
+            dir_names=dir_name
         )
     elif normalize_im in ['stack', 'volume']:
         meta_idxs = []
