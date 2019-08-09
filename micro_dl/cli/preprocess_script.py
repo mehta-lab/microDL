@@ -134,7 +134,6 @@ def generate_masks(params_dict,
     assert mask_type in {'otsu', 'unimodal', 'borders_weight_loss_map'},\
         "Supported mask types: 'otsu', 'unimodal', 'borders_weight_loss_map', not {}".format(mask_type)
 
-    print('before instantiating maskprocessor', type(mask_out_channel))
     # Instantiate channel to mask processor
     mask_processor_inst = MaskProcessor(
         input_dir=params_dict['input_dir'],
@@ -161,7 +160,6 @@ def generate_masks(params_dict,
     )
     mask_dir = mask_processor_inst.get_mask_dir()
     mask_out_channel = mask_processor_inst.get_mask_channel()
-    print('after get mask dir', type(mask_out_channel))
     return mask_dir, mask_out_channel
 
 
@@ -297,7 +295,6 @@ def pre_process(pp_config, req_params_dict):
         req_params_dict['input_dir'] = resize_dir
         req_params_dict['slice_ids'] = slice_ids
 
-    print('after resize', mask_out_channel, type(mask_out_channel))
     # Generate masks
     mask_dir = None
     if 'masks' in pp_config:

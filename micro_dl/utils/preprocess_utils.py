@@ -54,10 +54,8 @@ def validate_mask_meta(pp_config, mask_channel=None):
             assert len(mask_channel) == 1,\
                 "Found more than one mask channel: {}".format(mask_channel)
             mask_channel = mask_channel[0]
-            print('in validate mask meta', mask_channel, type(mask_channel))
             if type(mask_channel).__module__ == 'numpy':
-                mask_channel = mask_channel.astype(int)
-            print('after check', type(mask_channel).__module__, type(mask_channel))
+                mask_channel = mask_channel.item()
             return mask_channel
         if len(csv_name) == 1:
             # Use the one existing csv name
