@@ -62,8 +62,10 @@ class MaskProcessor:
                 self.frames_metadata['channel_idx'].max() + 1
             )
         else:
-            self.mask_channel = mask_out_channel
-
+            self.mask_channel = int(mask_out_channel)
+        print('maksk', self.mask_channel, type(self.mask_channel))
+        if type(self.mask_channel).__module__ == 'numpy':
+            self.mask_channel = self.mask_channel.astype(int)
         metadata_ids, nested_id_dict = aux_utils.validate_metadata_indices(
             frames_metadata=self.frames_metadata,
             time_ids=time_ids,
