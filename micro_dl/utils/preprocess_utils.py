@@ -6,7 +6,7 @@ import pandas as pd
 import micro_dl.utils.aux_utils as aux_utils
 
 
-def validate_mask_meta(pp_config):
+def validate_mask_meta(pp_config, mask_channel=None):
     """
     If user provides existing masks, the mask directory should also contain
     a csv file (not named frames_meta.csv which is reserved for output) with
@@ -14,11 +14,12 @@ def validate_mask_meta(pp_config):
     mask name and the corresponding file name. Each file_name should exist in
     input_dir and belong to the same channel.
     This function checks that all file names exist in input_dir and writes a
-    frames_meta csv containing mask names the indices corresponding to the
+    frames_meta csv containing mask names with indices corresponding to the
     matched file_name. It also assigns a mask channel number for future
     preprocessing steps like tiling.
 
     :param dict pp_config: Preprocessing config
+    :param int/None mask_channel: Channel idx assigned to masks
     :return int mask_channel: New channel index for masks for writing tiles
     :raises AssertionError: If 'masks' in pp_config contains both channels
         and mask_dir (the former is for generating masks from a channel)
@@ -34,9 +35,8 @@ def validate_mask_meta(pp_config):
     :raises AssertionError: If mask file correspond to more than one input
         channel
     """
-    # Masks need to have their own channel index for tiling
-    # Hopefully this will be big enough default value
-    mask_channel = 999
+    if mask_channel is None:
+        mask_channel = 999
     assert 'channels' not in pp_config['masks'], \
         "Don't specify channels to mask if using pre-generated masks"
     mask_dir = pp_config['masks']['mask_dir']
@@ -53,7 +53,12 @@ def validate_mask_meta(pp_config):
             mask_channel = np.unique(frames_meta['channel_idx'])
             assert len(mask_channel) == 1,\
                 "Found more than one mask channel: {}".format(mask_channel)
-            return mask_channel[0]
+            mask_channel = mask_channel[0]
+            print('in validate mask meta', mask_channel, type(mask_channel))
+            if type(mask_channel).__module__ == 'numpy':
+                mask_channel = mask_channel.astype(int)
+            print('after check', type(mask_channel).__module__, type(mask_channel))
+            return mask_channel
         if len(csv_name) == 1:
             # Use the one existing csv name
             csv_name = csv_name[0]

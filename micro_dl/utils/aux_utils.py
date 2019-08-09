@@ -448,6 +448,11 @@ def write_json(json_dict, json_filename):
     :param dict json_dict: Dictionary to be written
     :param str json_filename: Full path file name of json
     """
+    print('config tile')
+    j = json_dict[0]['config']['tile']
+    for k, v in j.items():
+        print(k, v, type(v))
+    print('config masks')
     j = json_dict[0]['config']['masks']
     for k, v in j.items():
         print(k, v, type(v))
