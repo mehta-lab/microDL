@@ -230,7 +230,45 @@ class TestImageStitcher(unittest.TestCase):
         exp_z0[:, 4:] = 2
         np.testing.assert_array_equal(stitched_img[0], exp_z0)
 
-        # second slice, overlap along x and y 4:6, 4:6
-        print(np.round(stitched_img[1], 2))
+        # second slice, place tile 1. Tile 2: Mean along 2 overlapping cols
+        # 4,5 and rows 2-5 [0.67*1 + 0.33*2, 0.33*1 + 0.67*2 = 1.33, 1.67].
+        # Tile 3: Mean along 2 overlapping rows 4, 5:
+        # 0.67 * 1.33 + 0.33 * 1, 0.67 * 1.67 + 0.33 * 1 = 1.22, 1.44
+        # 0.33 * 1.33 + 0.67 * 1, 0.33 * 1.67 + 0.67 * 1 = 1.11, 1.22
+        # Tile 4: Mean along 2 overlapping rows 4, 5:
+        # 0.67 * 1.22 + 0.33 * 2, 0.67 * 1.44 + 0.33 * 2 = 1.48, 1.63
+        # 0.33 * 1.11 + 0.67 * 2, 0.33 * 1.22 + 0.67 * 2 = 1.71, 1.74
+        exp_z1 = np.ones((10, 10))
+        exp_z1[:, 4:] = 2
+        exp_z1[2:, 4] = 1.33
+        exp_z1[2:, 5] = 1.67
+        exp_z1[4, 4] = 1.48
+        exp_z1[4, 5] = 1.63
+        exp_z1[5, 4] = 1.7
+        exp_z1[5, 5] = 1.74
+        np.testing.assert_array_equal(np.round(stitched_img[1], 2), exp_z1)
 
+    def test_stitch_predictions(self):
+        """Test stitch_predictions"""
 
+        shape_3d = (3, 10, 10)
+
+        tile_imgs_list = [np.ones((1, 1, 3, 6, 6)),
+                          2 * np.ones((1, 1, 3, 6, 6)),
+                          np.ones((1, 1, 3, 6, 6))]
+                          #2 * np.ones((1, 1, 3, 6, 6))]
+        block_indices_list = [(0, 3, 0, 6, 0, 6),
+                              (0, 3, 0, 6, 4, 10),
+                              (0, 3, 4, 10, 0, 6),
+                              (0, 3, 4, 10, 4, 10)]
+
+        nose.tools.assert_raises(AssertionError,
+                                 self.stitch_inst_zyx.stitch_predictions,
+                                 shape_3d,
+                                 tile_imgs_list,
+                                 block_indices_list)
+        nose.tools.assert_raises(AssertionError,
+                                 self.stitch_inst_z.stitch_predictions,
+                                 (10, 10),
+                                 tile_imgs_list,
+                                 block_indices_list)
