@@ -5,7 +5,7 @@ import numpy as np
 import os
 import pandas as pd
 import pdb
-from micro_dl.input.inference_dataset import InferenceDataset
+from micro_dl.input.inference_dataset import InferenceDataSet
 import micro_dl.inference.model_inference as inference
 from micro_dl.inference.evaluation_metrics import MetricsEstimator
 from micro_dl.inference.stitch_predictions import ImageStitcher
@@ -84,7 +84,7 @@ class ImagePredictor:
         flat_field_dir = None
         if 'flat_field_dir' in image_param_dict:
             flat_field_dir = image_param_dict['flat_field_dir']
-        self.dataset_inst = InferenceDataset(
+        self.dataset_inst = InferenceDataSet(
             image_dir=image_dir,
             dataset_config=self.config['dataset'],
             network_config=self.config['network'],

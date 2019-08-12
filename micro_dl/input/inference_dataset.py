@@ -9,7 +9,7 @@ from micro_dl.utils.image_utils import crop2base
 from micro_dl.utils.tile_utils import preprocess_imstack
 
 
-class InferenceDataset(keras.utils.Sequence):
+class InferenceDataSet(keras.utils.Sequence):
     """Dataset class for model inference"""
 
     def __init__(self,
