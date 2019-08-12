@@ -29,13 +29,9 @@ class InferenceDataset(keras.utils.Sequence):
         :param str image_format: xyz or zyx format
         :param str flat_field_dir: dir with flat field images
         """
-
-        # no augmentation needed for inference
-        self.augmentations = False
-        self.shuffle = False
+        self.image_dir = image_dir
         self.flat_field_dir = flat_field_dir
 
-        self.image_dir = image_dir
         assert image_format in {'xyz', 'zyx'}, \
             "Image format should be xyz or zyx, not {}".format(image_format)
         self.image_format = image_format
@@ -142,7 +138,7 @@ class InferenceDataset(keras.utils.Sequence):
                 slice_idx=cur_slice_idx,
                 pos_idx=cur_pos_idx,
                 flat_field_im=cur_flat_field_im,
-                normalize_im=normalize
+                normalize_im=normalize,
             )
 
             # Crop image to nearest factor of two in xy

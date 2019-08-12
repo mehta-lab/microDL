@@ -181,7 +181,6 @@ def run_prediction(model_dir,
         columns=frames_meta.columns.values.tolist() + metrics,
     )
     # Get model weight file name, if none, load latest saved weights
-    model_fname = model_fname
     if model_fname is None:
         fnames = [f for f in os.listdir(model_dir) if f.endswith('.hdf5')]
         assert len(fnames) > 0, 'No weight files found in model dir'

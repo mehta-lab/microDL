@@ -46,7 +46,7 @@ def predict_on_larger_image(model, input_image):
     """
     im_size = input_image.shape
     num_dims = len(im_size)
-    assert num_dims in [4,5], \
+    assert num_dims in [4, 5], \
         'Invalid image shape: only 4D and 5D inputs - 2D / 3D ' \
         'images with channel and batch dim allowed'
 
