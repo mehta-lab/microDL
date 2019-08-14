@@ -250,6 +250,8 @@ def pre_process(pp_config, req_params_dict):
     [input_dir, output_dir, slice_ids, time_ids, pos_ids
     correct_flat_field, use_masks, masks, tile_stack, tile]
     :param dict req_params_dict: dict with commom params for all tasks
+    :raises AssertionError: If 'masks' in pp_config contains both channels
+     and mask_dir (the former is for generating masks from a channel)
     """
 
     time_start = time.time()
@@ -323,6 +325,8 @@ def pre_process(pp_config, req_params_dict):
             )
             pp_config['masks']['created_mask_dir'] = mask_dir
         elif 'mask_dir' in pp_config['masks']:
+            assert 'channels' not in pp_config['masks'], \
+                "Don't specify channels to mask if using pre-generated masks"
             mask_dir = pp_config['masks']['mask_dir']
             # Get preexisting masks from directory and match to input dir
             mask_out_channel = preprocess_utils.validate_mask_meta(

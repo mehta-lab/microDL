@@ -1,8 +1,13 @@
 model_dir: '/Users/jenny.folkesson/data/microglia_newsegm/'
 image_dir: '/Volumes/MicroscopyData/imaging_group/ucsf_microglia/UCSF-2018-05-04-00-00-00-0001/'
 data_split: 'test'
-image_params_dict:
+images:
     image_format: 'zyx'
     im_ext: '.png'
-metrics: ['r2', 'corr', 'ssim']
-metrics_orientations: ['xy']
+metrics:
+    metrics: ['r2', 'corr', 'ssim']
+    metrics_orientations: ['xy']
+masks:
+    mask_dir: '/Volumes/MicroscopyData/imaging_group/ucsf_microglia/binary_masks/'
+    mask_type: 'target'
+    mask_channel: 999

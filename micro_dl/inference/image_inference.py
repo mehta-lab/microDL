@@ -23,14 +23,10 @@ class ImagePredictor:
                  model_dir,
                  model_fname,
                  image_dir,
-                 image_param_dict,
+                 inference_config,
                  gpu_id,
                  gpu_mem_frac,
-                 data_split='test',
-                 metrics_list=None,
-                 metrics_orientations=None,
-                 mask_param_dict=None,
-                 vol_inf_dict=None):
+                 data_split='test'):
         """Init
 
         :param dict train_config: Training config dict with params related
@@ -38,38 +34,46 @@ class ImagePredictor:
         :param str model_dir: Path to model directory
         :param str model_fname: File name of weights in model dir (.hdf5).
         :param str image_dir: dir containing input images AND NOT TILES!
-        :param dict image_param_dict: dict with keys image_format,
-         flat_field_dir, im_ext, crop_shape. im_ext: npy or png or tiff.
-         FOR 3D IMAGES USE NPY AS PNG AND TIFF ARE CURRENTLY NOT SUPPORTED.
-         crop_shape: center crop the image to a specified shape before tiling
-         for inference
+        :param dict inference_config: dict of dicts:
+            dict images:
+             str image_format: 'zyx' or 'xyz'
+             str/None flat_field_dir: flatfield directory
+             str im_ext: e.g. '.png' or '.npy' or '.tiff'
+             FOR 3D IMAGES USE NPY AS PNG AND TIFF ARE CURRENTLY NOT SUPPORTED.
+             list crop_shape: center crop the image to a specified shape before
+             tiling for inference
+            dict metrics:
+             list metrics_list: list of metrics to estimate. available
+             metrics: [ssim, corr, r2, mse, mae}]
+             list metrics_orientations: xy, xyz, xz or yz
+            dict masks: dict with keys
+             str mask_dir: path to masks
+             str mask_type: 'target' for segmentation, 'metrics' for weighted
+             int mask_channel: mask channel as in training
+            dict inference_3d: dict with params for 3D inference with keys:
+             num_slices, inf_shape, tile_shape, num_overlap, overlap_operation.
+             int num_slices: in case of 3D, the full volume will not fit in GPU
+              memory, specify the number of slices to use and this will depend on
+              the network depth, for ex 8 for a network of depth 4. inf_shape -
+              inference on a center sub volume.
+             list tile_shape: shape of tile for tiling along xyz.
+             int/list num_overlap: int for tile_z, list for tile_xyz
+             str overlap_operation: e.g. 'mean'
         :param int gpu_id: gpu to use
         :param float gpu_mem_frac: Memory fractions to use corresponding
          to gpu_ids
         :param str data_split: Which data (train/test/val) to run inference on.
          (default = test)
-        :param list metrics_list: list of metrics to estimate. available
-         metrics: [ssim, corr, r2, mse, mae}]
          TODO: add accuracy and dice coeff to metrics list
-        :param list metrics_orientations: xy, xyz, xz or yz
-        :param dict mask_param_dict: dict with keys mask_dir and mask_channel
-        :param dict vol_inf_dict: dict with params for 3D inference with keys:
-         num_slices, inf_shape, tile_shape, num_overlap, overlap_operation.
-         num_slices - in case of 3D, the full volume will not fit in GPU
-         memory, specify the number of slices to use and this will depend on
-         the network depth, for ex 8 for a network of depth 4. inf_shape -
-         inference on a center sub volume. tile_shape - shape of tile for
-         tiling along xyz. num_overlap - int for tile_z, list for tile_xyz
         """
         self.config = train_config
         self.model_dir = model_dir
         self.data_format = self.config['network']['data_format']
         if gpu_id >= 0:
-            sess = set_keras_session(
+            self.sess = set_keras_session(
                 gpu_ids=gpu_id,
                 gpu_mem_frac=gpu_mem_frac,
             )
-            self.sess = sess
 
         # create network instance and load weights
         self.model_inst = self._create_model(
@@ -78,73 +82,95 @@ class ImagePredictor:
 
         assert data_split in ['train', 'val', 'test'], \
             'data_split not in [train, val, test]'
-        df_split_meta = self._get_split_meta(image_dir, data_split)
-        self.df_split_meta = df_split_meta
+        self.df_split_meta = self._get_split_meta(image_dir, data_split)
 
         flat_field_dir = None
-        if 'flat_field_dir' in image_param_dict:
-            flat_field_dir = image_param_dict['flat_field_dir']
+        images_dict = inference_config['images']
+        if 'flat_field_dir' in images_dict:
+            flat_field_dir = images_dict['flat_field_dir']
         self.dataset_inst = InferenceDataSet(
             image_dir=image_dir,
             dataset_config=self.config['dataset'],
             network_config=self.config['network'],
-            df_meta=df_split_meta,
-            image_format=image_param_dict['image_format'],
+            df_meta=self.df_split_meta,
+            image_format=images_dict['image_format'],
             flat_field_dir=flat_field_dir,
         )
         # Set defaults
         self.image_format = 'zyx'
-        if 'image_format' in image_param_dict:
-            self.image_format = image_param_dict['image_format']
+        if 'image_format' in images_dict:
+            self.image_format = images_dict['image_format']
         self.image_ext = '.png'
-        if 'image_ext' in image_param_dict:
-            self.image_ext = image_param_dict['im_ext']
+        if 'image_ext' in images_dict:
+            self.image_ext = images_dict['im_ext']
         crop_shape = None
-        if 'crop_shape' in image_param_dict:
-            crop_shape = image_param_dict['crop_shape']
+        if 'crop_shape' in images_dict:
+            crop_shape = images_dict['crop_shape']
         self.crop_shape = crop_shape
+        self.nrows = self.config['network']['width']
+        self.ncols = self.config['network']['height']
 
         # Create image subdirectory to write predicted images
         self.pred_dir = os.path.join(self.model_dir, 'predictions')
         os.makedirs(self.pred_dir, exist_ok=True)
-        # create an instance of MetricsEstimator
+        # create an instance of MetricsEstimator ??
         self.df_iteration_meta = self.dataset_inst.get_df_iteration_meta()
 
-        if mask_param_dict is not None:
-            assert ('mask_channel' in mask_param_dict and
-                    'mask_dir' in mask_param_dict), \
-                'Both mask_channel and mask_dir are needed'
-        self.mask_param_dict = mask_param_dict
+        # Handle masks as either targets or for masked metrics
+        self.masks_dict = None
+        self.mask_metrics = False
+        self.mask_target_dir = None
+        if 'masks' in inference_config:
+            self.masks_dict = inference_config['masks']
+        if self.masks_dict is not None:
+            assert 'mask_channel' in self.masks_dict , 'mask_channel is needed'
+            assert 'mask_dir' in self.masks_dict, 'mask_dir is needed'
+            assert 'mask_type' in self.masks_dict, \
+                'mask_type (target/metrics) is needed'
+            if self.masks_dict['mask_type'] == 'metrics':
+                # Compute weighted metrics
+                self.mask_metrics = True
+            else:
+                # Use masks as targets for metrics computations
+                self.mask_target_dir = self.metrics_dict['mask_dir']
 
+        # Handle metrics config settings
         self.metrics_inst = None
-        if metrics_list is not None:
+        self.metrics_dict = None
+        if 'metrics' in inference_config:
+            self.metrics_dict = inference_config['metrics']
+        if self.metrics_dict is not None:
+            assert 'metrics' in self.metrics_dict,\
+                'Must specify with metrics to use'
             self.metrics_inst = MetricsEstimator(
-                metrics_list=metrics_list,
-                masked_metrics=True,
+                metrics_list=self.metrics_dict['metrics'],
+                masked_metrics=self.mask_metrics,
             )
-
-        self.num_overlap = 0
-        self.stitch_inst = None
-        self.tile_option = None
-        self.z_dim = 2
-        if vol_inf_dict is not None:
-            self._assign_vol_inf_options(
-                image_param_dict,
-                vol_inf_dict,
-            )
-        self.vol_inf_dict = vol_inf_dict
-
-        self.nrows = self.config['network']['width']
-        self.ncols = self.config['network']['height']
-        available_orientations = ['xy', 'xyz', 'xz', 'yz']
-        if metrics_orientations is not None:
-            assert set(metrics_orientations).issubset(available_orientations), \
-                'orientation not in [xy, xyz, xz, yz]'
+            self.metrics_orientations = ['xy']
+            available_orientations = ['xy', 'xyz', 'xz', 'yz']
+            if 'metrics_orientations' in self.metrics_dict:
+                self.metrics_orientations = \
+                    self.metrics_dict['metrics_orientations']
+                assert set(self.metrics_orientations).\
+                    issubset(available_orientations,),\
+                    'orientation not in [xy, xyz, xz, yz]'
             self.df_xy = pd.DataFrame()
             self.df_xyz = pd.DataFrame()
             self.df_xz = pd.DataFrame()
             self.df_yz = pd.DataFrame()
-        self.metrics_orientations = metrics_orientations
+
+        # Handle 3D volume inference settings
+        self.num_overlap = 0
+        self.stitch_inst = None
+        self.tile_option = None
+        self.z_dim = 2
+        self.inference_3d_dict = None
+        if 'inference_3d' in inference_config:
+            self.inference_3d_dict = inference_config['inference_3d']
+        if self.inference_3d_dict is not None:
+            self._assign_vol_inf_options(
+                self.inference_3d_dict,
+            )
 
     def _create_model(self, model_fname):
         """Load model given the model_fname or the saved model in model_dir
@@ -190,7 +216,7 @@ class ImagePredictor:
         df_split_meta = frames_meta[df_split_meta_idx]
         return df_split_meta
 
-    def _assign_vol_inf_options(self, image_param_dict, vol_inf_dict):
+    def _assign_vol_inf_options(self, vol_inf_dict):
         """
         Assign inference options for 3D volumes
 
@@ -199,13 +225,12 @@ class ImagePredictor:
         tile_xyz - 2d/3d prediction on sub-blocks, stitch predictions along xyz
         infer_on_center - infer on center block
 
-        :param dict image_param_dict: same as in __init__
         :param dict vol_inf_dict: same as in __init__
         """
         # assign zdim if not Unet2D
-        if image_param_dict['image_format'] == 'zyx':
+        if self.image_format == 'zyx':
             self.z_dim = 2 if self.data_format == 'channels_first' else 1
-        elif image_param_dict['image_format'] == 'xyz':
+        elif self.image_format == 'xyz':
             self.z_dim = 4 if self.data_format == 'channels_first' else 3
 
         if 'num_slices' in vol_inf_dict and vol_inf_dict['num_slices'] > 1:
@@ -244,7 +269,7 @@ class ImagePredictor:
             self.stitch_inst = ImageStitcher(
                 tile_option=self.tile_option,
                 overlap_dict=overlap_dict,
-                image_format=image_param_dict['image_format'],
+                image_format=self.image_format,
                 data_format=self.data_format
             )
 
@@ -285,7 +310,7 @@ class ImagePredictor:
         pred_imgs_list = []
         start_end_idx = []
         num_z = input_image.shape[self.z_dim]
-        num_slices = self.vol_inf_dict['num_slices']
+        num_slices = self.inference_3d_dict['num_slices']
         num_blocks = np.ceil(
             num_z / (num_slices - self.num_overlap)
         ).astype('int')
@@ -337,8 +362,12 @@ class ImagePredictor:
 
     def save_pred_image(self,
                         predicted_image,
-                        time_idx, target_channel_idx, pos_idx, slice_idx):
-        """Save predicted images
+                        time_idx,
+                        target_channel_idx,
+                        pos_idx,
+                        slice_idx):
+        """
+        Save predicted images
 
         :param np.array predicted_image: 2D / 3D predicted image
         :param int time_idx: time index
@@ -382,8 +411,8 @@ class ImagePredictor:
                          cur_prediction,
                          cur_pred_fname,
                          cur_mask):
-        """Estimate evaluation metrics
-
+        """
+        Estimate evaluation metrics
         The row of metrics gets added to metrics_est.df_metrics
 
         :param np.array cur_target: ground truth
@@ -425,12 +454,12 @@ class ImagePredictor:
 
         mask_fname = aux_utils.get_im_name(
             time_idx=cur_row['time_idx'],
-            channel_idx=self.mask_param_dict['mask_channel'],
+            channel_idx=self.masks_dict['mask_channel'],
             slice_idx=cur_row['slice_idx'],
             pos_idx=cur_row['pos_idx']
         )
         mask_fname = os.path.join(
-            self.mask_param_dict['mask_dir'],
+            self.masks_dict['mask_dir'],
             mask_fname)
         cur_mask = np.load(mask_fname)
         # moves z from last axis to first axis
@@ -493,7 +522,7 @@ class ImagePredictor:
 
                     cur_sl = df_iteration_meta[row_idx]['slice_idx']
                     # get mask
-                    if self.mask_param_dict is not None:
+                    if self.masks_dict is not None:
                         cur_mask = self.get_mask(cur_row)
                         mask_vol[:, :, cur_sl] = cur_mask
 
@@ -516,7 +545,7 @@ class ImagePredictor:
                     cur_target = center_crop_to_shape(cur_target,
                                                       self.crop_shape)
                 if self.tile_option == 'infer_on_center':
-                    inf_shape = self.vol_inf_dict['inf_shape']
+                    inf_shape = self.inference_3d_dict['inf_shape']
                     center_block = center_crop_to_shape(cur_input, inf_shape)
                     cur_target = center_crop_to_shape(cur_target, inf_shape)
                     pred_image = inference.predict_on_larger_image(
@@ -531,13 +560,13 @@ class ImagePredictor:
                         start_end_idx
                     )
                 elif self.tile_option == 'tile_xyz':
-                    step_size = (np.array(self.vol_inf_dict['tile_shape']) -
+                    step_size = (np.array(self.inference_3d_dict['tile_shape']) -
                                  np.array(self.num_overlap))
                     if crop_indices is None:
                         # TODO tile_image works for 2D/3D imgs, modify for multichannel
                         _, crop_indices = tile_utils.tile_image(
                             input_image=np.squeeze(cur_input),
-                            tile_size=self.vol_inf_dict['tile_shape'],
+                            tile_size=self.inference_3d_dict['tile_shape'],
                             step_size=step_size,
                             return_index=True
                         )
@@ -558,7 +587,7 @@ class ImagePredictor:
                                      pos_idx=cur_row['pos_idx'],
                                      slice_idx=cur_row['slice_idx'])
                 # get mask
-                if self.mask_param_dict is not None:
+                if self.masks_dict is not None:
                     mask_vol = self.get_mask(cur_row, transpose=True)
                 # 3D uses zyx, estimate metrics expects xyz
                 pred_image = np.transpose(pred_image, [1, 2, 0])
@@ -569,7 +598,7 @@ class ImagePredictor:
                                                  cur_row['channel_idx'],
                                                  cur_row['pos_idx'])
             if self.metrics_inst is not None:
-                if self.mask_param_dict is None:
+                if self.masks_dict is None:
                     mask_vol = None
                 self.estimate_metrics(cur_target=target_image,
                                       cur_prediction=pred_image,
