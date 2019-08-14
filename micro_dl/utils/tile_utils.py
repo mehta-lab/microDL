@@ -74,7 +74,8 @@ def preprocess_imstack(frames_metadata,
                        pos_idx,
                        flat_field_im=None,
                        hist_clip_limits=None,
-                       normalize_im='stack'
+                       normalize_im='stack',
+                       min_fraction=None,
                        ):
     """
     Preprocess image given by indices: flatfield correction, histogram
@@ -144,7 +145,8 @@ def preprocess_imstack(frames_metadata,
         depth=depth,
         slice_ids=slice_ids,
         normalize_im=normalize_im,
-        frames_metadata=frames_metadata
+        frames_metadata=frames_metadata,
+        min_fraction=min_fraction
     )
 
     im_stack = normalize.zscore(

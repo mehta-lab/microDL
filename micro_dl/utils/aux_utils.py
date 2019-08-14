@@ -194,8 +194,8 @@ def get_zscore_params(time_idx,
                       depth,
                       slice_ids,
                       normalize_im,
-                      frames_metadata
-                      ):
+                      frames_metadata,
+                      min_fraction):
     """Get zscore mean and standard deviation
 
     :param int time_idx: Time index
@@ -230,12 +230,11 @@ def get_zscore_params(time_idx,
         return zscore_mean, zscore_std
 
     if normalize_im == 'dataset':
-        meta_idxs = get_row_idx(
-            frames_metadata,
-            time_idx,
-            channel_idx,
-            dir_names=dir_name
-        )
+        meta_idxs = ((frames_metadata['time_idx'] == time_idx) &
+                   (frames_metadata['channel_idx'] == channel_idx) &
+                   (frames_metadata['dir_name'] == dir_name) &
+                   (frames_metadata['fg_frac'] >= min_fraction))
+
     elif normalize_im in ['stack', 'volume']:
         meta_idxs = []
         if normalize_im == 'stack':
@@ -255,6 +254,7 @@ def get_zscore_params(time_idx,
     zscore_mean = frames_metadata.loc[meta_idxs, 'mean'].mean()
     zscore_std = frames_metadata.loc[meta_idxs, 'std'].mean()
     return zscore_mean, zscore_std
+
 
 def sort_meta_by_channel(frames_metadata):
     """

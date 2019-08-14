@@ -26,7 +26,8 @@ class ImageTilerUniform:
                  image_format='zyx',
                  num_workers=4,
                  int2str_len=3,
-                 normalize_im='stack'):
+                 normalize_im='stack',
+                 min_fraction=None):
         """
         Normalizes images using z-score, then tiles them.
         If tile_dir already exist, it will check which channels are already
@@ -159,6 +160,7 @@ class ImageTilerUniform:
         self.int2str_len = int2str_len
         self.tile_3d = tile_dict['tile_3d']
         self.normalize_im = normalize_im
+        self.min_fraction = min_fraction
 
     def get_tile_dir(self):
         """
@@ -339,7 +341,7 @@ class ImageTilerUniform:
                            task_type,
                            tile_indices=None,
                            mask_dir=None,
-                           min_fraction=None):
+                           ):
         """Gather arguments for cropping or tiling
 
         :param int channel_idx: channel index for current image
@@ -349,7 +351,6 @@ class ImageTilerUniform:
         :param str task_type: crop or tile
         :param list tile_indices: list of tile indices
         :param str mask_dir: dir containing image level masks
-        :param float min_fraction: min foreground volume fraction for use tile
         :return list cur_args: tuple of arguments for tiling
                 list tile_indices: tile indices for current image
         """
@@ -386,7 +387,8 @@ class ImageTilerUniform:
                 self.channel_depth[channel_idx],
                 self.slice_ids,
                 self.normalize_im,
-                self.frames_metadata
+                self.frames_metadata,
+                self.min_fraction,
             )
         else:
             # Using masks, need to make sure they're bool
@@ -417,7 +419,7 @@ class ImageTilerUniform:
                         slice_idx,
                         self.tile_size,
                         self.step_size,
-                        min_fraction,
+                        self.min_fraction,
                         self.image_format,
                         self.tile_dir,
                         self.int2str_len,
@@ -460,7 +462,8 @@ class ImageTilerUniform:
                                 pos_idx=pos_idx,
                                 flat_field_im=flat_field_im,
                                 hist_clip_limits=self.hist_clip_limits,
-                                normalize_im=self.normalize_im
+                                normalize_im=self.normalize_im,
+                                min_fraction=self.min_fraction
                             )
                             save_dict = {'time_idx': time_idx,
                                          'channel_idx': channel_idx,
@@ -507,7 +510,6 @@ class ImageTilerUniform:
     def tile_mask_stack(self,
                         mask_dir,
                         mask_channel,
-                        min_fraction,
                         mask_depth=1):
         """
         Tiles images in the specified channels assuming there are masks
@@ -519,7 +521,6 @@ class ImageTilerUniform:
 
         :param str mask_dir: Directory containing masks
         :param int mask_channel: Channel number assigned to mask
-        :param float min_fraction: Minimum fraction of foreground in tiled masks
         :param int mask_depth: Depth for mask channel
         """
 
@@ -551,7 +552,6 @@ class ImageTilerUniform:
                             pos_idx=pos_idx,
                             task_type='tile',
                             mask_dir=mask_dir,
-                            min_fraction=min_fraction,
                         )
                         mask_fn_args.append(cur_args)
 

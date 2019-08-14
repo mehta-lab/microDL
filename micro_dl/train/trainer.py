@@ -232,6 +232,7 @@ class BaseKerasTrainer:
                                      steps_per_epoch=steps_per_epoch,
                                      callbacks=callbacks,
                                      workers=self.workers,
+                                     use_multiprocessing=True,
                                      verbose=1)
             time_el = time.time() - time_start
             self.logger.info("Training time: {}".format(time_el))

@@ -95,10 +95,10 @@ class MaskProcessor:
         for channel_idx in channel_ids:
             row_idxs = self.frames_metadata['channel_idx'] == channel_idx
             im_means = self.frames_metadata.loc[row_idxs, 'mean'].values
-            channel_thr = threshold_otsu(im_means, nbins=32)
-            channel_thrs.append(0.3*channel_thr)
-        self.channel_thrs = channel_thrs
 
+            channel_thr = threshold_otsu(im_means, nbins=32)
+            channel_thrs.append(0.2*channel_thr)
+        self.channel_thrs = channel_thrs
     def get_mask_dir(self):
         """
         Return mask directory
@@ -230,3 +230,10 @@ class MaskProcessor:
         mask_meta_df = mask_meta_df.sort_values(by=['file_name'])
         mask_meta_df.to_csv(os.path.join(self.mask_dir, 'frames_meta.csv'),
                             sep=',')
+        # upadate image frame_meta.csv
+        self.frames_metadata = \
+            pd.merge(self.frames_metadata,
+                     mask_meta_df[['pos_idx', 'time_idx', 'slice_idx', 'fg_frac']],
+                     how='left', on=['pos_idx', 'time_idx', 'slice_idx'])
+        self.frames_metadata.to_csv(os.path.join(self.input_dir, 'frames_meta.csv'),
+                                    sep=',')

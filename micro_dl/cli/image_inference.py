@@ -254,6 +254,7 @@ def run_prediction(model_dir,
         pp_config = recent_json['config']
         if 'tile' in pp_config and 'normalize_im' in pp_config['tile']:
             normalize_im = pp_config['tile']['normalize_im']
+            min_fraction = pp_config['tile']['min_fraction']
 
     # Iterate over all indices for test data
     for time_idx in metadata_ids['time_idx']:
@@ -271,7 +272,8 @@ def run_prediction(model_dir,
                         channel_idx=channel_idx,
                         slice_idx=slice_idx,
                         pos_idx=pos_idx,
-                        normalize_im=normalize_im
+                        normalize_im=normalize_im,
+                        min_fraction=min_fraction,
                     )
 
                     # Crop image shape to nearest factor of two
@@ -341,7 +343,8 @@ def run_prediction(model_dir,
                     channel_idx=target_channel,
                     slice_idx=slice_idx,
                     pos_idx=pos_idx,
-                    normalize_im=normalize_im
+                    normalize_im=normalize_im,
+                    min_fraction=min_fraction,
                 )
                 im_target = image_utils.crop2base(im_target)
                 #TODO: Add image_format option to network config

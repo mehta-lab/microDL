@@ -220,3 +220,5 @@ def center_crop_to_shape(input_image, output_shape):
     for idx in singleton_dims:
         center_block = np.expand_dims(center_block, axis=idx)
     return center_block
+
+

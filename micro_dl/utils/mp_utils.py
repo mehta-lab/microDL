@@ -74,6 +74,7 @@ def create_save_mask(input_fnames,
         masks += [mask]
     masks = np.stack(masks, axis=-1)
     mask = np.any(masks, axis=-1)
+    fg_frac = np.sum(mask)/mask.size
 
     # Create mask name for given slice, time and position
     file_name = aux_utils.get_im_name(time_idx=time_idx,
@@ -99,7 +100,8 @@ def create_save_mask(input_fnames,
                 'slice_idx': slice_idx,
                 'time_idx': time_idx,
                 'pos_idx': pos_idx,
-                'file_name': file_name}
+                'file_name': file_name,
+                'fg_frac': fg_frac,}
     return cur_meta
 
 def mp_tile_save(fn_args, workers):
@@ -371,3 +373,29 @@ def rescale_vol_and_save(time_idx,
                     'std': np.std(resc_vol)}
     return cur_metadata
 
+
+def mp_get_im_stats(fn_args, workers):
+    """Read and computes statistics of images with multiprocessing
+
+    :param list of tuple fn_args: list with tuples of function arguments
+    :param int workers: max number of workers
+    :return: list of returned df from get_im_stats
+    """
+
+    with ProcessPoolExecutor(workers) as ex:
+        # can't use map directly as it works only with single arg functions
+        res = ex.map(get_im_stats, fn_args)
+    return list(res)
+
+
+def get_im_stats(im_path):
+    """Read and computes statistics of images
+
+    """
+
+    im = image_utils.read_image(im_path)
+    meta_row = {
+        'mean': np.nanmean(im),
+        'std': np.nanstd(im)
+        }
+    return meta_row

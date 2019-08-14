@@ -189,7 +189,8 @@ def tile_images(params_dict,
               'pos_ids': params_dict['pos_ids'],
               'flat_field_dir': flat_field_dir,
               'num_workers': params_dict['num_workers'],
-              'int2str_len': params_dict['int2strlen']}
+              'int2str_len': params_dict['int2strlen'],
+              'min_fraction': tile_dict['min_fraction']}
 
     if params_dict['uniform_struct']:
         if 'tile_3d' in tile_dict and tile_dict['tile_3d']:
@@ -211,18 +212,15 @@ def tile_images(params_dict,
     tile_dir = tile_inst.get_tile_dir()
 
     # retain tiles with a minimum amount of foreground
-    if 'min_fraction' in tile_dict:
-        min_fraction = tile_dict['min_fraction']
+    if tile_dict['min_fraction'] is not None:
         mask_out_channel = tile_dict['mask_channel']
         mask_dir = tile_dict['mask_dir']
-
         mask_depth = 1
         if 'mask_depth' in tile_dict:
             mask_depth = tile_dict['mask_depth']
 
         tile_inst.tile_mask_stack(mask_dir=mask_dir,
                                   mask_channel=mask_out_channel,
-                                  min_fraction=min_fraction,
                                   mask_depth=mask_depth)
     else:
         # retain all tiles
