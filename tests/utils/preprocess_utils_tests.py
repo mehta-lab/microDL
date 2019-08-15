@@ -77,15 +77,15 @@ class TestPreprocessUtils(unittest.TestCase):
             mask_dir=self.mask_dir,
             input_dir=self.input_dir,
             csv_name=self.csv_name,
-            mask_channel=5,
+            mask_channel=50,
         )
-        self.assertEqual(mask_out_channel, 5)
+        self.assertEqual(mask_out_channel, 50)
 
         out_meta = aux_utils.read_meta(self.mask_dir)
         for i, row in out_meta.iterrows():
             self.assertEqual(row.slice_idx, self.slice_idx)
             self.assertEqual(row.time_idx, self.time_idx)
-            self.assertEqual(row.channel_idx, 5)
+            self.assertEqual(row.channel_idx, 50)
             self.assertEqual(row.pos_idx, i)
             self.assertEqual(row.file_name, "mask_{}.png".format(i + 1))
 
@@ -95,13 +95,13 @@ class TestPreprocessUtils(unittest.TestCase):
             input_dir=self.input_dir,
             csv_name=self.csv_name,
         )
-        self.assertEqual(mask_out_channel, 999)
+        self.assertEqual(mask_out_channel, 4)
 
         out_meta = aux_utils.read_meta(self.mask_dir)
         for i, row in out_meta.iterrows():
             self.assertEqual(row.slice_idx, self.slice_idx)
             self.assertEqual(row.time_idx, self.time_idx)
-            self.assertEqual(row.channel_idx, 999)
+            self.assertEqual(row.channel_idx, 4)
             self.assertEqual(row.pos_idx, i)
             self.assertEqual(row.file_name, "mask_{}.png".format(i + 1))
 

@@ -68,6 +68,7 @@ class ImagePredictor:
         """
         self.config = train_config
         self.model_dir = model_dir
+        self.image_dir = image_dir
         self.data_format = self.config['network']['data_format']
         if gpu_id >= 0:
             self.sess = set_keras_session(
@@ -82,17 +83,17 @@ class ImagePredictor:
 
         assert data_split in ['train', 'val', 'test'], \
             'data_split not in [train, val, test]'
-        self.df_split_meta = self._get_split_meta(image_dir, data_split)
+        split_col_ids = self._get_split_ids(data_split)
 
         flat_field_dir = None
         images_dict = inference_config['images']
         if 'flat_field_dir' in images_dict:
             flat_field_dir = images_dict['flat_field_dir']
         self.dataset_inst = InferenceDataSet(
-            image_dir=image_dir,
+            image_dir=self.image_dir,
             dataset_config=self.config['dataset'],
             network_config=self.config['network'],
-            df_meta=self.df_split_meta,
+            split_col_ids=split_col_ids,
             image_format=images_dict['image_format'],
             flat_field_dir=flat_field_dir,
         )
@@ -187,34 +188,25 @@ class ImagePredictor:
         )
         return model
 
-    def _get_split_meta(self, image_dir, data_split='test'):
-        """Get the meta dataframe for data_split
-
-        :param str image_dir: dir containing images AND NOT TILES!
-        :param str data_split: in [train, val, test]
-        :return pd.Dataframe df_split_meta: dataframe with slice, pos, time
-         indices and file names
+    def _get_split_ids(self, data_split='test'):
         """
-        # Load frames metadata and determine indices
-        frames_meta = pd.read_csv(
-            os.path.join(image_dir, 'frames_meta.csv'),
-        )
-        split_idx_name = self.config['dataset']['split_by_column']
+        Get the indices for data_split
 
-        if data_split == 'test':
-            idx_fname = os.path.join(self.model_dir, 'split_samples.json')
-            try:
-                split_samples = aux_utils.read_json(idx_fname)
-                test_ids = split_samples['test']
-            except FileNotFoundError as e:
-                print("No split_samples file. "
-                      "Will predict all images in dir." + e)
-        else:
-            test_ids = np.unique(frames_meta[split_idx_name])
-
-        df_split_meta_idx = frames_meta[split_idx_name].isin(test_ids)
-        df_split_meta = frames_meta[df_split_meta_idx]
-        return df_split_meta
+        :param str data_split: in [train, val, test]
+        :return list inference_ids: Indices for inference given data split
+        :return str split_col: Dataframe column name, which was split in training
+        """
+        split_col = self.config['dataset']['split_by_column']
+        try:
+            split_fname = os.path.join(self.model_dir, 'split_samples.json')
+            split_samples = aux_utils.read_json(split_fname)
+            inference_ids = split_samples[data_split]
+        except FileNotFoundError as e:
+            print("No split_samples file. "
+                  "Will predict all images in dir." + e)
+            frames_meta = aux_utils.read_meta(self.image_dir)
+            inference_ids = np.unique(frames_meta[split_col])
+        return split_col, inference_ids
 
     def _assign_vol_inf_options(self, vol_inf_dict):
         """

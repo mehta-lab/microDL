@@ -35,8 +35,11 @@ def validate_mask_meta(mask_dir,
     :raises IndexError: If unable to match file_name in mask_dir csv with
         file_name in input_dir for any given mask row
     """
+    input_meta = aux_utils.read_meta(input_dir)
     if mask_channel is None:
-        mask_channel = 999
+        mask_channel = int(
+            input_meta['channel_idx'].max() + 1
+        )
     # Make sure there is a csv file file
     if csv_name is not None:
         csv_name = glob.glob(os.path.join(mask_dir, csv_name))
@@ -80,7 +83,6 @@ def validate_mask_meta(mask_dir,
         "mask csv should have columns mask_name and file_name " +\
         "(corresponding to the file_name in input_dir)"
     # Check that file_name for each mask_name matches files in input_dir
-    input_meta = aux_utils.read_meta(input_dir)
     file_names = input_meta['file_name']
     # Create dataframe that will store all indices for masks
     out_meta = aux_utils.make_dataframe(nbr_rows=mask_meta.shape[0])
