@@ -21,7 +21,7 @@ class TestInferenceDataSet(unittest.TestCase):
         self.image_dir = os.path.join(self.temp_path, 'image_dir')
         self.mask_dir = os.path.join(self.temp_path, 'mask_dir')
         # Create a temp image dir
-        im = np.zeros((10, 15), dtype=np.uint8)
+        im = np.zeros((10, 16), dtype=np.uint8)
         self.frames_meta = aux_utils.make_dataframe()
         self.time_idx = 2
         self.slice_idx = 3
@@ -52,7 +52,7 @@ class TestInferenceDataSet(unittest.TestCase):
                 pos_idx=p,
                 ext='.png',
             )
-            cv2.imwrite(os.path.join(self.image_dir, im_name), im + 1)
+            cv2.imwrite(os.path.join(self.mask_dir, im_name), im + 1)
             self.mask_meta = self.mask_meta.append(
                 aux_utils.parse_idx_from_name(im_name, aux_utils.DF_NAMES),
                 ignore_index=True,
@@ -60,14 +60,14 @@ class TestInferenceDataSet(unittest.TestCase):
         # Write frames meta to image dir too
         self.mask_meta.to_csv(os.path.join(self.mask_dir, 'frames_meta.csv'))
         # Select inference split of dataset
-        split_col_ids = ('pos_idx', [1, 3])
+        self.split_col_ids = ('pos_idx', [1, 3])
         # Make configs with fields necessary for inference dataset
         dataset_config = {
             'input_channels': [1],
             'target_channels': [self.mask_channel],
             'model_task': 'segmentation',
         }
-        network_config = {
+        self.network_config = {
             'class': 'UNet2D',
             'network': {'depth': 1},
             'data_format': 'channels_first',
@@ -76,8 +76,8 @@ class TestInferenceDataSet(unittest.TestCase):
         self.data_inst = inference_dataset.InferenceDataSet(
             image_dir=self.image_dir,
             dataset_config=dataset_config,
-            network_config=network_config,
-            split_col_ids=split_col_ids,
+            network_config=self.network_config,
+            split_col_ids=self.split_col_ids,
             mask_dir=self.mask_dir,
         )
 
@@ -133,7 +133,6 @@ class TestInferenceDataSet(unittest.TestCase):
         self.data_inst.depth = 5
         # This should remove first and last two slices
         self.data_inst.adjust_slice_indices()
-        print(self.data_inst.frames_meta)
         # Original slice ids are 0-9 so after removing margins should be 2-7
         self.assertListEqual(
             self.data_inst.frames_meta.slice_idx.unique().tolist(),
@@ -158,15 +157,56 @@ class TestInferenceDataSet(unittest.TestCase):
         self.assertEqual(num_samples, 2)
 
     def test_get_image(self):
-        print(self.data_inst.frames_meta)
         meta_row = dict.fromkeys(aux_utils.DF_NAMES)
-        meta_row['channel_idx'] = 1
+        meta_row['channel_idx'] = 2
         meta_row['time_idx'] = self.time_idx
         meta_row['slice_idx'] = self.slice_idx
         meta_row['pos_idx'] = 3
         im_stack = self.data_inst._get_image(
             input_dir=self.image_dir,
             cur_row=meta_row,
-            channel_ids=[1],
-            normalize=True,
+            channel_ids=[2],
+            normalize=False,
         )
+        # Image shapes are cropped to nearest factor of two, channels first
+        self.assertTupleEqual(im_stack.shape, (1, 8, 16))
+        # Channel 2 has constant values of 20
+        self.assertEqual(im_stack.max(), 20)
+        self.assertEqual(im_stack.min(), 20)
+
+    def test__getitem__(self):
+        # There are 2 test indices (pos 1 and 3)
+        input_stack, target_stack = self.data_inst.__getitem__(1)
+        # Cropped to factor of 2, add batch dim
+        self.assertTupleEqual(input_stack.shape, (1, 1, 8, 16))
+        self.assertTupleEqual(target_stack.shape, (1, 1, 8, 16))
+        # input stack should be normalized, not target
+        self.assertEqual(input_stack.max(), 0.0)
+        self.assertEqual(target_stack.max(), 1)
+        self.assertEqual(input_stack.dtype, np.float64)
+        self.assertEqual(target_stack.dtype, np.float64)
+
+    def test__getitem__regression(self):
+        dataset_config = {
+            'input_channels': [1, 2],
+            'target_channels': [0],
+            'model_task': 'regression',
+        }
+        # Instantiate class
+        data_inst = inference_dataset.InferenceDataSet(
+            image_dir=self.image_dir,
+            dataset_config=dataset_config,
+            network_config=self.network_config,
+            split_col_ids=self.split_col_ids,
+        )
+        # There are 2 test indices (pos 1 and 3)
+        input_stack, target_stack = data_inst.__getitem__(0)
+        # Cropped to factor of 2, add batch dim
+        self.assertTupleEqual(input_stack.shape, (1, 2, 8, 16))
+        self.assertTupleEqual(target_stack.shape, (1, 1, 8, 16))
+        # input stack should be normalized, not target
+        self.assertEqual(input_stack.max(), 0.0)
+        self.assertEqual(target_stack.max(), 0.0)
+        self.assertEqual(input_stack.dtype, np.float64)
+        self.assertEqual(target_stack.dtype, np.float64)
+

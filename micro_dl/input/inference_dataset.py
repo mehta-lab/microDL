@@ -152,13 +152,13 @@ class InferenceDataSet(keras.utils.Sequence):
         """
         im_stack = []
         for channel_idx in channel_ids:
-            cur_flat_field_im = None
+            flat_field_im = None
             if self.flat_field_dir is not None and normalize:
-                cur_flat_field_fname = os.path.join(
+                flat_field_fname = os.path.join(
                     self.flat_field_dir,
                     'flat-field_channel-{}.npy'.format(channel_idx)
                 )
-                cur_flat_field_im = np.load(cur_flat_field_fname)
+                flat_field_im = np.load(flat_field_fname)
             # Load image with given indices
             im = preprocess_imstack(
                 frames_metadata=self.frames_meta,
@@ -168,7 +168,7 @@ class InferenceDataSet(keras.utils.Sequence):
                 channel_idx=channel_idx,
                 slice_idx=cur_row['slice_idx'],
                 pos_idx=cur_row['pos_idx'],
-                flat_field_im=cur_flat_field_im,
+                flat_field_im=flat_field_im,
                 normalize_im=normalize,
             )
             # Crop image to nearest factor of two in xy
@@ -184,6 +184,9 @@ class InferenceDataSet(keras.utils.Sequence):
             im_stack = np.stack(im_stack)
         else:
             im_stack = np.stack(im_stack, axis=self.n_dims - 2)
+        # Make sure image has the right dtype if mask (not normalized)
+        if not normalize:
+            im_stack = im_stack.astype(np.float64)
         return im_stack
 
     def __getitem__(self, index):
@@ -195,27 +198,22 @@ class InferenceDataSet(keras.utils.Sequence):
             matching model
         :return np.array target_stack: Target image stack for model inference
         """
-        input_stack = []
-        target_stack = []
-
+        # Get indices for current inference iteration
         cur_row = self.iteration_meta.iloc[index]
-        cur_input = self._get_image(
+        # Get input and target stacks for inference
+        input_stack = self._get_image(
             input_dir=self.image_dir,
             cur_row=cur_row,
             channel_ids=self.input_channels,
             normalize=True,
         )
-        cur_target = self._get_image(
+        target_stack = self._get_image(
             input_dir=self.target_dir,
             cur_row=cur_row,
             channel_ids=self.target_channels,
             normalize=self.normalize,
         )
-        print(cur_input.shape)
-        input_stack.append(cur_input)
-        print(input_stack.shape)
-        target_stack.append(cur_target)
-        # stack for batch dimension
-        input_stack = np.stack(input_stack)
-        target_stack = np.stack(target_stack)
+        # Add batch dimension
+        input_stack = np.expand_dims(input_stack, axis=0)
+        target_stack = np.expand_dims(target_stack, axis=0)
         return input_stack, target_stack
