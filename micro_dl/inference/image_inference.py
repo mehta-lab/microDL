@@ -92,18 +92,6 @@ class ImagePredictor:
         self.data_format = self.config['network']['data_format']
         assert self.data_format in {'channels_first', 'channels_last'}, \
             "Data format should be channels_first/last"
-        if gpu_id >= 0:
-            self.sess = set_keras_session(
-                gpu_ids=gpu_id,
-                gpu_mem_frac=gpu_mem_frac,
-            )
-
-        # create model and load weights
-        self.model = inference.load_model(
-            network_config=self.config['network'],
-            model_fname=os.path.join(self.model_dir, model_fname),
-            predict=True,
-        )
 
         flat_field_dir = None
         images_dict = inference_config['images']
@@ -186,14 +174,24 @@ class ImagePredictor:
         self.crop_shape = None
         if 'crop_shape' in images_dict:
             self.crop_shape = images_dict['crop_shape']
-
-        self.nrows = self.config['network']['width']
-        self.ncols = self.config['network']['height']
         if 'inference_3d' in inference_config:
             self.params_3d = inference_config['inference_3d']
             self._assign_3d_inference()
             # Make image ext npy default for 3D
             self.image_ext = '.npy'
+
+        # Set session if not debug
+        if gpu_id >= 0:
+            self.sess = set_keras_session(
+                gpu_ids=gpu_id,
+                gpu_mem_frac=gpu_mem_frac,
+            )
+        # create model and load weights
+        self.model = inference.load_model(
+            network_config=self.config['network'],
+            model_fname=os.path.join(self.model_dir, model_fname),
+            predict=True,
+        )
 
     def _get_split_ids(self, data_split='test'):
         """
@@ -451,7 +449,6 @@ class ImagePredictor:
             channel_idx=self.masks_dict['mask_channel'],
             slice_idx=cur_row['slice_idx'],
             pos_idx=cur_row['pos_idx'],
-            ext=self.mask_ext,
         )
         mask = image_utils.read_image(
             os.path.join(self.mask_metrics_dir, mask_fname),
@@ -467,10 +464,8 @@ class ImagePredictor:
         """
         Run prediction on 2D or 2.5D on indices given by metadata row.
 
-        :param pandas.Series iteration_meta_row: Row with indices for inference
+        :param pandas.Series iteration_meta_row: Rows with indices for inference
         """
-        max_sl = self.iteration_meta[iteration_meta_row]['slice_idx'].max()
-        min_sl = self.iteration_meta[iteration_meta_row]['slice_idx'].min()
         pred_stack = []
         target_stack = []
         mask_stack = []
