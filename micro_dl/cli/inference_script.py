@@ -2,7 +2,6 @@
 """Model inference on larger images with and w/o stitching"""
 import argparse
 import glob
-import natsort
 import os
 import yaml
 
@@ -54,35 +53,12 @@ def run_inference(config_fname,
         'more than one train config yaml found in model dir'
     with open(train_config_fname[0], 'r') as f:
         train_config = yaml.safe_load(f)
-    # Use model_dir from inference config if present, otherwise use train
-    if 'model_dir' in inference_config:
-        model_dir = inference_config['model_dir']
-    else:
-        model_dir = train_config['trainer']['model_dir']
-    if 'model_fname' in inference_config:
-        model_fname = inference_config['model_fname']
-    else:
-        # If model filename not listed, grab latest one
-        fnames = [f for f in os.listdir(inference_config['model_dir'])
-                  if f.endswith('.hdf5')]
-        assert len(fnames) > 0, 'No weight files found in model dir'
-        fnames = natsort.natsorted(fnames)
-        model_fname = fnames[-1]
-
-    # Set defaults
-    data_split = 'test'
-    if 'data_split' in inference_config:
-        data_split = inference_config['data_split']
 
     inference_inst = image_inf.ImagePredictor(
         train_config=train_config,
-        model_dir=model_dir,
-        model_fname=model_fname,
-        image_dir=inference_config['image_dir'],
         inference_config=inference_config,
         gpu_id=gpu_ids,
         gpu_mem_frac=gpu_mem_frac,
-        data_split=data_split,
     )
     inference_inst.run_prediction()
 

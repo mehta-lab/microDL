@@ -17,8 +17,10 @@ class TestInferenceDataSet(unittest.TestCase):
         self.tempdir = TempDirectory()
         self.temp_path = self.tempdir.path
         self.tempdir.makedir('image_dir')
+        self.tempdir.makedir('model_dir')
         self.tempdir.makedir('mask_dir')
         self.image_dir = os.path.join(self.temp_path, 'image_dir')
+        self.model_dir = os.path.join(self.temp_path, 'model_dir')
         self.mask_dir = os.path.join(self.temp_path, 'mask_dir')
         # Create a temp image dir
         im = np.zeros((10, 16), dtype=np.uint8)
@@ -69,7 +71,7 @@ class TestInferenceDataSet(unittest.TestCase):
         }
         self.network_config = {
             'class': 'UNet2D',
-            'network': {'depth': 1},
+            'depth': 1,
             'data_format': 'channels_first',
         }
         # Instantiate class

@@ -69,7 +69,7 @@ class InferenceDataSet(keras.utils.Sequence):
         # adjust slice margins if stacktostack or stackto2d
         network_cls = network_config['class']
         if network_cls in ['UNetStackTo2D', 'UNetStackToStack']:
-            self.depth = network_config['network']['depth']
+            self.depth = network_config['depth']
             self.adjust_slice_indices()
 
         # if Unet2D 4D tensor, remove the singleton dimension, else 5D

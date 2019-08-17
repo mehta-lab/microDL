@@ -1,16 +1,17 @@
 """Model inference at the image/volume level"""
 import cv2
+import glob
 import natsort
 import numpy as np
 import os
 import pandas as pd
-import pdb
+
 from micro_dl.input.inference_dataset import InferenceDataSet
 import micro_dl.inference.model_inference as inference
 from micro_dl.inference.evaluation_metrics import MetricsEstimator
 from micro_dl.inference.stitch_predictions import ImageStitcher
 import micro_dl.utils.aux_utils as aux_utils
-from micro_dl.utils.image_utils import center_crop_to_shape
+import micro_dl.utils.image_utils as image_utils
 from micro_dl.utils.train_utils import set_keras_session
 import micro_dl.utils.tile_utils as tile_utils
 
@@ -20,25 +21,23 @@ class ImagePredictor:
 
     def __init__(self,
                  train_config,
-                 model_dir,
-                 model_fname,
-                 image_dir,
                  inference_config,
-                 gpu_id,
-                 gpu_mem_frac,
-                 data_split='test'):
+                 gpu_id=-1,
+                 gpu_mem_frac=None):
         """Init
 
         :param dict train_config: Training config dict with params related
             to dataset, trainer and network
-        :param str model_dir: Path to model directory
-        :param str model_fname: File name of weights in model dir (.hdf5).
-        :param str image_dir: dir containing input images AND NOT TILES!
-        :param dict inference_config: dict of dicts:
+        :param dict inference_config: Read yaml file with following parameters:
+            str model_dir: Path to model directory
+            str model_fname: File name of weights in model dir (.hdf5).
+            str image_dir: dir containing input images AND NOT TILES!
+            str data_split: Which data (train/test/val) to run inference on.
+             (default = test)
             dict images:
              str image_format: 'zyx' or 'xyz'
              str/None flat_field_dir: flatfield directory
-             str im_ext: e.g. '.png' or '.npy' or '.tiff'
+             str im_ext: For writing predictions e.g. '.png' or '.npy' or '.tiff'
              FOR 3D IMAGES USE NPY AS PNG AND TIFF ARE CURRENTLY NOT SUPPORTED.
              list crop_shape: center crop the image to a specified shape before
              tiling for inference
@@ -59,68 +58,74 @@ class ImagePredictor:
              list tile_shape: shape of tile for tiling along xyz.
              int/list num_overlap: int for tile_z, list for tile_xyz
              str overlap_operation: e.g. 'mean'
-        :param int gpu_id: gpu to use
-        :param float gpu_mem_frac: Memory fractions to use corresponding
+        :param int gpu_id: GPU number to use. -1 for debugging (no GPU)
+        :param float/None gpu_mem_frac: Memory fractions to use corresponding
          to gpu_ids
-        :param str data_split: Which data (train/test/val) to run inference on.
-         (default = test)
          TODO: add accuracy and dice coeff to metrics list
         """
+        # Use model_dir from inference config if present, otherwise use train
+        if 'model_dir' in inference_config:
+            model_dir = inference_config['model_dir']
+        else:
+            model_dir = train_config['trainer']['model_dir']
+        if 'model_fname' in inference_config:
+            model_fname = inference_config['model_fname']
+        else:
+            # If model filename not listed, grab latest one
+            fnames = [f for f in os.listdir(inference_config['model_dir'])
+                      if f.endswith('.hdf5')]
+            assert len(fnames) > 0, 'No weight files found in model dir'
+            fnames = natsort.natsorted(fnames)
+            model_fname = fnames[-1]
         self.config = train_config
         self.model_dir = model_dir
-        self.image_dir = image_dir
+        self.image_dir = inference_config['image_dir']
+
+        # Set default for data split, determine column name and indices
+        data_split = 'test'
+        if 'data_split' in inference_config:
+            data_split = inference_config['data_split']
+        assert data_split in ['train', 'val', 'test'], \
+            'data_split not in [train, val, test]'
+        split_col_ids = self._get_split_ids(data_split)
+
         self.data_format = self.config['network']['data_format']
+        assert self.data_format in {'channels_first', 'channels_last'}, \
+            "Data format should be channels_first/last"
         if gpu_id >= 0:
             self.sess = set_keras_session(
                 gpu_ids=gpu_id,
                 gpu_mem_frac=gpu_mem_frac,
             )
 
-        # create network instance and load weights
-        self.model_inst = self._create_model(
-            os.path.join(self.model_dir, model_fname),
+        # create model and load weights
+        self.model = inference.load_model(
+            network_config=self.config['network'],
+            model_fname=os.path.join(self.model_dir, model_fname),
+            predict=True,
         )
-
-        assert data_split in ['train', 'val', 'test'], \
-            'data_split not in [train, val, test]'
-        split_col_ids = self._get_split_ids(data_split)
 
         flat_field_dir = None
         images_dict = inference_config['images']
         if 'flat_field_dir' in images_dict:
             flat_field_dir = images_dict['flat_field_dir']
-        self.dataset_inst = InferenceDataSet(
-            image_dir=self.image_dir,
-            dataset_config=self.config['dataset'],
-            network_config=self.config['network'],
-            split_col_ids=split_col_ids,
-            image_format=images_dict['image_format'],
-            flat_field_dir=flat_field_dir,
-        )
+
         # Set defaults
         self.image_format = 'zyx'
         if 'image_format' in images_dict:
             self.image_format = images_dict['image_format']
         self.image_ext = '.png'
         if 'image_ext' in images_dict:
-            self.image_ext = images_dict['im_ext']
-        crop_shape = None
-        if 'crop_shape' in images_dict:
-            crop_shape = images_dict['crop_shape']
-        self.crop_shape = crop_shape
-        self.nrows = self.config['network']['width']
-        self.ncols = self.config['network']['height']
+            self.image_ext = images_dict['image_ext']
 
         # Create image subdirectory to write predicted images
         self.pred_dir = os.path.join(self.model_dir, 'predictions')
         os.makedirs(self.pred_dir, exist_ok=True)
-        # create an instance of MetricsEstimator ??
-        self.df_iteration_meta = self.dataset_inst.get_df_iteration_meta()
 
         # Handle masks as either targets or for masked metrics
         self.masks_dict = None
         self.mask_metrics = False
-        self.mask_target_dir = None
+        self.mask_dir = None
         if 'masks' in inference_config:
             self.masks_dict = inference_config['masks']
         if self.masks_dict is not None:
@@ -128,12 +133,25 @@ class ImagePredictor:
             assert 'mask_dir' in self.masks_dict, 'mask_dir is needed'
             assert 'mask_type' in self.masks_dict, \
                 'mask_type (target/metrics) is needed'
+            self.mask_metrics_dir = self.masks_dict['mask_dir']
             if self.masks_dict['mask_type'] == 'metrics':
                 # Compute weighted metrics
                 self.mask_metrics = True
             else:
-                # Use masks as targets for metrics computations
-                self.mask_target_dir = self.metrics_dict['mask_dir']
+                self.mask_dir = self.masks_dict['mask_dir']
+
+        # Create dataset instance
+        self.dataset_inst = InferenceDataSet(
+            image_dir=self.image_dir,
+            dataset_config=self.config['dataset'],
+            network_config=self.config['network'],
+            split_col_ids=split_col_ids,
+            image_format=images_dict['image_format'],
+            mask_dir=self.mask_dir,
+            flat_field_dir=flat_field_dir,
+        )
+        # create an instance of MetricsEstimator
+        self.iteration_meta = self.dataset_inst.get_iteration_meta()
 
         # Handle metrics config settings
         self.metrics_inst = None
@@ -153,7 +171,7 @@ class ImagePredictor:
                 self.metrics_orientations = \
                     self.metrics_dict['metrics_orientations']
                 assert set(self.metrics_orientations).\
-                    issubset(available_orientations,),\
+                    issubset(available_orientations),\
                     'orientation not in [xy, xyz, xz, yz]'
             self.df_xy = pd.DataFrame()
             self.df_xyz = pd.DataFrame()
@@ -165,28 +183,17 @@ class ImagePredictor:
         self.stitch_inst = None
         self.tile_option = None
         self.z_dim = 2
-        self.inference_3d_dict = None
+        self.crop_shape = None
+        if 'crop_shape' in images_dict:
+            self.crop_shape = images_dict['crop_shape']
+
+        self.nrows = self.config['network']['width']
+        self.ncols = self.config['network']['height']
         if 'inference_3d' in inference_config:
-            self.inference_3d_dict = inference_config['inference_3d']
-        if self.inference_3d_dict is not None:
-            self._assign_vol_inf_options(
-                self.inference_3d_dict,
-            )
-
-    def _create_model(self, model_fname):
-        """Load model given the model_fname or the saved model in model_dir
-
-        :param str model_fname: fname of the hdf5 file with model weights
-        :return keras.Model instance with trained weights loaded
-        """
-        weights_path = os.path.join(self.model_dir, model_fname)
-        # Load model with predict = True
-        model = inference.load_model(
-            network_config=self.config['network'],
-            model_fname=weights_path,
-            predict=True,
-        )
-        return model
+            self.params_3d = inference_config['inference_3d']
+            self._assign_3d_inference()
+            # Make image ext npy default for 3D
+            self.image_ext = '.npy'
 
     def _get_split_ids(self, data_split='test'):
         """
@@ -203,12 +210,12 @@ class ImagePredictor:
             inference_ids = split_samples[data_split]
         except FileNotFoundError as e:
             print("No split_samples file. "
-                  "Will predict all images in dir." + e)
+                  "Will predict all images in dir.")
             frames_meta = aux_utils.read_meta(self.image_dir)
-            inference_ids = np.unique(frames_meta[split_col])
+            inference_ids = np.unique(frames_meta[split_col]).tolist()
         return split_col, inference_ids
 
-    def _assign_vol_inf_options(self, vol_inf_dict):
+    def _assign_3d_inference(self):
         """
         Assign inference options for 3D volumes
 
@@ -216,8 +223,6 @@ class ImagePredictor:
          z axis
         tile_xyz - 2d/3d prediction on sub-blocks, stitch predictions along xyz
         infer_on_center - infer on center block
-
-        :param dict vol_inf_dict: same as in __init__
         """
         # assign zdim if not Unet2D
         if self.image_format == 'zyx':
@@ -225,13 +230,13 @@ class ImagePredictor:
         elif self.image_format == 'xyz':
             self.z_dim = 4 if self.data_format == 'channels_first' else 3
 
-        if 'num_slices' in vol_inf_dict and vol_inf_dict['num_slices'] > 1:
+        if 'num_slices' in self.params_3d and self.params_3d['num_slices'] > 1:
             self.tile_option = 'tile_z'
             train_num_slices = self.config['network']['depth']
-            assert vol_inf_dict['num_slices'] >= train_num_slices, \
+            assert self.params_3d['num_slices'] >= train_num_slices, \
                 'inference num of slies < num of slices used for training. ' \
                 'Inference on reduced num of slices gives sub optimal results'
-            num_slices = vol_inf_dict['num_slices']
+            num_slices = self.params_3d['num_slices']
 
             assert self.config['network']['class'] == 'UNet3D', \
                 'currently stitching predictions available for 3D models only'
@@ -242,13 +247,13 @@ class ImagePredictor:
             assert num_slices >= min_num_slices, \
                 'Insufficient number of slices {} for the network ' \
                 'depth {}'.format(num_slices, network_depth)
-            self.num_overlap = vol_inf_dict['num_overlap'] \
-                if 'num_overlap' in vol_inf_dict else 0
-        elif 'tile_shape' in vol_inf_dict:
+            self.num_overlap = self.params_3d['num_overlap'] \
+                if 'num_overlap' in self.params_3d else 0
+        elif 'tile_shape' in self.params_3d:
             self.tile_option = 'tile_xyz'
-            self.num_overlap = vol_inf_dict['num_overlap'] \
-                if 'num_overlap' in vol_inf_dict else [0, 0, 0]
-        elif 'inf_shape' in vol_inf_dict:
+            self.num_overlap = self.params_3d['num_overlap'] \
+                if 'num_overlap' in self.params_3d else [0, 0, 0]
+        elif 'inf_shape' in self.params_3d:
             self.tile_option = 'infer_on_center'
             self.num_overlap = 0
 
@@ -256,7 +261,7 @@ class ImagePredictor:
         if self.tile_option in ['tile_z', 'tile_xyz']:
             overlap_dict = {
                 'overlap_shape': self.num_overlap,
-                'overlap_operation': vol_inf_dict['overlap_operation']
+                'overlap_operation': self.params_3d['overlap_operation']
             }
             self.stitch_inst = ImageStitcher(
                 tile_option=self.tile_option,
@@ -295,14 +300,14 @@ class ImagePredictor:
         """Predict sub blocks along z
 
         :param np.array input_image: 5D tensor with the entire 3D volume
-        :return list pred_imgs_list - list of predicted sub blocks
+        :return list pred_ims - list of predicted sub blocks
          list start_end_idx - list of tuples with start and end z indices
         """
 
-        pred_imgs_list = []
+        pred_ims = []
         start_end_idx = []
         num_z = input_image.shape[self.z_dim]
-        num_slices = self.inference_3d_dict['num_slices']
+        num_slices = self.params_3d['num_slices']
         num_blocks = np.ceil(
             num_z / (num_slices - self.num_overlap)
         ).astype('int')
@@ -316,13 +321,13 @@ class ImagePredictor:
                                               start_idx,
                                               end_idx)
             pred_block = inference.predict_on_larger_image(
-                model=self.model_inst,
+                model=self.model,
                 input_image=cur_block
             )
             # reduce predictions from 5D to 3D for simplicity
-            pred_imgs_list.append(np.squeeze(pred_block))
+            pred_ims.append(np.squeeze(pred_block))
             start_end_idx.append((start_idx, end_idx))
-        return pred_imgs_list, start_end_idx
+        return pred_ims, start_end_idx
 
     def _predict_sub_block_xyz(self,
                                input_image,
@@ -331,26 +336,25 @@ class ImagePredictor:
 
         :param np.array input_image: 5D tensor with the entire 3D volume
         :param list crop_indices: list of crop indices
-        :return list pred_imgs_list - list of predicted sub blocks
+        :return list pred_ims - list of predicted sub blocks
         """
-
-        pred_imgs_list = []
+        pred_ims = []
         for crop_idx in crop_indices:
             if self.data_format == 'channels_first':
                 cur_block = input_image[:, :, crop_idx[0]: crop_idx[1],
                                         crop_idx[2]: crop_idx[3],
                                         crop_idx[4]: crop_idx[5]]
-            elif self.data_format == 'channels_last':
+            else:
                 cur_block = input_image[:, crop_idx[0]: crop_idx[1],
                                         crop_idx[2]: crop_idx[3],
                                         crop_idx[4]: crop_idx[5], :]
             pred_block = inference.predict_on_larger_image(
-                model=self.model_inst,
-                input_image=cur_block
+                model=self.model,
+                input_image=cur_block,
             )
             # retain the full 5D tensor to experiment for multichannel case
-            pred_imgs_list.append(pred_block)
-        return pred_imgs_list
+            pred_ims.append(pred_block)
+        return pred_ims
 
     def save_pred_image(self,
                         predicted_image,
@@ -359,7 +363,7 @@ class ImagePredictor:
                         pos_idx,
                         slice_idx):
         """
-        Save predicted images
+        Save predicted images with image extension given in init.
 
         :param np.array predicted_image: 2D / 3D predicted image
         :param int time_idx: time index
@@ -367,7 +371,6 @@ class ImagePredictor:
         :param int pos_idx: FOV / position index
         :param int slice_idx: slice index
         """
-
         # Write prediction image
         im_name = aux_utils.get_im_name(
             time_idx=time_idx,
@@ -377,26 +380,25 @@ class ImagePredictor:
             ext=self.image_ext,
         )
         file_name = os.path.join(self.pred_dir, im_name)
-        # save 3D image as npy.
-        if len(predicted_image.shape) == 3:
+        if self.image_ext == '.png':
+            # Convert to uint16 for now
+            im_pred = predicted_image.astype(np.float)
+            im_pred = (2 ** 16 - 1) * \
+                      (im_pred - im_pred.min()) / \
+                      (im_pred.max() - im_pred.min())
+
+            im_pred = im_pred.astype(np.uint16)
+            cv2.imwrite(file_name, np.squeeze(im_pred))
+        elif self.image_ext == '.tif':
+            # Convert to float32 and remove batch dimension
+            im_pred = predicted_image.astype(np.float32)
+            cv2.imwrite(file_name, np.squeeze(im_pred))
+        elif self.image_ext == '.npy':
             np.save(file_name, predicted_image, allow_pickle=True)
         else:
-            if self.image_ext == '.png':
-                # Convert to uint16 for now
-                im_pred = 2 ** 16 * \
-                          (predicted_image - predicted_image.min()) / \
-                          (predicted_image.max() - predicted_image.min())
-                im_pred = im_pred.astype(np.uint16)
-                cv2.imwrite(file_name, np.squeeze(im_pred))
-            elif self.image_ext == '.tif':
-                # Convert to float32 and remove batch dimension
-                im_pred = predicted_image.astype(np.float32)
-                cv2.imwrite(file_name, np.squeeze(im_pred))
-            elif self.image_ext == '.npy':
-                np.save(file_name, predicted_image, allow_pickle=True)
-            else:
-                raise ValueError('Unsupported file extension')
-        return
+            raise ValueError(
+                'Unsupported file extension: {}'.format(self.image_ext),
+            )
 
     def estimate_metrics(self,
                          cur_target,
@@ -448,166 +450,193 @@ class ImagePredictor:
             time_idx=cur_row['time_idx'],
             channel_idx=self.masks_dict['mask_channel'],
             slice_idx=cur_row['slice_idx'],
-            pos_idx=cur_row['pos_idx']
+            pos_idx=cur_row['pos_idx'],
+            ext=self.mask_ext,
         )
-        mask_fname = os.path.join(
-            self.masks_dict['mask_dir'],
-            mask_fname)
-        cur_mask = np.load(mask_fname)
+        mask = image_utils.read_image(
+            os.path.join(self.mask_metrics_dir, mask_fname),
+        )
         # moves z from last axis to first axis
         if transpose:
-            cur_mask = np.transpose(cur_mask, [2, 0, 1])
+            mask = np.transpose(mask, [2, 0, 1])
         if self.crop_shape is not None:
-            cur_mask = center_crop_to_shape(cur_mask,
-                                            self.crop_shape)
-        return cur_mask
+            mask = image_utils.center_crop_to_shape(mask, self.crop_shape)
+        return mask
+
+    def predict_2d(self, iteration_meta_row):
+        """
+        Run prediction on 2D or 2.5D on indices given by metadata row.
+
+        :param pandas.Series iteration_meta_row: Row with indices for inference
+        """
+        max_sl = self.iteration_meta[iteration_meta_row]['slice_idx'].max()
+        min_sl = self.iteration_meta[iteration_meta_row]['slice_idx'].min()
+        pred_stack = []
+        target_stack = []
+        mask_stack = []
+
+        for row_idx in iteration_meta_row:
+            cur_input, cur_target = \
+                self.dataset_inst.__getitem__(row_idx)
+            if self.crop_shape is not None:
+                cur_input = image_utils.center_crop_to_shape(
+                    cur_input,
+                    self.crop_shape,
+                )
+                cur_target = image_utils.center_crop_to_shape(
+                    cur_target,
+                    self.crop_shape,
+                )
+            pred_image = inference.predict_on_larger_image(
+                model=self.model,
+                input_image=cur_input,
+            )
+            pred_image = np.squeeze(pred_image)
+            # save prediction
+            cur_row = self.iteration_meta.iloc[row_idx]
+            self.save_pred_image(
+                predicted_image=pred_image,
+                time_idx=cur_row['time_idx'],
+                target_channel_idx=cur_row['channel_idx'],
+                pos_idx=cur_row['pos_idx'],
+                slice_idx=cur_row['slice_idx']
+            )
+            # get mask
+            if self.masks_dict is not None:
+                cur_mask = self.get_mask(cur_row)
+                mask_stack.append(cur_mask)
+            # add to vol
+            pred_stack.append(pred_image)
+            target_stack.append(np.squeeze(cur_target))
+
+        pred_image = np.stack(pred_stack)
+        target_image = np.stack(target_stack)
+        mask_image = np.stack(mask_stack)
+        return pred_image, target_image, mask_image
+
+    def predict_3d(self, iteration_meta_row):
+        """Run prediction in 3D"""
+        crop_indices = None
+        assert len(iteration_meta_row) == 1, \
+            'more than one matching row found for position ' \
+            '{}'.format(iteration_meta_row.pos_idx)
+        cur_input, cur_target = \
+            self.dataset_inst.__getitem__(iteration_meta_row[0])
+        if self.crop_shape is not None:
+            cur_input = image_utils.center_crop_to_shape(
+                cur_input,
+                self.crop_shape,
+            )
+            cur_target = image_utils.center_crop_to_shape(
+                cur_target,
+                self.crop_shape,
+            )
+        if self.tile_option == 'infer_on_center':
+            inf_shape = self.params_3d['inf_shape']
+            center_block = image_utils.center_crop_to_shape(cur_input, inf_shape)
+            cur_target = image_utils.center_crop_to_shape(cur_target, inf_shape)
+            pred_image = inference.predict_on_larger_image(
+                model=self.model,
+                input_image=center_block,
+            )
+        elif self.tile_option == 'tile_z':
+            pred_block_list, start_end_idx = \
+                self._predict_sub_block_z(cur_input)
+            pred_image = self.stitch_inst.stitch_predictions(
+                np.squeeze(cur_input).shape,
+                pred_block_list,
+                start_end_idx
+            )
+        elif self.tile_option == 'tile_xyz':
+            step_size = (np.array(self.params_3d['tile_shape']) -
+                         np.array(self.num_overlap))
+            if crop_indices is None:
+                # TODO tile_image works for 2D/3D imgs, modify for multichannel
+                _, crop_indices = tile_utils.tile_image(
+                    input_image=np.squeeze(cur_input),
+                    tile_size=self.params_3d['tile_shape'],
+                    step_size=step_size,
+                    return_index=True
+                )
+            pred_block_list = self._predict_sub_block_xyz(
+                cur_input,
+                crop_indices,
+            )
+            pred_image = self.stitch_inst.stitch_predictions(
+                np.squeeze(cur_input).shape,
+                pred_block_list,
+                crop_indices,
+            )
+        pred_image = np.squeeze(pred_image)
+        target_image = np.squeeze(cur_target)
+        # save prediction
+        cur_row = self.iteration_meta.iloc[iteration_meta_row[0]]
+        self.save_pred_image(
+            predicted_image=pred_image,
+            time_idx=cur_row['time_idx'],
+            target_channel_idx=cur_row['channel_idx'],
+            pos_idx=cur_row['pos_idx'],
+            slice_idx=cur_row['slice_idx'],
+        )
+        # get mask
+        mask_image = None
+        if self.masks_dict is not None:
+            mask_image = self.get_mask(cur_row, transpose=True)
+            mask_image = np.transpose(mask_image, [1, 2, 0])
+        # 3D uses zyx, estimate metrics expects xyz
+        pred_image = np.transpose(pred_image, [1, 2, 0])
+        target_image = np.transpose(target_image, [1, 2, 0])
+
+        return pred_image, target_image, mask_image
 
     def run_prediction(self):
         """Run prediction for entire 2D image or a 3D stack"""
 
-        crop_indices = None
-        df_iteration_meta = self.dataset_inst.get_df_iteration_meta()
-        pos_idx = df_iteration_meta['pos_idx'].unique()
-        for idx, cur_pos_idx in enumerate(pos_idx):
-            print(cur_pos_idx, ',{}/{}'.format(idx, len(pos_idx)))
-            df_iter_meta_row_idx = df_iteration_meta.index[
-                df_iteration_meta['pos_idx'] == cur_pos_idx
+        pos_ids = self.iteration_meta['pos_idx'].unique()
+        for idx, pos_idx in enumerate(pos_ids):
+            print(pos_idx, ',{}/{}'.format(idx, len(pos_ids)))
+            iteration_meta_row = self.iteration_meta.index[
+                self.iteration_meta['pos_idx'] == pos_idx,
             ].values
             if self.tile_option is None:
                 # 2D, 2.5D
-                max_sl = \
-                    df_iteration_meta[df_iter_meta_row_idx]['slice_idx'].max()
-                min_sl = \
-                    df_iteration_meta[df_iter_meta_row_idx]['slice_idx'].min()
-                pred_vol = np.zeros([self.nrows, self.ncols, max_sl],
-                                    dtype='float32')
-                tar_vol = np.zeros_like(pred_vol)
-                mask_vol = np.zeros([self.nrows, self.ncols, max_sl],
-                                    dtype='bool')
-
-                for row_idx in df_iter_meta_row_idx:
-                    cur_input, cur_target = \
-                        self.dataset_inst.__getitem__(row_idx)
-                    if self.crop_shape is not None:
-                        cur_input = center_crop_to_shape(
-                            cur_input,
-                            self.crop_shape,
-                        )
-                        cur_target = center_crop_to_shape(
-                            cur_target,
-                            self.crop_shape,
-                        )
-                    pred_image = inference.predict_on_larger_image(
-                        model=self.model_inst, input_image=cur_input
-                    )
-                    pred_image = np.squeeze(pred_image)
-
-                    # save prediction
-                    cur_row = self.df_iteration_meta.iloc[row_idx]
-                    self.save_pred_image(
-                        predicted_image=pred_image,
-                        time_idx=cur_row['time_idx'],
-                        target_channel_idx=cur_row['channel_idx'],
-                        pos_idx=cur_row['pos_idx'],
-                        slice_idx=cur_row['slice_idx']
-                    )
-
-                    cur_sl = df_iteration_meta[row_idx]['slice_idx']
-                    # get mask
-                    if self.masks_dict is not None:
-                        cur_mask = self.get_mask(cur_row)
-                        mask_vol[:, :, cur_sl] = cur_mask
-
-                    # add to vol
-                    pred_vol[:, :, cur_sl] = pred_image
-                    tar_vol[:, :, cur_sl] = np.squeeze(cur_target)
-                pred_image = pred_vol[:, :, min_sl:]
-                target_image = tar_vol[:, :, min_sl:]
-                mask_vol = mask_vol[:, :, min_sl:]
-
+                pred_image, target_image, mask_image = self.predict_2d(
+                    iteration_meta_row,
+                )
             else:  # 3D
-                assert len(df_iter_meta_row_idx) == 1, \
-                    'more than one matching row found for position ' \
-                    '{}'.format(cur_pos_idx)
-                cur_input, cur_target = \
-                    self.dataset_inst.__getitem__(df_iter_meta_row_idx[0])
-                if self.crop_shape is not None:
-                    cur_input = center_crop_to_shape(cur_input,
-                                                     self.crop_shape)
-                    cur_target = center_crop_to_shape(cur_target,
-                                                      self.crop_shape)
-                if self.tile_option == 'infer_on_center':
-                    inf_shape = self.inference_3d_dict['inf_shape']
-                    center_block = center_crop_to_shape(cur_input, inf_shape)
-                    cur_target = center_crop_to_shape(cur_target, inf_shape)
-                    pred_image = inference.predict_on_larger_image(
-                        model=self.model_inst, input_image=center_block
-                    )
-                elif self.tile_option == 'tile_z':
-                    pred_block_list, start_end_idx = \
-                        self._predict_sub_block_z(cur_input)
-                    pred_image = self.stitch_inst.stitch_predictions(
-                        np.squeeze(cur_input).shape,
-                        pred_block_list,
-                        start_end_idx
-                    )
-                elif self.tile_option == 'tile_xyz':
-                    step_size = (np.array(self.inference_3d_dict['tile_shape']) -
-                                 np.array(self.num_overlap))
-                    if crop_indices is None:
-                        # TODO tile_image works for 2D/3D imgs, modify for multichannel
-                        _, crop_indices = tile_utils.tile_image(
-                            input_image=np.squeeze(cur_input),
-                            tile_size=self.inference_3d_dict['tile_shape'],
-                            step_size=step_size,
-                            return_index=True
-                        )
-                    pred_block_list = self._predict_sub_block_xyz(cur_input,
-                                                                  crop_indices)
-                    pred_image = self.stitch_inst.stitch_predictions(
-                        np.squeeze(cur_input).shape,
-                        pred_block_list,
-                        crop_indices
-                    )
-                pred_image = np.squeeze(pred_image)
-                target_image = np.squeeze(cur_target)
-                # save prediction
-                cur_row = self.df_iteration_meta.iloc[df_iter_meta_row_idx[0]]
-                self.save_pred_image(predicted_image=pred_image,
-                                     time_idx=cur_row['time_idx'],
-                                     target_channel_idx=cur_row['channel_idx'],
-                                     pos_idx=cur_row['pos_idx'],
-                                     slice_idx=cur_row['slice_idx'])
-                # get mask
-                if self.masks_dict is not None:
-                    mask_vol = self.get_mask(cur_row, transpose=True)
-                # 3D uses zyx, estimate metrics expects xyz
-                pred_image = np.transpose(pred_image, [1, 2, 0])
-                target_image = np.transpose(target_image, [1, 2, 0])
-                mask_vol = np.transpose(mask_vol, [1, 2, 0])
-
-            pred_fname = 'im_t{}_c{}_p{}'.format(cur_row['time_idx'],
-                                                 cur_row['channel_idx'],
-                                                 cur_row['pos_idx'])
+                pred_image, target_image, mask_image = self.predict_3d(
+                    iteration_meta_row,
+                )
+            cur_row = self.iteration_meta.iloc[iteration_meta_row[0]]
+            pred_fname = aux_utils.get_im_name(
+                time_idx=cur_row['time_idx'],
+                channel_idx=cur_row['channel_idx'],
+                slice_idx=cur_row['slice_idx'],
+                pos_idx=cur_row['pos_idx'],
+            )
             if self.metrics_inst is not None:
                 if self.masks_dict is None:
-                    mask_vol = None
-                self.estimate_metrics(cur_target=target_image,
-                                      cur_prediction=pred_image,
-                                      cur_pred_fname=pred_fname,
-                                      cur_mask=mask_vol)
-            del pred_image, target_image
-            if self.metrics_inst is not None:
-                metrics_mapping = {
-                    'xy': self.df_xy,
-                    'xz': self.df_xz,
-                    'yz': self.df_yz,
-                    'xyz': self.df_xyz,
-                }
-                for orientation in self.metrics_orientations:
-                    metrics_df = metrics_mapping[orientation]
-                    df_name = 'metrics_{}.csv'.format(orientation)
-                    metrics_df.to_csv(
-                        os.path.join(self.model_dir, df_name),
-                        sep=','
-                    )
+                    mask_image = None
+                self.estimate_metrics(
+                    cur_target=target_image,
+                    cur_prediction=pred_image,
+                    cur_pred_fname=pred_fname,
+                    cur_mask=mask_image,
+                )
+                del pred_image, target_image
+
+        # Save metrics csv files
+        if self.metrics_inst is not None:
+            metrics_mapping = {
+                'xy': self.df_xy,
+                'xz': self.df_xz,
+                'yz': self.df_yz,
+                'xyz': self.df_xyz,
+            }
+            for orientation in self.metrics_orientations:
+                metrics_df = metrics_mapping[orientation]
+                df_name = 'metrics_{}.csv'.format(orientation)
+                metrics_df.to_csv(
+                    os.path.join(self.pred_dir, df_name),
+                    sep=','
+                )
