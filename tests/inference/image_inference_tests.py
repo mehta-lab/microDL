@@ -237,11 +237,11 @@ class TestImageInference(unittest.TestCase):
 
     @patch('micro_dl.inference.model_inference.predict_large_image')
     def test_predict_2d(self, mock_predict):
-        mock_predict.return_value = 1. + np.ones((1, 8, 16), dtype=np.float64)
+        mock_predict.return_value = 1. + np.ones((1, 8, 16), dtype=np.float32)
         # Predict row 0 from inference dataset iterator
         pred_im, target_im, mask_im = self.infer_inst.predict_2d([0])
         self.assertTupleEqual(pred_im.shape, (8, 16, 1))
-        self.assertEqual(pred_im.dtype, np.float64)
+        self.assertEqual(pred_im.dtype, np.float32)
         self.assertEqual(pred_im.max(), 2.0)
         # Read saved prediction too
         pred_name = os.path.join(
@@ -253,13 +253,13 @@ class TestImageInference(unittest.TestCase):
         self.assertTupleEqual(im_pred.shape, (8, 16))
         # Check target and no mask
         self.assertTupleEqual(target_im.shape, (8, 16, 1))
-        self.assertEqual(target_im.dtype, np.float64)
+        self.assertEqual(target_im.dtype, np.float32)
         self.assertEqual(target_im.max(), 1.)
         self.assertListEqual(mask_im, [])
 
     @patch('micro_dl.inference.model_inference.predict_large_image')
     def test_run_prediction(self, mock_predict):
-        mock_predict.return_value = 1. + np.ones((1, 8, 16), dtype=np.float64)
+        mock_predict.return_value = 1. + np.ones((1, 8, 16), dtype=np.float32)
         # Run prediction. Should create a metrics_xy.csv in pred dir
         self.infer_inst.run_prediction()
         metrics = pd.read_csv(os.path.join(self.model_dir, 'predictions/metrics_xy.csv'))
