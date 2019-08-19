@@ -114,19 +114,19 @@ class ImagePredictor:
         self.masks_dict = None
         self.mask_metrics = False
         self.mask_dir = None
+        self.mask_meta = None
         if 'masks' in inference_config:
             self.masks_dict = inference_config['masks']
         if self.masks_dict is not None:
             assert 'mask_channel' in self.masks_dict , 'mask_channel is needed'
             assert 'mask_dir' in self.masks_dict, 'mask_dir is needed'
+            self.mask_dir = self.masks_dict['mask_dir']
+            self.mask_meta = aux_utils.read_meta(self.mask_dir)
             assert 'mask_type' in self.masks_dict, \
                 'mask_type (target/metrics) is needed'
-            self.mask_metrics_dir = self.masks_dict['mask_dir']
             if self.masks_dict['mask_type'] == 'metrics':
                 # Compute weighted metrics
                 self.mask_metrics = True
-            else:
-                self.mask_dir = self.masks_dict['mask_dir']
 
         # Create dataset instance
         self.dataset_inst = InferenceDataSet(
@@ -318,7 +318,7 @@ class ImagePredictor:
             cur_block = self._get_sub_block_z(input_image,
                                               start_idx,
                                               end_idx)
-            pred_block = inference.predict_on_larger_image(
+            pred_block = inference.predict_large_image(
                 model=self.model,
                 input_image=cur_block
             )
@@ -346,7 +346,7 @@ class ImagePredictor:
                 cur_block = input_image[:, crop_idx[0]: crop_idx[1],
                                         crop_idx[2]: crop_idx[3],
                                         crop_idx[4]: crop_idx[5], :]
-            pred_block = inference.predict_on_larger_image(
+            pred_block = inference.predict_large_image(
                 model=self.model,
                 input_image=cur_block,
             )
@@ -381,10 +381,12 @@ class ImagePredictor:
         if self.image_ext == '.png':
             # Convert to uint16 for now
             im_pred = predicted_image.astype(np.float)
-            im_pred = (2 ** 16 - 1) * \
-                      (im_pred - im_pred.min()) / \
-                      (im_pred.max() - im_pred.min())
-
+            if im_pred.max() > im_pred.min():
+                im_pred = np.iinfo(np.uint16).max * \
+                          (im_pred - im_pred.min()) / \
+                          (im_pred.max() - im_pred.min())
+            else:
+                im_pred = im_pred / im_pred.max() * np.iinfo(np.uint16).max
             im_pred = im_pred.astype(np.uint16)
             cv2.imwrite(file_name, np.squeeze(im_pred))
         elif self.image_ext == '.tif':
@@ -442,35 +444,44 @@ class ImagePredictor:
             )
 
     def get_mask(self, cur_row, transpose=False):
-        """Get mask"""
+        """Get mask, either from image or mask dir
 
-        mask_fname = aux_utils.get_im_name(
+        :param pd.Series/dict cur_row: row containing indices
+        :param bool transpose: Changes image format from xyz to zxy
+        :return np.array mask: Mask
+        """
+        mask_idx = aux_utils.get_meta_idx(
+            self.mask_meta,
             time_idx=cur_row['time_idx'],
             channel_idx=self.masks_dict['mask_channel'],
             slice_idx=cur_row['slice_idx'],
             pos_idx=cur_row['pos_idx'],
         )
+        mask_fname = self.mask_meta.loc[mask_idx, 'file_name']
         mask = image_utils.read_image(
-            os.path.join(self.mask_metrics_dir, mask_fname),
+            os.path.join(self.mask_dir, mask_fname),
         )
         # moves z from last axis to first axis
-        if transpose:
+        if transpose and len(mask.shape) > 2:
             mask = np.transpose(mask, [2, 0, 1])
         if self.crop_shape is not None:
             mask = image_utils.center_crop_to_shape(mask, self.crop_shape)
         return mask
 
-    def predict_2d(self, iteration_meta_row):
+    def predict_2d(self, iteration_rows):
         """
         Run prediction on 2D or 2.5D on indices given by metadata row.
 
-        :param pandas.Series iteration_meta_row: Rows with indices for inference
+        :param list iteration_rows: Inference meta rows
+        :return np.array pred_stack: Prediction
+        :return np.array target_stack: Target
+        :return np.array/list mask_stack: Mask for metrics (empty list if
+         not using masked metrics)
         """
         pred_stack = []
         target_stack = []
         mask_stack = []
-
-        for row_idx in iteration_meta_row:
+        for row_idx in iteration_rows:
             cur_input, cur_target = \
                 self.dataset_inst.__getitem__(row_idx)
             if self.crop_shape is not None:
@@ -482,10 +493,11 @@ class ImagePredictor:
                     cur_target,
                     self.crop_shape,
                 )
-            pred_image = inference.predict_on_larger_image(
+            pred_image = inference.predict_large_image(
                 model=self.model,
                 input_image=cur_input,
             )
+            # Squeeze prediction for writing
             pred_image = np.squeeze(pred_image)
             # save prediction
             cur_row = self.iteration_meta.iloc[row_idx]
@@ -497,26 +509,34 @@ class ImagePredictor:
                 slice_idx=cur_row['slice_idx']
             )
             # get mask
-            if self.masks_dict is not None:
+            if self.mask_metrics:
                 cur_mask = self.get_mask(cur_row)
                 mask_stack.append(cur_mask)
             # add to vol
             pred_stack.append(pred_image)
             target_stack.append(np.squeeze(cur_target))
+        # Stack images and transpose (metrics assumes xyz format)
+        pred_stack = np.transpose(np.stack(pred_stack), [1, 2, 0])
+        target_stack = np.transpose(np.stack(target_stack), [1, 2, 0])
+        if self.mask_metrics:
+            mask_stack = np.transpose(np.stack(mask_stack), [1, 2, 0])
+        return pred_stack, target_stack, mask_stack
 
-        pred_image = np.stack(pred_stack)
-        target_image = np.stack(target_stack)
-        mask_image = np.stack(mask_stack)
-        return pred_image, target_image, mask_image
+    def predict_3d(self, iteration_rows):
+        """
+        Run prediction in 3D on images with 3D shape.
 
-    def predict_3d(self, iteration_meta_row):
-        """Run prediction in 3D"""
+        :param list iteration_rows: Inference meta rows
+        :return np.array pred_stack: Prediction
+        :return np.array target_stack: Target
+        :return np.array/list mask_stack: Mask for metrics
+        """
         crop_indices = None
-        assert len(iteration_meta_row) == 1, \
+        assert len(iteration_rows) == 1, \
             'more than one matching row found for position ' \
-            '{}'.format(iteration_meta_row.pos_idx)
+            '{}'.format(iteration_rows.pos_idx)
         cur_input, cur_target = \
-            self.dataset_inst.__getitem__(iteration_meta_row[0])
+            self.dataset_inst.__getitem__(iteration_rows[0])
         if self.crop_shape is not None:
             cur_input = image_utils.center_crop_to_shape(
                 cur_input,
@@ -530,7 +550,7 @@ class ImagePredictor:
             inf_shape = self.params_3d['inf_shape']
             center_block = image_utils.center_crop_to_shape(cur_input, inf_shape)
             cur_target = image_utils.center_crop_to_shape(cur_target, inf_shape)
-            pred_image = inference.predict_on_larger_image(
+            pred_image = inference.predict_large_image(
                 model=self.model,
                 input_image=center_block,
             )
@@ -565,7 +585,7 @@ class ImagePredictor:
         pred_image = np.squeeze(pred_image)
         target_image = np.squeeze(cur_target)
         # save prediction
-        cur_row = self.iteration_meta.iloc[iteration_meta_row[0]]
+        cur_row = self.iteration_meta.iloc[iteration_rows[0]]
         self.save_pred_image(
             predicted_image=pred_image,
             time_idx=cur_row['time_idx'],
@@ -589,28 +609,29 @@ class ImagePredictor:
 
         pos_ids = self.iteration_meta['pos_idx'].unique()
         for idx, pos_idx in enumerate(pos_ids):
-            print(pos_idx, ',{}/{}'.format(idx, len(pos_ids)))
-            iteration_meta_row = self.iteration_meta.index[
+            print('Inference idx {}/{}'.format(idx, len(pos_ids)))
+            iteration_rows = self.iteration_meta.index[
                 self.iteration_meta['pos_idx'] == pos_idx,
             ].values
             if self.tile_option is None:
                 # 2D, 2.5D
                 pred_image, target_image, mask_image = self.predict_2d(
-                    iteration_meta_row,
+                    iteration_rows,
                 )
             else:  # 3D
                 pred_image, target_image, mask_image = self.predict_3d(
-                    iteration_meta_row,
+                    iteration_rows,
                 )
-            cur_row = self.iteration_meta.iloc[iteration_meta_row[0]]
+            cur_row = self.iteration_meta.iloc[iteration_rows[0]]
             pred_fname = aux_utils.get_im_name(
                 time_idx=cur_row['time_idx'],
                 channel_idx=cur_row['channel_idx'],
                 slice_idx=cur_row['slice_idx'],
                 pos_idx=cur_row['pos_idx'],
+                ext='',
             )
             if self.metrics_inst is not None:
-                if self.masks_dict is None:
+                if not self.mask_metrics:
                     mask_image = None
                 self.estimate_metrics(
                     cur_target=target_image,

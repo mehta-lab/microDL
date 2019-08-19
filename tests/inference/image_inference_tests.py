@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import os
+import pandas as pd
 from testfixtures import TempDirectory
 import unittest
 from unittest.mock import patch
@@ -27,7 +28,7 @@ class TestImageInference(unittest.TestCase):
         self.mask_dir = os.path.join(self.temp_path, 'mask_dir')
         self.model_dir = os.path.join(self.temp_path, 'model_dir')
         # Create a temp image dir
-        im = np.zeros((10, 16), dtype=np.uint8)
+        self.im = np.zeros((10, 16), dtype=np.uint8)
         self.frames_meta = aux_utils.make_dataframe()
         self.time_idx = 2
         self.slice_idx = 3
@@ -40,7 +41,7 @@ class TestImageInference(unittest.TestCase):
                     pos_idx=p,
                     ext='.png',
                 )
-                cv2.imwrite(os.path.join(self.image_dir, im_name), im + c * 10)
+                cv2.imwrite(os.path.join(self.image_dir, im_name), self.im + c * 10)
                 self.frames_meta = self.frames_meta.append(
                     aux_utils.parse_idx_from_name(im_name, aux_utils.DF_NAMES),
                     ignore_index=True,
@@ -52,13 +53,13 @@ class TestImageInference(unittest.TestCase):
         self.mask_channel = 50
         for p in range(5):
             im_name = aux_utils.get_im_name(
-                time_idx=2,
+                time_idx=self.time_idx,
                 channel_idx=self.mask_channel,
-                slice_idx=3,
+                slice_idx=self.slice_idx,
                 pos_idx=p,
                 ext='.png',
             )
-            cv2.imwrite(os.path.join(self.mask_dir, im_name), im + 1)
+            cv2.imwrite(os.path.join(self.mask_dir, im_name), self.im + 1)
             self.mask_meta = self.mask_meta.append(
                 aux_utils.parse_idx_from_name(im_name, aux_utils.DF_NAMES),
                 ignore_index=True,
@@ -222,3 +223,57 @@ class TestImageInference(unittest.TestCase):
         self.assertEqual(metrics.mae[0], 0.5)
         self.assertEqual(metrics.pred_name[14], 'test_name_yz14')
 
+    def test_get_mask(self):
+        meta_row = dict.fromkeys(aux_utils.DF_NAMES)
+        meta_row['channel_idx'] = self.mask_channel
+        meta_row['time_idx'] = self.time_idx
+        meta_row['slice_idx'] = self.slice_idx
+        meta_row['pos_idx'] = 2
+        mask = self.infer_inst.get_mask(meta_row)
+        self.assertTupleEqual(mask.shape, self.im.shape)
+        self.assertEqual(mask.dtype, np.uint8)
+        self.assertEqual(mask.max(), 1)
+        self.assertEqual(mask.min(), 1)
+
+    @patch('micro_dl.inference.model_inference.predict_large_image')
+    def test_predict_2d(self, mock_predict):
+        mock_predict.return_value = 1. + np.ones((1, 8, 16), dtype=np.float64)
+        # Predict row 0 from inference dataset iterator
+        pred_im, target_im, mask_im = self.infer_inst.predict_2d([0])
+        self.assertTupleEqual(pred_im.shape, (8, 16, 1))
+        self.assertEqual(pred_im.dtype, np.float64)
+        self.assertEqual(pred_im.max(), 2.0)
+        # Read saved prediction too
+        pred_name = os.path.join(
+            self.model_dir,
+            'predictions/im_c050_z003_t002_p003.png',
+        )
+        im_pred = cv2.imread(pred_name, cv2.IMREAD_ANYDEPTH)
+        self.assertEqual(im_pred.dtype, np.uint16)
+        self.assertTupleEqual(im_pred.shape, (8, 16))
+        # Check target and no mask
+        self.assertTupleEqual(target_im.shape, (8, 16, 1))
+        self.assertEqual(target_im.dtype, np.float64)
+        self.assertEqual(target_im.max(), 1.)
+        self.assertListEqual(mask_im, [])
+
+    @patch('micro_dl.inference.model_inference.predict_large_image')
+    def test_run_prediction(self, mock_predict):
+        mock_predict.return_value = 1. + np.ones((1, 8, 16), dtype=np.float64)
+        # Run prediction. Should create a metrics_xy.csv in pred dir
+        self.infer_inst.run_prediction()
+        metrics = pd.read_csv(os.path.join(self.model_dir, 'predictions/metrics_xy.csv'))
+        # MAE should be 1.
+        self.assertEqual(metrics.mae.mean(), 1.0)
+        # There should be two rows, one per test index
+        self.assertEqual(metrics.pred_name[0], 'im_c050_z003_t002_p003_xy0')
+        self.assertEqual(metrics.pred_name[1], 'im_c050_z003_t002_p004_xy0')
+        # There should be 2 predictions saved in pred dir
+        for pos in range(3, 5):
+            pred_name = os.path.join(
+                self.model_dir,
+                'predictions/im_c050_z003_t002_p00{}.png'.format(pos),
+            )
+            im_pred = cv2.imread(pred_name, cv2.IMREAD_ANYDEPTH)
+            self.assertEqual(im_pred.dtype, np.uint16)
+            self.assertTupleEqual(im_pred.shape, (8, 16))

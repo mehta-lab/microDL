@@ -250,7 +250,7 @@ def run_prediction(model_dir,
                 im_stack = im_stack[np.newaxis, ...]
                 # Predict on large image
                 start = time.time()
-                im_pred = inference.predict_on_larger_image(
+                im_pred = inference.predict_large_image(
                     model=model,
                     input_image=im_stack,
                 )
