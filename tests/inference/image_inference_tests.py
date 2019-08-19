@@ -180,8 +180,20 @@ class TestImageInference(unittest.TestCase):
         target = np.ones((10, 15, 5), dtype=np.float32)
         prediction = np.zeros_like(target)
         prediction[:5, :, :] = 1
-        self.infer_inst.estimate_metrics(target, prediction, 'test_name', None)
+        pred_names = ['test1', 'test2', 'test3', 'test4', 'test5']
+        self.infer_inst.estimate_metrics(target, prediction, pred_names, None)
         metrics = self.infer_inst.df_xy
+        self.assertTupleEqual(metrics.shape, (5, 2))
+        self.assertListEqual(list(metrics), ['mae', 'pred_name'])
+        self.assertEqual(metrics.mae.mean(), 0.5)
+
+    def test_estimate_metrics_xy_one_name(self):
+        target = np.ones((10, 15, 5), dtype=np.float32)
+        prediction = np.zeros_like(target)
+        prediction[:5, :, :] = 1
+        self.infer_inst.estimate_metrics(target, prediction, ['test_name'], None)
+        metrics = self.infer_inst.df_xy
+        print(metrics)
         self.assertTupleEqual(metrics.shape, (5, 2))
         self.assertListEqual(list(metrics), ['mae', 'pred_name'])
         self.assertEqual(metrics.mae.mean(), 0.5)
@@ -191,7 +203,7 @@ class TestImageInference(unittest.TestCase):
         prediction = np.zeros_like(target)
         prediction[:5, :, :] = 1
         self.infer_inst.metrics_orientations = ['xyz']
-        self.infer_inst.estimate_metrics(target, prediction, 'test_name', None)
+        self.infer_inst.estimate_metrics(target, prediction, ['test_name'], None)
         metrics = self.infer_inst.df_xyz
         self.assertTupleEqual(metrics.shape, (1, 2))
         self.assertListEqual(list(metrics), ['mae', 'pred_name'])
@@ -203,7 +215,7 @@ class TestImageInference(unittest.TestCase):
         prediction = np.zeros_like(target)
         prediction[:5, :, :] = 1
         self.infer_inst.metrics_orientations = ['xz']
-        self.infer_inst.estimate_metrics(target, prediction, 'test_name', None)
+        self.infer_inst.estimate_metrics(target, prediction, ['test_name'], None)
         metrics = self.infer_inst.df_xz
         self.assertTupleEqual(metrics.shape, (10, 2))
         self.assertListEqual(list(metrics), ['mae', 'pred_name'])
@@ -216,7 +228,7 @@ class TestImageInference(unittest.TestCase):
         prediction = np.zeros_like(target)
         prediction[:5, :, :] = 1
         self.infer_inst.metrics_orientations = ['yz']
-        self.infer_inst.estimate_metrics(target, prediction, 'test_name', None)
+        self.infer_inst.estimate_metrics(target, prediction, ['test_name'], None)
         metrics = self.infer_inst.df_yz
         self.assertTupleEqual(metrics.shape, (15, 2))
         self.assertListEqual(list(metrics), ['mae', 'pred_name'])

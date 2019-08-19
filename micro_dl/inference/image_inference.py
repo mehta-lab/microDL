@@ -401,32 +401,50 @@ class ImagePredictor:
             )
 
     def estimate_metrics(self,
-                         cur_target,
-                         cur_prediction,
-                         cur_pred_fname,
-                         cur_mask):
+                         target,
+                         prediction,
+                         pred_fnames,
+                         mask):
         """
         Estimate evaluation metrics
         The row of metrics gets added to metrics_est.df_metrics
 
-        :param np.array cur_target: ground truth
-        :param np.array cur_prediction: model prediction
-        :param str cur_pred_fname: fname for saving model predictions
-        :param np.array cur_mask: foreground/ background mask
+        :param np.array target: ground truth
+        :param np.array prediction: model prediction
+        :param list pred_fnames: File names (str) for saving model predictions
+        :param np.array mask: foreground/ background mask
         """
 
-        kw_args = {'target': cur_target,
-                   'prediction': cur_prediction,
-                   'pred_name': cur_pred_fname}
+        kw_args = {'target': target,
+                   'prediction': prediction,
+                   'pred_name': pred_fnames[0]}
 
-        if cur_mask is not None:
-            kw_args['mask'] = cur_mask
+        if mask is not None:
+            kw_args['mask'] = mask
 
         if 'xy' in self.metrics_orientations:
-            self.metrics_inst.estimate_xy_metrics(**kw_args)
-            self.df_xy = self.df_xy.append(
-                self.metrics_inst.get_metrics_xy()
-            )
+            # If not using pos idx as test, prediction names will
+            # have to be looped through
+            if len(pred_fnames) > 1:
+                mask_i = None
+                for i, pred_name in enumerate(pred_fnames):
+                    if mask is not None:
+                        mask_i = mask[..., i]
+                    self.metrics_inst.estimate_xy_metrics(
+                        target=target[..., i],
+                        prediction=prediction[..., i],
+                        pred_name=pred_name,
+                        mask=mask_i,
+                    )
+                    self.df_xy = self.df_xy.append(
+                        self.metrics_inst.get_metrics_xy()
+                    )
+            else:
+                # 3D image or separate positions for each row
+                self.metrics_inst.estimate_xy_metrics(**kw_args)
+                self.df_xy = self.df_xy.append(
+                    self.metrics_inst.get_metrics_xy()
+                )
         if 'xyz' in self.metrics_orientations:
             self.metrics_inst.estimate_xyz_metrics(**kw_args)
             self.df_xyz = self.df_xyz.append(
@@ -622,22 +640,25 @@ class ImagePredictor:
                 pred_image, target_image, mask_image = self.predict_3d(
                     iteration_rows,
                 )
-            cur_row = self.iteration_meta.iloc[iteration_rows[0]]
-            pred_fname = aux_utils.get_im_name(
-                time_idx=cur_row['time_idx'],
-                channel_idx=cur_row['channel_idx'],
-                slice_idx=cur_row['slice_idx'],
-                pos_idx=cur_row['pos_idx'],
-                ext='',
-            )
+            pred_fnames = []
+            for row_idx in iteration_rows:
+                cur_row = self.iteration_meta.iloc[row_idx]
+                pred_fname = aux_utils.get_im_name(
+                    time_idx=cur_row['time_idx'],
+                    channel_idx=cur_row['channel_idx'],
+                    slice_idx=cur_row['slice_idx'],
+                    pos_idx=cur_row['pos_idx'],
+                    ext='',
+                )
+                pred_fnames.append(pred_fname)
             if self.metrics_inst is not None:
                 if not self.mask_metrics:
                     mask_image = None
                 self.estimate_metrics(
-                    cur_target=target_image,
-                    cur_prediction=pred_image,
-                    cur_pred_fname=pred_fname,
-                    cur_mask=mask_image,
+                    target=target_image,
+                    prediction=pred_image,
+                    pred_fnames=pred_fnames,
+                    mask=mask_image,
                 )
                 del pred_image, target_image
 

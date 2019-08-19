@@ -261,11 +261,13 @@ class MetricsEstimator:
 
         :param np.array target: ground truth
         :param np.array prediction: model prediction
-        :param str pred_name: filename used for saving model prediction
+        :param str/list pred_name: filename(s) used for saving model prediction
         :param np.array mask: binary mask with foreground / background
         """
         self.assert_input(target, prediction, pred_name, mask)
-        assert len(target.shape) == 3, 'Dataset is assumed to be 3D'
+        if len(target.shape) == 2:
+            target = target[..., np.newaxis]
+            prediction = prediction[..., np.newaxis]
         self.metrics_xy = pd.DataFrame(columns=self.pd_col_names)
         # Loop through slices
         for slice_idx in range(target.shape[2]):
