@@ -184,9 +184,8 @@ class InferenceDataSet(keras.utils.Sequence):
             im_stack = np.stack(im_stack)
         else:
             im_stack = np.stack(im_stack, axis=self.n_dims - 2)
-        # Make sure image has the right dtype if mask (not normalized)
-        if not normalize:
-            im_stack = im_stack.astype(np.float32)
+        # Make sure all images have the same dtype
+        im_stack = im_stack.astype(np.float32)
         return im_stack
 
     def __getitem__(self, index):
