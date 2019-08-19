@@ -25,11 +25,9 @@ def validate_mask_meta(mask_dir,
     :param str input_dir: Input image directory, to match masks with images
     :param int/None mask_channel: Channel idx assigned to masks
     :return int mask_channel: New channel index for masks for writing tiles
-    :raises IOError: If not just one csv file is present in mask_dir
-    :raises AssertionError: If more than one csv file exists in mask_dir
+    :raises IOError: If no csv file is present in mask_dir
+    :raises IOError: If more than one csv file exists in mask_dir
         and no csv_name is provided to resolve ambiguity
-    :raises AssertionError: If provided csv_name if 'frames_meta.csv' - that
-        name is reserved for preprocessing output
     :raises AssertionError: If csv doesn't consist of two columns named
         'mask_name' and 'file_name'
     :raises IndexError: If unable to match file_name in mask_dir csv with
@@ -65,7 +63,7 @@ def validate_mask_meta(mask_dir,
                 assert len(mask_channel) == 1,\
                     "Found more than one mask channel: {}".format(mask_channel)
                 mask_channel = mask_channel[0]
-                if type(mask_channel).__module__ == 'numpy':
+                if mask_channel.dtype == np.array:
                     mask_channel = mask_channel.item()
                 return mask_channel
             elif len(csv_name) == 1:

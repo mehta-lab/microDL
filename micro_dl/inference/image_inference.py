@@ -45,8 +45,12 @@ class ImagePredictor:
              list metrics_list: list of metrics to estimate. available
              metrics: [ssim, corr, r2, mse, mae}]
              list metrics_orientations: xy, xyz, xz or yz
+              (see evaluation_metrics.py for description of orientations)
             dict masks: dict with keys
-             str mask_dir: path to masks
+             str mask_dir: Mask directory containing a frames_meta.csv containing
+             mask channels (which will be target channels in the inference config)
+             z, t, p indices matching the ones in image_dir. Mask dirs are often
+             generated or have frames_meta added to them during preprocessing.
              str mask_type: 'target' for segmentation, 'metrics' for weighted
              int mask_channel: mask channel as in training
             dict inference_3d: dict with params for 3D inference with keys:

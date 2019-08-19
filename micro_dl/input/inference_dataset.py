@@ -31,9 +31,9 @@ class InferenceDataSet(keras.utils.Sequence):
         :param str image_format: xyz or zyx format
         :param str/None mask_dir: If inference targets are masks stored in a
          different directory than the image dir. Assumes the directory contains
-         a frames_meta.csv with indices matching the one in image_dir and that
-         target_channels are in there
-        :param str flat_field_dir: dir with flat field images
+         a frames_meta.csv containing mask channels (which will be target channels
+          in the inference config) z, t, p indices matching the ones in image_dir
+        :param str flat_field_dir: Directory with flat field images
         """
         self.image_dir = image_dir
         self.target_dir = image_dir
