@@ -97,7 +97,7 @@ def create_unimodal_mask(input_image, str_elem_size=3):
     return mask
 
 
-def get_unet_border_weight_map(annotation, w0=10, sigma=5):
+def get_unet_border_weight_map(annotation, w0=10, sigma=10):
     """
     Return weight map for borders as specified in UNet paper
     :param annotation A 2D array of shape (image_height, image_width)
@@ -123,7 +123,7 @@ def get_unet_border_weight_map(annotation, w0=10, sigma=5):
         mask = np.zeros(
             (annotation.shape[0], annotation.shape[1]), dtype=np.float64)
         mask[annotation == unique_value] = 1
-        weight_map[index] = 1 / mask.sum()
+        weight_map[index] = mask.sum()
 
     # this normalization is important - foreground pixels must have weight 1
     weight_map = [i / max(weight_map) for i in weight_map]
