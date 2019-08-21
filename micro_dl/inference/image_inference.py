@@ -680,5 +680,6 @@ class ImagePredictor:
                 df_name = 'metrics_{}.csv'.format(orientation)
                 metrics_df.to_csv(
                     os.path.join(self.pred_dir, df_name),
-                    sep=','
+                    sep=',',
+                    index=False,
                 )

@@ -82,8 +82,8 @@ def compute_metrics(args):
     :param argparse args:
     str model_dir: Assumed to contain config, split_samples.json and predictions/
     bool test_data: Uses test indices in split_samples.json, otherwise all indices
-    str image_dir: Dir containing targets
-    str ext: Prediction image extension
+    str image_dir: Directory containing target images
+    str ext: Prediction image extension ('.tif', '.png' or '.npy)
     list metrics: See inference/evaluation_metrics.py for options
     list orientations: Any subset of {xy, xz, yz, xyz}
     """
@@ -221,7 +221,7 @@ def compute_metrics(args):
         metrics_df = df_mapping[orientation]
         df_name = 'metrics_{}.csv'.format(orientation)
         metrics_name = os.path.join(pred_dir, df_name)
-        metrics_df.to_csv(metrics_name, sep=",")
+        metrics_df.to_csv(metrics_name, sep=",", index=False)
 
 
 if __name__ == '__main__':

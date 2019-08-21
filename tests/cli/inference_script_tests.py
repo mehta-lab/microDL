@@ -2,6 +2,7 @@ import cv2
 import nose.tools
 import numpy as np
 import os
+import pandas as pd
 from testfixtures import TempDirectory
 import unittest
 from unittest.mock import patch
@@ -89,8 +90,8 @@ class TestInferenceScript(unittest.TestCase):
                 'image_ext': '.tif',
             },
             'metrics': {
-                'metrics': ['r2'],
-                'metrics_orientations': ['xyz'],
+                'metrics': ['mse', 'mae'],
+                'metrics_orientations': ['xy', 'xyz'],
             },
         }
         self.infer_config_name = os.path.join(self.pred_dir, 'config_inference.yml')
@@ -107,7 +108,7 @@ class TestInferenceScript(unittest.TestCase):
     def test_parse_args(self):
         with patch('argparse._sys.argv',
                    ['python',
-                    '--gpu', '3'    ,
+                    '--gpu', '3',
                     '--config', self.infer_config_name]):
             parsed_args = inference_script.parse_args()
             self.assertEqual(parsed_args.gpu, 3)
@@ -125,10 +126,36 @@ class TestInferenceScript(unittest.TestCase):
     @patch('micro_dl.inference.model_inference.predict_large_image')
     def test_run_inference(self, mock_predict, mock_model):
         mock_model.return_value = 'dummy_model'
+        # Image shape is cropped to the nearest factor of 2
         mock_predict.return_value = 1. + np.ones((1, 16, 16), dtype=np.float32)
-
+        # Run inference
         inference_script.run_inference(
             config_fname=self.infer_config_name,
             gpu_ids=-1,
         )
-        print(os.listdir(self.pred_dir))
+        # Check 3D metrics
+        metrics = pd.read_csv(os.path.join(self.pred_dir, 'metrics_xyz.csv'))
+        self.assertTupleEqual(metrics.shape, (1, 3))
+        self.assertEqual(metrics.mse[0], 4.)
+        self.assertEqual(metrics.mae[0], 2.)
+        # Rhe name will use the first indices in stack so z = 5
+        self.assertEqual(metrics.pred_name[0], 'im_c002_z005_t005_p007')
+        # Check 2D xy metrics
+        metrics = pd.read_csv(os.path.join(self.pred_dir, 'metrics_xy.csv'))
+        self.assertTupleEqual(metrics.shape, (5, 3))
+        for i, test_z in enumerate([5, 6, 7, 8, 9]):
+            self.assertEqual(metrics.mse[i], 4.)
+            self.assertEqual(metrics.mae[i], 2.)
+            self.assertEqual(
+                metrics.pred_name[i],
+                'im_c002_z00{}_t005_p007_xy0'.format(test_z))
+
+        # Check that all predictions are there
+        for test_z in [5, 6, 7, 8, 9]:
+            pred_name = os.path.join(
+                self.pred_dir,
+                'im_c002_z00{}_t005_p007.tif'.format(test_z),
+            )
+            pred_im = cv2.imread(pred_name, cv2.IMREAD_ANYDEPTH)
+            self.assertEqual(pred_im.dtype, np.float32)
+            self.assertTupleEqual(pred_im.shape, (16, 16))
