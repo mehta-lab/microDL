@@ -75,6 +75,5 @@ named 'predictions' that already contains predictions.
 * **test_data**: An optional (default) flag that specifies that only test indices in split_samples.json
 will be evaluated. The other option is to use all the data with the flag **all_data**.
 * **image_dir** (str): Directory containing target images of same size as predictions.
-* **ext** (str): Prediction image extension. Default is '.tif', other options are '.png' and '.npy'.
 * **metrics** (list): See inference -> metrics_list for options.
 * **orientations**: Any subset of {xy, xz, yz, xyz}, see inference -> metrics_orientations.
