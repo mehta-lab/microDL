@@ -203,7 +203,6 @@ def run_prediction(model_dir,
             columns=frames_meta.columns.values.tolist()
         )
     # Get model weight file name, if none, load latest saved weights
-    model_fname = model_fname
     if model_fname is None:
         fnames = [f for f in os.listdir(model_dir) if f.endswith('.hdf5')]
         assert len(fnames) > 0, 'No weight files found in model dir'
@@ -274,7 +273,7 @@ def run_prediction(model_dir,
                 im_stack = im_stack[np.newaxis, ...]
                 # Predict on large image
                 start = time.time()
-                im_pred = inference.predict_on_larger_image(
+                im_pred = inference.predict_large_image(
                     model=model,
                     input_image=im_stack,
                 )
