@@ -167,9 +167,9 @@ def generate_masks(params_dict,
 
 
 def tile_images(params_dict,
-                tile_dict,
                 resize_flag,
-                flat_field_dir):
+                flat_field_dir,
+                tile_dict):
     """Tile images
 
     :param dict params_dict: dict with keys: input_dir, output_dir, time_ids,
@@ -182,19 +182,32 @@ def tile_images(params_dict,
     :param str flat_field_dir: dir with flat field correction images
     :return str tile_dir: dir with tiled images
     """
+    # Check tile args
+    tile_3d = False
+    if 'tile_3d' in tile_dict:
+        tile_3d = tile_dict['tile_3d']
+    tile_dict['tile_3d'] = tile_3d
+    hist_clip_limits=None
+    if 'hist_clip_limits' in tile_dict:
+        hist_clip_limits = tile_dict['hist_clip_limits']
+    # setup tiling keyword arguments
     kwargs = {'input_dir': params_dict['input_dir'],
               'output_dir': params_dict['output_dir'],
-              'tile_dict': tile_dict,
+              'normalize_channels': params_dict["normalize_channels"],
+              'tile_size': tile_dict['tile_size'],
+              'step_size': tile_dict['step_size'],
+              'depths': tile_dict['depths'],
               'time_ids': params_dict['time_ids'],
-              'slice_ids': params_dict['slice_ids'],
               'channel_ids': params_dict['channel_ids'],
+              'slice_ids': params_dict['slice_ids'],
               'pos_ids': params_dict['pos_ids'],
+              'hist_clip_limits': hist_clip_limits,
               'flat_field_dir': flat_field_dir,
               'num_workers': params_dict['num_workers'],
               'int2str_len': params_dict['int2strlen'],
-              'normalize_channels': params_dict["normalize_channels"]}
+              'tile_3d': tile_3d}
     if params_dict['uniform_struct']:
-        if 'tile_3d' in tile_dict and tile_dict['tile_3d']:
+        if tile_3d:
             if resize_flag:
                 warnings.warn(
                     'If resize_3d was used, slice_idx corresponds to start'
@@ -203,11 +216,9 @@ def tile_images(params_dict,
                     'provided here is fixed for these gaps.', Warning)
             tile_inst = ImageTilerUniform3D(**kwargs)
         else:
-            tile_dict['tile_3d'] = False
             tile_inst = ImageTilerUniform(**kwargs)
     else:
         # currently not supported but should be easy to extend
-        tile_dict['tile_3d'] = False
         tile_inst = ImageTilerNonUniform(**kwargs)
 
     tile_dir = tile_inst.get_tile_dir()
@@ -222,10 +233,12 @@ def tile_images(params_dict,
         if 'mask_depth' in tile_dict:
             mask_depth = tile_dict['mask_depth']
 
-        tile_inst.tile_mask_stack(mask_dir=mask_dir,
-                                  mask_channel=mask_out_channel,
-                                  min_fraction=min_fraction,
-                                  mask_depth=mask_depth)
+        tile_inst.tile_mask_stack(
+            mask_dir=mask_dir,
+            mask_channel=mask_out_channel,
+            min_fraction=min_fraction,
+            mask_depth=mask_depth,
+        )
     else:
         # retain all tiles
         tile_inst.tile_stack()
@@ -255,8 +268,8 @@ def pre_process(pp_config, req_params_dict):
     :raises AssertionError: If 'masks' in pp_config contains both channels
      and mask_dir (the former is for generating masks from a channel)
     """
-
     time_start = time.time()
+
     # estimate flat field images
     flat_field_dir = None
     if 'flat_field' in pp_config:
@@ -275,7 +288,6 @@ def pre_process(pp_config, req_params_dict):
             flat_field_dir = pp_config['flat_field']['flat_field_dir']
 
     # Resample images
-    mask_out_channel = None
     if 'resize' in pp_config:
         scale_factor = pp_config['resize']['scale_factor']
         num_slices_subvolume = -1
@@ -283,23 +295,22 @@ def pre_process(pp_config, req_params_dict):
             num_slices_subvolume = \
                 pp_config['resize']['num_slices_subvolume']
 
-        resize_dir, slice_ids = resize_images(req_params_dict,
-                                              scale_factor,
-                                              num_slices_subvolume,
-                                              pp_config['resize']['resize_3d'],
-                                              flat_field_dir)
+        resize_dir, slice_ids = resize_images(
+            req_params_dict,
+            scale_factor,
+            num_slices_subvolume,
+            pp_config['resize']['resize_3d'],
+            flat_field_dir,
+        )
         # the images are resized after flat field correction
         flat_field_dir = None
         pp_config['resize']['resize_dir'] = resize_dir
-        init_frames_meta = pd.read_csv(
-            os.path.join(req_params_dict['input_dir'], 'frames_meta.csv')
-        )
-        mask_out_channel = int(init_frames_meta['channel_idx'].max() + 1)
         req_params_dict['input_dir'] = resize_dir
         req_params_dict['slice_ids'] = slice_ids
 
     # Generate masks
     mask_dir = None
+    mask_out_channel = None
     if 'masks' in pp_config:
         if 'channels' in pp_config['masks']:
             # Generate masks from channel
@@ -355,30 +366,34 @@ def pre_process(pp_config, req_params_dict):
                 pp_config['tile']['mask_dir'] = mask_dir
             if 'mask_channel' not in pp_config['tile']:
                 pp_config['tile']['mask_channel'] = mask_out_channel
-        tile_dir = tile_images(req_params_dict,
-                               pp_config['tile'],
-                               resize_flag,
-                               flat_field_dir)
-        tiles_frame_meta = pd.read_csv(
-            os.path.join(tile_dir, 'frames_meta.csv'), index_col=0)
+        tile_dir = tile_images(
+            params_dict=req_params_dict,
+            tile_dict=pp_config['tile'],
+            resize_flag=resize_flag,
+            flat_field_dir=flat_field_dir,
+        )
+        # tiles_frame_meta = aux_utils.read_meta(tile_dir)
 
-    if 'masks' in pp_config:
-        req_params_dict["input_dir"] = mask_dir
-        pp_config['tile']['channels'] = [mask_out_channel]
-        req_params_dict['normalize_channels'] = req_params_dict['normalize_channels'] + [pp_config['masks']['normalize_im']]
-        tile_dir = tile_images(req_params_dict,
-                               pp_config['tile'],
-                               resize_flag,
-                               flat_field_dir)
-        tiles_frame_meta_mask = pd.read_csv(
-            os.path.join(tile_dir, 'frames_meta.csv'), index_col=0)
-    tiles_metadata = pd.concat([tiles_frame_meta, tiles_frame_meta_mask], ignore_index=True)
-    dropped = tiles_metadata.drop_duplicates()
-    dropped = dropped.reset_index(drop=True)
-    dropped.to_csv(
-        os.path.join(tile_dir, "frames_meta.csv"),
-        sep=','
-    )
+    # if 'masks' in pp_config:
+    #     req_params_dict["input_dir"] = mask_dir
+    #     pp_config['tile']['channels'] = [mask_out_channel]
+    #     req_params_dict['normalize_channels'] = \
+    #         req_params_dict['normalize_channels'] + [pp_config['masks']['normalize_im']]
+    #     tile_dir = tile_images(req_params_dict,
+    #                            pp_config['tile'],
+    #                            resize_flag,
+    #                            flat_field_dir)
+    #     tiles_frame_meta_mask = aux_utils.read_meta(tile_dir)
+    # tiles_metadata = pd.concat(
+    #     [tiles_frame_meta, tiles_frame_meta_mask],
+    #     ignore_index=True,
+    # )
+    # dropped = tiles_metadata.drop_duplicates()
+    # dropped = dropped.reset_index(drop=True)
+    # dropped.to_csv(
+    #     os.path.join(tile_dir, "frames_meta.csv"),
+    #     sep=','
+    # )
     pp_config['tile']['tile_dir'] = tile_dir
 
     # Write in/out/mask/tile paths and config to json in output directory

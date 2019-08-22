@@ -15,7 +15,6 @@ class ImageTilerNonUniform(ImageTilerUniform):
                  input_dir,
                  output_dir,
                  normalize_channels,
-                 tile_dict,
                  tile_size=[256, 256],
                  step_size=[64, 64],
                  depths=1,
@@ -27,7 +26,8 @@ class ImageTilerNonUniform(ImageTilerUniform):
                  flat_field_dir=None,
                  image_format='zyx',
                  num_workers=4,
-                 int2str_len=3):
+                 int2str_len=3,
+                 tile_3d=False):
         """Init
 
         Assuming same structure across channels and same number of samples
@@ -36,22 +36,22 @@ class ImageTilerNonUniform(ImageTilerUniform):
         Please ref to init of ImageTilerUniform.
         """
 
-        super().__init__(input_dir,
-                         output_dir,
-                         normalize_channels,
-                         tile_dict,
-                         tile_size,
-                         step_size,
-                         depths,
-                         time_ids,
-                         channel_ids,
-                         slice_ids,
-                         pos_ids,
-                         hist_clip_limits,
-                         flat_field_dir,
-                         image_format,
-                         num_workers,
-                         int2str_len)
+        super().__init__(input_dir=input_dir,
+                         output_dir=output_dir,
+                         normalize_channels=normalize_channels,
+                         tile_size=tile_size,
+                         step_size=step_size,
+                         depths=depths,
+                         time_ids=time_ids,
+                         channel_ids=channel_ids,
+                         slice_ids=slice_ids,
+                         pos_ids=pos_ids,
+                         hist_clip_limits=hist_clip_limits,
+                         flat_field_dir=flat_field_dir,
+                         image_format=image_format,
+                         num_workers=num_workers,
+                         int2str_len=int2str_len,
+                         tile_3d=tile_3d)
         # Get metadata indices
         metadata_ids, nested_id_dict = aux_utils.validate_metadata_indices(
             frames_metadata=self.frames_metadata,

@@ -8,10 +8,9 @@ class ImageTilerUniform3D(ImageTilerUniform):
     def __init__(self,
                  input_dir,
                  output_dir,
-                 tile_dict,
                  tile_size=[64, 64, 64],
                  step_size=[32, 32, 32],
-                 depths=1,
+                 depths=[1],
                  time_ids=-1,
                  channel_ids=-1,
                  slice_ids=-1,
@@ -20,7 +19,8 @@ class ImageTilerUniform3D(ImageTilerUniform):
                  flat_field_dir=None,
                  image_format='zyx',
                  num_workers=4,
-                 int2str_len=3):
+                 int2str_len=3,
+                 tile_3d=False):
         """Init
 
         Please ref to init of ImageTilerUniform.
@@ -31,7 +31,6 @@ class ImageTilerUniform3D(ImageTilerUniform):
 
         super().__init__(input_dir,
                          output_dir,
-                         tile_dict,
                          tile_size,
                          step_size,
                          depths,
@@ -43,7 +42,8 @@ class ImageTilerUniform3D(ImageTilerUniform):
                          flat_field_dir,
                          image_format,
                          num_workers,
-                         int2str_len)
+                         int2str_len,
+                         tile_3d)
 
         if isinstance(self.tile_size, list):
             assert len(self.tile_size) == 3, \

@@ -264,7 +264,7 @@ def crop_at_indices_save(input_fnames,
             input_image=input_image,
             crop_indices=crop_indices,
             save_dict=save_dict,
-            tile_3d=tile_3d
+            tile_3d=tile_3d,
         )
     except Exception as e:
         err_msg = 'error in t_{}, c_{}, pos_{}, sl_{}'.format(

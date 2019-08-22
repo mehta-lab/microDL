@@ -14,7 +14,6 @@ class ImageTilerUniform:
                  input_dir,
                  output_dir,
                  normalize_channels,
-                 tile_dict,
                  tile_size=[256, 256],
                  step_size=[64, 64],
                  depths=1,
@@ -26,7 +25,8 @@ class ImageTilerUniform:
                  flat_field_dir=None,
                  image_format='zyx',
                  num_workers=4,
-                 int2str_len=3):
+                 int2str_len=3,
+                 tile_3d=False):
         """
         Tiles images.
         If tile_dir already exist, it will check which channels are already
@@ -35,61 +35,49 @@ class ImageTilerUniform:
 
         :param str input_dir: Directory with frames to be tiled
         :param str output_dir: Base output directory
+        :param list normalize_channels: list of booleans indicating if
+            channel should be normalized or not,
+            Ex: If there is a False and True at indices 0, 1
+            then the channel 0 will not be normalized and 1 will be normalized,
+            if there is None at index it indicates channels absence
         :param list tile_size: size of the blocks to be cropped
-         from the image
+            from the image
         :param list step_size: size of the window shift. In case
-         of no overlap, the step size is tile_size. If overlap, step_size <
-         tile_size
+            of no overlap, the step size is tile_size. If overlap, step_size <
+            tile_size
         :param int/list depths: The z depth for generating stack training data
             Default 1 assumes 2D data for all channels to be tiled.
             For cases where input and target shapes are not the same (e.g. stack
-             to 2D) you should specify depths for each channel in tile.channels.
+            to 2D) you should specify depths for each channel in tile.channels.
         :param list/int time_ids: Tile given timepoint indices
-        :param list/int tile_channels: Tile images in the given channel indices
-         default=-1, tile all channels
+        :param list/int channel_ids: Tile images in the given channel indices
+            default=-1, tile all channels
         :param int slice_ids: Index of which focal plane acquisition to
-         use (for 2D). default=-1 for the whole z-stack
+            use (for 2D). default=-1 for the whole z-stack
         :param int pos_ids: Position (FOV) indices to use
         :param list hist_clip_limits: lower and upper percentiles used for
-         histogram clipping.
+            histogram clipping.
         :param str flat_field_dir: Flatfield directory. None if no flatfield
             correction
         :param str image_format: zyx (preferred) or xyz
         :param int num_workers: number of workers for multiprocessing
         :param int int2str_len: number of characters for each idx to be used
-        in file names
-        :param list normalize_channels: list of booleans indicating if
-        channel should be normalized or not,
-        Ex: If there is a False and True at indices 0, 1
-        then the channel 0 will not be normalized and 1 will be normalized,
-        if there is None at index it indicates channels absence
+            in file names
+        :param bool tile_3d: Whether tiling is 3D or 2D
         """
         self.input_dir = input_dir
         self.output_dir = output_dir
         self.normalize_channels = normalize_channels
-
-        if 'depths' in tile_dict:
-            depths = tile_dict['depths']
-        if 'tile_size' in tile_dict:
-            tile_size = tile_dict['tile_size']
-        if 'step_size' in tile_dict:
-            step_size = tile_dict['step_size']
-        if 'channels' in tile_dict:
-            channel_ids = tile_dict['channels']
-        if 'positions' in tile_dict:
-            pos_ids = tile_dict['positions']
-        if 'hist_clip_limits' in tile_dict:
-            hist_clip_limits = tile_dict['hist_clip_limits']
-        if 'image_format' in tile_dict:
-            image_format = tile_dict['image_format']
-            assert image_format in {'zyx', 'xyz'}, \
-                'Data format must be zyx or xyz'
         self.depths = depths
         self.tile_size = tile_size
         self.step_size = step_size
         self.hist_clip_limits = hist_clip_limits
         self.image_format = image_format
+        assert self.image_format in {'zyx', 'xyz'}, \
+            'Data format must be zyx or xyz'
         self.num_workers = num_workers
+        self.int2str_len = int2str_len
+        self.tile_3d = tile_3d
 
         self.str_tile_step = 'tiles_{}_step_{}'.format(
             '-'.join([str(val) for val in tile_size]),
@@ -140,7 +128,7 @@ class ImageTilerUniform:
         if isinstance(self.depths, list):
             assert len(self.depths) == len(self.channel_ids),\
              "depths ({}) and channels ({}) length mismatch".format(
-                len(self.depths), len(self.channel_ids)
+                self.depths, self.channel_ids,
             )
             # Get max of all specified depths
             max_depth = max(self.depths)
@@ -159,8 +147,6 @@ class ImageTilerUniform:
             slice_ids=self.slice_ids,
             depth=max_depth,
         )
-        self.int2str_len = int2str_len
-        self.tile_3d = tile_dict['tile_3d']
 
     def get_tile_dir(self):
         """
