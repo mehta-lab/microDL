@@ -33,10 +33,11 @@ def read_imstack(input_fnames,
                 flat_field_image = np.load(flat_field_fname[idx])
             else:
                 flat_field_image = np.load(flat_field_fname)
-            im = apply_flat_field_correction(
-                im,
-                flat_field_image=flat_field_image,
-            )
+            if not is_mask and not normalize_im:
+                im = apply_flat_field_correction(
+                    im,
+                    flat_field_image=flat_field_image,
+                )
         im_stack.append(im)
 
     input_image = np.stack(im_stack, axis=-1)
@@ -99,8 +100,8 @@ def preprocess_imstack(frames_metadata,
             frames_metadata.loc[meta_idx, "file_name"],
         )
         im = read_image(file_path)
-
-        if flat_field_im is not None:
+        # Only flatfield correct images that will be normalized
+        if flat_field_im is not None and not normalize_im:
             im = apply_flat_field_correction(
                 im,
                 flat_field_image=flat_field_im,

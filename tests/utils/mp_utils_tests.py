@@ -122,7 +122,7 @@ class TestMpUtilsOtsu(TestMpUtilsBaseClass):
                 slice_idx=sl_idx,
                 int2str_len=3,
                 mask_type='otsu',
-                mask_ext='png'
+                mask_ext='.png'
             )
             fname = aux_utils.get_im_name(time_idx=self.time_ids,
                                           channel_idx=3,
@@ -222,7 +222,7 @@ class TestMpUtilsBorderWeightMap(TestMpUtilsBaseClass):
                 slice_idx=sl_idx,
                 int2str_len=3,
                 mask_type='borders_weight_loss_map',
-                mask_ext='png'
+                mask_ext='.png'
             )
             fname = aux_utils.get_im_name(time_idx=self.time_ids,
                                           channel_idx=2,

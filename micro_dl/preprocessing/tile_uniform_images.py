@@ -282,7 +282,6 @@ class ImageTilerUniform:
         :param str mask_dir: Directory containing masks
         :return: list of input fnames
         """
-
         if mask_dir is None:
             depth = self.channel_depth[channel_idx]
         else:
@@ -407,7 +406,8 @@ class ImageTilerUniform:
         """
         Tiles images in the specified channels.
 
-        https://research.wmz.ninja/articles/2018/03/on-sharing-large-arrays-when-using-pythons-multiprocessing.html
+        https://research.wmz.ninja/articles/2018/03/
+        on-sharing-large-arrays-when-using-pythons-multiprocessing.html
 
         Saves a csv with columns
         ['time_idx', 'channel_idx', 'pos_idx','slice_idx', 'file_name']
@@ -464,16 +464,20 @@ class ImageTilerUniform:
                                 normalize_im=self.normalize_channels[channel_idx]
                             )
                             fn_args.append(cur_args)
-        tiled_meta_df_list = mp_crop_save(fn_args,
-                                          workers=self.num_workers)
+        tiled_meta_df_list = mp_crop_save(
+            fn_args,
+            workers=self.num_workers,
+        )
         if tiled_meta0 is not None:
             tiled_meta_df_list.append(tiled_meta0)
         tiled_metadata = pd.concat(tiled_meta_df_list, ignore_index=True)
         if self.tiles_exist:
             tiled_metadata.reset_index(drop=True, inplace=True)
             prev_tiled_metadata.reset_index(drop=True, inplace=True)
-            tiled_metadata = pd.concat([prev_tiled_metadata, tiled_metadata],
-                                       ignore_index=True)
+            tiled_metadata = pd.concat(
+                [prev_tiled_metadata, tiled_metadata],
+                ignore_index=True,
+            )
         # Finally, save all the metadata
         tiled_metadata = tiled_metadata.sort_values(by=['file_name'])
         tiled_metadata.to_csv(
@@ -529,18 +533,22 @@ class ImageTilerUniform:
                             task_type='tile',
                             mask_dir=mask_dir,
                             min_fraction=min_fraction,
-                            normalize_im=self.normalize_channels[mask_channel]
+                            normalize_im=False,
                         )
                         mask_fn_args.append(cur_args)
 
             # tile_image uses min_fraction assuming input_image is a bool
-            mask_meta_df_list = mp_tile_save(mask_fn_args,
-                                             workers=self.num_workers)
+            mask_meta_df_list = mp_tile_save(
+                mask_fn_args,
+                workers=self.num_workers,
+            )
             mask_meta_df = pd.concat(mask_meta_df_list, ignore_index=True)
             # Finally, save all the metadata
             mask_meta_df = mask_meta_df.sort_values(by=['file_name'])
-            mask_meta_df.to_csv(os.path.join(self.tile_dir, 'frames_meta.csv'),
-                                sep=',')
+            mask_meta_df.to_csv(
+                os.path.join(self.tile_dir, 'frames_meta.csv'),
+                sep=',',
+            )
         # remove mask_channel from self.channel_ids if included
         _ = [self.channel_ids.pop(idx)
              for idx, val in enumerate(self.channel_ids)
@@ -570,14 +578,19 @@ class ImageTilerUniform:
                                 normalize_im=self.normalize_channels[channel_idx]
                             )
                             fn_args.append(cur_args)
-        tiled_meta_df_list = mp_crop_save(fn_args,
-                                          workers=self.num_workers)
+        tiled_meta_df_list = mp_crop_save(
+            fn_args,
+            workers=self.num_workers,
+        )
         tiled_metadata = pd.concat(tiled_meta_df_list, ignore_index=True)
+        # If there's been tiling done already, add to existing metadata
         prev_tiled_metadata = aux_utils.read_meta(self.tile_dir)
-        tiled_metadata = pd.concat([prev_tiled_metadata.reset_index(drop=True),
-                                    tiled_metadata.reset_index(drop=True)],
-                                   axis=0,
-                                   ignore_index=True)
+        tiled_metadata = pd.concat(
+            [prev_tiled_metadata.reset_index(drop=True),
+             tiled_metadata.reset_index(drop=True)],
+            axis=0,
+            ignore_index=True,
+        )
         # Finally, save all the metadata
         tiled_metadata = tiled_metadata.sort_values(by=['file_name'])
         tiled_metadata.to_csv(

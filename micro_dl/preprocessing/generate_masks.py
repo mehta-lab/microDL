@@ -21,8 +21,8 @@ class MaskProcessor:
                  uniform_struct=True,
                  num_workers=4,
                  mask_type='otsu',
-                 mask_out_channel=None,
-                 mask_ext='npy',
+                 mask_channel=None,
+                 mask_ext='.npy',
                  normalize_im=False):
         """
         :param str input_dir: Directory with image frames
@@ -32,22 +32,22 @@ class MaskProcessor:
         :param str flat_field_dir: Directory with flatfield images if
             flatfield correction is applied
         :param int/list channel_ids: generate mask from the sum of these
-         (flurophore) channel indices
+            (flurophore) channel indices
         :param list/int time_ids: timepoints to consider
         :param int slice_ids: Index of which focal plane (z)
             acquisition to use (default -1 includes all slices)
         :param int pos_ids: Position (FOV) indices to use
         :param int int2str_len: Length of str when converting ints
         :param bool uniform_struct: bool indicator for same structure across
-         pos and time points
+            pos and time points
         :param int num_workers: number of workers for multiprocessing
         :param str mask_type: method to use for generating mask. Needed for
-         mapping to the masking function
-        :param int mask_out_channel: channel num assigned to mask channel. If
-         resizing images on a subset of channels, frames_meta is from resize
-         dir, which could lead to wrong mask channel being assigned.
-        :param str mask_ext: 'npy' or 'png'. Save the mask as uint8 PNG or
-         NPY files
+            mapping to the masking function
+        :param int mask_channel: channel num assigned to mask channel. If
+            resizing images on a subset of channels, frames_meta is from resize
+            dir, which could lead to wrong mask channel being assigned.
+        :param str mask_ext: '.npy' or 'png'. Save the mask as uint8 PNG or
+            NPY files
         :param bool normalize_im: indicator to normalize image based on z-score or not
         """
 
@@ -60,12 +60,12 @@ class MaskProcessor:
         self.frames_metadata = aux_utils.read_meta(self.input_dir)
         # Create a unique mask channel number so masks can be treated
         # as a new channel
-        if mask_out_channel is None:
+        if mask_channel is None:
             self.mask_channel = int(
                 self.frames_metadata['channel_idx'].max() + 1
             )
         else:
-            self.mask_channel = int(mask_out_channel)
+            self.mask_channel = int(mask_channel)
 
         metadata_ids, nested_id_dict = aux_utils.validate_metadata_indices(
             frames_metadata=self.frames_metadata,
@@ -91,7 +91,8 @@ class MaskProcessor:
         self.nested_id_dict = nested_id_dict
 
         assert mask_type in ['otsu', 'unimodal', 'borders_weight_loss_map'], \
-            'Masking method invalid, Otsu, borders_weight_loss_map, and unimodal are currently supported'
+            'Masking method invalid, Otsu, borders_weight_loss_map, " +\
+            "and unimodal are currently supported'
         self.mask_type = mask_type
         self.mask_ext = mask_ext
 

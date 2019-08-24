@@ -20,7 +20,7 @@ class ImageTilerUniform3D(ImageTilerUniform):
                  image_format='zyx',
                  num_workers=4,
                  int2str_len=3,
-                 tile_3d=False):
+                 tile_3d=True):
         """Init
 
         Please ref to init of ImageTilerUniform.

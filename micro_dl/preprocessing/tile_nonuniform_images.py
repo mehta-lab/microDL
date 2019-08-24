@@ -72,7 +72,8 @@ class ImageTilerNonUniform(ImageTilerUniform):
                            channel0_ids,
                            channel0_depth,
                            cur_mask_dir=None,
-                           min_fraction=None):
+                           min_fraction=None,
+                           is_mask=False):
         """Tile first channel or mask and use the tile indices for the rest
 
         Tiles and saves the tiles, meta_df for each image in
@@ -84,6 +85,7 @@ class ImageTilerNonUniform(ImageTilerUniform):
         :param int channel0_depth: image depth for first channel or mask
         :param str cur_mask_dir: mask dir if tiling mask channel else none
         :param float min_fraction: Min fraction of foreground in tiled masks
+        :param bool is_mask: Is mask channel
         :return pd.DataFrame ch0_meta_df: pd.Dataframe with ids, row_start
          and col_start
         """
@@ -91,6 +93,10 @@ class ImageTilerNonUniform(ImageTilerUniform):
         fn_args = []
         for tp_idx, tp_dict in channel0_ids.items():
             for ch_idx, ch_dict in tp_dict.items():
+                if is_mask:
+                    normalize_im = False
+                else:
+                    normalize_im = self.normalize_channels[ch_idx]
                 for pos_idx, sl_idx_list in ch_dict.items():
                     cur_sl_idx_list = aux_utils.adjust_slice_margins(
                         sl_idx_list, channel0_depth
@@ -104,7 +110,7 @@ class ImageTilerNonUniform(ImageTilerUniform):
                             task_type='tile',
                             mask_dir=cur_mask_dir,
                             min_fraction=min_fraction,
-                            normalize_im=self.normalize_channels[ch_idx]
+                            normalize_im=normalize_im,
                         )
                         fn_args.append(cur_args)
 
@@ -260,12 +266,16 @@ class ImageTilerNonUniform(ImageTilerUniform):
                     mask_ch_ids[tp_idx] = ch0_dict
 
         # tile mask channel and use the tile indices to tile the rest
-        meta_df = self.tile_first_channel(channel0_ids=mask_ch_ids,
-                                          channel0_depth=mask_depth,
-                                          cur_mask_dir=mask_dir,
-                                          min_fraction=min_fraction)
-
+        meta_df = self.tile_first_channel(
+            channel0_ids=mask_ch_ids,
+            channel0_depth=mask_depth,
+            cur_mask_dir=mask_dir,
+            min_fraction=min_fraction,
+            is_mask=True,
+        )
         # tile the rest
-        self.tile_remaining_channels(nested_id_dict=self.nested_id_dict,
-                                     tiled_ch_id=mask_channel,
-                                     cur_meta_df=meta_df)
+        self.tile_remaining_channels(
+            nested_id_dict=self.nested_id_dict,
+            tiled_ch_id=mask_channel,
+            cur_meta_df=meta_df,
+        )

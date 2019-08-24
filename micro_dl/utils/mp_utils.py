@@ -51,7 +51,7 @@ def create_save_mask(input_fnames,
     :param int int2str_len: Length of str when converting ints
     :param str mask_type: thresholding type used for masking or str to map to
      masking function
-    :param str mask_ext: 'npy' or 'png'. Save the mask as uint8 PNG or
+    :param str mask_ext: '.npy' or '.png'. Save the mask as uint8 PNG or
      NPY files for otsu, unimodal masks, recommended to save as npy
      float64 for borders_weight_loss_map masks to avoid loss due to scaling it
      to uint8.
@@ -83,31 +83,32 @@ def create_save_mask(input_fnames,
         mask = np.any(masks, axis=-1)
 
     # Create mask name for given slice, time and position
-    file_name = aux_utils.get_im_name(time_idx=time_idx,
-                                      channel_idx=mask_channel_idx,
-                                      slice_idx=slice_idx,
-                                      pos_idx=pos_idx,
-                                      int2str_len=int2str_len)
-
-    if mask_ext == 'npy':
+    file_name = aux_utils.get_im_name(
+        time_idx=time_idx,
+        channel_idx=mask_channel_idx,
+        slice_idx=slice_idx,
+        pos_idx=pos_idx,
+        int2str_len=int2str_len,
+        ext=mask_ext,
+    )
+    if mask_ext == '.npy':
         # Save mask for given channels, mask is 2D
         np.save(os.path.join(mask_dir, file_name),
                 mask,
                 allow_pickle=True,
                 fix_imports=True)
-    elif mask_ext == 'png':
-        file_name = file_name[:-3] + 'png'
+    elif mask_ext == '.png':
         # Covert mask to uint8
-        # Border weight map mask is a float mask not binary like otsu or unimodal, so keep it as is
+        # Border weight map mask is a float mask not binary like otsu or unimodal,
+        # so keep it as is
         if mask_type == 'borders_weight_loss_map':
             assert im_stack.shape[-1] == 1
             # Note: Border weight map mask should only be generated from one binary image
-            mask = mask
         else:
-            mask = mask.astype(np.uint8) * (2 ** 8 - 1)
+            mask = mask.astype(np.uint8) * np.iinfo(np.uint8).max
         cv2.imwrite(os.path.join(mask_dir, file_name), mask)
     else:
-        raise ValueError("mask_ext can only be 'npy' or 'png'")
+        raise ValueError("mask_ext can be '.npy' or '.png', not {}".format(mask_ext))
     cur_meta = {'channel_idx': mask_channel_idx,
                 'slice_idx': slice_idx,
                 'time_idx': time_idx,

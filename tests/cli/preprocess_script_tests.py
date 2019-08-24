@@ -17,6 +17,7 @@ class TestPreprocessScript(unittest.TestCase):
         """
         self.tempdir = TempDirectory()
         self.temp_path = self.tempdir.path
+        self.image_dir = self.temp_path
         self.output_dir = os.path.join(self.temp_path, 'out_dir')
         self.tempdir.makedir(self.output_dir)
         # Start frames meta file
@@ -38,27 +39,27 @@ class TestPreprocessScript(unittest.TestCase):
                         pos_idx=p,
                         ext='.png',
                     )
-                    cv2.imwrite(os.path.join(self.temp_path, im_name),
-                                self.im + c * 100)
+                    cv2.imwrite(
+                        os.path.join(self.image_dir, im_name),
+                        self.im + c * 100,
+                    )
                     self.frames_meta = self.frames_meta.append(
                         aux_utils.parse_idx_from_name(im_name),
                         ignore_index=True,
                     )
         # Write metadata
         self.frames_meta.to_csv(
-            os.path.join(self.temp_path, self.meta_name),
+            os.path.join(self.image_dir, self.meta_name),
             sep=',',
         )
         self.pp_config = {
             'output_dir': self.output_dir,
-            'input_dir': self.temp_path,
+            'input_dir': self.image_dir,
             'channel_ids': [0, 1, 3],
             'num_workers': 4,
             'flat_field': {'estimate': True,
                            'block_size': 2,
                            'correct': True},
-            'resize': {'scale_factor': 2,
-                       'resize_3d': False},
             'masks': {'channels': [3],
                       'str_elem_radius': 3,
                       'normalize_im': False},
@@ -67,11 +68,11 @@ class TestPreprocessScript(unittest.TestCase):
                      'depths': [1, 1, 1],
                      'mask_depth': 1,
                      'image_format': 'zyx',
-                     'normalize_channels': [False, False, False]
+                     'normalize_channels': [True, True, True]
                      },
         }
         self.base_config = {
-            'input_dir': self.temp_path,
+            'input_dir': self.image_dir,
             'output_dir': self.output_dir,
             'slice_ids': -1,
             'time_ids': -1,
@@ -80,7 +81,7 @@ class TestPreprocessScript(unittest.TestCase):
             'uniform_struct': True,
             'int2strlen': 3,
             'num_workers': 4,
-            'normalize_channels': [False, False, False, True]
+            'normalize_channels': [True, True, True, False]
         }
 
     def tearDown(self):
@@ -95,7 +96,7 @@ class TestPreprocessScript(unittest.TestCase):
         self.assertIsInstance(runtime, np.float)
         self.assertEqual(
             self.base_config['input_dir'],
-            os.path.join(self.output_dir, 'resized_images')
+            self.image_dir,
         )
         self.assertEqual(
             self.base_config['channel_ids'],
@@ -106,23 +107,43 @@ class TestPreprocessScript(unittest.TestCase):
             os.path.join(self.output_dir, 'flat_field_images')
         )
         self.assertEqual(
-            out_config['resize']['resize_dir'],
-            os.path.join(self.output_dir, 'resized_images')
-        )
-        self.assertEqual(
             out_config['masks']['mask_dir'],
             os.path.join(self.output_dir, 'mask_channels_3')
         )
-        self.assertEqual(out_config['masks']['mask_out_channel'], 4)
+        self.assertEqual(out_config['masks']['mask_channel'], 4)
         self.assertEqual(
             out_config['tile']['tile_dir'],
             os.path.join(self.output_dir, 'tiles_10-10_step_10-10'),
         )
+        print(out_config)
+        print('----------------------')
+        print(os.listdir(self.output_dir))
+        print('----------------------')
+        print(os.listdir(out_config['masks']['mask_dir']))
+        print('----------------------')
+        print(os.listdir(out_config['tile']['tile_dir']))
+        #assert 0 == 1
+
+    def test_pre_process_resize2d(self):
+        cur_config = self.pp_config
+        cur_config['resize'] = {
+            'scale_factor': 2,
+            'resize_3d': False,
+        }
+        out_config, runtime = pp.pre_process(cur_config, self.base_config)
+
+        self.assertIsInstance(runtime, np.float)
+        self.assertEqual(
+            out_config['resize']['resize_dir'],
+            os.path.join(self.output_dir, 'resized_images')
+        )
 
     def test_pre_process_resize3d(self):
         cur_config = self.pp_config
-        cur_config['resize']['scale_factor'] = [2, 1, 1]
-        cur_config['resize']['resize_3d'] = True
+        cur_config['resize'] = {
+            'scale_factor': [2, 1, 1],
+            'resize_3d': True,
+        }
         out_config, runtime = pp.pre_process(cur_config, self.base_config)
 
         self.assertIsInstance(runtime, np.float)
@@ -134,7 +155,7 @@ class TestPreprocessScript(unittest.TestCase):
             out_config['masks']['mask_dir'],
             os.path.join(self.output_dir, 'mask_channels_3')
         )
-        self.assertEqual(out_config['masks']['mask_out_channel'], 4)
+        self.assertEqual(out_config['masks']['mask_channel'], 4)
         self.assertEqual(
             out_config['tile']['tile_dir'],
             os.path.join(self.output_dir, 'tiles_10-10_step_10-10'),
@@ -147,14 +168,10 @@ class TestPreprocessScript(unittest.TestCase):
 
         self.assertIsInstance(runtime, np.float)
         self.assertEqual(
-            out_config['resize']['resize_dir'],
-            os.path.join(self.output_dir, 'resized_images')
-        )
-        self.assertEqual(
             out_config['masks']['mask_dir'],
             os.path.join(self.output_dir, 'mask_channels_3')
         )
-        self.assertEqual(out_config['masks']['mask_out_channel'], 4)
+        self.assertEqual(out_config['masks']['mask_channel'], 4)
         self.assertEqual(
             out_config['tile']['tile_dir'],
             os.path.join(self.output_dir, 'tiles_10-10_step_10-10'),
@@ -162,8 +179,6 @@ class TestPreprocessScript(unittest.TestCase):
 
     def test_save_config(self):
         cur_config = self.pp_config
-        cur_config['resize']['resize_dir'] = os.path.join(
-            self.output_dir, 'resized_images')
         cur_config['masks']['mask_dir'] = os.path.join(
             self.output_dir, 'mask_channels_3')
         cur_config['tile']['tile_dir'] = os.path.join(

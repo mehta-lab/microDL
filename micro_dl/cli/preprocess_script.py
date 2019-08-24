@@ -112,29 +112,31 @@ def generate_masks(params_dict,
                    flat_field_dir,
                    str_elem_radius,
                    mask_type,
-                   mask_out_channel,
+                   mask_channel,
                    mask_ext,
                    normalize_im):
     """Generate masks per image or volume
 
     :param dict params_dict: dict with keys: input_dir, output_dir, time_ids,
-     channel_ids, pos_ids, slice_ids, int2strlen, uniform_struct, num_workers
+        channel_ids, pos_ids, slice_ids, int2strlen, uniform_struct, num_workers
     :param int/list mask_from_channel: generate masks from sum of these
-     channels
-    :param str flat_field_dir: dir with flat field correction images
+        channels
+    :param str/None flat_field_dir: dir with flat field correction images
     :param int str_elem_radius: structuring element size for morphological
-     opening
-    :param str mask_type: string to map to masking function. otsu or unimodal or borders_weight_loss_map
-    :param int mask_out_channel: channel num assigned to mask channel. I
+        opening
+    :param str mask_type: string to map to masking function. otsu or unimodal
+        or borders_weight_loss_map
+    :param int/None mask_channel: channel num assigned to mask channel. I
     :param str mask_ext: 'npy' or 'png'. Save the mask as uint8 PNG or
          NPY files
     :param bool normalize_im: indicator to normalize image based on z-score or not
-    :return:
-     str mask_dir: dir with created masks
-     int mask_out_channel: channel number assigned to masks
+    :param str/None mask_dir_name: If mask directory name is predetermined
+    :return str mask_dir: Directory with created masks
+    :return int mask_channel: Channel number assigned to masks
     """
     assert mask_type in {'otsu', 'unimodal', 'borders_weight_loss_map'},\
-        "Supported mask types: 'otsu', 'unimodal', 'borders_weight_loss_map', not {}".format(mask_type)
+        "Supported mask types: 'otsu', 'unimodal', 'borders_weight_loss_map'" +\
+        ", not {}".format(mask_type)
 
     # Instantiate channel to mask processor
     mask_processor_inst = MaskProcessor(
@@ -149,9 +151,9 @@ def generate_masks(params_dict,
         uniform_struct=params_dict['uniform_struct'],
         num_workers=params_dict['num_workers'],
         mask_type=mask_type,
-        mask_out_channel=mask_out_channel,
+        mask_channel=mask_channel,
         mask_ext=mask_ext,
-        normalize_im=normalize_im
+        normalize_im=normalize_im,
     )
 
     correct_flat_field = False
@@ -162,15 +164,16 @@ def generate_masks(params_dict,
         str_elem_radius=str_elem_radius,
     )
     mask_dir = mask_processor_inst.get_mask_dir()
-    mask_out_channel = mask_processor_inst.get_mask_channel()
-    return mask_dir, mask_out_channel
+    mask_channel = mask_processor_inst.get_mask_channel()
+    return mask_dir, mask_channel
 
 
 def tile_images(params_dict,
                 resize_flag,
                 flat_field_dir,
                 tile_dict):
-    """Tile images
+    """
+    Tile images.
 
     :param dict params_dict: dict with keys: input_dir, output_dir, time_ids,
      channel_ids, pos_ids, slice_ids, int2strlen, uniform_struct, num_workers
@@ -224,9 +227,11 @@ def tile_images(params_dict,
     tile_dir = tile_inst.get_tile_dir()
 
     # retain tiles with a minimum amount of foreground
-    if 'min_fraction' in tile_dict:
-        min_fraction = tile_dict['min_fraction']
-        mask_out_channel = tile_dict['mask_channel']
+    if 'mask_dir' in tile_dict:
+        min_fraction = 0.
+        if 'min_fraction' in tile_dict:
+            min_fraction = tile_dict['min_fraction']
+        mask_channel = tile_dict['mask_channel']
         mask_dir = tile_dict['mask_dir']
 
         mask_depth = 1
@@ -235,7 +240,7 @@ def tile_images(params_dict,
 
         tile_inst.tile_mask_stack(
             mask_dir=mask_dir,
-            mask_channel=mask_out_channel,
+            mask_channel=mask_channel,
             min_fraction=min_fraction,
             mask_depth=mask_depth,
         )
@@ -270,7 +275,7 @@ def pre_process(pp_config, req_params_dict):
     """
     time_start = time.time()
 
-    # estimate flat field images
+    # -----------------Estimate flat field images--------------------
     flat_field_dir = None
     if 'flat_field' in pp_config:
         if 'estimate' in pp_config['flat_field'] and \
@@ -287,7 +292,7 @@ def pre_process(pp_config, req_params_dict):
                 pp_config['flat_field']['correct']:
             flat_field_dir = pp_config['flat_field']['flat_field_dir']
 
-    # Resample images
+    # -------------------------Resize images--------------------------
     if 'resize' in pp_config:
         scale_factor = pp_config['resize']['scale_factor']
         num_slices_subvolume = -1
@@ -308,9 +313,9 @@ def pre_process(pp_config, req_params_dict):
         req_params_dict['input_dir'] = resize_dir
         req_params_dict['slice_ids'] = slice_ids
 
-    # Generate masks
+    # ------------------------Generate masks-------------------------
     mask_dir = None
-    mask_out_channel = None
+    mask_channel = None
     if 'masks' in pp_config:
         if 'channels' in pp_config['masks']:
             # Generate masks from channel
@@ -323,78 +328,99 @@ def pre_process(pp_config, req_params_dict):
             mask_type = 'otsu'
             if 'mask_type' in pp_config['masks']:
                 mask_type = pp_config['masks']['mask_type']
-            mask_ext = 'npy'
+            mask_ext = '.png'
             if 'mask_ext' in pp_config['masks']:
                 mask_ext = pp_config['masks']['mask_ext']
             normalize_im = False
             if 'normalize_im' in pp_config['masks']:
                 normalize_im = pp_config['masks']['normalize_im']
 
-            mask_dir, mask_out_channel = generate_masks(
-                req_params_dict,
-                mask_from_channel,
-                flat_field_dir,
-                str_elem_radius,
-                mask_type,
-                mask_out_channel,
-                mask_ext,
-                normalize_im
+            mask_dir, mask_channel = generate_masks(
+                params_dict=req_params_dict,
+                mask_from_channel=mask_from_channel,
+                flat_field_dir=flat_field_dir,
+                str_elem_radius=str_elem_radius,
+                mask_type=mask_type,
+                mask_channel=mask_channel,
+                mask_ext=mask_ext,
+                normalize_im=normalize_im,
             )
-            pp_config['masks']['created_mask_dir'] = mask_dir
         elif 'mask_dir' in pp_config['masks']:
             assert 'channels' not in pp_config['masks'], \
                 "Don't specify channels to mask if using pre-generated masks"
             mask_dir = pp_config['masks']['mask_dir']
             # Get preexisting masks from directory and match to input dir
-            mask_out_channel = preprocess_utils.validate_mask_meta(
+            mask_channel = preprocess_utils.validate_mask_meta(
                 pp_config,
-                mask_out_channel,
+                mask_channel,
             )
         else:
             raise ValueError("If using masks, specify either mask_channel",
                              "or mask_dir.")
         pp_config['masks']['mask_dir'] = mask_dir
-        pp_config['masks']['mask_out_channel'] = mask_out_channel
+        pp_config['masks']['mask_channel'] = mask_channel
 
-    # Tile image, target mask frames
+    # ----------------------Generate weight map-----------------------
+    if 'make_weight_map' in pp_config:
+        # Must have mask dir and mask channel defined to generate weight map
+        assert mask_dir is not None,\
+            "Must have mask dir to generate weights"
+        assert mask_channel is not None,\
+            "Must have mask channel to generate weights"
+        mask_type = 'borders_weight_loss_map'
+        # Mask channel should be highest channel value in dataset at this point
+        weights_channel = mask_channel + 1
+        # Generate weights
+        weights_dir, _ = generate_masks(
+            params_dict=req_params_dict,
+            mask_from_channel=mask_channel,
+            flat_field_dir=None,
+            str_elem_radius=5,
+            mask_type=mask_type,
+            mask_channel=weights_channel,
+            mask_ext='.npy',
+            normalize_im=False,
+        )
+        pp_config['weights'] = {
+            'weights_dir': weights_dir,
+            'weights_channel': weights_channel,
+        }
+
+    # ------------Tile images, targets, masks, weight maps------------
     if 'tile' in pp_config:
         resize_flag = False
         if 'resize' not in pp_config:
             resize_flag = True
-        if 'min_fraction' in pp_config['tile']:
+        # Always tile masks if they exist
+        if mask_dir is not None:
             if 'mask_dir' not in pp_config['tile']:
                 pp_config['tile']['mask_dir'] = mask_dir
             if 'mask_channel' not in pp_config['tile']:
-                pp_config['tile']['mask_channel'] = mask_out_channel
+                pp_config['tile']['mask_channel'] = mask_channel
         tile_dir = tile_images(
             params_dict=req_params_dict,
             tile_dict=pp_config['tile'],
             resize_flag=resize_flag,
             flat_field_dir=flat_field_dir,
         )
-        # tiles_frame_meta = aux_utils.read_meta(tile_dir)
-
-    # if 'masks' in pp_config:
-    #     req_params_dict["input_dir"] = mask_dir
-    #     pp_config['tile']['channels'] = [mask_out_channel]
-    #     req_params_dict['normalize_channels'] = \
-    #         req_params_dict['normalize_channels'] + [pp_config['masks']['normalize_im']]
-    #     tile_dir = tile_images(req_params_dict,
-    #                            pp_config['tile'],
-    #                            resize_flag,
-    #                            flat_field_dir)
-    #     tiles_frame_meta_mask = aux_utils.read_meta(tile_dir)
-    # tiles_metadata = pd.concat(
-    #     [tiles_frame_meta, tiles_frame_meta_mask],
-    #     ignore_index=True,
-    # )
-    # dropped = tiles_metadata.drop_duplicates()
-    # dropped = dropped.reset_index(drop=True)
-    # dropped.to_csv(
-    #     os.path.join(tile_dir, "frames_meta.csv"),
-    #     sep=','
-    # )
-    pp_config['tile']['tile_dir'] = tile_dir
+        # Tile weight maps as well if they exist
+        if 'weights' in pp_config:
+            weight_params_dict = req_params_dict.copy()
+            weight_params_dict["input_dir"] = weights_dir
+            weight_tile_config = pp_config['tile'].copy()
+            weight_tile_config['channels'] = [weights_channel]
+            weight_params_dict['normalize_channels'] = [False]
+            # Weights depth should be the same as mask depth
+            weight_tile_config['depths'] = 1
+            if 'mask_depth' in pp_config['tile']:
+                weight_tile_config['depths'] = [pp_config['tile']['mask_depth']]
+            tile_dir = tile_images(
+                params_dict=weight_params_dict,
+                tile_dict=weight_tile_config,
+                resize_flag=resize_flag,
+                flat_field_dir=None,
+            )
+        pp_config['tile']['tile_dir'] = tile_dir
 
     # Write in/out/mask/tile paths and config to json in output directory
     time_el = time.time() - time_start
@@ -430,6 +456,7 @@ if __name__ == '__main__':
     pp_config = aux_utils.read_config(args.config)
     input_dir = pp_config['input_dir']
     output_dir = pp_config['output_dir']
+    # TODO: This paramete might not be present in config and masks should not be normalized
     normalize_channels = pp_config['tile']['normalize_channels'] + [pp_config['masks']['normalize_im']]
 
     slice_ids = -1

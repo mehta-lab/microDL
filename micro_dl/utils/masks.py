@@ -113,7 +113,10 @@ def get_unet_border_weight_map(annotation, w0=10, sigma=5):
     from boundary of cells to another
     TODO: The below method only works for UNet Segmentation only
     """
-
+    # Masks could be saved as .npy bools, if so convert to uint8 and generate
+    # labels from binary
+    if isinstance(annotation.dtype, 'bool'):
+        annotation = annotation.astype(np.uint8)
     assert annotation.dtype == np.uint8, (
         "datatype expected uint8, it is {}".format(annotation.dtype))
     # class balance weights w_c(x)
@@ -133,8 +136,11 @@ def get_unet_border_weight_map(annotation, w0=10, sigma=5):
         wc[annotation == unique_value] = weight_map[index]
 
     # cells instances for distance computation
+    # TODO (Pranathi): What connectivity measure is used for neighboring cells?
+    # TODO (Pranathi): What if cells are actually touching?
     labeled_array, _ = scipy.ndimage.measurements.label(annotation)
     # cells distance map
+    # TODO (Pranathi): is border loss map not used anymore?
     border_loss_map = np.zeros(
         (annotation.shape[0], annotation.shape[1]), dtype=np.float64)
     distance_maps = np.zeros(
