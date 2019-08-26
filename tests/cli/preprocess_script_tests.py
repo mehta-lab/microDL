@@ -81,7 +81,7 @@ class TestPreprocessScript(unittest.TestCase):
             'uniform_struct': True,
             'int2strlen': 3,
             'num_workers': 4,
-            'normalize_channels': [True, True, True, False]
+            'normalize_channels': [True, True, True]
         }
 
     def tearDown(self):

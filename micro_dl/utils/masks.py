@@ -115,7 +115,7 @@ def get_unet_border_weight_map(annotation, w0=10, sigma=5):
     """
     # Masks could be saved as .npy bools, if so convert to uint8 and generate
     # labels from binary
-    if isinstance(annotation.dtype, 'bool'):
+    if isinstance(annotation.dtype, bool):
         annotation = annotation.astype(np.uint8)
     assert annotation.dtype == np.uint8, (
         "datatype expected uint8, it is {}".format(annotation.dtype))

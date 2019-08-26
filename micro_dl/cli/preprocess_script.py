@@ -182,7 +182,7 @@ def tile_images(params_dict,
      mask_depth, tile_3d
     :param bool resize_flag: indicator if resize related params in pp_config
      passed to pre_process()
-    :param str flat_field_dir: dir with flat field correction images
+    :param str/None flat_field_dir: dir with flat field correction images
     :return str tile_dir: dir with tiled images
     """
     # Check tile args
@@ -334,7 +334,6 @@ def pre_process(pp_config, req_params_dict):
             normalize_im = False
             if 'normalize_im' in pp_config['masks']:
                 normalize_im = pp_config['masks']['normalize_im']
-
             mask_dir, mask_channel = generate_masks(
                 params_dict=req_params_dict,
                 mask_from_channel=mask_from_channel,
@@ -350,9 +349,14 @@ def pre_process(pp_config, req_params_dict):
                 "Don't specify channels to mask if using pre-generated masks"
             mask_dir = pp_config['masks']['mask_dir']
             # Get preexisting masks from directory and match to input dir
+            mask_meta_fname = None
+            if 'csv_name' in pp_config['masks']:
+                mask_meta_fname = pp_config['masks']['csv_name']
             mask_channel = preprocess_utils.validate_mask_meta(
-                pp_config,
-                mask_channel,
+                mask_dir=mask_dir,
+                input_dir=req_params_dict['input_dir'],
+                csv_name=mask_meta_fname,
+                mask_channel=mask_channel,
             )
         else:
             raise ValueError("If using masks, specify either mask_channel",
@@ -456,9 +460,6 @@ if __name__ == '__main__':
     pp_config = aux_utils.read_config(args.config)
     input_dir = pp_config['input_dir']
     output_dir = pp_config['output_dir']
-    # TODO: This paramete might not be present in config and masks should not be normalized
-    normalize_channels = pp_config['tile']['normalize_channels'] + [pp_config['masks']['normalize_im']]
-
     slice_ids = -1
     if 'slice_ids' in pp_config:
         slice_ids = pp_config['slice_ids']
@@ -474,6 +475,16 @@ if __name__ == '__main__':
     channel_ids = -1
     if 'channel_ids' in pp_config:
         channel_ids = pp_config['channel_ids']
+
+    normalize_channels = -1
+    if 'normalize_channels' in pp_config['tile']:
+        normalize_channels = pp_config['tile']['normalize_channels']
+        if isinstance(channel_ids, list):
+            assert len(channel_ids) == len(normalize_channels),\
+                "Nbr channels {} and normalization {} mismatch".format(
+                    channel_ids,
+                    normalize_channels,
+                )
 
     uniform_struct = False
     if 'uniform_struct' in pp_config:

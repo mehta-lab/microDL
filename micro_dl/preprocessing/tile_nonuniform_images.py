@@ -14,12 +14,12 @@ class ImageTilerNonUniform(ImageTilerUniform):
     def __init__(self,
                  input_dir,
                  output_dir,
-                 normalize_channels,
                  tile_size=[256, 256],
                  step_size=[64, 64],
                  depths=1,
                  time_ids=-1,
                  channel_ids=-1,
+                 normalize_channels=-1,
                  slice_ids=-1,
                  pos_ids=-1,
                  hist_clip_limits=None,
@@ -38,12 +38,12 @@ class ImageTilerNonUniform(ImageTilerUniform):
 
         super().__init__(input_dir=input_dir,
                          output_dir=output_dir,
-                         normalize_channels=normalize_channels,
                          tile_size=tile_size,
                          step_size=step_size,
                          depths=depths,
                          time_ids=time_ids,
                          channel_ids=channel_ids,
+                         normalize_channels=normalize_channels,
                          slice_ids=slice_ids,
                          pos_ids=pos_ids,
                          hist_clip_limits=hist_clip_limits,
@@ -152,6 +152,8 @@ class ImageTilerNonUniform(ImageTilerUniform):
                             pos_idx=pos_idx,
                             slice_idx=sl_idx
                         )
+                        # Find channel index position in channel_ids list
+                        list_idx = self.channel_ids.index(ch_idx)
                         if np.any(cur_tile_indices):
                             cur_args = super().get_crop_tile_args(
                                 ch_idx,
@@ -160,18 +162,21 @@ class ImageTilerNonUniform(ImageTilerUniform):
                                 pos_idx,
                                 task_type='crop',
                                 tile_indices=cur_tile_indices,
-                                normalize_im=self.normalize_channels[ch_idx]
+                                normalize_im=self.normalize_channels[list_idx]
                             )
                             fn_args.append(cur_args)
 
-        tiled_meta_df_list = mp_crop_save(fn_args,
-                                          workers=self.num_workers)
+        tiled_meta_df_list = mp_crop_save(
+            fn_args,
+            workers=self.num_workers,
+        )
         tiled_metadata = pd.concat(tiled_meta_df_list, ignore_index=True)
-
-        tiled_metadata = pd.concat([cur_meta_df.reset_index(drop=True),
-                                    tiled_metadata.reset_index(drop=True)],
-                                   axis=0,
-                                   ignore_index=True)
+        tiled_metadata = pd.concat(
+            [cur_meta_df.reset_index(drop=True),
+             tiled_metadata.reset_index(drop=True)],
+            axis=0,
+            ignore_index=True,
+        )
         # Finally, save all the metadata
         tiled_metadata = tiled_metadata.sort_values(by=['file_name'])
         tiled_metadata.to_csv(
