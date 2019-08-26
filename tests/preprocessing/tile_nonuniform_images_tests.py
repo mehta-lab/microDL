@@ -77,15 +77,15 @@ class TestImageTilerNonUniform(unittest.TestCase):
                            sep=',',)
         # Instantiate tiler class
         self.output_dir = os.path.join(self.temp_path, 'tile_dir')
-        self.normalize_channels = [None, True, False]
+
         self.tile_inst = tile_images.ImageTilerNonUniform(
             input_dir=self.temp_path,
             output_dir=self.output_dir,
-            normalize_channels=self.normalize_channels,
             tile_size=[5, 5],
             step_size=[4, 4],
             depths=3,
             channel_ids=[1, 2],
+            normalize_channels=[False, True]
         )
 
     def tearDown(self):

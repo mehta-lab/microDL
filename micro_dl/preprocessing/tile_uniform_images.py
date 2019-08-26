@@ -424,6 +424,8 @@ class ImageTilerUniform:
         tiled_meta0 = None
         fn_args = []
         for channel_idx in self.channel_ids:
+            # Find channel index position in channel_ids list
+            list_idx = self.channel_ids.index(channel_idx)
             # Perform flatfield correction if flatfield dir is specified
             flat_field_im = self._get_flat_field(channel_idx=channel_idx)
             for slice_idx in self.slice_ids:
@@ -442,7 +444,7 @@ class ImageTilerUniform:
                                 pos_idx=pos_idx,
                                 flat_field_im=flat_field_im,
                                 hist_clip_limits=self.hist_clip_limits,
-                                normalize_im=self.normalize_channels[channel_idx],
+                                normalize_im=self.normalize_channels[list_idx],
                             )
                             save_dict = {'time_idx': time_idx,
                                          'channel_idx': channel_idx,
@@ -467,7 +469,7 @@ class ImageTilerUniform:
                                 pos_idx,
                                 task_type='crop',
                                 tile_indices=tile_indices,
-                                normalize_im=self.normalize_channels[channel_idx],
+                                normalize_im=self.normalize_channels[list_idx],
                             )
                             fn_args.append(cur_args)
         tiled_meta_df_list = mp_crop_save(

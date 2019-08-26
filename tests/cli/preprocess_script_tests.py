@@ -122,7 +122,7 @@ class TestPreprocessScript(unittest.TestCase):
         print(os.listdir(out_config['masks']['mask_dir']))
         print('----------------------')
         print(os.listdir(out_config['tile']['tile_dir']))
-        #assert 0 == 1
+        assert 0 == 1
 
     def test_pre_process_resize2d(self):
         cur_config = self.pp_config
