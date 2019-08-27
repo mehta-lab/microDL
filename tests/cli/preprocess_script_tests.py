@@ -283,8 +283,6 @@ class TestPreprocessScript(unittest.TestCase):
         tile_dir = out_config['tile']['tile_dir']
         tile_meta = aux_utils.read_meta(tile_dir)
         # 5 processed channels (0, 1, 3, 111, 112), 6 tiles per image
-        print(tile_meta.shape)
-        print(tile_meta.channel_idx.unique())
         expected_rows = 5 * 6 * len(self.slice_ids) * len(self.pos_ids)
         self.assertEqual(tile_meta.shape[0], expected_rows)
         # Check indices
@@ -310,7 +308,7 @@ class TestPreprocessScript(unittest.TestCase):
             'im_c111_z002_t000_p008_r0-10_c10-20_sl0-1.npy',
         ))
         self.assertTupleEqual(im.shape, (1, 10, 10))
-        self.assertTrue(im.dtype == np.float64)
+        self.assertTrue(im.dtype == bool)
 
     def test_pre_process_resize2d(self):
         cur_config = self.pp_config
