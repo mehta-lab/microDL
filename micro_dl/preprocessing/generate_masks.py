@@ -43,8 +43,8 @@ class MaskProcessor:
         :param int num_workers: number of workers for multiprocessing
         :param str mask_type: method to use for generating mask. Needed for
             mapping to the masking function
-        :param int mask_channel: channel num assigned to mask channel. If
-            resizing images on a subset of channels, frames_meta is from resize
+        :param int mask_channel: channel number assigned to to be generated masks.
+            If resizing images on a subset of channels, frames_meta is from resize
             dir, which could lead to wrong mask channel being assigned.
         :param str mask_ext: '.npy' or 'png'. Save the mask as uint8 PNG or
             NPY files
@@ -73,7 +73,7 @@ class MaskProcessor:
             channel_ids=channel_ids,
             slice_ids=slice_ids,
             pos_ids=pos_ids,
-            uniform_structure=uniform_struct
+            uniform_structure=uniform_struct,
         )
         self.time_ids = metadata_ids['time_ids']
         self.channel_ids = metadata_ids['channel_ids']
@@ -179,14 +179,15 @@ class MaskProcessor:
             for slice_idx in self.slice_ids:
                 for time_idx in self.time_ids:
                     for pos_idx in self.pos_ids:
-                        fname_args = self._get_args_read_image(
+                        input_fnames, ff_fname = self._get_args_read_image(
                             time_idx=time_idx,
                             channel_ids=self.channel_ids,
                             slice_idx=slice_idx,
                             pos_idx=pos_idx,
                             correct_flat_field=correct_flat_field,
                         )
-                        cur_args = (fname_args[0], fname_args[1],
+                        cur_args = (input_fnames,
+                                    ff_fname,
                                     str_elem_radius,
                                     self.mask_dir,
                                     self.mask_channel,
@@ -203,14 +204,15 @@ class MaskProcessor:
                 mask_channel_dict = tp_dict[self.channel_ids[0]]
                 for pos_idx, sl_idx_list in mask_channel_dict.items():
                     for sl_idx in sl_idx_list:
-                        fname_args = self._get_args_read_image(
+                        input_fnames, ff_fname = self._get_args_read_image(
                             time_idx=tp_idx,
                             channel_ids=self.channel_ids,
                             slice_idx=sl_idx,
                             pos_idx=pos_idx,
                             correct_flat_field=correct_flat_field,
                         )
-                        cur_args = (fname_args[0], fname_args[1],
+                        cur_args = (input_fnames,
+                                    ff_fname,
                                     str_elem_radius,
                                     self.mask_dir,
                                     self.mask_channel,
@@ -226,5 +228,7 @@ class MaskProcessor:
         mask_meta_list = mp_create_save_mask(fn_args, self.num_workers)
         mask_meta_df = pd.DataFrame.from_dict(mask_meta_list)
         mask_meta_df = mask_meta_df.sort_values(by=['file_name'])
-        mask_meta_df.to_csv(os.path.join(self.mask_dir, 'frames_meta.csv'),
-                            sep=',')
+        mask_meta_df.to_csv(
+            os.path.join(self.mask_dir, 'frames_meta.csv'),
+            sep=',',
+        )

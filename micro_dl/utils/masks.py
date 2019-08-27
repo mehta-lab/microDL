@@ -115,12 +115,19 @@ def get_unet_border_weight_map(annotation, w0=10, sigma=5):
     """
     # Masks could be saved as .npy bools, if so convert to uint8 and generate
     # labels from binary
-    if isinstance(annotation.dtype, bool):
+    if annotation.dtype == bool:
         annotation = annotation.astype(np.uint8)
-    assert annotation.dtype == np.uint8, (
-        "datatype expected uint8, it is {}".format(annotation.dtype))
+    assert annotation.dtype in [np.uint8, np.uint16], (
+        "Expected data type uint, it is {}".format(annotation.dtype))
+
+    # cells instances for distance computation
+    # TODO (Pranathi): What connectivity measure is used for neighboring cells?
+    # TODO (Pranathi): What if cells are actually touching?
+    labeled_array, _ = scipy.ndimage.measurements.label(annotation)
+    # Comment (Jenny): I moved the label map generation below, otherwise it crashes
+    # if you input binary image
     # class balance weights w_c(x)
-    unique_values = np.unique(annotation).tolist()
+    unique_values = np.unique(labeled_array).tolist()
     weight_map = [0] * len(unique_values)
     for index, unique_value in enumerate(unique_values):
         mask = np.zeros(
@@ -135,10 +142,6 @@ def get_unet_border_weight_map(annotation, w0=10, sigma=5):
     for index, unique_value in enumerate(unique_values):
         wc[annotation == unique_value] = weight_map[index]
 
-    # cells instances for distance computation
-    # TODO (Pranathi): What connectivity measure is used for neighboring cells?
-    # TODO (Pranathi): What if cells are actually touching?
-    labeled_array, _ = scipy.ndimage.measurements.label(annotation)
     # cells distance map
     # TODO (Pranathi): is border loss map not used anymore?
     border_loss_map = np.zeros(
@@ -153,7 +156,7 @@ def get_unet_border_weight_map(annotation, w0=10, sigma=5):
             mask[labeled_array == index + 1] = 0
             distance_maps[:, :, index] = \
                 scipy.ndimage.distance_transform_edt(mask)
-
+    # TODO (Pranathi): This will crash if there's only one label
     distance_maps = np.sort(distance_maps, 2)
     d1 = distance_maps[:, :, 0]
     d2 = distance_maps[:, :, 1]

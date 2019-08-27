@@ -258,7 +258,6 @@ class TestTileUtils(unittest.TestCase):
                     tile = input_image[row:row + tile_size[0],
                                        col: col + tile_size[1],
                                        sl_start_end[0]: sl_start_end[1]]
-                    print(tiled_image_list[c][0])
                     numpy.testing.assert_array_equal(tile,
                                                      tiled_image_list[c][1])
                     c += 1

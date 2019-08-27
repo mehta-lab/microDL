@@ -16,11 +16,15 @@ def mp_create_save_mask(fn_args, workers):
     :param int workers: max number of workers
     :return: list of returned dicts from create_save_mask
     """
-
-    with ProcessPoolExecutor(workers) as ex:
-        # can't use map directly as it works only with single arg functions
-        res = ex.map(create_save_mask, *zip(*fn_args))
-    return list(res)
+    res = []
+    for i in fn_args:
+        temp_res = create_save_mask(*i)
+        res.append(temp_res)
+    return res
+    # with ProcessPoolExecutor(workers) as ex:
+    #     # can't use map directly as it works only with single arg functions
+    #     res = ex.map(create_save_mask, *zip(*fn_args))
+    # return list(res)
 
 
 def create_save_mask(input_fnames,
@@ -36,9 +40,11 @@ def create_save_mask(input_fnames,
                      mask_ext,
                      normalize_im=False):
 
-    """Create and save mask
+    """
+    Create and save mask.
     When >1 channel are used to generate the mask, mask of each channel is
-    generated then added together
+    generated then added together.
+
     :param tuple input_fnames: tuple of input fnames with full path
     :param str flat_field_fname: fname of flat field image
     :param int str_elem_radius: size of structuring element used for binary
@@ -58,7 +64,6 @@ def create_save_mask(input_fnames,
     :param bool normalize_im: indicator to normalize image based on z-score or not
     :return dict cur_meta for each mask
     """
-
     im_stack = tile_utils.read_imstack(
         input_fnames,
         flat_field_fname,
@@ -72,12 +77,12 @@ def create_save_mask(input_fnames,
         elif mask_type == 'unimodal':
             mask = mask_utils.create_unimodal_mask(im.astype('float32'), str_elem_radius)
         elif mask_type == 'borders_weight_loss_map':
-            im = tile_utils.read_image(input_fnames[idx])
             mask = mask_utils.get_unet_border_weight_map(im)
         masks += [mask]
-    # Border weight map mask is a float mask not binary like otsu or unimodal, so keep it as is
+    # Border weight map mask is a float mask not binary like otsu or unimodal,
+    # so keep it as is (assumes only one image in stack)
     if mask_type == 'borders_weight_loss_map':
-        mask = mask
+        mask = masks[0]
     else:
         masks = np.stack(masks, axis=-1)
         mask = np.any(masks, axis=-1)

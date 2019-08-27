@@ -114,7 +114,8 @@ def generate_masks(params_dict,
                    mask_type,
                    mask_channel,
                    mask_ext,
-                   normalize_im):
+                   mask_dir=None,
+                   normalize_im=False):
     """Generate masks per image or volume
 
     :param dict params_dict: dict with keys: input_dir, output_dir, time_ids,
@@ -129,8 +130,9 @@ def generate_masks(params_dict,
     :param int/None mask_channel: channel num assigned to mask channel. I
     :param str mask_ext: 'npy' or 'png'. Save the mask as uint8 PNG or
          NPY files
+    :param str/None mask_dir: If creating weight maps from mask directory,
+        specify mask dir
     :param bool normalize_im: indicator to normalize image based on z-score or not
-    :param str/None mask_dir_name: If mask directory name is predetermined
     :return str mask_dir: Directory with created masks
     :return int mask_channel: Channel number assigned to masks
     """
@@ -138,9 +140,13 @@ def generate_masks(params_dict,
         "Supported mask types: 'otsu', 'unimodal', 'borders_weight_loss_map'" +\
         ", not {}".format(mask_type)
 
+    # If generating weights map, input dir is the mask dir
+    input_dir = params_dict['input_dir']
+    if mask_dir is not None:
+        input_dir = mask_dir
     # Instantiate channel to mask processor
     mask_processor_inst = MaskProcessor(
-        input_dir=params_dict['input_dir'],
+        input_dir=input_dir,
         output_dir=params_dict['output_dir'],
         channel_ids=mask_from_channel,
         flat_field_dir=flat_field_dir,
@@ -190,7 +196,7 @@ def tile_images(params_dict,
     if 'tile_3d' in tile_dict:
         tile_3d = tile_dict['tile_3d']
     tile_dict['tile_3d'] = tile_3d
-    hist_clip_limits=None
+    hist_clip_limits = None
     if 'hist_clip_limits' in tile_dict:
         hist_clip_limits = tile_dict['hist_clip_limits']
     # setup tiling keyword arguments
@@ -209,6 +215,7 @@ def tile_images(params_dict,
               'num_workers': params_dict['num_workers'],
               'int2str_len': params_dict['int2strlen'],
               'tile_3d': tile_3d}
+
     if params_dict['uniform_struct']:
         if tile_3d:
             if resize_flag:
@@ -365,7 +372,7 @@ def pre_process(pp_config, req_params_dict):
         pp_config['masks']['mask_channel'] = mask_channel
 
     # ----------------------Generate weight map-----------------------
-    if 'make_weight_map' in pp_config:
+    if 'make_weight_map' in pp_config and pp_config['make_weight_map']:
         # Must have mask dir and mask channel defined to generate weight map
         assert mask_dir is not None,\
             "Must have mask dir to generate weights"
@@ -383,6 +390,7 @@ def pre_process(pp_config, req_params_dict):
             mask_type=mask_type,
             mask_channel=weights_channel,
             mask_ext='.npy',
+            mask_dir=mask_dir,
             normalize_im=False,
         )
         pp_config['weights'] = {
@@ -411,8 +419,8 @@ def pre_process(pp_config, req_params_dict):
         if 'weights' in pp_config:
             weight_params_dict = req_params_dict.copy()
             weight_params_dict["input_dir"] = weights_dir
+            weight_params_dict["channel_ids"] = [weights_channel]
             weight_tile_config = pp_config['tile'].copy()
-            weight_tile_config['channels'] = [weights_channel]
             weight_params_dict['normalize_channels'] = [False]
             # Weights depth should be the same as mask depth
             weight_tile_config['depths'] = 1
