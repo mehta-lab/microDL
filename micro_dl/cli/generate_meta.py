@@ -41,8 +41,8 @@ def parse_args():
 
 if __name__ == '__main__':
     parsed_args = parse_args()
-    meta_utils.meta_generator(parsed_args.input,
-                              parsed_args.order,
-                              parsed_args.name_parser,
-                              parsed_args.num_workers,
-                              )
+    meta_utils.frames_meta_generator(parsed_args.input,
+                                     parsed_args.order,
+                                     parsed_args.name_parser,
+                                     parsed_args.num_workers,
+                                     )

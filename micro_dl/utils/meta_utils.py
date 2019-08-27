@@ -2,8 +2,9 @@ import os
 import pandas as pd
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.mp_utils as mp_utils
+import itertools
 
-def meta_generator(
+def frames_meta_generator(
         input_dir,
         order='cztp',
         name_parser='parse_sms_name',
@@ -35,6 +36,8 @@ def meta_generator(
     frames_meta = aux_utils.make_dataframe(nbr_rows=len(im_names))
     channel_names = []
     mp_fn_args = []
+    mp_block_args = []
+    block_size = 256
     # Fill dataframe with rows from image names
     for i in range(len(im_names)):
         kwargs = {"im_name": im_names[i]}
@@ -47,12 +50,22 @@ def meta_generator(
         frames_meta.loc[i] = meta_row
         im_path = os.path.join(input_dir, im_names[i])
         mp_fn_args.append(im_path)
+        mp_block_args.append((im_path, block_size, meta_row))
 
     im_stats_list = mp_utils.mp_get_im_stats(mp_fn_args, num_workers)
     im_stats_df = pd.DataFrame.from_dict(im_stats_list)
     frames_meta[['mean', 'std']] = im_stats_df[['mean', 'std']]
 
+    im_blocks_list = mp_utils.mp_sample_im_blocks(mp_block_args, num_workers)
+    im_blocks_list = list(itertools.chain.from_iterable(im_blocks_list))
+    blocks_meta = pd.DataFrame.from_dict(im_blocks_list)
+
     # Write metadata
-    meta_filename = os.path.join(input_dir, 'frames_meta.csv')
-    frames_meta.to_csv(meta_filename, sep=",")
+    frames_meta_filename = os.path.join(input_dir, 'frames_meta.csv')
+    frames_meta.to_csv(frames_meta_filename, sep=",")
+
+    blocks_meta_filename = os.path.join(input_dir, 'blocks_meta.csv')
+    blocks_meta.to_csv(blocks_meta_filename, sep=",")
     return frames_meta
+
+

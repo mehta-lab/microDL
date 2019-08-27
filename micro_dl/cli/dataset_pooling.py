@@ -49,7 +49,7 @@ def pool_dataset(config):
         if 'source' in src_key:
             src_dir = pool_config[src_key]['dir']
             src_pos_ids = pool_config[src_key]['pos_ids']
-            frames_meta_src = meta_utils.meta_generator(
+            frames_meta_src = meta_utils.frames_meta_generator(
                 src_dir,
                 name_parser=pool_config['name_parser'],
                 num_workers=num_workers,

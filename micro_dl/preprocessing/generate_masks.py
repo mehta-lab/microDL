@@ -55,6 +55,7 @@ class MaskProcessor:
         self.num_workers = num_workers
 
         self.frames_metadata = aux_utils.read_meta(self.input_dir)
+        self.blocks_metadata = aux_utils.read_meta(self.input_dir, 'blocks_meta.csv')
         # Create a unique mask channel number so masks can be treated
         # as a new channel
         if mask_out_channel is None:
@@ -236,4 +237,11 @@ class MaskProcessor:
                      mask_meta_df[['pos_idx', 'time_idx', 'slice_idx', 'fg_frac']],
                      how='left', on=['pos_idx', 'time_idx', 'slice_idx'])
         self.frames_metadata.to_csv(os.path.join(self.input_dir, 'frames_meta.csv'),
+                                    sep=',')
+
+        self.blocks_metadata = \
+            pd.merge(self.blocks_metadata,
+                     mask_meta_df[['pos_idx', 'time_idx', 'slice_idx', 'fg_frac']],
+                     how='left', on=['pos_idx', 'time_idx', 'slice_idx'])
+        self.blocks_metadata.to_csv(os.path.join(self.input_dir, 'blocks_meta.csv'),
                                     sep=',')

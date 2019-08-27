@@ -221,4 +221,36 @@ def center_crop_to_shape(input_image, output_shape):
         center_block = np.expand_dims(center_block, axis=idx)
     return center_block
 
+def sample_block_ceters(im, block_size):
+    """Subdivide a 2D image in smaller blocks of size block_size and
+    compute the median intensity value for each block. Any incomplete
+    blocks (remainders of modulo operation) will be ignored.
+
+    :param np.array im:         2D image
+    :return np.array(float) sample_coords: Image coordinates for block
+                                           centers
+    :return np.array(float) sample_values: Median intensity values for
+                                           blocks
+    """
+
+    im_shape = im.shape
+    assert block_size < im_shape[0], "Block size larger than image height"
+    assert block_size < im_shape[1], "Block size larger than image width"
+
+    nbr_blocks_x = im_shape[0] // block_size
+    nbr_blocks_y = im_shape[1] // block_size
+    sample_coords = np.zeros((nbr_blocks_x * nbr_blocks_y, 2),
+                             dtype=np.float64)
+    sample_values = np.zeros((nbr_blocks_x * nbr_blocks_y,),
+                             dtype=np.float64)
+    for x in range(nbr_blocks_x):
+        for y in range(nbr_blocks_y):
+            idx = y * nbr_blocks_x + x
+            sample_coords[idx, :] = [x * block_size + (block_size - 1) / 2,
+                                     y * block_size + (block_size - 1) / 2]
+            # get the center pixel value
+            sample_values[idx] = im[x * block_size + block_size // 2,
+                                    y * block_size + block_size // 2]
+    return sample_coords, sample_values
+
 

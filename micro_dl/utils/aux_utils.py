@@ -251,8 +251,11 @@ def get_zscore_params(time_idx,
             )
             meta_idxs.append(meta_idx)
     # Approximate stack and volume standard deviations with mean of slice standard deviations
-    zscore_mean = frames_metadata.loc[meta_idxs, 'mean'].mean()
-    zscore_std = frames_metadata.loc[meta_idxs, 'std'].mean()
+    zscore_mean = frames_metadata.loc[meta_idxs, 'mean'].median()
+    zscore_std = frames_metadata.loc[meta_idxs, 'mean'].quantile(0.75)\
+                 - frames_metadata.loc[meta_idxs, 'mean'].quantile(0.25)
+    # zscore_std = frames_metadata.loc[meta_idxs, 'std'].mean()
+
     return zscore_mean, zscore_std
 
 
