@@ -16,15 +16,10 @@ def mp_create_save_mask(fn_args, workers):
     :param int workers: max number of workers
     :return: list of returned dicts from create_save_mask
     """
-    res = []
-    for i in fn_args:
-        temp_res = create_save_mask(*i)
-        res.append(temp_res)
-    return res
-    # with ProcessPoolExecutor(workers) as ex:
-    #     # can't use map directly as it works only with single arg functions
-    #     res = ex.map(create_save_mask, *zip(*fn_args))
-    # return list(res)
+    with ProcessPoolExecutor(workers) as ex:
+        # can't use map directly as it works only with single arg functions
+        res = ex.map(create_save_mask, *zip(*fn_args))
+    return list(res)
 
 
 def create_save_mask(input_fnames,
