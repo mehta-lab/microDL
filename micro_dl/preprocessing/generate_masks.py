@@ -231,9 +231,10 @@ class MaskProcessor:
         mask_meta_df = mask_meta_df.sort_values(by=['file_name'])
         mask_meta_df.to_csv(os.path.join(self.mask_dir, 'frames_meta.csv'),
                             sep=',')
-        # upadate image frame_meta.csv
+        # update fg_frac field in image frame_meta.csv
+        cols_to_merge = self.frames_metadata.columns[self.frames_metadata.columns != 'fg_frac']
         self.frames_metadata = \
-            pd.merge(self.frames_metadata,
+            pd.merge(self.frames_metadata[cols_to_merge],
                      mask_meta_df[['pos_idx', 'time_idx', 'slice_idx', 'fg_frac']],
                      how='left', on=['pos_idx', 'time_idx', 'slice_idx'])
         self.frames_metadata.to_csv(os.path.join(self.input_dir, 'frames_meta.csv'),

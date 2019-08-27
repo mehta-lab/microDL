@@ -66,6 +66,6 @@ def frames_meta_generator(
 
     blocks_meta_filename = os.path.join(input_dir, 'blocks_meta.csv')
     blocks_meta.to_csv(blocks_meta_filename, sep=",")
-    return frames_meta
+    return frames_meta, blocks_meta
 
 
