@@ -424,6 +424,7 @@ def pre_process(pp_config, req_params_dict):
             weight_params_dict['normalize_channels'] = [False]
             # Weights depth should be the same as mask depth
             weight_tile_config['depths'] = 1
+            weight_tile_config.pop('mask_dir')
             if 'mask_depth' in pp_config['tile']:
                 weight_tile_config['depths'] = [pp_config['tile']['mask_depth']]
             tile_dir = tile_images(

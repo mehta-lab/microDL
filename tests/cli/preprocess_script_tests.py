@@ -249,14 +249,68 @@ class TestPreprocessScript(unittest.TestCase):
         cur_config['make_weight_map'] = True
         out_config, runtime = pp.pre_process(cur_config, self.base_config)
 
-        # print(out_config)
-        # print('----------------------')
-        # print(os.listdir(self.output_dir))
-        # print('-------------------- --')
-        # print(os.listdir(out_config['weights']['weights_dir']))
-        # print('----------------------')
-        # print(os.listdir(out_config['tile']['tile_dir']))
-        # assert 0 == 1
+        # Check weights dir
+        self.assertEqual(
+            out_config['weights']['weights_dir'],
+            os.path.join(self.output_dir, 'mask_channels_111')
+        )
+        weights_meta = aux_utils.read_meta(out_config['weights']['weights_dir'])
+        # Check indices
+        self.assertListEqual(
+            weights_meta.channel_idx.unique().tolist(),
+            [112],
+        )
+        self.assertListEqual(
+            weights_meta.pos_idx.unique().tolist(),
+            self.pos_ids,
+        )
+        self.assertListEqual(
+            weights_meta.slice_idx.unique().tolist(),
+            self.slice_ids,
+        )
+        self.assertListEqual(
+            weights_meta.time_idx.unique().tolist(),
+            [self.time_idx],
+        )
+        # Load one weights file and check contents
+        im = np.load(os.path.join(
+            out_config['weights']['weights_dir'],
+            'im_c112_z002_t000_p007.npy',
+        ))
+        self.assertTupleEqual(im.shape, (30, 20))
+        self.assertTrue(im.dtype == np.float64)
+        # Check tiles
+        tile_dir = out_config['tile']['tile_dir']
+        tile_meta = aux_utils.read_meta(tile_dir)
+        # 5 processed channels (0, 1, 3, 111, 112), 6 tiles per image
+        print(tile_meta.shape)
+        print(tile_meta.channel_idx.unique())
+        expected_rows = 5 * 6 * len(self.slice_ids) * len(self.pos_ids)
+        self.assertEqual(tile_meta.shape[0], expected_rows)
+        # Check indices
+        self.assertListEqual(
+            tile_meta.channel_idx.unique().tolist(),
+            [0, 1, 3, 111, 112],
+        )
+        self.assertListEqual(
+            tile_meta.pos_idx.unique().tolist(),
+            self.pos_ids,
+        )
+        self.assertListEqual(
+            tile_meta.slice_idx.unique().tolist(),
+            self.slice_ids,
+        )
+        self.assertListEqual(
+            tile_meta.time_idx.unique().tolist(),
+            [self.time_idx],
+        )
+        # Load one tile
+        im = np.load(os.path.join(
+            tile_dir,
+            'im_c111_z002_t000_p008_r0-10_c10-20_sl0-1.npy',
+        ))
+        self.assertTupleEqual(im.shape, (1, 10, 10))
+        self.assertTrue(im.dtype == np.float64)
 
     def test_pre_process_resize2d(self):
         cur_config = self.pp_config

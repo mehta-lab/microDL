@@ -99,7 +99,7 @@ class ImageTilerUniform:
             print("Tile dir exists. Only add untiled channels.")
             self.tiles_exist = True
 
-        # make dir for saving indiv meta per image, could be used for
+        # make dir for saving individual meta per image, could be used for
         # tracking job success / fail
         os.makedirs(os.path.join(self.tile_dir, 'meta_dir'),
                     exist_ok=True)
@@ -421,6 +421,7 @@ class ImageTilerUniform:
         """
         # Get or create tiled metadata and tile indices
         prev_tiled_metadata, tile_indices = self._get_tiled_data()
+
         tiled_meta0 = None
         fn_args = []
         for channel_idx in self.channel_ids:
