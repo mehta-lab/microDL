@@ -272,7 +272,6 @@ def tile_image(input_image,
                                               save_dict,
                                               row, col)
                 tiled_metadata.append(cur_tile_meta)
-
     if save_dict is None:
         if return_index:
             return cropped_image_list, cropping_index
