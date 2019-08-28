@@ -111,8 +111,12 @@ def get_unet_border_weight_map(annotation, w0=10, sigma=5):
 
     TODO: Calculate boundaries directly and calculate distance
     from boundary of cells to another
-    TODO: The below method only works for UNet Segmentation only
+    Note: The below method only works for UNet Segmentation only
     """
+    # if there is only one label, zero return the array as is
+    if np.sum(annotation) == 0:
+        return annotation
+
     # Masks could be saved as .npy bools, if so convert to uint8 and generate
     # labels from binary
     if annotation.dtype == bool:
@@ -121,11 +125,11 @@ def get_unet_border_weight_map(annotation, w0=10, sigma=5):
         "Expected data type uint, it is {}".format(annotation.dtype))
 
     # cells instances for distance computation
-    # TODO (Pranathi): What connectivity measure is used for neighboring cells?
-    # TODO (Pranathi): What if cells are actually touching?
+    # 4 connected i.e default (cross-shaped)
+    # structuring element to measure connectivy
+    # If cells are 8 connected/touching they are labeled as one single object
+    # Loss metric on such borders is not useful
     labeled_array, _ = scipy.ndimage.measurements.label(annotation)
-    # Comment (Jenny): I moved the label map generation below, otherwise it crashes
-    # if you input binary image
     # class balance weights w_c(x)
     unique_values = np.unique(labeled_array).tolist()
     weight_map = [0] * len(unique_values)
@@ -143,7 +147,6 @@ def get_unet_border_weight_map(annotation, w0=10, sigma=5):
         wc[annotation == unique_value] = weight_map[index]
 
     # cells distance map
-    # TODO (Pranathi): is border loss map not used anymore?
     border_loss_map = np.zeros(
         (annotation.shape[0], annotation.shape[1]), dtype=np.float64)
     distance_maps = np.zeros(
@@ -156,7 +159,6 @@ def get_unet_border_weight_map(annotation, w0=10, sigma=5):
             mask[labeled_array == index + 1] = 0
             distance_maps[:, :, index] = \
                 scipy.ndimage.distance_transform_edt(mask)
-    # TODO (Pranathi): This will crash if there's only one label
     distance_maps = np.sort(distance_maps, 2)
     d1 = distance_maps[:, :, 0]
     d2 = distance_maps[:, :, 1]

@@ -20,34 +20,6 @@ def test_coeff_determination():
         nose.tools.assert_greater(res, -1.)
 
 
-def test_mask_accuracy():
-    y_true = np.zeros((5, 1, 25, 30), np.float32)
-    y_true[..., :10] = 1
-    y_pred = np.zeros_like(y_true)
-    y_pred[..., :20] = 1
-    y_true = tf.convert_to_tensor(y_true, dtype=tf.float32)
-    y_pred = tf.convert_to_tensor(y_pred, dtype=tf.float32)
-    r2 = metrics.mask_accuracy(y_true, y_pred)
-    with tf.Session() as sess:
-        res = sess.run(r2)
-        nose.tools.assert_greater(1., res)
-        nose.tools.assert_greater(res, -1.)
-
-
-def test_mask_crossentropy():
-    y_true = np.zeros((5, 1, 25, 30), np.float32)
-    y_true[..., :10] = 1
-    y_pred = np.zeros_like(y_true)
-    y_pred[..., :20] = 1
-    y_true = tf.convert_to_tensor(y_true, dtype=tf.float32)
-    y_pred = tf.convert_to_tensor(y_pred, dtype=tf.float32)
-    r2 = metrics.mask_crossentropy(y_true, y_pred)
-    with tf.Session() as sess:
-        res = sess.run(r2)
-        nose.tools.assert_greater(1., res)
-        nose.tools.assert_greater(res, -1.)
-
-
 def test_dice_coef_partial():
     y_true = np.zeros((5, 7, 3), np.float)
     y_pred = np.zeros_like(y_true)

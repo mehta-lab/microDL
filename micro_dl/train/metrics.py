@@ -2,8 +2,6 @@
 import keras.backend as K
 import tensorflow as tf
 
-from micro_dl.utils.aux_utils import get_channel_axis
-
 
 def coeff_determination(y_true, y_pred):
     """
@@ -43,47 +41,6 @@ def mask_accuracy(n_channels):
         a = K.binary_accuracy(y_true_split, y_pred)
         return a
     return acc
-
-
-def binary_crossentropy(y_true, y_pred, mean_loss=False):
-    """Binary cross entropy loss
-
-    :param y_true: Ground truth
-    :param y_pred: Prediction
-    :return float: Binary cross entropy loss
-    """
-
-    if not mean_loss:
-        return K.binary_crossentropy(y_true, y_pred)
-
-    channel_axis = get_channel_axis(K.image_data_format())
-    return K.mean(K.binary_crossentropy(y_true, y_pred), axis=channel_axis)
-
-
-def mask_crossentropy(n_channels):
-    """split y_true into y_true and mask
-
-    For masked_loss there's an added function/method to split
-    y_true and pass to loss, metrics and callbacks.
-
-    :param int n_channels: Number of channels
-    """
-    def crossentropy(y_true, y_pred):
-        """
-        Accuracy
-
-        :param y_true: Ground truth
-        :param y_pred: Prediction
-        :return Accuracy
-        """
-        if K.image_data_format() == "channels_last":
-            split_axis = -1
-        else:
-            split_axis = 1
-        y_true_split, mask = tf.split(y_true, [n_channels, 1], axis=split_axis)
-        a = binary_crossentropy(y_true_split, y_pred)
-        return a
-    return crossentropy
 
 
 def mask_coeff_determination(n_channels):
