@@ -1,6 +1,4 @@
 """Script for preprocessing stack"""
-import sys
-sys.path.append(".")
 import argparse
 import numpy as np
 import os
