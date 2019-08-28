@@ -19,13 +19,6 @@ def coeff_determination(y_true, y_pred):
     return 1 - ss_res / (ss_tot + K.epsilon())
 
 
-def binary_accuracy(y_true, y_pred):
-    '''Calculates the mean accuracy rate across all predictions for binary
-    classification problems.
-    '''
-    return K.mean(K.equal(y_true, K.round(y_pred)))
-
-
 def mask_accuracy(n_channels):
     """split y_true into y_true and mask
 
@@ -47,7 +40,7 @@ def mask_accuracy(n_channels):
         else:
             split_axis = 1
         y_true_split, mask = tf.split(y_true, [n_channels, 1], axis=split_axis)
-        a = binary_accuracy(y_true_split, y_pred)
+        a = K.binary_accuracy(y_true_split, y_pred)
         return a
     return acc
 
