@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 
 from micro_dl.utils.train_utils import split_train_val_test
 
@@ -81,8 +80,8 @@ class BaseTrainingTable:
             unique_values = np.asarray(unique_values, dtype='uint32')
         else:
             print("here time_idx")
-            unique_values = self.df_metadata[self.split_by_column].unique()
-            unique_values = np.asarray(unique_values[:-1], dtype='uint32')
+            unique_values = self.df_metadata[
+                self.split_by_column].dropna().astype(int).unique().tolist()
         assert len(unique_values) > 1,\
             "{} only contains one or less values, can't be split "\
             "into train/val".format(self.split_by_column)
@@ -113,7 +112,7 @@ class BaseTrainingTable:
 
         train_set = split_idx['train']
         df_train = _get_df_subset(train_set)
-        df_dict = {'df_train': self._get_df(df_train, retain_columns),}
+        df_dict = {'df_train': self._get_df(df_train, retain_columns), }
 
         test_set = split_idx['test']
         df_test = _get_df_subset(test_set)
