@@ -98,6 +98,10 @@ def test_binary_crossentropy_loss():
     with tf.Session() as sess:
         res = sess.run(binary_crossentropy_loss)
         np.testing.assert_array_equal(res.shape, (1, 10))
+
+        # Lower entropy for predictions that match
         np.testing.assert_array_less(res[:, :5].flatten().tolist(), [0.1] * 5)
+
+        # Entropy is higher when there is an higher uncertainity/mismatched prediction
         np.testing.assert_array_less([15] * 5, res[:, 5:].flatten().tolist())
         np.testing.assert_array_less(res[:, 5:].flatten().tolist(), [20] * 5)
