@@ -77,18 +77,15 @@ class BaseTrainingTable:
 
         if self.split_by_column == 'index':
             unique_values = self.df_metadata.index.values.tolist()
-            unique_values = np.asarray(unique_values, dtype='uint32')
         else:
-            print("here time_idx")
             unique_values = self.df_metadata[
                 self.split_by_column].dropna().astype(int).unique().tolist()
         assert len(unique_values) > 1,\
             "{} only contains one or less values, can't be split "\
             "into train/val".format(self.split_by_column)
-        # DOES NOT HANDLE NON-INTEGER VALUES. map to int if string
+        # DOES NOT HANDLE NON-INTEGER VALUES. map to int
         # the sample_idxs are required for evaluating performance on test set
-        print(unique_values)
-        assert np.issubdtype(unique_values.dtype, np.integer)
+        unique_values = np.asarray(unique_values, dtype='uint32')
         split_idx = split_train_val_test(
             unique_values, self.split_ratio['train'],
             self.split_ratio['test'], self.split_ratio['val'],
