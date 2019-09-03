@@ -44,5 +44,10 @@ if __name__ == '__main__':
     meta_utils.frames_meta_generator(parsed_args.input,
                                      parsed_args.order,
                                      parsed_args.name_parser,
-                                     parsed_args.num_workers,
                                      )
+    meta_utils.ints_meta_generator(parsed_args.input,
+                                    parsed_args.order,
+                                    parsed_args.name_parser,
+                                    parsed_args.num_workers,
+                                   )
+

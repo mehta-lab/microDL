@@ -273,7 +273,6 @@ def run_prediction(model_dir,
                         slice_idx=slice_idx,
                         pos_idx=pos_idx,
                         normalize_im=normalize_im,
-                        min_fraction=min_fraction,
                     )
 
                     # Crop image shape to nearest factor of two
@@ -344,7 +343,6 @@ def run_prediction(model_dir,
                     slice_idx=slice_idx,
                     pos_idx=pos_idx,
                     normalize_im=normalize_im,
-                    min_fraction=min_fraction,
                 )
                 im_target = image_utils.crop2base(im_target)
                 #TODO: Add image_format option to network config

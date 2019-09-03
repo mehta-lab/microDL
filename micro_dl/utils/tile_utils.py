@@ -75,7 +75,6 @@ def preprocess_imstack(frames_metadata,
                        flat_field_im=None,
                        hist_clip_limits=None,
                        normalize_im='stack',
-                       min_fraction=None,
                        ):
     """
     Preprocess image given by indices: flatfield correction, histogram
@@ -136,22 +135,15 @@ def preprocess_imstack(frames_metadata,
             hist_clip_limits[0],
             hist_clip_limits[1],
         )
-
-    zscore_mean, zscore_std = aux_utils.get_zscore_params(
-        time_idx=time_idx,
-        channel_idx=channel_idx,
-        slice_idx=slice_idx,
-        pos_idx=pos_idx,
-        depth=depth,
-        slice_ids=slice_ids,
-        normalize_im=normalize_im,
-        frames_metadata=frames_metadata,
-        min_fraction=min_fraction
-    )
+    zscore_median = None
+    zscore_iqr = None
+    if normalize_im != 'stack':
+        zscore_median = frames_metadata.loc[meta_idx, 'zscore_median']
+        zscore_iqr = frames_metadata.loc[meta_idx, 'zscore_iqr']
 
     im_stack = normalize.zscore(
-        im_stack, mean=zscore_mean,
-        std=zscore_std
+        im_stack, mean=zscore_median,
+        std=zscore_iqr
     )
     return im_stack
 

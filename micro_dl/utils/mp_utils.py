@@ -400,7 +400,7 @@ def get_im_stats(im_path):
         }
     return meta_row
 
-def mp_sample_im_blocks(fn_args, workers):
+def mp_sample_im_pixels(fn_args, workers):
     """Read and computes statistics of images with multiprocessing
 
     :param list of tuple fn_args: list with tuples of function arguments
@@ -410,20 +410,24 @@ def mp_sample_im_blocks(fn_args, workers):
 
     with ProcessPoolExecutor(workers) as ex:
         # can't use map directly as it works only with single arg functions
-        res = ex.map(sample_im_blocks, *zip(*fn_args))
+        res = ex.map(sample_im_pixels, *zip(*fn_args))
     return list(res)
 
 
-def sample_im_blocks(im_path, block_size, meta_row):
+def sample_im_pixels(im_path, grid_spacing, meta_row):
     """Read and computes statistics of images
 
     """
 
     im = image_utils.read_image(im_path)
-    sample_coords, sample_values = \
-        image_utils.sample_block_ceters(im, block_size)
+    row_ids, col_ids, sample_values = \
+        image_utils.grid_sample_pixel_values(im, grid_spacing)
 
-    meta_rows = [{**meta_row, 'block_idx': sample_coord, 'intensity': sample_value}
-                  for sample_coord, sample_value, in zip(sample_coords, sample_values)]
-
+    meta_rows = \
+        [{**meta_row,
+          'row_idx': row_idx,
+          'col_idx': col_idx,
+          'intensity': sample_value}
+          for row_idx, col_idx, sample_value
+          in zip(row_ids, col_ids, sample_values)]
     return meta_rows

@@ -18,8 +18,7 @@ DF_NAMES = ["channel_idx",
             "channel_name",
             "dir_name",
             "file_name",
-            "mean",
-            "std"]
+            ]
 
 
 def import_object(module_name, obj_name, obj_type='class'):
@@ -186,78 +185,6 @@ def get_sms_im_name(time_idx=None,
     im_name += ext
 
     return im_name
-
-def get_zscore_params(time_idx,
-                      channel_idx,
-                      slice_idx,
-                      pos_idx,
-                      depth,
-                      slice_ids,
-                      normalize_im,
-                      frames_metadata,
-                      min_fraction):
-    """Get zscore mean and standard deviation
-
-    :param int time_idx: Time index
-    :param int channel_idx: Channel index
-    :param int slice_idx: Slice (z) index
-    :param int pos_idx: Position (FOV) index
-    :param int slice_ids: Index of which focal plane acquisition to
-         use (for 2D).
-    :param str mask_dir: Directory containing masks
-    :param None or str normalize_im: normalization scheme for input images
-    :param dataframe frames_metadata: metadata contains mean and std info of each z-slice
-    :return float zscore_mean: mean for z-scoring the image
-    :return float zscore_std: std for z-scoring the image
-    """
-
-    assert normalize_im in [None, 'stack', 'volume', 'dataset'], \
-        'normalize_im must be None or "stack" or "volume" or "dataset"'
-
-    meta_idx = get_meta_idx(
-        frames_metadata,
-        time_idx,
-        channel_idx,
-        slice_idx,
-        pos_idx,
-    )
-    dir_name = frames_metadata.loc[meta_idx, 'dir_name']
-    margin = 0 if depth == 1 else depth // 2
-    if normalize_im is None:
-        # No normalization
-        zscore_mean = 0
-        zscore_std = 1
-        return zscore_mean, zscore_std
-
-    if normalize_im == 'dataset':
-        meta_idxs = ((frames_metadata['time_idx'] == time_idx) &
-                   (frames_metadata['channel_idx'] == channel_idx) &
-                   (frames_metadata['dir_name'] == dir_name) &
-                   (frames_metadata['fg_frac'] >= min_fraction))
-
-    elif normalize_im in ['stack', 'volume']:
-        meta_idxs = []
-        if normalize_im == 'stack':
-            z_range = list(range(slice_idx - margin, slice_idx + margin + 1))
-        else:
-            z_range = slice_ids
-        for z in z_range:
-            meta_idx = get_meta_idx(
-                frames_metadata,
-                time_idx,
-                channel_idx,
-                z,
-                pos_idx,
-            )
-            meta_idxs.append(meta_idx)
-    # Approximate stack and volume standard deviations with mean of slice standard deviations
-    zscore_mean = frames_metadata.loc[meta_idxs, 'mean'].median()
-    zscore_std = frames_metadata.loc[meta_idxs, 'mean'].quantile(0.75)\
-                 - frames_metadata.loc[meta_idxs, 'mean'].quantile(0.25)
-    # zscore_std = frames_metadata.loc[meta_idxs, 'std'].mean()
-
-    return zscore_mean, zscore_std
-
 
 def sort_meta_by_channel(frames_metadata):
     """

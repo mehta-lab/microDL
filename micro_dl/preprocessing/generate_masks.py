@@ -55,7 +55,7 @@ class MaskProcessor:
         self.num_workers = num_workers
 
         self.frames_metadata = aux_utils.read_meta(self.input_dir)
-        self.blocks_metadata = aux_utils.read_meta(self.input_dir, 'blocks_meta.csv')
+        self.ints_metadata = aux_utils.read_meta(self.input_dir, 'ints_meta.csv')
         # Create a unique mask channel number so masks can be treated
         # as a new channel
         if mask_out_channel is None:
@@ -94,11 +94,11 @@ class MaskProcessor:
         self.mask_ext = mask_ext
         channel_thrs = []
         for channel_idx in channel_ids:
-            row_idxs = self.frames_metadata['channel_idx'] == channel_idx
-            im_means = self.frames_metadata.loc[row_idxs, 'mean'].values
+            row_idxs = self.ints_metadata['channel_idx'] == channel_idx
+            pix_ints = self.ints_metadata.loc[row_idxs, 'intensity'].values
 
-            channel_thr = threshold_otsu(im_means, nbins=32)
-            channel_thrs.append(0.2*channel_thr)
+            channel_thr = threshold_otsu(pix_ints, nbins=32)
+            channel_thrs.append(0.4*channel_thr)
         self.channel_thrs = channel_thrs
     def get_mask_dir(self):
         """
@@ -239,10 +239,10 @@ class MaskProcessor:
                      how='left', on=['pos_idx', 'time_idx', 'slice_idx'])
         self.frames_metadata.to_csv(os.path.join(self.input_dir, 'frames_meta.csv'),
                                     sep=',')
-        cols_to_merge = self.blocks_metadata.columns[self.blocks_metadata.columns != 'fg_frac']
-        self.blocks_metadata = \
-            pd.merge(self.blocks_metadata[cols_to_merge],
+        cols_to_merge = self.ints_metadata.columns[self.ints_metadata.columns != 'fg_frac']
+        self.ints_metadata = \
+            pd.merge(self.ints_metadata[cols_to_merge],
                      mask_meta_df[['pos_idx', 'time_idx', 'slice_idx', 'fg_frac']],
                      how='left', on=['pos_idx', 'time_idx', 'slice_idx'])
-        self.blocks_metadata.to_csv(os.path.join(self.input_dir, 'blocks_meta.csv'),
+        self.ints_metadata.to_csv(os.path.join(self.input_dir, 'ints_meta.csv'),
                                     sep=',')

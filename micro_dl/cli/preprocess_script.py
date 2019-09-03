@@ -15,6 +15,7 @@ from micro_dl.preprocessing.tile_uniform_images import ImageTilerUniform
 from micro_dl.preprocessing.tile_nonuniform_images import \
     ImageTilerNonUniform
 import micro_dl.utils.aux_utils as aux_utils
+import micro_dl.utils.meta_utils as meta_utils
 import micro_dl.utils.preprocess_utils as preprocess_utils
 
 
@@ -319,6 +320,14 @@ def pre_process(pp_config, req_params_dict):
                                                         mask_out_channel,
                                                         mask_ext)
             pp_config['masks']['created_mask_dir'] = mask_dir
+
+            frames_metadata = aux_utils.read_meta(req_params_dict['input_dir'])
+            ints_metadata = aux_utils.read_meta(req_params_dict['input_dir'],
+                                                meta_fname='ints_meta.csv')
+            meta_utils.compute_zscore_params(frames_metadata,
+                                             ints_metadata,
+                                             req_params_dict['input_dir'],
+                                             normalize_im=req_params_dict['normalize_im'])
         elif 'mask_dir' in pp_config['masks']:
             mask_dir = pp_config['masks']['mask_dir']
             # Get preexisting masks from directory and match to input dir
@@ -408,6 +417,10 @@ if __name__ == '__main__':
     if 'num_workers' in pp_config:
         num_workers = pp_config['num_workers']
 
+    normalize_im = 'stack'
+    if 'normalize_im' in pp_config:
+        normalize_im = pp_config['normalize_im']
+
     base_config = {'input_dir': input_dir,
                    'output_dir': output_dir,
                    'slice_ids': slice_ids,
@@ -416,7 +429,8 @@ if __name__ == '__main__':
                    'channel_ids': channel_ids,
                    'uniform_struct': uniform_struct,
                    'int2strlen': int2str_len,
-                   'num_workers': num_workers}
+                   'num_workers': num_workers,
+                   'normalize_im': normalize_im}
 
     pp_config, runtime = pre_process(pp_config, base_config)
     save_config(pp_config, runtime)

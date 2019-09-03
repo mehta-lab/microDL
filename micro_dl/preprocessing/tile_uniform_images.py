@@ -365,8 +365,8 @@ class ImageTilerUniform:
         # no flat field correction and normalization for masks
         flat_field_fname = None
         hist_clip_limits = None
-        zscore_mean = None
-        zscore_std = None
+        zscore_median = None
+        zscore_iqr = None
         is_mask = False
         if mask_dir is None:
             if self.flat_field_dir is not None:
@@ -379,17 +379,15 @@ class ImageTilerUniform:
                 hist_clip_limits = tuple(
                     self.hist_clip_limits
                 )
-            zscore_mean, zscore_std = aux_utils.get_zscore_params(
+            frame_idx = aux_utils.get_meta_idx(
+                self.frames_metadata,
                 time_idx,
                 channel_idx,
                 slice_idx,
                 pos_idx,
-                self.channel_depth[channel_idx],
-                self.slice_ids,
-                self.normalize_im,
-                self.frames_metadata,
-                self.min_fraction,
             )
+            zscore_median, zscore_iqr = \
+                self.frames_metadata.loc[frame_idx, ['zscore_median', 'zscore_iqr']].tolist()
         else:
             # Using masks, need to make sure they're bool
             is_mask = True
@@ -407,8 +405,8 @@ class ImageTilerUniform:
                         self.int2str_len,
                         is_mask,
                         self.tile_3d,
-                        zscore_mean,
-                        zscore_std)
+                        zscore_median,
+                        zscore_iqr)
         elif task_type == 'tile':
             cur_args = (tuple(input_fnames),
                         flat_field_fname,
@@ -424,8 +422,8 @@ class ImageTilerUniform:
                         self.tile_dir,
                         self.int2str_len,
                         is_mask,
-                        zscore_mean,
-                        zscore_std)
+                        zscore_median,
+                        zscore_iqr)
         return cur_args
 
     def tile_stack(self):
@@ -463,7 +461,6 @@ class ImageTilerUniform:
                                 flat_field_im=flat_field_im,
                                 hist_clip_limits=self.hist_clip_limits,
                                 normalize_im=self.normalize_im,
-                                min_fraction=self.min_fraction
                             )
                             save_dict = {'time_idx': time_idx,
                                          'channel_idx': channel_idx,

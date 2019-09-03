@@ -38,20 +38,25 @@ def pool_dataset(config):
     num_workers = pool_config['num_workers']
     pool_mode = pool_config['pool_mode']
     frames_meta_dst_path = os.path.join(dst_dir, 'frames_meta.csv')
-    blocks_meta_dst_path = os.path.join(dst_dir, 'blocks_meta.csv')
+    ints_meta_dst_path = os.path.join(dst_dir, 'ints_meta.csv')
     pos_idx_cur = 0
     os.makedirs(dst_dir, exist_ok=True)
     if os.path.exists(frames_meta_dst_path) and pool_mode == 'add':
         frames_meta_dst = pd.read_csv(frames_meta_dst_path, index_col=0)
+        ints_meta_dst = pd.read_csv(ints_meta_dst_path, index_col=0)
         pos_idx_cur = frames_meta_dst['pos_idx'].max() + 1
     else:
         frames_meta_dst = aux_utils.make_dataframe(nbr_rows=None)
-    blocks_meta_dst = pd.DataFrame()
+        ints_meta_dst = pd.DataFrame()
     for src_key in pool_config:
         if 'source' in src_key:
             src_dir = pool_config[src_key]['dir']
             src_pos_ids = pool_config[src_key]['pos_ids']
-            frames_meta_src, blocks_meta_src = meta_utils.frames_meta_generator(
+            frames_meta_src = meta_utils.frames_meta_generator(
+                src_dir,
+                name_parser=pool_config['name_parser'],
+            )
+            ints_meta_src = meta_utils.ints_meta_generator(
                 src_dir,
                 name_parser=pool_config['name_parser'],
                 num_workers=num_workers,
@@ -64,9 +69,9 @@ def pool_dataset(config):
             frames_meta_src_new = frames_meta_src.copy()
             frames_meta_src_new = frames_meta_src_new[frames_meta_src['pos_idx'].isin(src_pos_ids)]
             frames_meta_src_new['pos_idx'] = frames_meta_src_new['pos_idx'].map(pos_idx_map)
-            blocks_meta_src_new = blocks_meta_src.copy()
-            blocks_meta_src_new = blocks_meta_src_new[blocks_meta_src['pos_idx'].isin(src_pos_ids)]
-            blocks_meta_src_new['pos_idx'] = blocks_meta_src_new['pos_idx'].map(pos_idx_map)
+            ints_meta_src_new = ints_meta_src.copy()
+            ints_meta_src_new = ints_meta_src_new[ints_meta_src['pos_idx'].isin(src_pos_ids)]
+            ints_meta_src_new['pos_idx'] = ints_meta_src_new['pos_idx'].map(pos_idx_map)
             # update file names and copy the files
             for row_idx in list(frames_meta_src_new.index):
                 meta_row = frames_meta_src_new.loc[row_idx]
@@ -86,13 +91,13 @@ def pool_dataset(config):
                 frames_meta_src_new,
                 ignore_index=True,
             )
-            blocks_meta_dst = blocks_meta_dst.append(
-                blocks_meta_src_new,
+            ints_meta_dst = ints_meta_dst.append(
+                ints_meta_src_new,
                 ignore_index=True,
             )
             pos_idx_cur = pos_idx_map[src_pos_ids[-1]] + 1
     frames_meta_dst.to_csv(frames_meta_dst_path, sep=",")
-    blocks_meta_dst.to_csv(blocks_meta_dst_path, sep=",")
+    ints_meta_dst.to_csv(ints_meta_dst_path, sep=",")
 
 if __name__ == '__main__':
     args = parse_args()

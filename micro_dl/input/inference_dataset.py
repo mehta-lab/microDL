@@ -143,7 +143,6 @@ class InferenceDataset(keras.utils.Sequence):
                 pos_idx=cur_pos_idx,
                 flat_field_im=cur_flat_field_im,
                 normalize_im=normalize,
-                min_fraction=min_fraction,
             )
 
             # Crop image to nearest factor of two in xy
