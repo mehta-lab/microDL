@@ -163,6 +163,31 @@ def generate_masks(params_dict,
     mask_out_channel = mask_processor_inst.get_mask_channel()
     return mask_dir, mask_out_channel
 
+def generate_zscore_table(params_dict,
+                          mask_dir):
+    """
+    Compute z-score parameters and update frames_metadata based on the normalize_im
+    :param params_dict:
+    :param mask_dir:
+    :return:
+    """
+    frames_metadata = aux_utils.read_meta(params_dict['input_dir'])
+    ints_metadata = aux_utils.read_meta(params_dict['input_dir'],
+                                        meta_fname='ints_meta.csv')
+    mask_metadata = aux_utils.read_meta(mask_dir)
+    cols_to_merge = ints_metadata.columns[ints_metadata.columns != 'fg_frac']
+    ints_metadata = \
+        pd.merge(ints_metadata[cols_to_merge],
+                 mask_metadata[['pos_idx', 'time_idx', 'slice_idx', 'fg_frac']],
+                 how='left', on=['pos_idx', 'time_idx', 'slice_idx'])
+    meta_utils.compute_zscore_params(frames_metadata,
+                                     ints_metadata,
+                                     params_dict['input_dir'],
+                                     normalize_im=params_dict['normalize_im'],
+                                     min_fraction=params_dict['min_fraction'], )
+    ints_metadata.to_csv(os.path.join(input_dir, 'ints_meta.csv'),
+                         sep=',')
+
 
 def tile_images(params_dict,
                 tile_dict,
@@ -321,13 +346,6 @@ def pre_process(pp_config, req_params_dict):
                                                         mask_ext)
             pp_config['masks']['created_mask_dir'] = mask_dir
 
-            frames_metadata = aux_utils.read_meta(req_params_dict['input_dir'])
-            ints_metadata = aux_utils.read_meta(req_params_dict['input_dir'],
-                                                meta_fname='ints_meta.csv')
-            meta_utils.compute_zscore_params(frames_metadata,
-                                             ints_metadata,
-                                             req_params_dict['input_dir'],
-                                             normalize_im=req_params_dict['normalize_im'])
         elif 'mask_dir' in pp_config['masks']:
             mask_dir = pp_config['masks']['mask_dir']
             # Get preexisting masks from directory and match to input dir
@@ -337,6 +355,11 @@ def pre_process(pp_config, req_params_dict):
                              "or mask_dir.")
         pp_config['masks']['mask_dir'] = mask_dir
         pp_config['masks']['mask_out_channel'] = mask_out_channel
+
+    if req_params_dict['normalize_im'] in ['dataset', 'volume', 'slice']:
+        assert mask_dir is not None, \
+            "'dataset', 'volume', 'slice' normalization requires masks"
+        generate_zscore_table(req_params_dict, mask_dir)
 
     # Tile frames
     if 'tile' in pp_config:
@@ -421,6 +444,10 @@ if __name__ == '__main__':
     if 'normalize_im' in pp_config:
         normalize_im = pp_config['normalize_im']
 
+    min_fraction = 0
+    if 'min_fraction' in pp_config:
+        min_fraction = pp_config['min_fraction']
+
     base_config = {'input_dir': input_dir,
                    'output_dir': output_dir,
                    'slice_ids': slice_ids,
@@ -430,7 +457,8 @@ if __name__ == '__main__':
                    'uniform_struct': uniform_struct,
                    'int2strlen': int2str_len,
                    'num_workers': num_workers,
-                   'normalize_im': normalize_im}
+                   'normalize_im': normalize_im,
+                   'min_fraction': min_fraction}
 
     pp_config, runtime = pre_process(pp_config, base_config)
     save_config(pp_config, runtime)

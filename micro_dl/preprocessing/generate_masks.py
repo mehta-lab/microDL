@@ -239,10 +239,3 @@ class MaskProcessor:
                      how='left', on=['pos_idx', 'time_idx', 'slice_idx'])
         self.frames_metadata.to_csv(os.path.join(self.input_dir, 'frames_meta.csv'),
                                     sep=',')
-        cols_to_merge = self.ints_metadata.columns[self.ints_metadata.columns != 'fg_frac']
-        self.ints_metadata = \
-            pd.merge(self.ints_metadata[cols_to_merge],
-                     mask_meta_df[['pos_idx', 'time_idx', 'slice_idx', 'fg_frac']],
-                     how='left', on=['pos_idx', 'time_idx', 'slice_idx'])
-        self.ints_metadata.to_csv(os.path.join(self.input_dir, 'ints_meta.csv'),
-                                    sep=',')

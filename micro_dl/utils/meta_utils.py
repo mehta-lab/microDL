@@ -107,7 +107,7 @@ def compute_zscore_params(frames_meta,
                           ints_meta,
                           input_dir,
                           normalize_im,
-                          min_fraction=0.2):
+                          min_fraction=0):
     """Get zscore mean and standard deviation
 
     :param int time_idx: Time index

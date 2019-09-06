@@ -36,6 +36,12 @@ def parse_args():
         default=4,
         help="number of workers for multiprocessing",
     )
+    parser.add_argument(
+        '--normalize_im',
+        type=str,
+        default='stack',
+        help="normalization scheme for images",
+    )
     return parser.parse_args()
 
 
@@ -45,9 +51,10 @@ if __name__ == '__main__':
                                      parsed_args.order,
                                      parsed_args.name_parser,
                                      )
-    meta_utils.ints_meta_generator(parsed_args.input,
-                                    parsed_args.order,
-                                    parsed_args.name_parser,
-                                    parsed_args.num_workers,
-                                   )
+    if parsed_args.normalize_im in ['dataset', 'volume', 'slice']:
+        meta_utils.ints_meta_generator(parsed_args.input,
+                                       parsed_args.order,
+                                       parsed_args.name_parser,
+                                       parsed_args.num_workers,
+                                       )
 

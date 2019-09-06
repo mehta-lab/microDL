@@ -98,7 +98,6 @@ def preprocess_imstack(frames_metadata,
         slice_ids=-1,
         uniform_structure=True
     )
-    slice_ids = metadata_ids['slice_ids']
     margin = 0 if depth == 1 else depth // 2
     im_stack = []
     for z in range(slice_idx - margin, slice_idx + margin + 1):
@@ -137,14 +136,15 @@ def preprocess_imstack(frames_metadata,
         )
     zscore_median = None
     zscore_iqr = None
-    if normalize_im != 'stack':
+    if normalize_im in ['dataset', 'volume', 'slice']:
         zscore_median = frames_metadata.loc[meta_idx, 'zscore_median']
         zscore_iqr = frames_metadata.loc[meta_idx, 'zscore_iqr']
 
-    im_stack = normalize.zscore(
-        im_stack, mean=zscore_median,
-        std=zscore_iqr
-    )
+    if normalize_im is not None:
+        im_stack = normalize.zscore(
+            im_stack, mean=zscore_median,
+            std=zscore_iqr
+        )
     return im_stack
 
 
@@ -381,7 +381,7 @@ def write_tile(tile, save_dict, img_id):
     op_fname = os.path.join(save_dict['save_dir'], file_name)
     if save_dict['image_format'] == 'zyx' and len(tile.shape) > 2:
         tile = np.transpose(tile, (2, 0, 1))
-    np.save(op_fname, tile, allow_pickle=True, fix_imports=True)
+    np.save(op_fname, tile, allow_pickle=False, fix_imports=False)
     return file_name
 
 

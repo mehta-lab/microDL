@@ -15,7 +15,7 @@ def zscore(input_image, mean=None, std=None):
         mean = np.nanmean(input_image)
     if not std:
         std = np.nanstd(input_image)
-    norm_img = (input_image - mean) /\
+    norm_img = (input_image - mean.astype(np.float64)) /\
                (std + np.finfo(float).eps)
     return norm_img
 
