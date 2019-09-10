@@ -6,6 +6,25 @@ import pandas as pd
 import micro_dl.utils.aux_utils as aux_utils
 
 
+def get_pp_config(data_dir):
+    # If the parent dir with tile dir, mask dir is passed as data_dir,
+    # it should contain a json with directory names
+    json_fname = os.path.join(data_dir,
+                              'preprocessing_info.json')
+    try:
+        preprocessing_info = aux_utils.read_json(json_filename=json_fname)
+
+        # Preprocessing_info is a list of jsons. Use the last json. If a tile
+        # (training data) dir is specified and exists in info json use that
+        recent_json = preprocessing_info[-1]
+        pp_config = recent_json['config']
+    except FileNotFoundError as e:
+        msg = 'No preprocessing config file found in {}. Error {}'.format(data_dir, e)
+        raise msg
+
+    return pp_config
+
+
 def validate_mask_meta(pp_config):
     """
     If user provides existing masks, the mask directory should also contain
@@ -98,5 +117,7 @@ def validate_mask_meta(pp_config):
     out_meta.to_csv(meta_filename, sep=",")
 
     return mask_channel
+
+
 
 

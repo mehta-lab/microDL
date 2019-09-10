@@ -9,7 +9,8 @@ import yaml
 import micro_dl.inference.evaluation_metrics as metrics
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.tile_utils as tile_utils
-
+import micro_dl.utils.preprocess_utils as preprocess_utils
+import micro_dl.utils.image_utils as image_utils
 
 def parse_args():
     """Parse command line arguments
@@ -92,6 +93,7 @@ def compute_metrics(args):
     config_name = os.path.join(args.model_dir, 'config.yml')
     with open(config_name, 'r') as f:
         config = yaml.safe_load(f)
+    pp_config = preprocess_utils.get_pp_config(config['dataset']['data_dir'])
     # Load frames metadata and determine indices
     frames_meta = pd.read_csv(os.path.join(args.image_dir, 'frames_meta.csv'))
 
@@ -130,6 +132,11 @@ def compute_metrics(args):
     depth = 1
     if 'depth' in config['network']:
         depth = config['network']['depth']
+    normalize_im = 'stack'
+    if 'normalize_im' in pp_config:
+        normalize_im = pp_config['normalize_im']
+    elif 'normalize_im' in pp_config['tile']:
+        normalize_im = pp_config['tile']['normalize_im']
 
     # Get input channel(s)
     input_channels = config['dataset']['input_channels']
@@ -164,43 +171,38 @@ def compute_metrics(args):
     # Iterate over all indices for test data
     for time_idx in metadata_ids['time_idx']:
         for pos_idx in metadata_ids['pos_idx']:
-            target_fnames = []
-            pred_fnames = []
+            target_stack = []
+            pred_stack = []
             for slice_idx in metadata_ids['slice_idx']:
-                im_idx = aux_utils.get_meta_idx(
-                    metadata_df=frames_meta,
-                    time_idx=time_idx,
-                    channel_idx=target_channel,
-                    slice_idx=slice_idx,
-                    pos_idx=pos_idx,
-                )
-                target_fname = os.path.join(
-                    args.image_dir,
-                    frames_meta.loc[im_idx, 'file_name'],
-                )
-                target_fnames.append(target_fname)
+
                 pred_fname = aux_utils.get_im_name(
                     time_idx=time_idx,
-                    channel_idx=pred_channel,
+                    channel_idx=input_channels,
                     slice_idx=slice_idx,
                     pos_idx=pos_idx,
                     ext=args.ext,
                 )
+
                 pred_fname = os.path.join(pred_dir, pred_fname)
-                pred_fnames.append(pred_fname)
 
-            target_stack = tile_utils.read_imstack(
-                input_fnames=tuple(target_fnames),
-            )
-            pred_stack = tile_utils.read_imstack(
-                input_fnames=tuple(pred_fnames),
-                normalize_im=False,
-            )
+                im_target = tile_utils.preprocess_imstack(
+                    frames_metadata=frames_meta,
+                    input_dir=args.image_dir,
+                    depth=1,
+                    time_idx=time_idx,
+                    channel_idx=target_channel,
+                    slice_idx=slice_idx,
+                    pos_idx=pos_idx,
+                    normalize_im=normalize_im,
+                )
+                im_pred = image_utils.read_image(pred_fname)
 
-            if depth == 1:
-                # Remove singular z dimension for 2D image
-                target_stack = np.squeeze(target_stack)
-                pred_stack = np.squeeze(pred_stack)
+                target_stack.append(im_target)
+                pred_stack.append(im_pred)
+
+            target_stack = np.dstack(target_stack)
+            pred_stack = np.stack(pred_stack, axis=-1)
+
             if target_stack.dtype == np.float64:
                 target_stack = target_stack.astype(np.float32)
             pred_name = "t{}_p{}".format(time_idx, pos_idx)

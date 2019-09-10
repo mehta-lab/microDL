@@ -12,8 +12,8 @@ def read_imstack(input_fnames,
                  hist_clip_limits=None,
                  is_mask=False,
                  normalize_im=True,
-                 zscore_mean=0,
-                 zscore_std=1):
+                 zscore_mean=None,
+                 zscore_std=None):
     """
     Read the images in the fnames and assembles a stack.
     If images are masks, make sure they're boolean by setting >0 to True
@@ -30,6 +30,7 @@ def read_imstack(input_fnames,
     """
     im_stack = []
     for idx, fname in enumerate(input_fnames):
+        print(fname)
         im = read_image(fname)
         if flat_field_fname is not None:
             # multiple flat field images are passed in case of mask generation
@@ -118,6 +119,19 @@ def preprocess_imstack(frames_metadata,
                 im,
                 flat_field_image=flat_field_im,
             )
+
+        zscore_median = None
+        zscore_iqr = None
+        if normalize_im in ['dataset', 'volume', 'slice']:
+            zscore_median = frames_metadata.loc[meta_idx, 'zscore_median']
+            zscore_iqr = frames_metadata.loc[meta_idx, 'zscore_iqr']
+
+        if normalize_im is not None:
+            im = normalize.zscore(
+                im,
+                mean=zscore_median,
+                std=zscore_iqr
+            )
         im_stack.append(im)
 
     if len(im.shape) == 3:
@@ -134,17 +148,7 @@ def preprocess_imstack(frames_metadata,
             hist_clip_limits[0],
             hist_clip_limits[1],
         )
-    zscore_median = None
-    zscore_iqr = None
-    if normalize_im in ['dataset', 'volume', 'slice']:
-        zscore_median = frames_metadata.loc[meta_idx, 'zscore_median']
-        zscore_iqr = frames_metadata.loc[meta_idx, 'zscore_iqr']
 
-    if normalize_im is not None:
-        im_stack = normalize.zscore(
-            im_stack, mean=zscore_median,
-            std=zscore_iqr
-        )
     return im_stack
 
 

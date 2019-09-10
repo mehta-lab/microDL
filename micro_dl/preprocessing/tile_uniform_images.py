@@ -386,8 +386,9 @@ class ImageTilerUniform:
                 slice_idx,
                 pos_idx,
             )
-            zscore_median, zscore_iqr = \
-                self.frames_metadata.loc[frame_idx, ['zscore_median', 'zscore_iqr']].tolist()
+            if self.normalize_im in ['dataset', 'volume', 'slice']:
+                zscore_median, zscore_iqr = \
+                    self.frames_metadata.loc[frame_idx, ['zscore_median', 'zscore_iqr']].tolist()
         else:
             # Using masks, need to make sure they're bool
             is_mask = True

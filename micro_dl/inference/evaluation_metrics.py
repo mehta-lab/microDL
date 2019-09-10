@@ -265,7 +265,8 @@ class MetricsEstimator:
         :param np.array mask: binary mask with foreground / background
         """
         self.assert_input(target, prediction, pred_name, mask)
-        assert len(target.shape) == 3, 'Dataset is assumed to be 3D'
+        assert len(target.shape) == 3, \
+            'Dataset is assumed to be 3D but target image has shape {}'.format(target.shape)
         self.metrics_xy = pd.DataFrame(columns=self.pd_col_names)
         # Loop through slices
         for slice_idx in range(target.shape[2]):

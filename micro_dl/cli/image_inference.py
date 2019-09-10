@@ -16,7 +16,7 @@ import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.image_utils as image_utils
 from micro_dl.utils.tile_utils import preprocess_imstack
 import micro_dl.utils.train_utils as train_utils
-
+import micro_dl.utils.preprocess_utils as preprocess_utils
 
 def parse_args():
     """Parse command line arguments
@@ -240,21 +240,8 @@ def run_prediction(model_dir,
     print(model.summary())
     optimizer = trainer_config['optimizer']['name']
     model.compile(loss=loss_cls, optimizer=optimizer, metrics=metrics_cls)
-    # Get image normalization scheme from preprocessing json
-    # If the parent dir with tile dir, mask dir is passed as data_dir,
-    # it should contain a json with directory names
-    json_fname = os.path.join(dataset_config['data_dir'],
-                              'preprocessing_info.json')
-    if os.path.exists(json_fname):
-        preprocessing_info = aux_utils.read_json(json_filename=json_fname)
-
-        # Preprocessing_info is a list of jsons. Use the last json. If a tile
-        # (training data) dir is specified and exists in info json use that
-        recent_json = preprocessing_info[-1]
-        pp_config = recent_json['config']
-        if 'tile' in pp_config and 'normalize_im' in pp_config['tile']:
-            normalize_im = pp_config['tile']['normalize_im']
-            min_fraction = pp_config['tile']['min_fraction']
+    pp_config = preprocess_utils.get_pp_config(config['dataset']['data_dir'])
+    normalize_im = pp_config['normalize_im']
 
     # Iterate over all indices for test data
     for time_idx in metadata_ids['time_idx']:
