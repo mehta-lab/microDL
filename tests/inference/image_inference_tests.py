@@ -39,7 +39,6 @@ class TestImageInference(unittest.TestCase):
                     channel_idx=c,
                     slice_idx=self.slice_idx,
                     pos_idx=p,
-                    ext='.png',
                 )
                 cv2.imwrite(os.path.join(self.image_dir, im_name), self.im + c * 10)
                 self.frames_meta = self.frames_meta.append(
@@ -57,7 +56,6 @@ class TestImageInference(unittest.TestCase):
                 channel_idx=self.mask_channel,
                 slice_idx=self.slice_idx,
                 pos_idx=p,
-                ext='.png',
             )
             cv2.imwrite(os.path.join(self.mask_dir, im_name), self.im + 1)
             self.mask_meta = self.mask_meta.append(

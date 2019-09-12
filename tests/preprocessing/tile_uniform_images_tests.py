@@ -38,7 +38,6 @@ class TestImageTilerUniform(unittest.TestCase):
                 slice_idx=z,
                 time_idx=self.time_idx,
                 pos_idx=self.pos_idx1,
-                ext='.png',
             )
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
@@ -57,7 +56,6 @@ class TestImageTilerUniform(unittest.TestCase):
                 slice_idx=z,
                 time_idx=self.time_idx,
                 pos_idx=self.pos_idx2,
-                ext='.png',
             )
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
@@ -129,6 +127,7 @@ class TestImageTilerUniform(unittest.TestCase):
                 slice_idx=z + 15,
                 time_idx=self.time_idx,
                 pos_idx=self.pos_idx1,
+                ext='.npy',
             )
             np.save(os.path.join(mask_dir, im_name), cur_im)
             cur_meta = {'channel_idx': 3,
@@ -258,6 +257,7 @@ class TestImageTilerUniform(unittest.TestCase):
                     slice_idx=z,
                     pos_idx=self.pos_idx1,
                     extra_field=cur_img_id,
+                    ext='.npy',
                 )
                 pos1_meta = {'channel_idx': self.channel_idx,
                              'slice_idx': z,
@@ -273,6 +273,7 @@ class TestImageTilerUniform(unittest.TestCase):
                     slice_idx=z,
                     pos_idx=self.pos_idx2,
                     extra_field=cur_img_id,
+                    ext='.npy',
                 )
                 pos2_meta = {'channel_idx': self.channel_idx,
                              'slice_idx': z,

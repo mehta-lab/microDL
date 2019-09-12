@@ -39,7 +39,6 @@ class TestPreprocessScript(unittest.TestCase):
                         slice_idx=z,
                         time_idx=self.time_idx,
                         pos_idx=p,
-                        ext='.png',
                     )
                     cv2.imwrite(
                         os.path.join(self.image_dir, im_name),
@@ -70,7 +69,6 @@ class TestPreprocessScript(unittest.TestCase):
                     slice_idx=z,
                     time_idx=self.time_idx,
                     pos_idx=p,
-                    ext='.png',
                 )
                 cv2.imwrite(
                     os.path.join(self.input_mask_dir, im_name),
@@ -167,7 +165,6 @@ class TestPreprocessScript(unittest.TestCase):
                     slice_idx=z,
                     time_idx=self.time_idx,
                     pos_idx=p,
-                    ext='.png',
                 )
                 im = cv2.imread(
                     os.path.join(mask_dir, im_name),
