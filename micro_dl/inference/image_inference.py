@@ -57,8 +57,8 @@ class ImagePredictor:
              num_slices, inf_shape, tile_shape, num_overlap, overlap_operation.
              int num_slices: in case of 3D, the full volume will not fit in GPU
               memory, specify the number of slices to use and this will depend on
-              the network depth, for ex 8 for a network of depth 4. inf_shape -
-              inference on a center sub volume.
+              the network depth, for ex 8 for a network of depth 4.
+             list inf_shape: inference on a center sub volume.
              list tile_shape: shape of tile for tiling along xyz.
              int/list num_overlap: int for tile_z, list for tile_xyz
              str overlap_operation: e.g. 'mean'

@@ -466,3 +466,189 @@ class TestImageInference2p5D(unittest.TestCase):
             im_pred = cv2.imread(pred_name, cv2.IMREAD_ANYDEPTH)
             self.assertEqual(im_pred.dtype, np.uint16)
             self.assertTupleEqual(im_pred.shape, (8, 16))
+
+
+class TestImageInference3D(unittest.TestCase):
+
+    @patch('micro_dl.inference.model_inference.load_model')
+    def setUp(self, mock_model):
+        """
+        Set up a directory with images
+        """
+        mock_model.return_value = 'dummy_model'
+
+        self.tempdir = TempDirectory()
+        self.temp_path = self.tempdir.path
+        self.tempdir.makedir('image_dir')
+        self.tempdir.makedir('mask_dir')
+        self.tempdir.makedir('model_dir')
+        self.image_dir = os.path.join(self.temp_path, 'image_dir')
+        self.mask_dir = os.path.join(self.temp_path, 'mask_dir')
+        self.model_dir = os.path.join(self.temp_path, 'model_dir')
+        # Create a temp image dir
+        self.im = np.zeros((10, 16), dtype=np.uint8)
+        self.frames_meta = aux_utils.make_dataframe()
+        self.time_idx = 2
+        for p in range(5):
+            for c in range(3):
+                for z in range(6):
+                    im_name = aux_utils.get_im_name(
+                        time_idx=self.time_idx,
+                        channel_idx=c,
+                        slice_idx=z,
+                        pos_idx=p,
+                    )
+                    cv2.imwrite(os.path.join(self.image_dir, im_name), self.im + c * 10)
+                    self.frames_meta = self.frames_meta.append(
+                        aux_utils.parse_idx_from_name(im_name, aux_utils.DF_NAMES),
+                        ignore_index=True,
+                    )
+        # Write frames meta to image dir too
+        self.frames_meta.to_csv(os.path.join(self.image_dir, 'frames_meta.csv'))
+        # Save masks and mask meta
+        self.mask_meta = aux_utils.make_dataframe()
+        self.mask_channel = 50
+        for p in range(5):
+            for z in range(6):
+                im_name = aux_utils.get_im_name(
+                    time_idx=self.time_idx,
+                    channel_idx=self.mask_channel,
+                    slice_idx=z,
+                    pos_idx=p,
+                )
+                cv2.imwrite(os.path.join(self.mask_dir, im_name), self.im + 1)
+                self.mask_meta = self.mask_meta.append(
+                    aux_utils.parse_idx_from_name(im_name, aux_utils.DF_NAMES),
+                    ignore_index=True,
+                )
+        # Write frames meta to mask dir too
+        self.mask_meta.to_csv(os.path.join(self.mask_dir, 'frames_meta.csv'))
+        # Setup model dir
+        split_samples = {
+            "train": [0, 1],
+            "val": [2],
+            "test": [3, 4],
+        }
+        aux_utils.write_json(
+            split_samples,
+            os.path.join(self.model_dir, 'split_samples.json'),
+        )
+        # Make configs with fields necessary for 2.5D segmentation inference
+        self.train_config = {
+            'network': {
+                'class': 'UNet3D',
+                'data_format': 'channels_first',
+                'num_filters_per_block': [8, 16],
+                'depth': 5,
+                'width': 5,
+                'height': 5},
+            'dataset': {
+                'split_by_column': 'pos_idx',
+                'input_channels': [1],
+                'target_channels': [self.mask_channel],
+                'model_task': 'regression',
+            },
+        }
+        self.inference_config = {
+            'model_dir': self.model_dir,
+            'model_fname': 'dummy_weights.hdf5',
+            'image_dir': self.image_dir,
+            'data_split': 'test',
+            'images': {
+                'image_format': 'zyx',
+                'image_ext': '.png',
+            },
+            'metrics': {
+                'metrics': ['mse'],
+                'metrics_orientations': ['xyz'],
+            },
+            'masks': {
+                'mask_dir': self.mask_dir,
+                'mask_type': 'metrics',
+                'mask_channel': 50,
+            },
+            'inference_3d': {
+                'tile_shape': [5, 5, 5],
+                'num_overlap': [1, 1, 1],
+                'overlap_operation': 'mean',
+            },
+        }
+        # Instantiate class
+        self.infer_inst = image_inference.ImagePredictor(
+            train_config=self.train_config,
+            inference_config=self.inference_config,
+        )
+
+    def tearDown(self):
+        """
+        Tear down temporary folder and file structure
+        """
+        TempDirectory.cleanup_all()
+        self.assertEqual(os.path.isdir(self.temp_path), False)
+
+    def test_init(self):
+        """
+        Test init of inference dataset
+        """
+        # Check proper init
+        self.assertEqual(self.infer_inst.model_dir, self.model_dir)
+        self.assertEqual(self.infer_inst.image_dir, self.image_dir)
+        self.assertEqual(self.infer_inst.data_format, 'channels_first')
+        self.assertEqual(self.infer_inst.model, 'dummy_model')
+        self.assertEqual(self.infer_inst.image_format, 'zyx')
+        self.assertEqual(self.infer_inst.image_ext, '.npy')
+        self.assertTrue(self.infer_inst.mask_metrics)
+        self.assertEqual(self.infer_inst.mask_dir, self.mask_dir)
+        self.assertListEqual(self.infer_inst.metrics_orientations, ['xyz'])
+        self.assertListEqual(self.infer_inst.num_overlap, [1, 1, 1])
+        self.assertEqual(self.infer_inst.tile_option, 'tile_xyz')
+        self.assertIsNone(self.infer_inst.crop_shape)
+
+    # @patch('micro_dl.inference.model_inference.predict_large_image')
+    # def test_predict_3d(self, mock_predict):
+    #     mock_predict.return_value = 1. + np.ones((1, 1, 1, 8, 16), dtype=np.float32)
+    #     # Predict row 0 from inference dataset iterator
+    #     pred_im, target_im, mask_im = self.infer_inst.predict_3d([0])
+    #     self.assertTupleEqual(pred_im.shape, (8, 16, 1))
+    #     self.assertEqual(pred_im.dtype, np.float32)
+    #     self.assertEqual(pred_im.max(), 2.0)
+    #     # Read saved prediction, z=2 for first slice with depth=5
+    #     pred_name = os.path.join(
+    #         self.model_dir,
+    #         'predictions/im_c050_z002_t002_p003.png',
+    #     )
+    #     im_pred = cv2.imread(pred_name, cv2.IMREAD_ANYDEPTH)
+    #     self.assertEqual(im_pred.dtype, np.uint16)
+    #     self.assertTupleEqual(im_pred.shape, (8, 16))
+    #     # Check target and no mask
+    #     self.assertTupleEqual(target_im.shape, (8, 16, 1))
+    #     self.assertEqual(target_im.dtype, np.float32)
+    #     self.assertEqual(target_im.max(), 1.)
+    #     self.assertListEqual(mask_im, [])
+    #
+    # @patch('micro_dl.inference.model_inference.predict_large_image')
+    # def test_run_prediction(self, mock_predict):
+    #     mock_predict.return_value = 1. + np.ones((1, 1, 1, 8, 16), dtype=np.float32)
+    #     # Run prediction. Should create a metrics_xy.csv in pred dir
+    #     self.infer_inst.run_prediction()
+    #     metrics = pd.read_csv(os.path.join(self.model_dir, 'predictions/metrics_xy.csv'))
+    #     print(metrics)
+    #     self.assertTupleEqual(metrics.shape, (4, 2))
+    #     # MAE should be 1.
+    #     self.assertEqual(metrics.dice.mean(), 1.0)
+    #     # There should be four rows, one per test index pos=3,4
+    #     # depth=5 means center slices z=2,3 will be evaluated
+    #     self.assertEqual(metrics.pred_name[0], 'im_c050_z002_t002_p003_xy0')
+    #     self.assertEqual(metrics.pred_name[1], 'im_c050_z003_t002_p003_xy0')
+    #     self.assertEqual(metrics.pred_name[2], 'im_c050_z002_t002_p004_xy0')
+    #     self.assertEqual(metrics.pred_name[3], 'im_c050_z003_t002_p004_xy0')
+    #     # There should be 4 predictions saved in pred dir
+    #     for p in [3, 4]:
+    #         for z in [2, 3]:
+    #             pred_name = os.path.join(
+    #                 self.model_dir,
+    #                 'predictions/im_c050_z00{}_t002_p00{}.png'.format(z, p),
+    #             )
+    #         im_pred = cv2.imread(pred_name, cv2.IMREAD_ANYDEPTH)
+    #         self.assertEqual(im_pred.dtype, np.uint16)
+    #         self.assertTupleEqual(im_pred.shape, (8, 16))
