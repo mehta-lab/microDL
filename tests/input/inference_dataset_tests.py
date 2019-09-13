@@ -143,7 +143,7 @@ class TestInferenceDataSet(unittest.TestCase):
         self.assertTupleEqual(iteration_meta.shape, (2, 6))
         self.assertListEqual(
             iteration_meta.channel_idx.unique().tolist(),
-            [1],
+            [self.mask_channel],
         )
         # Contains only test indices pos 1 and 3
         self.assertListEqual(
@@ -324,7 +324,7 @@ class TestInferenceDataSet2p5D(unittest.TestCase):
         self.assertTupleEqual(iteration_meta.shape, (4, 6))
         self.assertListEqual(
             iteration_meta.channel_idx.unique().tolist(),
-            [2],
+            [self.mask_channel],
         )
         # Contains only test indices pos 1 and 3
         self.assertListEqual(

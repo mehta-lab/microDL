@@ -68,7 +68,7 @@ class InferenceDataSet(keras.utils.Sequence):
         self.target_channels = dataset_config['target_channels']
         # get a subset of frames meta for only one channel to easily
         # extract indices (pos, time, slice) to iterate over
-        df_idx = (self.frames_meta['channel_idx'] == self.input_channels[0])
+        df_idx = (self.frames_meta['channel_idx'] == self.target_channels[0])
         self.iteration_meta = self.frames_meta.copy()
         self.iteration_meta = self.iteration_meta[df_idx]
 
