@@ -20,6 +20,19 @@ def zscore(input_image, mean=None, std=None):
     return norm_img
 
 
+def unzscore(im_norm, mean, std):
+    """
+    Revert z-score normalization applied during preprocessing. Necessary
+    before computing SSIM
+
+    :param input_image: input image for un-zscore
+    :return: image at its original scale
+    """
+
+    im = im_norm * (std + np.finfo(float).eps) + mean
+
+    return im
+
 def hist_clipping(input_image, min_percentile=2, max_percentile=98):
     """Clips and rescales histogram from min to max intensity percentiles
 

@@ -88,16 +88,21 @@ def corr_metric(target, prediction):
     return cur_corr
 
 
-def ssim_metric(target, prediction, mask=None):
+def ssim_metric(target,
+                prediction,
+                mask=None,
+                win_size=21):
     """SSIM of target and prediction
 
     :param np.array target: ground truth array
     :param np.array prediction: model prediction
+    :param int win_size: window size for computing local SSIM
     :return float/list ssim and ssim_masked
     """
 
     if mask is None:
         cur_ssim = ssim(target, prediction,
+                        win_size=win_size,
                         data_range=target.max() - target.min())
         return cur_ssim
     else:

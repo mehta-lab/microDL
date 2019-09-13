@@ -153,6 +153,8 @@ def tile_and_save(input_fnames,
     :return: pd.DataFrame from a list of dicts with metadata
     """
     try:
+        print('tile image t{:03d} p{:03d} z{:03d} c{:03d}...'
+              .format(time_idx, pos_idx, slice_idx, channel_idx))
         input_image = tile_utils.read_imstack(
             input_fnames=input_fnames,
             flat_field_fname=flat_field_fname,
@@ -237,6 +239,8 @@ def crop_at_indices_save(input_fnames,
     """
 
     try:
+        print('tile image t{:03d} p{:03d} z{:03d} c{:03d}...'
+              .format(time_idx, pos_idx, slice_idx, channel_idx))
         input_image = tile_utils.read_imstack(
             input_fnames=input_fnames,
             flat_field_fname=flat_field_fname,

@@ -11,6 +11,7 @@ import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.tile_utils as tile_utils
 import micro_dl.utils.preprocess_utils as preprocess_utils
 import micro_dl.utils.image_utils as image_utils
+import micro_dl.utils.normalize as normalize
 
 def parse_args():
     """Parse command line arguments
@@ -107,11 +108,12 @@ def compute_metrics(args):
         idx_fname = os.path.join(args.model_dir, 'split_samples.json')
         try:
             split_samples = aux_utils.read_json(idx_fname)
-            test_ids = split_samples['test']
+            test_ids = np.sort(split_samples['test'])
         except FileNotFoundError as e:
             print("No split_samples file. Will predict all images in dir.")
     else:
-        test_ids = np.unique(frames_meta[split_idx_name])
+        test_ids = np.sort(np.unique(frames_meta[split_idx_name]))
+
 
     # Find other indices to iterate over than split index name
     # E.g. if split is position, we also need to iterate over time and slice
@@ -121,7 +123,7 @@ def compute_metrics(args):
 
     for id in iter_ids:
         if id != split_idx_name:
-            metadata_ids[id] = np.unique(test_meta[id])
+            metadata_ids[id] = np.sort(np.unique(test_meta[id]))
 
     # Create image subdirectory to write predicted images
     pred_dir = os.path.join(args.model_dir, 'predictions')
@@ -174,6 +176,19 @@ def compute_metrics(args):
             target_stack = []
             pred_stack = []
             for slice_idx in metadata_ids['slice_idx']:
+                im_idx = aux_utils.get_meta_idx(
+                    metadata_df=frames_meta,
+                    time_idx=time_idx,
+                    channel_idx=target_channel,
+                    slice_idx=slice_idx,
+                    pos_idx=pos_idx,
+                )
+                target_fname = os.path.join(
+                    args.image_dir,
+                    frames_meta.loc[im_idx, 'file_name'],
+                )
+                im_target = image_utils.read_image(target_fname)
+                im_target = im_target.astype(np.float32)
 
                 pred_fname = aux_utils.get_im_name(
                     time_idx=time_idx,
@@ -182,21 +197,17 @@ def compute_metrics(args):
                     pos_idx=pos_idx,
                     ext=args.ext,
                 )
-
                 pred_fname = os.path.join(pred_dir, pred_fname)
-
-                im_target = tile_utils.preprocess_imstack(
-                    frames_metadata=frames_meta,
-                    input_dir=args.image_dir,
-                    depth=1,
-                    time_idx=time_idx,
-                    channel_idx=target_channel,
-                    slice_idx=slice_idx,
-                    pos_idx=pos_idx,
-                    normalize_im=normalize_im,
-                )
                 im_pred = image_utils.read_image(pred_fname)
-
+                # Un-zscore the predicted image. Necessary before computing SSIM
+                if normalize_im is not None:
+                    if normalize_im in ['dataset', 'volume', 'slice']:
+                        zscore_median = frames_meta.loc[im_idx, 'zscore_median']
+                        zscore_iqr = frames_meta.loc[im_idx, 'zscore_iqr']
+                    else:
+                        zscore_median = np.nanmean(im_target)
+                        zscore_iqr = np.nanstd(im_target)
+                    im_pred = normalize.unzscore(im_pred, zscore_median, zscore_iqr)
                 target_stack.append(im_target)
                 pred_stack.append(im_pred)
 
@@ -221,6 +232,9 @@ def compute_metrics(args):
     # Save non-empty dataframes
     for orientation in orientations_list:
         metrics_df = df_mapping[orientation]
+        # metrics_df = metrics_df.sort_values(
+        #     ['pred_name'], ascending=True
+        # )
         df_name = 'metrics_{}.csv'.format(orientation)
         metrics_name = os.path.join(pred_dir, df_name)
         metrics_df.to_csv(metrics_name, sep=",")
