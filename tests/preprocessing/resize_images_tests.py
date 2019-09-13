@@ -157,7 +157,7 @@ class TestResizeImages(unittest.TestCase):
         saved_meta = pd.read_csv(os.path.join(self.output_dir,
                                               'resized_images',
                                               'frames_meta.csv'))
-        del saved_meta['Unnamed: 0']
+
         exp_meta_df = pd.DataFrame.from_dict(exp_meta_dict)
         pd.testing.assert_frame_equal(saved_meta, exp_meta_df)
 
@@ -177,6 +177,6 @@ class TestResizeImages(unittest.TestCase):
         saved_meta = pd.read_csv(os.path.join(self.output_dir,
                                               'resized_images',
                                               'frames_meta.csv'))
-        del saved_meta['Unnamed: 0']
+
         exp_meta_df = pd.DataFrame.from_dict(exp_meta_dict)
         pd.testing.assert_frame_equal(saved_meta, exp_meta_df)

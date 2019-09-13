@@ -122,6 +122,7 @@ class ImageResizer:
         resized_metadata.to_csv(
             os.path.join(self.resize_dir, "frames_meta.csv"),
             sep=',',
+            index=False,
         )
 
     def resize_volumes(self, num_slices_subvolume=-1):
@@ -196,6 +197,7 @@ class ImageResizer:
         resized_metadata_df.to_csv(
             os.path.join(self.resize_dir, 'frames_meta.csv'),
             sep=',',
+            index=False,
         )
 
         if num_slices_subvolume == -1:

@@ -1,6 +1,5 @@
 """Model inference at the image/volume level"""
 import cv2
-import glob
 import natsort
 import numpy as np
 import os
@@ -12,8 +11,8 @@ from micro_dl.inference.evaluation_metrics import MetricsEstimator
 from micro_dl.inference.stitch_predictions import ImageStitcher
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.image_utils as image_utils
-from micro_dl.utils.train_utils import set_keras_session
 import micro_dl.utils.tile_utils as tile_utils
+from micro_dl.utils.train_utils import set_keras_session
 
 
 class ImagePredictor:
@@ -65,8 +64,7 @@ class ImagePredictor:
              str overlap_operation: e.g. 'mean'
         :param int gpu_id: GPU number to use. -1 for debugging (no GPU)
         :param float/None gpu_mem_frac: Memory fractions to use corresponding
-         to gpu_ids
-         TODO: add accuracy and dice coeff to metrics list
+            to gpu_ids
         """
         # Use model_dir from inference config if present, otherwise use train
         if 'model_dir' in inference_config:
