@@ -61,6 +61,17 @@ def test_binarize_array():
     nose.tools.assert_equal(im_bin.max(), 1)
 
 
+def test_mask_to_bool():
+    metrics_list = ['acc', 'dice']
+    mask = np.zeros(im_shape)
+    mask[5:10, 5:10, :] = 1.
+    metrics_inst = metrics.MetricsEstimator(
+        metrics_list=metrics_list,
+    )
+    mask = metrics_inst.mask_to_bool(mask)
+    nose.tools.assert_equal(mask.dtype, 'bool')
+
+
 def test_xyz_metrics():
     metrics_list = ['ssim', 'corr', 'r2', 'mse', 'mae']
     pred_name = 'test_pred'

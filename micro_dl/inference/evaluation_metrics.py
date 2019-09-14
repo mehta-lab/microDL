@@ -221,6 +221,20 @@ class MetricsEstimator:
         return self.metrics_yz
 
     @staticmethod
+    def mask_to_bool(mask):
+        """
+        If mask exists and is not boolean, convert.
+        Assume mask values == 0 is background
+
+        :param np.array mask: Mask
+        :return np.array mask: Mask with boolean dtype
+        """
+        if mask is not None:
+            if mask.dtype != 'bool':
+                mask = mask > 0
+        return mask
+
+    @staticmethod
     def assert_input(target,
                      prediction,
                      pred_name,
@@ -294,6 +308,7 @@ class MetricsEstimator:
         :param str pred_name: filename used for saving model prediction
         :param np.array mask: binary mask with foreground / background
         """
+        mask = self.mask_to_bool(mask)
         self.assert_input(target, prediction, pred_name, mask)
         self.metrics_xyz = pd.DataFrame(columns=self.pd_col_names)
         metrics_row = self.compute_metrics_row(
@@ -322,6 +337,7 @@ class MetricsEstimator:
         :param str/list pred_name: filename(s) used for saving model prediction
         :param np.array mask: binary mask with foreground / background
         """
+        mask = self.mask_to_bool(mask)
         self.assert_input(target, prediction, pred_name, mask)
         if len(target.shape) == 2:
             target = target[..., np.newaxis]
@@ -357,6 +373,7 @@ class MetricsEstimator:
         :param str pred_name: filename used for saving model prediction
         :param np.array mask: binary mask with foreground / background
         """
+        mask = self.mask_to_bool(mask)
         self.assert_input(target, prediction, pred_name, mask)
         assert len(target.shape) == 3, 'Dataset is assumed to be 3D'
         self.metrics_xz = pd.DataFrame(columns=self.pd_col_names)
@@ -390,6 +407,7 @@ class MetricsEstimator:
         :param str pred_name: filename used for saving model prediction
         :param np.array mask: binary mask with foreground / background
         """
+        mask = self.mask_to_bool(mask)
         self.assert_input(target, prediction, pred_name, mask)
         assert len(target.shape) == 3, 'Dataset is assumed to be 3D'
         self.metrics_yz = pd.DataFrame(columns=self.pd_col_names)

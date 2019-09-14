@@ -118,6 +118,7 @@ class ImagePredictor:
         self.mask_metrics = False
         self.mask_dir = None
         self.mask_meta = None
+        target_dir = None
         if 'masks' in inference_config:
             self.masks_dict = inference_config['masks']
         if self.masks_dict is not None:
@@ -130,6 +131,8 @@ class ImagePredictor:
             if self.masks_dict['mask_type'] == 'metrics':
                 # Compute weighted metrics
                 self.mask_metrics = True
+            else:
+                target_dir = self.mask_dir
 
         # Create dataset instance
         self.dataset_inst = InferenceDataSet(
@@ -138,7 +141,7 @@ class ImagePredictor:
             network_config=self.config['network'],
             split_col_ids=split_col_ids,
             image_format=images_dict['image_format'],
-            mask_dir=self.mask_dir,
+            mask_dir=target_dir,
             flat_field_dir=flat_field_dir,
         )
         # create an instance of MetricsEstimator
@@ -221,7 +224,7 @@ class ImagePredictor:
         Assign inference options for 3D volumes
 
         tile_z - 2d/3d predictions on full xy extent, stitch predictions along
-         z axis
+            z axis
         tile_xyz - 2d/3d prediction on sub-blocks, stitch predictions along xyz
         infer_on_center - infer on center block
         """
@@ -233,10 +236,13 @@ class ImagePredictor:
 
         if 'num_slices' in self.params_3d and self.params_3d['num_slices'] > 1:
             self.tile_option = 'tile_z'
-            train_num_slices = self.config['network']['depth']
-            assert self.params_3d['num_slices'] >= train_num_slices, \
-                'inference num of slies < num of slices used for training. ' \
-                'Inference on reduced num of slices gives sub optimal results'
+            train_depth = self.config['network']['depth']
+            assert self.params_3d['num_slices'] >= train_depth, \
+                'inference num of slices < num of slices used for training. ' \
+                'Inference on reduced num of slices gives sub optimal results' \
+                'Train slices: {}, inference slices: {}'.format(
+                    train_depth, self.params_3d['num_slices'],
+                )
             num_slices = self.params_3d['num_slices']
 
             assert self.config['network']['class'] == 'UNet3D', \
@@ -323,7 +329,7 @@ class ImagePredictor:
                                               end_idx)
             pred_block = inference.predict_large_image(
                 model=self.model,
-                input_image=cur_block
+                input_image=cur_block,
             )
             # reduce predictions from 5D to 3D for simplicity
             pred_ims.append(np.squeeze(pred_block))
@@ -336,7 +342,7 @@ class ImagePredictor:
         """Predict sub blocks along xyz
 
         :param np.array input_image: 5D tensor with the entire 3D volume
-        :param list crop_indices: list of crop indices
+        :param list crop_indices: list of crop indices: min/max xyz
         :return list pred_ims - list of predicted sub blocks
         """
         pred_ims = []
@@ -349,6 +355,7 @@ class ImagePredictor:
                 cur_block = input_image[:, crop_idx[0]: crop_idx[1],
                                         crop_idx[2]: crop_idx[3],
                                         crop_idx[4]: crop_idx[5], :]
+
             pred_block = inference.predict_large_image(
                 model=self.model,
                 input_image=cur_block,
@@ -482,6 +489,8 @@ class ImagePredictor:
         mask = image_utils.read_image(
             os.path.join(self.mask_dir, mask_fname),
         )
+        # Need metrics mask to be cropped the same way as inference dataset
+        mask = image_utils.crop2base(mask)
         # moves z from last axis to first axis
         if transpose and len(mask.shape) > 2:
             mask = np.transpose(mask, [2, 0, 1])
@@ -558,6 +567,7 @@ class ImagePredictor:
             '{}'.format(iteration_rows.pos_idx)
         cur_input, cur_target = \
             self.dataset_inst.__getitem__(iteration_rows[0])
+        # If crop shape is defined in images dict
         if self.crop_shape is not None:
             cur_input = image_utils.center_crop_to_shape(
                 cur_input,
@@ -614,15 +624,14 @@ class ImagePredictor:
             pos_idx=cur_row['pos_idx'],
             slice_idx=cur_row['slice_idx'],
         )
+        # 3D uses zyx, estimate metrics expects xyz
+        pred_image = np.transpose(pred_image, [1, 2, 0])
+        target_image = np.transpose(target_image, [1, 2, 0])
         # get mask
         mask_image = None
         if self.masks_dict is not None:
             mask_image = self.get_mask(cur_row, transpose=True)
             mask_image = np.transpose(mask_image, [1, 2, 0])
-        # 3D uses zyx, estimate metrics expects xyz
-        pred_image = np.transpose(pred_image, [1, 2, 0])
-        target_image = np.transpose(target_image, [1, 2, 0])
-
         return pred_image, target_image, mask_image
 
     def run_prediction(self):

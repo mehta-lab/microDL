@@ -166,7 +166,6 @@ class InferenceDataSet(keras.utils.Sequence):
                 )
                 flat_field_im = np.load(flat_field_fname)
             # Load image with given indices
-            print(depth, channel_idx, normalize, input_dir)
             im = image_utils.preprocess_imstack(
                 frames_metadata=self.frames_meta,
                 input_dir=input_dir,
@@ -192,7 +191,7 @@ class InferenceDataSet(keras.utils.Sequence):
         else:
             im_stack = np.stack(im_stack, axis=self.n_dims - 2)
         # Make sure all images have the same dtype
-        im_stack = im_stack.astype(np.float32)
+        im_stack = im_stack.astype(np.float64)
         return im_stack
 
     def __getitem__(self, index):
@@ -206,10 +205,6 @@ class InferenceDataSet(keras.utils.Sequence):
         """
         # Get indices for current inference iteration
         cur_row = self.iteration_meta.iloc[index]
-        print('in getitem')
-        print(cur_row)
-        print('channels', self.input_channels, self.target_channels)
-        print('depths', self.depth, self.target_depth)
         # Get input and target stacks for inference
         input_stack = self._get_image(
             input_dir=self.image_dir,
