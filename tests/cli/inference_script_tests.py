@@ -157,5 +157,5 @@ class TestInferenceScript(unittest.TestCase):
                 'im_c002_z00{}_t005_p007.tif'.format(test_z),
             )
             pred_im = cv2.imread(pred_name, cv2.IMREAD_ANYDEPTH)
-            self.assertEqual(pred_im.dtype, np.float64)
+            self.assertEqual(pred_im.dtype, np.float32)
             self.assertTupleEqual(pred_im.shape, (16, 16))

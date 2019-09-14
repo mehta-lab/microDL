@@ -400,7 +400,7 @@ class ImagePredictor:
             im_pred = im_pred.astype(np.uint16)
             cv2.imwrite(file_name, np.squeeze(im_pred))
         elif self.image_ext == '.tif':
-            # Convert to float32 and remove batch dimension
+            # Convert to float and remove batch dimension
             im_pred = predicted_image.astype(np.float32)
             cv2.imwrite(file_name, np.squeeze(im_pred))
         elif self.image_ext == '.npy':
