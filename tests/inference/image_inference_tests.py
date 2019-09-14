@@ -763,7 +763,6 @@ class TestImageInference3D(unittest.TestCase):
         # Run prediction. Should create a metrics_xy.csv in pred dir
         self.infer_inst.run_prediction()
         metrics = pd.read_csv(os.path.join(self.model_dir, 'predictions/metrics_xyz.csv'))
-        print(metrics)
         self.assertTupleEqual(metrics.shape, (2, 4))
         # MSE should be 0.
         self.assertEqual(metrics.mse.mean(), 0.0)
