@@ -172,8 +172,7 @@ class InferenceDataset(keras.utils.Sequence):
                                     self.input_channels,
                                     normalize=True)
         # the raw input images have to be normalized (z-score typically)
-        normalize = True if self.model_task == 'regression' else False
-        cur_target = self._get_image(cur_row, self.target_channels, normalize)
+        cur_target = self._get_image(cur_row, self.target_channels, normalize=False)
         input_stack.append(cur_input)
         target_stack.append(cur_target)
         # stack for batch dimension

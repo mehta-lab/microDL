@@ -59,13 +59,15 @@ def run_prediction(args, gpu_ids, gpu_mem_frac):
     )
     assert len(train_config_fname) == 1, \
         'more than one train config yaml found in model dir'
+    with open(train_config_fname[0], 'r') as f:
+        train_config = yaml.safe_load(f)
 
     model_fname = None
     if model_fname in inf_config:
         model_fname = os.path.join(inf_config['model_dir'],
                                    inf_config['model_fname'])
     image_pred_inst = image_inf.ImagePredictor(
-        config=train_config_fname[0],
+        config=train_config,
         model_fname=model_fname,
         image_dir=inf_config['image_dir'],
         data_split=args.data_split,

@@ -13,6 +13,7 @@ import micro_dl.utils.aux_utils as aux_utils
 from micro_dl.utils.image_utils import center_crop_to_shape
 from micro_dl.utils.train_utils import set_keras_session
 import micro_dl.utils.tile_utils as tile_utils
+import micro_dl.utils.normalize as normalize
 
 
 class ImagePredictor:
@@ -580,6 +581,9 @@ class ImagePredictor:
             if self.metrics_est_inst is not None:
                 if self.mask_param_dict is None:
                     mask_vol = None
+                pred_image = normalize.unzscore(pred_image,
+                                                np.nanmean(target_image),
+                                                np.nanstd(target_image))
                 self.estimate_metrics(cur_target=target_image,
                                       cur_prediction=pred_image,
                                       cur_pred_fname=pred_fname,

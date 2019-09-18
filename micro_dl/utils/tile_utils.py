@@ -286,10 +286,9 @@ def tile_image(input_image,
                                                   col: col + tile_size[1],
                                                   sl: sl + tile_size[2]]
                         if use_tile(cropped_img, min_fraction):
-                            tiles_list.append([cur_img_id, cropped_img])
+                            tiles_list.append(cropped_img)
                             cropping_index.append(cur_index)
-                            cur_tile_meta = get_tile_meta(cropped_img,
-                                                          cur_img_id,
+                            cur_tile_meta = get_tile_meta(cur_img_id,
                                                           save_dict,
                                                           row, col, sl)
                             tiled_metadata.append(cur_tile_meta)
