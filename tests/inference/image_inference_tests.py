@@ -174,7 +174,7 @@ class TestImageInference(unittest.TestCase):
         self.assertEqual(im_pred.min(), 0)
 
     def test_estimate_metrics_xy(self):
-        target = np.ones((10, 15, 5), dtype=np.float64)
+        target = np.ones((10, 15, 5), dtype=np.float32)
         prediction = np.zeros_like(target)
         prediction[:5, :, :] = 1
         pred_names = ['test1', 'test2', 'test3', 'test4', 'test5']
@@ -185,7 +185,7 @@ class TestImageInference(unittest.TestCase):
         self.assertEqual(metrics.mae.mean(), 0.5)
 
     def test_estimate_metrics_xy_one_name(self):
-        target = np.ones((10, 15, 5), dtype=np.float64)
+        target = np.ones((10, 15, 5), dtype=np.float32)
         prediction = np.zeros_like(target)
         prediction[:5, :, :] = 1
         self.infer_inst.estimate_metrics(target, prediction, ['test_name'], None)
@@ -195,7 +195,7 @@ class TestImageInference(unittest.TestCase):
         self.assertEqual(metrics.mae.mean(), 0.5)
 
     def test_estimate_metrics_xyz(self):
-        target = np.ones((10, 15, 5), dtype=np.float64)
+        target = np.ones((10, 15, 5), dtype=np.float32)
         prediction = np.zeros_like(target)
         prediction[:5, :, :] = 1
         self.infer_inst.metrics_orientations = ['xyz']
@@ -207,7 +207,7 @@ class TestImageInference(unittest.TestCase):
         self.assertEqual(metrics.pred_name[0], 'test_name')
 
     def test_estimate_metrics_xz(self):
-        target = np.ones((10, 15, 5), dtype=np.float64)
+        target = np.ones((10, 15, 5), dtype=np.float32)
         prediction = np.zeros_like(target)
         prediction[:5, :, :] = 1
         self.infer_inst.metrics_orientations = ['xz']
@@ -220,7 +220,7 @@ class TestImageInference(unittest.TestCase):
         self.assertEqual(metrics.pred_name[9], 'test_name_xz9')
 
     def test_estimate_metrics_yz(self):
-        target = np.ones((10, 15, 5), dtype=np.float64)
+        target = np.ones((10, 15, 5), dtype=np.float32)
         prediction = np.zeros_like(target)
         prediction[:5, :, :] = 1
         self.infer_inst.metrics_orientations = ['yz']
@@ -245,11 +245,11 @@ class TestImageInference(unittest.TestCase):
 
     @patch('micro_dl.inference.model_inference.predict_large_image')
     def test_predict_2d(self, mock_predict):
-        mock_predict.return_value = 1. + np.ones((1, 8, 16), dtype=np.float64)
+        mock_predict.return_value = 1. + np.ones((1, 8, 16), dtype=np.float32)
         # Predict row 0 from inference dataset iterator
         pred_im, target_im, mask_im = self.infer_inst.predict_2d([0])
         self.assertTupleEqual(pred_im.shape, (8, 16, 1))
-        self.assertEqual(pred_im.dtype, np.float64)
+        self.assertEqual(pred_im.dtype, np.float32)
         self.assertEqual(pred_im.max(), 2.0)
         # Read saved prediction too
         pred_name = os.path.join(
@@ -261,13 +261,13 @@ class TestImageInference(unittest.TestCase):
         self.assertTupleEqual(im_pred.shape, (8, 16))
         # Check target and no mask
         self.assertTupleEqual(target_im.shape, (8, 16, 1))
-        self.assertEqual(target_im.dtype, np.float64)
+        self.assertEqual(target_im.dtype, np.float32)
         self.assertEqual(target_im.max(), 1.)
         self.assertListEqual(mask_im, [])
 
     @patch('micro_dl.inference.model_inference.predict_large_image')
     def test_run_prediction(self, mock_predict):
-        mock_predict.return_value = 1. + np.ones((1, 8, 16), dtype=np.float64)
+        mock_predict.return_value = 1. + np.ones((1, 8, 16), dtype=np.float32)
         # Run prediction. Should create a metrics_xy.csv in pred dir
         self.infer_inst.run_prediction()
         metrics = pd.read_csv(os.path.join(self.model_dir, 'predictions/metrics_xy.csv'))
@@ -421,11 +421,11 @@ class TestImageInference2p5D(unittest.TestCase):
 
     @patch('micro_dl.inference.model_inference.predict_large_image')
     def test_predict_2d(self, mock_predict):
-        mock_predict.return_value = 1. + np.ones((1, 1, 1, 8, 16), dtype=np.float64)
+        mock_predict.return_value = 1. + np.ones((1, 1, 1, 8, 16), dtype=np.float32)
         # Predict row 0 from inference dataset iterator
         pred_im, target_im, mask_im = self.infer_inst.predict_2d([0])
         self.assertTupleEqual(pred_im.shape, (8, 16, 1))
-        self.assertEqual(pred_im.dtype, np.float64)
+        self.assertEqual(pred_im.dtype, np.float32)
         self.assertEqual(pred_im.max(), 2.0)
         # Read saved prediction, z=2 for first slice with depth=5
         pred_name = os.path.join(
@@ -437,13 +437,13 @@ class TestImageInference2p5D(unittest.TestCase):
         self.assertTupleEqual(im_pred.shape, (8, 16))
         # Check target and no mask
         self.assertTupleEqual(target_im.shape, (8, 16, 1))
-        self.assertEqual(target_im.dtype, np.float64)
+        self.assertEqual(target_im.dtype, np.float32)
         self.assertEqual(target_im.max(), 1.)
         self.assertListEqual(mask_im, [])
 
     @patch('micro_dl.inference.model_inference.predict_large_image')
     def test_run_prediction(self, mock_predict):
-        mock_predict.return_value = 1. + np.ones((1, 1, 1, 8, 16), dtype=np.float64)
+        mock_predict.return_value = 1. + np.ones((1, 1, 1, 8, 16), dtype=np.float32)
         # Run prediction. Should create a metrics_xy.csv in pred dir
         self.infer_inst.run_prediction()
         metrics = pd.read_csv(os.path.join(self.model_dir, 'predictions/metrics_xy.csv'))
@@ -656,7 +656,7 @@ class TestImageInference3D(unittest.TestCase):
 
     def test_get_sub_block_z(self):
         # 3D image for prediction should have channel and batch dim
-        im = np.zeros((1, 2, 8, 10, 10), dtype=np.float64)
+        im = np.zeros((1, 2, 8, 10, 10), dtype=np.float32)
         block = self.infer_inst._get_sub_block_z(
             input_image=im,
             start_z_idx=2,
@@ -666,7 +666,7 @@ class TestImageInference3D(unittest.TestCase):
 
     def test_get_sub_block_z_channels_last(self):
         self.infer_inst.data_format = 'channels_last'
-        im = np.zeros((1, 8, 10, 10, 2), dtype=np.float64)
+        im = np.zeros((1, 8, 10, 10, 2), dtype=np.float32)
         block = self.infer_inst._get_sub_block_z(
             input_image=im,
             start_z_idx=2,
@@ -676,7 +676,7 @@ class TestImageInference3D(unittest.TestCase):
 
     def test_get_sub_block_z_xyz(self):
         self.infer_inst.image_format = 'xyz'
-        im = np.zeros((1, 2, 10, 10, 8), dtype=np.float64)
+        im = np.zeros((1, 2, 10, 10, 8), dtype=np.float32)
         block = self.infer_inst._get_sub_block_z(
             input_image=im,
             start_z_idx=2,
@@ -687,7 +687,7 @@ class TestImageInference3D(unittest.TestCase):
     def test_get_sub_block_z_xyz_channels_last(self):
         self.infer_inst.image_format = 'xyz'
         self.infer_inst.data_format = 'channels_last'
-        im = np.zeros((1, 10, 10, 8, 2), dtype=np.float64)
+        im = np.zeros((1, 10, 10, 8, 2), dtype=np.float32)
         block = self.infer_inst._get_sub_block_z(
             input_image=im,
             start_z_idx=2,
@@ -697,14 +697,14 @@ class TestImageInference3D(unittest.TestCase):
 
     @patch('micro_dl.inference.model_inference.predict_large_image')
     def test_predict_sub_block_z(self, mock_predict):
-        mock_predict.return_value = np.zeros((1, 1, 5, 10, 10), dtype=np.float64)
+        mock_predict.return_value = np.zeros((1, 1, 5, 10, 10), dtype=np.float32)
         self.infer_inst.params_3d = {
             'num_slices': 5,
             'num_overlap': 1,
             'overlap_operation': 'mean',
         }
         self.infer_inst.num_overlap = 1
-        im = np.zeros((1, 1, 8, 10, 10), dtype=np.float64)
+        im = np.zeros((1, 1, 8, 10, 10), dtype=np.float32)
         pred_ims, start_end_idx = self.infer_inst._predict_sub_block_z(
             input_image=im,
         )
@@ -717,9 +717,9 @@ class TestImageInference3D(unittest.TestCase):
 
     @patch('micro_dl.inference.model_inference.predict_large_image')
     def test_predict_sub_block_xyz(self, mock_predict):
-        mock_predict.return_value = np.zeros((1, 1, 5, 5, 5), dtype=np.float64)
+        mock_predict.return_value = np.zeros((1, 1, 5, 5, 5), dtype=np.float32)
         self.infer_inst.num_overlap = 1
-        im = np.zeros((1, 1, 8, 10, 10), dtype=np.float64)
+        im = np.zeros((1, 1, 8, 10, 10), dtype=np.float32)
         pred_ims = self.infer_inst._predict_sub_block_xyz(
             input_image=im,
             crop_indices=[(0, 5, 0, 5, 0, 5), (3, 8, 0, 5, 0, 5)],
@@ -728,9 +728,9 @@ class TestImageInference3D(unittest.TestCase):
 
     @patch('micro_dl.inference.model_inference.predict_large_image')
     def test_predict_sub_block_xyz_channels_last(self, mock_predict):
-        mock_predict.return_value = np.zeros((1, 1, 5, 5, 5), dtype=np.float64)
+        mock_predict.return_value = np.zeros((1, 1, 5, 5, 5), dtype=np.float32)
         self.infer_inst.num_overlap = 1
-        im = np.zeros((1, 8, 10, 10, 1), dtype=np.float64)
+        im = np.zeros((1, 8, 10, 10, 1), dtype=np.float32)
         pred_ims = self.infer_inst._predict_sub_block_xyz(
             input_image=im,
             crop_indices=[(3, 8, 0, 5, 0, 5)],
@@ -739,13 +739,13 @@ class TestImageInference3D(unittest.TestCase):
 
     @patch('micro_dl.inference.model_inference.predict_large_image')
     def test_predict_3d(self, mock_predict):
-        mock_predict.return_value = np.zeros((1, 1, 5, 5, 5), dtype=np.float64)
+        mock_predict.return_value = np.zeros((1, 1, 5, 5, 5), dtype=np.float32)
         # Predict row 0 from inference dataset iterator
         pred_im, target_im, mask_im = self.infer_inst.predict_3d([0])
         self.assertTupleEqual(pred_im.shape, (8, 8, 8))
-        self.assertEqual(pred_im.dtype, np.float64)
+        self.assertEqual(pred_im.dtype, np.float32)
         self.assertTupleEqual(target_im.shape, (8, 8, 8))
-        self.assertEqual(target_im.dtype, np.float64)
+        self.assertEqual(target_im.dtype, np.float32)
         self.assertTupleEqual(mask_im.shape, (8, 8, 8))
         self.assertEqual(mask_im.dtype, np.uint8)
         # Read saved prediction, z=0 target channel=2
@@ -754,12 +754,12 @@ class TestImageInference3D(unittest.TestCase):
             'predictions/im_c002_z000_t002_p003.npy',
         )
         im_pred = np.load(pred_name)
-        self.assertEqual(im_pred.dtype, np.float64)
+        self.assertEqual(im_pred.dtype, np.float32)
         self.assertTupleEqual(im_pred.shape, (8, 8, 8))
 
     @patch('micro_dl.inference.model_inference.predict_large_image')
     def test_run_prediction(self, mock_predict):
-        mock_predict.return_value = np.zeros((1, 1, 5, 5, 5), dtype=np.float64)
+        mock_predict.return_value = np.zeros((1, 1, 5, 5, 5), dtype=np.float32)
         # Run prediction. Should create a metrics_xy.csv in pred dir
         self.infer_inst.run_prediction()
         metrics = pd.read_csv(os.path.join(self.model_dir, 'predictions/metrics_xyz.csv'))
@@ -779,5 +779,5 @@ class TestImageInference3D(unittest.TestCase):
                 'predictions/im_c002_z000_t002_p00{}.npy'.format(p),
             )
             im_pred = np.load(pred_name)
-            self.assertEqual(im_pred.dtype, np.float64)
+            self.assertEqual(im_pred.dtype, np.float32)
             self.assertTupleEqual(im_pred.shape, (8, 8, 8))
