@@ -488,11 +488,15 @@ class ImagePredictor:
         )
         # Need metrics mask to be cropped the same way as inference dataset
         mask = image_utils.crop2base(mask)
+        if self.crop_shape is not None:
+            mask = image_utils.center_crop_to_shape(
+                mask,
+                self.crop_shape,
+                self.image_format,
+            )
         # moves z from last axis to first axis
         if transpose and len(mask.shape) > 2:
             mask = np.transpose(mask, [2, 0, 1])
-        if self.crop_shape is not None:
-            mask = image_utils.center_crop_to_shape(mask, self.crop_shape)
         return mask
 
     def predict_2d(self, iteration_rows):
@@ -515,10 +519,12 @@ class ImagePredictor:
                 cur_input = image_utils.center_crop_to_shape(
                     cur_input,
                     self.crop_shape,
+                    self.image_format,
                 )
                 cur_target = image_utils.center_crop_to_shape(
                     cur_target,
                     self.crop_shape,
+                    self.image_format,
                 )
             pred_image = inference.predict_large_image(
                 model=self.model,
@@ -542,11 +548,16 @@ class ImagePredictor:
             # add to vol
             pred_stack.append(pred_image)
             target_stack.append(np.squeeze(cur_target).astype(np.float32))
+        pred_stack = np.stack(pred_stack)
+        target_stack = np.stack(target_stack)
         # Stack images and transpose (metrics assumes xyz format)
-        pred_stack = np.transpose(np.stack(pred_stack), [1, 2, 0])
-        target_stack = np.transpose(np.stack(target_stack), [1, 2, 0])
+        if self.image_format == 'zyx':
+            pred_stack = np.transpose(pred_stack, [1, 2, 0])
+            target_stack = np.transpose(target_stack, [1, 2, 0])
         if self.mask_metrics:
-            mask_stack = np.transpose(np.stack(mask_stack), [1, 2, 0])
+            mask_stack = np.stack(mask_stack)
+            if self.image_format == 'zyx':
+                mask_stack = np.transpose(mask_stack, [1, 2, 0])
         return pred_stack, target_stack, mask_stack
 
     def predict_3d(self, iteration_rows):
@@ -574,6 +585,7 @@ class ImagePredictor:
                 cur_target,
                 self.crop_shape,
             )
+        inf_shape = None
         if self.tile_option == 'infer_on_center':
             inf_shape = self.params_3d['inf_shape']
             center_block = image_utils.center_crop_to_shape(cur_input, inf_shape)
@@ -622,13 +634,20 @@ class ImagePredictor:
             slice_idx=cur_row['slice_idx'],
         )
         # 3D uses zyx, estimate metrics expects xyz
-        pred_image = np.transpose(pred_image, [1, 2, 0])
-        target_image = np.transpose(target_image, [1, 2, 0])
+        if self.image_format == 'zyx':
+            pred_image = np.transpose(pred_image, [1, 2, 0])
+            target_image = np.transpose(target_image, [1, 2, 0])
         # get mask
         mask_image = None
         if self.masks_dict is not None:
             mask_image = self.get_mask(cur_row, transpose=True)
-            mask_image = np.transpose(mask_image, [1, 2, 0])
+            if inf_shape is not None:
+                mask_image = image_utils.center_crop_to_shape(
+                    mask_image,
+                    inf_shape,
+                )
+            if self.image_format == 'zyx':
+                mask_image = np.transpose(mask_image, [1, 2, 0])
         return pred_image, target_image, mask_image
 
     def run_prediction(self):

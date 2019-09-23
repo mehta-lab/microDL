@@ -266,6 +266,31 @@ class TestImageInference(unittest.TestCase):
         self.assertListEqual(mask_im, [])
 
     @patch('micro_dl.inference.model_inference.predict_large_image')
+    def test_predict_2d_mask(self, mock_predict):
+        self.infer_inst.crop_shape = [6, 10]
+        self.infer_inst.mask_metrics = True
+        mock_predict.return_value = 1. + np.ones((1, 6, 10), dtype=np.float32)
+        # Predict row 0 from inference dataset iterator
+        pred_im, target_im, mask_im = self.infer_inst.predict_2d([0])
+        self.assertTupleEqual(pred_im.shape, (6, 10, 1))
+        self.assertEqual(pred_im.dtype, np.float32)
+        self.assertEqual(pred_im.max(), 2.0)
+        # Read saved prediction too
+        pred_name = os.path.join(
+            self.model_dir,
+            'predictions/im_c050_z003_t002_p003.png',
+        )
+        im_pred = cv2.imread(pred_name, cv2.IMREAD_ANYDEPTH)
+        self.assertEqual(im_pred.dtype, np.uint16)
+        self.assertTupleEqual(im_pred.shape, (6, 10))
+        # Check target and no mask
+        self.assertTupleEqual(target_im.shape, (6, 10, 1))
+        self.assertEqual(target_im.dtype, np.float32)
+        self.assertEqual(target_im.max(), 1.)
+        self.assertTupleEqual(mask_im.shape, (6, 10, 1))
+        self.assertEqual(mask_im.dtype, np.uint8)
+
+    @patch('micro_dl.inference.model_inference.predict_large_image')
     def test_run_prediction(self, mock_predict):
         mock_predict.return_value = 1. + np.ones((1, 8, 16), dtype=np.float32)
         # Run prediction. Should create a metrics_xy.csv in pred dir
@@ -624,6 +649,19 @@ class TestImageInference3D(unittest.TestCase):
         self.assertEqual(self.infer_inst.tile_option, 'tile_z')
         self.assertEqual(self.infer_inst.num_overlap, 1)
 
+    def test_assign_3d_inference_xyz(self):
+        # Test other settings
+        self.infer_inst.params_3d = {
+            'num_slices': 5,
+            'num_overlap': 1,
+            'overlap_operation': 'mean',
+        }
+        self.infer_inst.image_format = 'xyz'
+        self.infer_inst._assign_3d_inference()
+        self.assertEqual(self.infer_inst.z_dim, 4)
+        self.assertEqual(self.infer_inst.tile_option, 'tile_z')
+        self.assertEqual(self.infer_inst.num_overlap, 1)
+
     @nose.tools.raises(AssertionError)
     def test_assign_3d_inference_few_slices(self):
         # Test other settings
@@ -756,6 +794,29 @@ class TestImageInference3D(unittest.TestCase):
         im_pred = np.load(pred_name)
         self.assertEqual(im_pred.dtype, np.float32)
         self.assertTupleEqual(im_pred.shape, (8, 8, 8))
+
+    @patch('micro_dl.inference.model_inference.predict_large_image')
+    def test_predict_3d_on_center(self, mock_predict):
+        mock_predict.return_value = np.zeros((1, 1, 3, 3, 3), dtype=np.float32)
+        self.infer_inst.crop_shape = [5, 5, 5]
+        self.infer_inst.tile_option = 'infer_on_center'
+        self.infer_inst.params_3d['inf_shape'] = [3, 3, 3]
+        # Predict row 0 from inference dataset iterator
+        pred_im, target_im, mask_im = self.infer_inst.predict_3d([0])
+        self.assertTupleEqual(pred_im.shape, (3, 3, 3))
+        self.assertEqual(pred_im.dtype, np.float32)
+        self.assertTupleEqual(target_im.shape, (3, 3, 3))
+        self.assertEqual(target_im.dtype, np.float32)
+        self.assertTupleEqual(mask_im.shape, (3, 3, 3))
+        self.assertEqual(mask_im.dtype, np.uint8)
+        # Read saved prediction, z=0 target channel=2
+        pred_name = os.path.join(
+            self.model_dir,
+            'predictions/im_c002_z000_t002_p003.npy',
+        )
+        im_pred = np.load(pred_name)
+        self.assertEqual(im_pred.dtype, np.float32)
+        self.assertTupleEqual(im_pred.shape, (3, 3, 3))
 
     @patch('micro_dl.inference.model_inference.predict_large_image')
     def test_run_prediction(self, mock_predict):
