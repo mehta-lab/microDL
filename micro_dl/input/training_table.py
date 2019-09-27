@@ -1,7 +1,5 @@
 import numpy as np
 
-from micro_dl.utils.train_utils import split_train_val_test
-
 
 class BaseTrainingTable:
     """Generates the training table/info"""
@@ -33,11 +31,63 @@ class BaseTrainingTable:
 
     @staticmethod
     def _get_col_name(channel_ids):
+        """
+        Get file names for given channels
+
+        :param list channel_ids: Channel integer indices
+        :return list column_names: Channel file name strings
+        """
         column_names = []
         for c_name in channel_ids:
             cur_fname = 'file_name_{}'.format(c_name)
             column_names.append(cur_fname)
         return column_names
+
+    @staticmethod
+    def split_train_val_test(sample_set, train_ratio, test_ratio,
+                             val_ratio=None, random_seed=None):
+        """
+        Generate indices for train, validation and test split
+
+        This can be achieved by using sklearn.model_selection.train_test_split
+        twice... :-)
+
+        :param set sample_set: as named, not necessarily continuous values
+        :param float train_ratio: between 0 and 1, percent of samples to be
+            used for training
+        :param float test_ratio: between 0 and 1, percent of samples to be
+            used for test set
+        :param float val_ratio: between 0 and 1, percent of samples to be
+            used for the validation set
+        :param int random_seed: between 0 and 2**32 - 1, random seed for
+            train-val-test split
+        :return: dict split_idx with keys [train, val, test] and values as lists
+        """
+
+        msg = 'train, val and test ratios do not add up to 1'
+        assert train_ratio + val_ratio + test_ratio == 1, msg
+        num_samples = len(sample_set)
+        num_test = int(test_ratio * num_samples)
+        num_test = max(num_test, 1)
+
+        np.random.seed(random_seed)
+        split_idx = {}
+        test_idx = np.random.choice(sample_set, num_test, replace=False)
+        split_idx['test'] = test_idx.tolist()
+        rem_set = set(sample_set) - set(test_idx)
+        rem_set = list(rem_set)
+
+        if val_ratio:
+            num_val = int(val_ratio * num_samples)
+            num_val = max(num_val, 1)
+            val_idx = np.random.choice(rem_set, num_val, replace=False)
+            split_idx['val'] = val_idx.tolist()
+            rem_set = set(rem_set) - set(val_idx)
+            rem_set = list(rem_set)
+
+        train_idx = np.array(rem_set, dtype='int')
+        split_idx['train'] = train_idx.tolist()
+        return split_idx
 
     def _get_df(self, cur_df, retain_columns):
         """
@@ -86,7 +136,7 @@ class BaseTrainingTable:
         # DOES NOT HANDLE NON-INTEGER VALUES. map to int
         # the sample_idxs are required for evaluating performance on test set
         unique_values = np.asarray(unique_values, dtype='uint32')
-        split_idx = split_train_val_test(
+        split_idx = self.split_train_val_test(
             unique_values, self.split_ratio['train'],
             self.split_ratio['test'], self.split_ratio['val'],
             self.random_seed

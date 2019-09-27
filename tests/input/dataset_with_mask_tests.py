@@ -58,6 +58,7 @@ class TestDataSetWithMask(unittest.TestCase):
             'normalize': False,
             'squeeze': True,
             'model_task': 'segmentation',
+            'label_weights': [1, 2],
         }
         # Instantiate class
         self.data_inst = dataset_mask.DataSetWithMask(
@@ -103,6 +104,7 @@ class TestDataSetWithMask(unittest.TestCase):
         self.assertEqual(self.data_inst.model_task, 'segmentation')
         self.assertEqual(self.data_inst.random_seed, 42)
         self.assertFalse(self.data_inst.normalize)
+        self.assertListEqual(self.data_inst.label_weights, [1, 2])
 
     def test__getitem__(self):
         im_in, im_target = self.data_inst.__getitem__(0)
@@ -120,3 +122,11 @@ class TestDataSetWithMask(unittest.TestCase):
                 augmentations[i],
             ))
             np.testing.assert_array_equal(im_test, im_expected)
+
+    def test__getitem__batch3(self):
+        self.data_inst.batch_size = 3
+        im_in, im_target = self.data_inst.__getitem__(1)
+        # Batch size =3, total samples 4, so item 1 will only have one tile
+        self.assertTupleEqual(im_in.shape, (1, 1, 5, 7))
+        # Mask is added to target
+        self.assertTupleEqual(im_target.shape, (1, 2, 5, 7))
