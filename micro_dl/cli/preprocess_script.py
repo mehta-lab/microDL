@@ -216,7 +216,9 @@ def tile_images(params_dict,
               'flat_field_dir': flat_field_dir,
               'num_workers': params_dict['num_workers'],
               'int2str_len': params_dict['int2strlen'],
-              'min_fraction': tile_dict['min_fraction']}
+              'min_fraction': tile_dict['min_fraction'],
+              'normalize_im': params_dict['normalize_im'],
+              }
 
     if params_dict['uniform_struct']:
         if 'tile_3d' in tile_dict and tile_dict['tile_3d']:
