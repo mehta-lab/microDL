@@ -346,7 +346,7 @@ class ImagePredictor:
                 input_image=cur_block
             )
             # retain the full 5D tensor to experiment for multichannel case
-            pred_imgs_list.append(pred_block)
+            pred_imgs_list.append(pred_block.astype(np.float32))
         return pred_imgs_list
 
     def save_pred_image(self,
@@ -423,6 +423,8 @@ class ImagePredictor:
             self.df_xyz = self.df_xyz.append(
                 self.metrics_est_inst.get_metrics_xyz()
             )
+            xyz_df = self.metrics_est_inst.get_metrics_xyz()
+            print(xyz_df['ssim'])
         if 'xz' in self.metrics_orientations:
             self.metrics_est_inst.estimate_xz_metrics(**kw_args)
             self.df_xz = self.df_xz.append(
@@ -589,18 +591,18 @@ class ImagePredictor:
                                       cur_pred_fname=pred_fname,
                                       cur_mask=mask_vol)
             del pred_image, target_image
-            if self.metrics_est_inst is not None:
-                metrics_mapping = {
-                    'xy': self.df_xy,
-                    'xz': self.df_xz,
-                    'yz': self.df_yz,
-                    'xyz': self.df_xyz,
-                }
-                for orientation in self.metrics_orientations:
-                    metrics_df = metrics_mapping[orientation]
-                    df_name = 'metrics_{}.csv'.format(orientation)
-                    metrics_df.to_csv(
-                        os.path.join(self.config['trainer']['model_dir'],
-                                     df_name),
-                        sep=','
-                    )
+        if self.metrics_est_inst is not None:
+            metrics_mapping = {
+                'xy': self.df_xy,
+                'xz': self.df_xz,
+                'yz': self.df_yz,
+                'xyz': self.df_xyz,
+            }
+            for orientation in self.metrics_orientations:
+                metrics_df = metrics_mapping[orientation]
+                df_name = 'metrics_{}.csv'.format(orientation)
+                metrics_df.to_csv(
+                    os.path.join(self.config['trainer']['model_dir'],
+                                 df_name),
+                    sep=','
+                )

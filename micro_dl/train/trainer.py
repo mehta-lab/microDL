@@ -233,6 +233,7 @@ class BaseKerasTrainer:
                                      callbacks=callbacks,
                                      workers=self.workers,
                                      use_multiprocessing=True,
+                                     max_queue_size=24,
                                      verbose=1)
             time_el = time.time() - time_start
             self.logger.info("Training time: {}".format(time_el))

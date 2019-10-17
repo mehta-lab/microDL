@@ -221,7 +221,7 @@ class ImageStitcher:
         :return np.array stitched_img: 3D image with blocks assembled in place
         """
 
-        stitched_img = np.zeros(self.shape_3d)
+        stitched_img = np.zeros(self.shape_3d, dtype=np.float32)
         assert self.data_format is not None, \
             'data format needed for stitching images along xyz'
         for idx, cur_tile in enumerate(tile_imgs_list):

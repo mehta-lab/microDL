@@ -159,6 +159,7 @@ class InferenceDataset(keras.utils.Sequence):
             cur_stack = np.stack(cur_stack)
         else:
             cur_stack = np.stack(cur_stack, axis=self.n_dims - 2)
+        cur_stack = cur_stack.astype(np.float32)
         return cur_stack
 
     def __getitem__(self, index):
@@ -170,7 +171,7 @@ class InferenceDataset(keras.utils.Sequence):
         cur_row = self.df_iteration_meta.iloc[index]
         cur_input = self._get_image(cur_row,
                                     self.input_channels,
-                                    normalize=True)
+                                    normalize='stack')
         # the raw input images have to be normalized (z-score typically)
         cur_target = self._get_image(cur_row, self.target_channels, normalize=None)
         input_stack.append(cur_input)
