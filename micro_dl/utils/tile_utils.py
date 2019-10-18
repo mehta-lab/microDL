@@ -306,9 +306,7 @@ def tile_image(input_image,
                 file_names_list.append(file_name)
     # print('tiling takes {:02f} s'.format(time.time() - time_start))
     # time_start = time.time()
-    workers = 16
-    with ThreadPoolExecutor(workers) as ex:
-        ex.map(write_tile, tiles_list, file_names_list, [save_dict] * len(tiles_list))
+
     # print('saving a tile takes {:02f} s'.format(time.time() - time_start))
     if save_dict is None:
         if return_index:
@@ -316,6 +314,9 @@ def tile_image(input_image,
         return tiles_list
     else:
         # create and save meta csv
+        workers = 16
+        with ThreadPoolExecutor(workers) as ex:
+            ex.map(write_tile, tiles_list, file_names_list, [save_dict] * len(tiles_list))
         tile_meta_df = write_meta(tiled_metadata, save_dict)
         if return_index:
             return tile_meta_df, cropping_index
