@@ -189,16 +189,27 @@ def compute_metrics(args):
                 )
                 im_target = image_utils.read_image(target_fname)
                 im_target = im_target.astype(np.float32)
+                try:
+                    pred_fname = aux_utils.get_im_name(
+                        time_idx=time_idx,
+                        channel_idx=input_channels,
+                        slice_idx=slice_idx,
+                        pos_idx=pos_idx,
+                        ext=args.ext,
+                    )
+                    pred_fname = os.path.join(pred_dir, pred_fname)
+                    im_pred = image_utils.read_image(pred_fname)
+                except IOError:
+                    pred_fname = aux_utils.get_im_name(
+                        time_idx=time_idx,
+                        channel_idx=pred_channel,
+                        slice_idx=slice_idx,
+                        pos_idx=pos_idx,
+                        ext=args.ext,
+                    )
+                    pred_fname = os.path.join(pred_dir, pred_fname)
+                    im_pred = image_utils.read_image(pred_fname)
 
-                pred_fname = aux_utils.get_im_name(
-                    time_idx=time_idx,
-                    channel_idx=input_channels,
-                    slice_idx=slice_idx,
-                    pos_idx=pos_idx,
-                    ext=args.ext,
-                )
-                pred_fname = os.path.join(pred_dir, pred_fname)
-                im_pred = image_utils.read_image(pred_fname)
                 # Un-zscore the predicted image. Necessary before computing SSIM
                 if normalize_im is not None:
                     if normalize_im in ['dataset', 'volume', 'slice']:

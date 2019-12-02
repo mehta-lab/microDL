@@ -191,10 +191,9 @@ def read_image(file_path):
     if file_path[-3:] == 'npy':
         im = np.load(file_path)
     else:
-        try:
-            im = cv2.imread(file_path, cv2.IMREAD_ANYDEPTH)
-        except IOError as e:
-            raise e
+        im = cv2.imread(file_path, cv2.IMREAD_ANYDEPTH)
+        if im is None:
+            raise IOError('Image "{}" cannot be found.'.format(file_path))
     return im
 
 
