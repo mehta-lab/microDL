@@ -54,12 +54,12 @@ class BaseKerasTrainer:
         self.num_target_channels = num_target_channels
         self.logger = self._init_train_logger()
 
-        workers = 4
-        if 'workers' in train_config:
-            workers = train_config['workers']
-            assert isinstance(workers, int) and workers > 0, \
-                'workers must be a positive integer'
-        self.workers = workers
+        num_workers = 4
+        if 'num_workers' in train_config:
+            num_workers = train_config['num_workers']
+            assert isinstance(num_workers, int) and num_workers > 0, \
+                'num_workers must be a positive integer'
+        self.num_workers = num_workers
 
         self.resume_training = False
         if 'resume' in train_config and train_config['resume']:
@@ -231,7 +231,7 @@ class BaseKerasTrainer:
                                      epochs=self.epochs,
                                      steps_per_epoch=steps_per_epoch,
                                      callbacks=callbacks,
-                                     workers=self.workers,
+                                     workers=self.num_workers,
                                      use_multiprocessing=True,
                                      max_queue_size=24,
                                      verbose=1)

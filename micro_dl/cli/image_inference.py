@@ -241,7 +241,9 @@ def run_prediction(model_dir,
     optimizer = trainer_config['optimizer']['name']
     model.compile(loss=loss_cls, optimizer=optimizer, metrics=metrics_cls)
     pp_config = preprocess_utils.get_pp_config(config['dataset']['data_dir'])
-    normalize_im = pp_config['normalize_im']
+    normalize_im = 'stack'
+    if 'normalize_im' in pp_config:
+        normalize_im = pp_config['normalize_im']
 
     # Iterate over all indices for test data
     for time_idx in metadata_ids['time_idx']:
