@@ -14,7 +14,7 @@ import micro_dl.plotting.plot_utils as plot_utils
 import micro_dl.inference.model_inference as inference
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.image_utils as image_utils
-from micro_dl.utils.tile_utils import preprocess_imstack
+from micro_dl.utils.image_utils import preprocess_imstack
 import micro_dl.utils.train_utils as train_utils
 import micro_dl.utils.preprocess_utils as preprocess_utils
 
@@ -198,11 +198,15 @@ def run_prediction(model_dir,
             metadata_ids[id] = np.unique(test_tile_meta[id])
 
     # create empty dataframe for test image metadata
-    test_frames_meta = pd.DataFrame(
-        columns=frames_meta.columns.values.tolist() + metrics,
-    )
+    if metrics is not None:
+        test_frames_meta = pd.DataFrame(
+            columns=frames_meta.columns.values.tolist() + metrics,
+        )
+    else:
+        test_frames_meta = pd.DataFrame(
+            columns=frames_meta.columns.values.tolist()
+        )
     # Get model weight file name, if none, load latest saved weights
-    model_fname = model_fname
     if model_fname is None:
         fnames = [f for f in os.listdir(model_dir) if f.endswith('.hdf5')]
         assert len(fnames) > 0, 'No weight files found in model dir'
@@ -240,10 +244,10 @@ def run_prediction(model_dir,
     print(model.summary())
     optimizer = trainer_config['optimizer']['name']
     model.compile(loss=loss_cls, optimizer=optimizer, metrics=metrics_cls)
-    pp_config = preprocess_utils.get_pp_config(config['dataset']['data_dir'])
+    preprocess_config = preprocess_utils.get_preprocess_config(config['dataset']['data_dir'])
     normalize_im = 'stack'
-    if 'normalize_im' in pp_config:
-        normalize_im = pp_config['normalize_im']
+    if 'normalize_im' in preprocess_config:
+        normalize_im = preprocess_config['normalize_im']
 
     # Iterate over all indices for test data
     for time_idx in metadata_ids['time_idx']:
@@ -283,7 +287,7 @@ def run_prediction(model_dir,
                 im_stack = im_stack[np.newaxis, ...]
                 # Predict on large image
                 start = time.time()
-                im_pred = inference.predict_on_larger_image(
+                im_pred = inference.predict_large_image(
                     model=model,
                     input_image=im_stack,
                 )
@@ -334,7 +338,7 @@ def run_prediction(model_dir,
                     normalize_im=normalize_im,
                 )
                 im_target = image_utils.crop2base(im_target)
-                #TODO: Add image_format option to network config
+                # TODO: Add image_format option to network config
                 # Change image stack format to zyx
                 im_target = np.transpose(im_target, [2, 0, 1])
                 if depth == 1:

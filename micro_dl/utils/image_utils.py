@@ -8,6 +8,9 @@ import os
 from scipy.ndimage.interpolation import zoom
 from skimage.transform import resize
 
+import micro_dl.utils.aux_utils as aux_utils
+import micro_dl.utils.normalize as normalize
+
 
 def resize_image(input_image, output_shape):
     """Resize image to a specified shape
@@ -177,6 +180,45 @@ def fit_polynomial_surface_2D(sample_coords,
     return poly_surface
 
 
+def center_crop_to_shape(input_image, output_shape, image_format='zyx'):
+    """Center crop the image to a given shape
+
+    :param np.array input_image: input image to be cropped
+    :param list output_shape: desired crop shape
+    :param str image_format: Image format; zyx or xyz
+    :return np.array center_block: Center of input image with output shape
+    """
+
+    input_shape = np.array(input_image.shape)
+    singleton_dims = np.where(input_shape == 1)[0]
+    input_image = np.squeeze(input_image)
+    modified_shape = output_shape.copy()
+    if len(input_image.shape) == len(output_shape) + 1:
+        # This means we're dealing with multichannel 2D
+        if image_format == 'zyx':
+            modified_shape.insert(0, input_image.shape[0])
+        else:
+            modified_shape.append(input_image.shape[-1])
+    assert np.all(np.array(modified_shape) <= np.array(input_image.shape)), \
+        'output shape is larger than image shape, use resize or rescale'
+
+    start_0 = (input_image.shape[0] - modified_shape[0]) // 2
+    start_1 = (input_image.shape[1] - modified_shape[1]) // 2
+    if len(input_image.shape) > 2:
+        start_2 = (input_image.shape[2] - modified_shape[2]) // 2
+        center_block = input_image[
+                       start_0: start_0 + modified_shape[0],
+                       start_1: start_1 + modified_shape[1],
+                       start_2: start_2 + modified_shape[2]]
+    else:
+        center_block = input_image[
+                       start_0: start_0 + modified_shape[0],
+                       start_1: start_1 + modified_shape[1]]
+    for idx in singleton_dims:
+        center_block = np.expand_dims(center_block, axis=idx)
+    return center_block
+
+
 def read_image(file_path):
     """
     Read 2D grayscale image from file.
@@ -197,28 +239,151 @@ def read_image(file_path):
     return im
 
 
-def center_crop_to_shape(input_image, output_shape):
-    """Center crop the image to a given shape
+def read_imstack(input_fnames,
+                 flat_field_fname=None,
+                 hist_clip_limits=None,
+                 is_mask=False,
+                 normalize_im=True,
+                 zscore_mean=None,
+                 zscore_std=None):
+    """
+    Read the images in the fnames and assembles a stack.
+    If images are masks, make sure they're boolean by setting >0 to True
 
-    :param np.array input_image: input image to be cropped
-    :param list output_shape: desired crop shape
+    :param tuple input_fnames: tuple of input fnames with full path
+    :param str flat_field_fname: fname of flat field image
+    :param tuple hist_clip_limits: limits for histogram clipping
+    :param bool is_mask: Indicator for if files contain masks
+    :param bool normalize_im: Whether to zscore normalize im stack
+    :param float zscore_mean: mean for z-scoring the image
+    :param float zscore_std: std for z-scoring the image
+    :return np.array: input stack flat_field correct and z-scored if regular
+        images, booleans if they're masks
+    """
+    im_stack = []
+    for idx, fname in enumerate(input_fnames):
+        im = read_image(fname)
+        if flat_field_fname is not None:
+            # multiple flat field images are passed in case of mask generation
+            if isinstance(flat_field_fname, (list, tuple)):
+                flat_field_image = np.load(flat_field_fname[idx])
+            else:
+                flat_field_image = np.load(flat_field_fname)
+            if not is_mask and not normalize_im:
+                im = apply_flat_field_correction(
+                    im,
+                    flat_field_image=flat_field_image,
+                )
+        im_stack.append(im)
+
+    input_image = np.stack(im_stack, axis=-1)
+    # remove singular dimension for 3D images
+    if len(input_image.shape) > 3:
+        input_image = np.squeeze(input_image)
+    if not is_mask:
+        if hist_clip_limits is not None:
+            input_image = normalize.hist_clipping(
+                input_image,
+                hist_clip_limits[0],
+                hist_clip_limits[1]
+            )
+        if normalize_im:
+            input_image = normalize.zscore(
+                input_image, mean=zscore_mean,
+                std=zscore_std
+            )
+    else:
+        if input_image.dtype != bool:
+            input_image = input_image > 0
+    return input_image
+
+
+def preprocess_imstack(frames_metadata,
+                       input_dir,
+                       depth,
+                       time_idx,
+                       channel_idx,
+                       slice_idx,
+                       pos_idx,
+                       flat_field_im=None,
+                       hist_clip_limits=None,
+                       normalize_im='stack',
+                       ):
+    """
+    Preprocess image given by indices: flatfield correction, histogram
+    clipping and z-score normalization is performed.
+
+    :param pd.DataFrame frames_metadata: DF with meta info for all images
+    :param str input_dir: dir containing input images
+    :param int depth: num of slices in stack if 2.5D or depth for 3D
+    :param int time_idx: Time index
+    :param int channel_idx: Channel index
+    :param int slice_idx: Slice (z) index
+    :param int pos_idx: Position (FOV) index
+    :param np.array flat_field_im: Flat field image for channel
+    :param list hist_clip_limits: Limits for histogram clipping (size 2)
+    :param str normalize_im: options to z-score the image
+    :return np.array im: 3D preprocessed image
     """
 
-    input_shape = np.array(input_image.shape)
-    singleton_dims = np.where(input_shape == 1)[0]
-    input_image = np.squeeze(input_image)
-    assert np.all(np.array(output_shape) <= np.array(input_image.shape)), \
-        'output shape is larger than image shape, use resize or rescale'
+    metadata_ids, _ = aux_utils.validate_metadata_indices(
+        frames_metadata=frames_metadata,
+        slice_ids=-1,
+        uniform_structure=True
+    )
+    margin = 0 if depth == 1 else depth // 2
+    im_stack = []
+    for z in range(slice_idx - margin, slice_idx + margin + 1):
+        meta_idx = aux_utils.get_meta_idx(
+            frames_metadata,
+            time_idx,
+            channel_idx,
+            z,
+            pos_idx,
+        )
+        file_path = os.path.join(
+            input_dir,
+            frames_metadata.loc[meta_idx, "file_name"],
+        )
+        im = read_image(file_path)
+        # Only flatfield correct images that won't be normalized
+        if flat_field_im is not None and not normalize_im:
+            im = apply_flat_field_correction(
+                im,
+                flat_field_image=flat_field_im,
+            )
 
-    start_0 = (input_image.shape[0] - output_shape[0]) // 2
-    start_1 = (input_image.shape[1] - output_shape[1]) // 2
-    start_2 = (input_image.shape[2] - output_shape[2]) // 2
-    center_block = input_image[start_0: start_0 + output_shape[0],
-                   start_1: start_1 + output_shape[1],
-                   start_2: start_2 + output_shape[2]]
-    for idx in singleton_dims:
-        center_block = np.expand_dims(center_block, axis=idx)
-    return center_block
+        zscore_median = None
+        zscore_iqr = None
+        if normalize_im in ['dataset', 'volume', 'slice']:
+            zscore_median = frames_metadata.loc[meta_idx, 'zscore_median']
+            zscore_iqr = frames_metadata.loc[meta_idx, 'zscore_iqr']
+
+        if normalize_im is not None:
+            im = normalize.zscore(
+                im,
+                mean=zscore_median,
+                std=zscore_iqr
+            )
+        im_stack.append(im)
+
+    if len(im.shape) == 3:
+        # each channel is tiled independently and stacked later in dataset cls
+        im_stack = im
+        assert depth == 1, 'more than one 3D volume gets read'
+    else:
+        # Stack images in same channel
+        im_stack = np.stack(im_stack, axis=2)
+    # normalize
+    if hist_clip_limits is not None:
+        im_stack = normalize.hist_clipping(
+            im_stack,
+            hist_clip_limits[0],
+            hist_clip_limits[1],
+        )
+
+    return im_stack
+
 
 def grid_sample_pixel_values(im, grid_spacing):
     """Sample pixel values in the input image at the grid. Any incomplete

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Train neural network models in keras"""
+
 import argparse
 from keras import Model
 import keras.backend as K
@@ -183,13 +184,13 @@ def get_image_dir_format(dataset_config):
     tile_dir = dataset_config['data_dir']
     image_format = 'zyx'
     try:
-        pp_config = preprocess_utils.get_pp_config(tile_dir)
-        if 'tile' in pp_config and 'tile_dir' in pp_config['tile']:
-            tile_dir = pp_config['tile']['tile_dir']
+        preprocess_config = preprocess_utils.get_preprocess_config(tile_dir)
+        if 'tile' in preprocess_config and 'tile_dir' in preprocess_config['tile']:
+            tile_dir = preprocess_config['tile']['tile_dir']
 
         # Get shape order from recent_json
-        if 'image_format' in pp_config['tile']:
-            image_format = pp_config['tile']['image_format']
+        if 'image_format' in preprocess_config['tile']:
+            image_format = preprocess_config['tile']['image_format']
     except Exception as e:
         print('Error while reading preprocess config: {}. '
               'Use default image format "zyx"'.format(e))

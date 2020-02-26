@@ -2,153 +2,8 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 import pandas as pd
-import time
-from micro_dl.utils import normalize as normalize, aux_utils as aux_utils
-from micro_dl.utils.image_utils import read_image, apply_flat_field_correction
 
-
-def read_imstack(input_fnames,
-                 flat_field_fname=None,
-                 hist_clip_limits=None,
-                 is_mask=False,
-                 normalize_im=True,
-                 zscore_mean=None,
-                 zscore_std=None):
-    """
-    Read the images in the fnames and assembles a stack.
-    If images are masks, make sure they're boolean by setting >0 to True
-    
-    :param tuple input_fnames: tuple of input fnames with full path
-    :param str flat_field_fname: fname of flat field image
-    :param tuple hist_clip_limits: limits for histogram clipping
-    :param bool is_mask: Indicator for if files contain masks
-    :param bool normalize_im: Whether to zscore normalize im stack
-    :param float zscore_mean: mean for z-scoring the image
-    :param float zscore_std: std for z-scoring the image
-    :return np.array: input stack flat_field correct and z-scored if regular
-        images, booleans if they're masks
-    """
-    im_stack = []
-    for idx, fname in enumerate(input_fnames):
-        im = read_image(fname)
-        if flat_field_fname is not None:
-            # multiple flat field images are passed in case of mask generation
-            if isinstance(flat_field_fname, (list, tuple)):
-                flat_field_image = np.load(flat_field_fname[idx])
-            else:
-                flat_field_image = np.load(flat_field_fname)
-            im = apply_flat_field_correction(
-                im,
-                flat_field_image=flat_field_image,
-            )
-        im_stack.append(im)
-
-    input_image = np.stack(im_stack, axis=-1)
-    # remove singular dimension for 3D images
-    if len(input_image.shape) > 3:
-        input_image = np.squeeze(input_image)
-    if not is_mask:
-        if hist_clip_limits is not None:
-            input_image = normalize.hist_clipping(
-                input_image,
-                hist_clip_limits[0],
-                hist_clip_limits[1]
-            )
-        if normalize_im:
-            input_image = normalize.zscore(
-                input_image, mean=zscore_mean,
-                std=zscore_std
-            )
-    else:
-        if input_image.dtype != bool:
-            input_image = input_image > 0
-    return input_image
-
-
-def preprocess_imstack(frames_metadata,
-                       input_dir,
-                       depth,
-                       time_idx,
-                       channel_idx,
-                       slice_idx,
-                       pos_idx,
-                       flat_field_im=None,
-                       hist_clip_limits=None,
-                       normalize_im='stack',
-                       ):
-    """
-    Preprocess image given by indices: flatfield correction, histogram
-    clipping and z-score normalization is performed.
-
-    :param pd.DataFrame frames_metadata: DF with meta info for all images
-    :param str input_dir: dir containing input images
-    :param int depth: num of slices in stack if 2.5D or depth for 3D
-    :param int time_idx: Time index
-    :param int channel_idx: Channel index
-    :param int slice_idx: Slice (z) index
-    :param int pos_idx: Position (FOV) index
-    :param np.array flat_field_im: Flat field image for channel
-    :param list hist_clip_limits: Limits for histogram clipping (size 2)
-    :param str normalize_im: options to z-score the image
-    :return np.array im: 3D preprocessed image
-    """
-
-    metadata_ids, _ = aux_utils.validate_metadata_indices(
-        frames_metadata=frames_metadata,
-        slice_ids=-1,
-        uniform_structure=True
-    )
-    margin = 0 if depth == 1 else depth // 2
-    im_stack = []
-    for z in range(slice_idx - margin, slice_idx + margin + 1):
-        meta_idx = aux_utils.get_meta_idx(
-            frames_metadata,
-            time_idx,
-            channel_idx,
-            z,
-            pos_idx,
-        )
-        file_path = os.path.join(
-            input_dir,
-            frames_metadata.loc[meta_idx, "file_name"],
-        )
-        im = read_image(file_path)
-        if flat_field_im is not None:
-            im = apply_flat_field_correction(
-                im,
-                flat_field_image=flat_field_im,
-            )
-
-        zscore_median = None
-        zscore_iqr = None
-        if normalize_im in ['dataset', 'volume', 'slice']:
-            zscore_median = frames_metadata.loc[meta_idx, 'zscore_median']
-            zscore_iqr = frames_metadata.loc[meta_idx, 'zscore_iqr']
-
-        if normalize_im is not None:
-            im = normalize.zscore(
-                im,
-                mean=zscore_median,
-                std=zscore_iqr
-            )
-        im_stack.append(im)
-
-    if len(im.shape) == 3:
-        # each channel is tiled independently and stacked later in dataset cls
-        im_stack = im
-        assert depth == 1, 'more than one 3D volume gets read'
-    else:
-        # Stack images in same channel
-        im_stack = np.stack(im_stack, axis=2)
-    # normalize
-    if hist_clip_limits is not None:
-        im_stack = normalize.hist_clipping(
-            im_stack,
-            hist_clip_limits[0],
-            hist_clip_limits[1],
-        )
-
-    return im_stack
+import micro_dl.utils.aux_utils as aux_utils
 
 
 def tile_image(input_image,
@@ -257,7 +112,6 @@ def tile_image(input_image,
     file_names_list = []
     cropping_index = []
     tiled_metadata = []
-    # time_start = time.time()
     for row in range(0, n_rows - tile_size[0] + step_size[0], step_size[0]):
         if row + tile_size[0] > n_rows:
             row = check_in_range(row, n_rows, tile_size[0])
@@ -420,12 +274,13 @@ def write_meta(tiled_metadata, save_dict):
         tile_meta_df = pd.DataFrame.from_dict(tiled_metadata)
         tile_meta_df = tile_meta_df.sort_values(by=['file_name'])
         idx_len = save_dict['int2str_len']
-        meta_name = ('meta'
-                     + '_c' + str(save_dict['channel_idx']).zfill(idx_len)
-                     + '_z' + str(save_dict['slice_idx']).zfill(idx_len)
-                     + '_t' + str(save_dict['time_idx']).zfill(idx_len)
-                     + '_p' + str(save_dict['pos_idx']).zfill(idx_len)
-                     + '.csv')
+        meta_name = (
+            'meta' +
+            '_c' + str(save_dict['channel_idx']).zfill(idx_len) +
+            '_z' + str(save_dict['slice_idx']).zfill(idx_len) +
+            '_t' + str(save_dict['time_idx']).zfill(idx_len) +
+            '_p' + str(save_dict['pos_idx']).zfill(idx_len) +
+            '.csv')
         tile_meta_df.to_csv(
             os.path.join(save_dict['save_dir'], 'meta_dir', meta_name),
             sep=',',

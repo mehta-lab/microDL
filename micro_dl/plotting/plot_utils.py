@@ -42,6 +42,7 @@ def save_predicted_images(input_batch,
         assert output_fname is not None, 'need fname for saving image'
         fname = os.path.join(output_dir, '{}.{}'.format(output_fname, ext))
 
+
     # 3D images are better saved as movies/gif
     # assume only 1 target and prediction channel
     if batch_size != 1:
@@ -51,7 +52,7 @@ def save_predicted_images(input_batch,
         cur_input = input_batch[img_idx]
         cur_target = target_batch[img_idx]
         cur_prediction = pred_batch[img_idx]
-        
+
         n_ip_channels = cur_input.shape[0]
         n_op_channels = cur_target.shape[0]
         n_subplot = n_ip_channels + 2 * n_op_channels + 1
@@ -72,7 +73,8 @@ def save_predicted_images(input_batch,
             )
             ax[axis_count].imshow(cur_im, cmap='gray')
             ax[axis_count].axis('off')
-            ax[axis_count].set_title('Input', fontsize=font_size)
+            if axis_count == 0:
+                ax[axis_count].set_title('Input', fontsize=font_size)
             axis_count += 1
         for channel_idx in range(n_op_channels):
             cur_target_chan = hist_clipping(
