@@ -140,6 +140,14 @@ class ImagePredictor:
             else:
                 target_dir = self.mask_dir
 
+        normalize_im = 'stack'
+        if 'normalize_im' in preprocess_config:
+            normalize_im = preprocess_config['normalize_im']
+        elif 'normalize_im' in preprocess_config['tile']:
+            normalize_im = preprocess_config['tile']['normalize_im']
+
+        self.normalize_im = normalize_im
+
         # Create dataset instance
         self.dataset_inst = InferenceDataSet(
             image_dir=self.image_dir,
@@ -371,6 +379,21 @@ class ImagePredictor:
             pred_ims.append(pred_block)
         return pred_ims
 
+    def unzscore(self,
+                 im_pred,
+                 im_target,
+                 idx):
+
+        if self.normalize_im is not None:
+            if self.normalize_im in ['dataset', 'volume', 'slice']:
+                zscore_median = self.iteration_meta.loc[idx, 'zscore_median']
+                zscore_iqr = self.iteration_meta.loc[idx, 'zscore_iqr']
+            else:
+                zscore_median = np.nanmean(im_target)
+                zscore_iqr = np.nanstd(im_target)
+            im_pred = normalize.unzscore(im_pred, zscore_median, zscore_iqr)
+        return im_pred
+
     def save_pred_image(self,
                         predicted_image,
                         time_idx,
@@ -395,18 +418,8 @@ class ImagePredictor:
             ext=self.image_ext,
         )
         file_name = os.path.join(self.pred_dir, im_name)
-        im_pred = predicted_image.astype(np.float32)
-        if self.image_ext == '.png':
-            # Convert to uint16 for now
-            if im_pred.max() > im_pred.min():
-                im_pred = np.iinfo(np.uint16).max * \
-                          (im_pred - im_pred.min()) / \
-                          (im_pred.max() - im_pred.min())
-            else:
-                im_pred = im_pred / im_pred.max() * np.iinfo(np.uint16).max
-            im_pred = im_pred.astype(np.uint16)
-            cv2.imwrite(file_name, np.squeeze(im_pred))
-        elif self.image_ext == '.tif':
+        im_pred = predicted_image.astype(np.uint16)
+        if self.image_ext in ['.png', '.tif']:
             cv2.imwrite(file_name, np.squeeze(im_pred))
         elif self.image_ext == '.npy':
             np.save(file_name, im_pred, allow_pickle=True)
@@ -539,6 +552,9 @@ class ImagePredictor:
             )
             # Squeeze prediction for writing
             pred_image = np.squeeze(pred_image)
+            pred_image = self.unzscore(pred_image,
+                                       cur_target,
+                                       row_idx)
             # save prediction
             cur_row = self.iteration_meta.iloc[row_idx]
             self.save_pred_image(
@@ -631,6 +647,9 @@ class ImagePredictor:
             )
         pred_image = np.squeeze(pred_image).astype(np.float32)
         target_image = np.squeeze(cur_target).astype(np.float32)
+        pred_image = self.unzscore(pred_image,
+                                   cur_target,
+                                   iteration_rows[0])
         # save prediction
         cur_row = self.iteration_meta.iloc[iteration_rows[0]]
         self.save_pred_image(
@@ -671,6 +690,8 @@ class ImagePredictor:
                 pred_image, target_image, mask_image = self.predict_2d(
                     iteration_rows,
                 )
+                print(pred_image)
+                print(target_image)
             else:  # 3D
                 pred_image, target_image, mask_image = self.predict_3d(
                     iteration_rows,
@@ -689,10 +710,7 @@ class ImagePredictor:
             if self.metrics_inst is not None:
                 if not self.mask_metrics:
                     mask_image = None
-                # unzscore pred for correct SSIM calculation
-                pred_image = normalize.unzscore(pred_image,
-                                                np.nanmean(target_image),
-                                                np.nanstd(target_image))
+
                 self.estimate_metrics(
                     target=target_image,
                     prediction=pred_image,

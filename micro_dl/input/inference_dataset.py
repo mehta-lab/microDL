@@ -226,6 +226,7 @@ class InferenceDataSet(keras.utils.Sequence):
             depth=self.target_depth,
             normalize_im=None,
         )
+        print('target:', target_stack.shape)
         # Add batch dimension
         input_stack = np.expand_dims(input_stack, axis=0)
         target_stack = np.expand_dims(target_stack, axis=0)

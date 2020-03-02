@@ -18,7 +18,7 @@ DF_NAMES = ["channel_idx",
             "channel_name",
             "dir_name",
             "file_name",
-            "pos_idx"]
+            ]
 
 
 def import_object(module_name, obj_name, obj_type='class'):

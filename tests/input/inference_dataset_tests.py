@@ -170,7 +170,7 @@ class TestInferenceDataSet(unittest.TestCase):
             cur_row=meta_row,
             channel_ids=[2],
             depth=1,
-            normalize=False,
+            normalize_im=False,
         )
         # Image shapes are cropped to nearest factor of two, channels first
         self.assertTupleEqual(im_stack.shape, (1, 8, 16))
@@ -361,7 +361,7 @@ class TestInferenceDataSet2p5D(unittest.TestCase):
             cur_row=meta_row,
             channel_ids=[2],
             depth=3,
-            normalize=False,
+            normalize_im=False,
         )
         # Image shapes are cropped to nearest factor of two, channels first
         self.assertTupleEqual(im_stack.shape, (1, 3, 8, 16))
