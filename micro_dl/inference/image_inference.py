@@ -119,6 +119,13 @@ class ImagePredictor:
         self.pred_dir = os.path.join(self.model_dir, 'predictions')
         os.makedirs(self.pred_dir, exist_ok=True)
 
+        # Check if model task (regression or segmentation) is specified
+        self.model_task = 'regression'
+        if 'model_task' in self.config['dataset']:
+            self.model_task = self.config['dataset']['model_task']
+            assert self.model_task in {'regression', 'segmentation'}, \
+                "Model task must be either 'segmentation' or 'regression'"
+
         # Handle masks as either targets or for masked metrics
         self.masks_dict = None
         self.mask_metrics = False
@@ -135,9 +142,13 @@ class ImagePredictor:
             assert 'mask_type' in self.masks_dict, \
                 'mask_type (target/metrics) is needed'
             if self.masks_dict['mask_type'] == 'metrics':
+                assert self.model_task == 'regression', \
+                    'masked metrics are for regression tasks only'
                 # Compute weighted metrics
                 self.mask_metrics = True
             else:
+                assert self.model_task == 'segmentation', \
+                    'masks can only be target for segmentation tasks'
                 target_dir = self.mask_dir
 
         normalize_im = 'stack'
@@ -418,8 +429,16 @@ class ImagePredictor:
             ext=self.image_ext,
         )
         file_name = os.path.join(self.pred_dir, im_name)
-        im_pred = predicted_image.astype(np.uint16)
+        if self.model_task == 'regression':
+            im_pred = predicted_image.astype(np.uint16)
+        else:
+            # assuming segmentation output is probability maps
+            im_pred = predicted_image.astype(np.float32)
         if self.image_ext in ['.png', '.tif']:
+            if self.image_ext == '.png':
+                assert im_pred.dtype == np.uint16,\
+                    'PNG format does not support float type. ' \
+                    'Change file extension as ".tif" or ".npy" instead'
             cv2.imwrite(file_name, np.squeeze(im_pred))
         elif self.image_ext == '.npy':
             np.save(file_name, im_pred, allow_pickle=True)
@@ -552,9 +571,10 @@ class ImagePredictor:
             )
             # Squeeze prediction for writing
             pred_image = np.squeeze(pred_image)
-            pred_image = self.unzscore(pred_image,
-                                       cur_target,
-                                       row_idx)
+            if self.model_task == 'regression':
+                pred_image = self.unzscore(pred_image,
+                                           cur_target,
+                                           row_idx)
             # save prediction
             cur_row = self.iteration_meta.iloc[row_idx]
             self.save_pred_image(
@@ -647,9 +667,10 @@ class ImagePredictor:
             )
         pred_image = np.squeeze(pred_image).astype(np.float32)
         target_image = np.squeeze(cur_target).astype(np.float32)
-        pred_image = self.unzscore(pred_image,
-                                   cur_target,
-                                   iteration_rows[0])
+        if self.model_task == 'regression':
+            pred_image = self.unzscore(pred_image,
+                                       cur_target,
+                                       iteration_rows[0])
         # save prediction
         cur_row = self.iteration_meta.iloc[iteration_rows[0]]
         self.save_pred_image(
@@ -690,8 +711,6 @@ class ImagePredictor:
                 pred_image, target_image, mask_image = self.predict_2d(
                     iteration_rows,
                 )
-                print(pred_image)
-                print(target_image)
             else:  # 3D
                 pred_image, target_image, mask_image = self.predict_3d(
                     iteration_rows,

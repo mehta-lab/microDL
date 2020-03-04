@@ -72,6 +72,7 @@ class InferenceDataSet(keras.utils.Sequence):
         self.normalize_im = normalize_im
         self.input_channels = dataset_config['input_channels']
         self.target_channels = dataset_config['target_channels']
+
         # get a subset of frames meta for only one channel to easily
         # extract indices (pos, time, slice) to iterate over
         df_idx = (self.frames_meta['channel_idx'] == self.target_channels[0])
@@ -165,7 +166,10 @@ class InferenceDataSet(keras.utils.Sequence):
         im_stack = []
         for channel_idx in channel_ids:
             flat_field_im = None
-            if self.flat_field_dir is not None and normalize_im:
+            if self.flat_field_dir is not None:
+                assert normalize_im in [None, 'stack'],\
+                    "flat field correction currently only supports " \
+                    "None or 'stack' option for 'normalize_im'"
                 flat_field_fname = os.path.join(
                     self.flat_field_dir,
                     'flat-field_channel-{}.npy'.format(channel_idx)
@@ -226,7 +230,6 @@ class InferenceDataSet(keras.utils.Sequence):
             depth=self.target_depth,
             normalize_im=None,
         )
-        print('target:', target_stack.shape)
         # Add batch dimension
         input_stack = np.expand_dims(input_stack, axis=0)
         target_stack = np.expand_dims(target_stack, axis=0)

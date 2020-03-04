@@ -322,9 +322,12 @@ def preprocess_imstack(frames_metadata,
     :param int pos_idx: Position (FOV) index
     :param np.array flat_field_im: Flat field image for channel
     :param list hist_clip_limits: Limits for histogram clipping (size 2)
-    :param str normalize_im: options to z-score the image
+    :param str or None normalize_im: options to z-score the image
     :return np.array im: 3D preprocessed image
     """
+
+    assert normalize_im in ['stack', 'dataset', 'volume', 'slice', None], \
+        "'normalize_im' can only be 'stack', 'dataset', 'volume', 'slice', or None"
 
     metadata_ids, _ = aux_utils.validate_metadata_indices(
         frames_metadata=frames_metadata,
@@ -347,7 +350,10 @@ def preprocess_imstack(frames_metadata,
         )
         im = read_image(file_path)
         # Only flatfield correct images that won't be normalized
-        if flat_field_im is not None and not normalize_im:
+        if flat_field_im is not None:
+            assert normalize_im in [None, 'stack'], \
+                "flat field correction currently only supports " \
+                "None or 'stack' option for 'normalize_im'"
             im = apply_flat_field_correction(
                 im,
                 flat_field_image=flat_field_im,

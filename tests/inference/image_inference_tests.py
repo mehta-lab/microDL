@@ -29,7 +29,7 @@ class TestImageInference(unittest.TestCase):
         self.mask_dir = os.path.join(self.temp_path, 'mask_dir')
         self.model_dir = os.path.join(self.temp_path, 'model_dir')
         # Create a temp image dir
-        self.im = np.zeros((10, 16), dtype=np.uint8)
+        self.im = 1500 * np.ones((10, 16), dtype=np.uint16)
         self.frames_meta = aux_utils.make_dataframe()
         self.time_idx = 2
         self.slice_idx = 3
@@ -42,12 +42,15 @@ class TestImageInference(unittest.TestCase):
                     pos_idx=p,
                 )
                 cv2.imwrite(os.path.join(self.image_dir, im_name), self.im + c * 10)
+                meta_row = aux_utils.parse_idx_from_name(
+                    im_name)
+                meta_row['zscore_median'] = 1500 + c * 10
+                meta_row['zscore_iqr'] = 1
                 self.frames_meta = self.frames_meta.append(
-                    aux_utils.parse_idx_from_name(im_name, aux_utils.DF_NAMES),
+                    meta_row,
                     ignore_index=True,
                 )
-        # Write frames meta to image dir too
-        self.frames_meta.to_csv(os.path.join(self.image_dir, 'frames_meta.csv'))
+
         # Save masks and mask meta
         self.mask_meta = aux_utils.make_dataframe()
         self.mask_channel = 50
@@ -58,11 +61,15 @@ class TestImageInference(unittest.TestCase):
                 slice_idx=self.slice_idx,
                 pos_idx=p,
             )
-            cv2.imwrite(os.path.join(self.mask_dir, im_name), self.im + 1)
+            cv2.imwrite(os.path.join(self.mask_dir, im_name),
+                        self.im.astype(np.float32) / 1500)
             self.mask_meta = self.mask_meta.append(
                 aux_utils.parse_idx_from_name(im_name, aux_utils.DF_NAMES),
                 ignore_index=True,
             )
+
+        # Write frames meta to image dir too
+        self.frames_meta.to_csv(os.path.join(self.image_dir, 'frames_meta.csv'))
         # Write frames meta to mask dir too
         self.mask_meta.to_csv(os.path.join(self.mask_dir, 'frames_meta.csv'))
         # Setup model dir
@@ -78,7 +85,7 @@ class TestImageInference(unittest.TestCase):
         # Make configs with fields necessary for 2D segmentation inference
 
         self.pp_config = {
-            'normalize_im': 'stack'
+            'normalize_im': 'dataset'
         }
 
         self.train_config = {
@@ -102,7 +109,7 @@ class TestImageInference(unittest.TestCase):
             'data_split': 'test',
             'images': {
                 'image_format': 'zyx',
-                'image_ext': '.png',
+                'image_ext': '.tif',
             },
             'metrics': {
                 'metrics': ['mae'],
@@ -111,7 +118,7 @@ class TestImageInference(unittest.TestCase):
             'masks': {
                 'mask_dir': self.mask_dir,
                 'mask_type': 'target',
-                'mask_channel': 50,
+                'mask_channel': self.mask_channel,
             }
         }
         # Instantiate class
@@ -138,7 +145,7 @@ class TestImageInference(unittest.TestCase):
         self.assertEqual(self.infer_inst.data_format, 'channels_first')
         self.assertEqual(self.infer_inst.model, 'dummy_model')
         self.assertEqual(self.infer_inst.image_format, 'zyx')
-        self.assertEqual(self.infer_inst.image_ext, '.png')
+        self.assertEqual(self.infer_inst.image_ext, '.tif')
         self.assertFalse(self.infer_inst.mask_metrics)
         self.assertEqual(self.infer_inst.mask_dir, self.mask_dir)
         self.assertListEqual(self.infer_inst.metrics_orientations, ['xy'])
@@ -170,13 +177,13 @@ class TestImageInference(unittest.TestCase):
         )
         pred_name = os.path.join(
             self.model_dir,
-            'predictions/im_c020_z040_t010_p030.png',
+            'predictions/im_c020_z040_t010_p030.tif',
         )
         im_pred = cv2.imread(pred_name, cv2.IMREAD_ANYDEPTH)
-        self.assertEqual(im_pred.dtype, np.uint16)
+        self.assertEqual(im_pred.dtype, np.float32)
         self.assertTupleEqual(im_pred.shape, (10, 15))
         # Prediction intensities are maximized to range
-        self.assertEqual(im_pred.max(), 65535)
+        self.assertEqual(im_pred.max(), 128)
         self.assertEqual(im_pred.min(), 0)
 
     def test_estimate_metrics_xy(self):
@@ -251,60 +258,59 @@ class TestImageInference(unittest.TestCase):
 
     @patch('micro_dl.inference.model_inference.predict_large_image')
     def test_predict_2d(self, mock_predict):
-        mock_predict.return_value = 1. + np.ones((1, 8, 16), dtype=np.float32)
+        mock_predict.return_value = 0.5 * np.ones((1, 8, 16), dtype=np.float32)
         # Predict row 0 from inference dataset iterator
         pred_im, target_im, mask_im = self.infer_inst.predict_2d([0])
         self.assertTupleEqual(pred_im.shape, (8, 16, 1))
         self.assertEqual(pred_im.dtype, np.float32)
-        self.assertEqual(pred_im.max(), 2.0)
+        self.assertEqual(pred_im.max(), 0.5)
         # Read saved prediction too
         pred_name = os.path.join(
             self.model_dir,
-            'predictions/im_c050_z003_t002_p003.png',
+            'predictions/im_c050_z003_t002_p003.tif',
         )
         im_pred = cv2.imread(pred_name, cv2.IMREAD_ANYDEPTH)
-        self.assertEqual(im_pred.dtype, np.uint16)
+        self.assertEqual(im_pred.dtype, np.float32)
         self.assertTupleEqual(im_pred.shape, (8, 16))
         # Check target and no mask
         self.assertTupleEqual(target_im.shape, (8, 16, 1))
         self.assertEqual(target_im.dtype, np.float32)
-        self.assertEqual(target_im.max(), 1.)
+        self.assertEqual(target_im.max(), 1)
         self.assertListEqual(mask_im, [])
 
     @patch('micro_dl.inference.model_inference.predict_large_image')
     def test_predict_2d_mask(self, mock_predict):
         self.infer_inst.crop_shape = [6, 10]
         self.infer_inst.mask_metrics = True
-        mock_predict.return_value = 1. + np.ones((1, 6, 10), dtype=np.float32)
+        mock_predict.return_value = np.ones((1, 6, 10), dtype=np.float32)
         # Predict row 0 from inference dataset iterator
         pred_im, target_im, mask_im = self.infer_inst.predict_2d([0])
         self.assertTupleEqual(pred_im.shape, (6, 10, 1))
         self.assertEqual(pred_im.dtype, np.float32)
-        self.assertEqual(pred_im.max(), 2.0)
+        self.assertEqual(pred_im.max(), 1)
         # Read saved prediction too
         pred_name = os.path.join(
             self.model_dir,
-            'predictions/im_c050_z003_t002_p003.png',
+            'predictions/im_c050_z003_t002_p003.tif',
         )
         im_pred = cv2.imread(pred_name, cv2.IMREAD_ANYDEPTH)
-        self.assertEqual(im_pred.dtype, np.uint16)
+        self.assertEqual(im_pred.dtype, np.float32)
         self.assertTupleEqual(im_pred.shape, (6, 10))
         # Check target and no mask
         self.assertTupleEqual(target_im.shape, (6, 10, 1))
         self.assertEqual(target_im.dtype, np.float32)
-        self.assertEqual(target_im.max(), 1.)
+        self.assertEqual(target_im.max(), 1)
         self.assertTupleEqual(mask_im.shape, (6, 10, 1))
         self.assertEqual(mask_im.dtype, np.uint8)
 
     @patch('micro_dl.inference.model_inference.predict_large_image')
     def test_run_prediction(self, mock_predict):
-        mock_predict.return_value = 1. + np.ones((1, 8, 16), dtype=np.float32)
+        mock_predict.return_value = np.zeros((1, 8, 16), dtype=np.float32)
         # Run prediction. Should create a metrics_xy.csv in pred dir
         self.infer_inst.run_prediction()
         metrics = pd.read_csv(os.path.join(self.model_dir, 'predictions/metrics_xy.csv'))
         self.assertTupleEqual(metrics.shape, (2, 2))
-        # MAE should be 1.
-        self.assertEqual(metrics.mae.mean(), 1.0)
+        self.assertEqual(metrics.mae.mean(), 1)
         # There should be two rows, one per test index
         self.assertEqual(metrics.pred_name[0], 'im_c050_z003_t002_p003_xy0')
         self.assertEqual(metrics.pred_name[1], 'im_c050_z003_t002_p004_xy0')
@@ -312,10 +318,10 @@ class TestImageInference(unittest.TestCase):
         for pos in range(3, 5):
             pred_name = os.path.join(
                 self.model_dir,
-                'predictions/im_c050_z003_t002_p00{}.png'.format(pos),
+                'predictions/im_c050_z003_t002_p00{}.tif'.format(pos),
             )
             im_pred = cv2.imread(pred_name, cv2.IMREAD_ANYDEPTH)
-            self.assertEqual(im_pred.dtype, np.uint16)
+            self.assertEqual(im_pred.dtype, np.float32)
             self.assertTupleEqual(im_pred.shape, (8, 16))
 
 
@@ -337,7 +343,7 @@ class TestImageInference2p5D(unittest.TestCase):
         self.mask_dir = os.path.join(self.temp_path, 'mask_dir')
         self.model_dir = os.path.join(self.temp_path, 'model_dir')
         # Create a temp image dir
-        self.im = np.zeros((10, 16), dtype=np.uint8)
+        self.im = 1500 * np.ones((10, 16), dtype=np.uint8)
         self.frames_meta = aux_utils.make_dataframe()
         self.time_idx = 2
         for p in range(5):
@@ -350,12 +356,15 @@ class TestImageInference2p5D(unittest.TestCase):
                         pos_idx=p,
                     )
                     cv2.imwrite(os.path.join(self.image_dir, im_name), self.im + c * 10)
+                    meta_row = aux_utils.parse_idx_from_name(
+                        im_name)
+                    meta_row['zscore_median'] = 1500 + c * 10
+                    meta_row['zscore_iqr'] = 1
                     self.frames_meta = self.frames_meta.append(
-                        aux_utils.parse_idx_from_name(im_name, aux_utils.DF_NAMES),
+                        meta_row,
                         ignore_index=True,
                     )
-        # Write frames meta to image dir too
-        self.frames_meta.to_csv(os.path.join(self.image_dir, 'frames_meta.csv'))
+
         # Save masks and mask meta
         self.mask_meta = aux_utils.make_dataframe()
         self.mask_channel = 50
@@ -367,11 +376,14 @@ class TestImageInference2p5D(unittest.TestCase):
                     slice_idx=z,
                     pos_idx=p,
                 )
-                cv2.imwrite(os.path.join(self.mask_dir, im_name), self.im + 1)
+                cv2.imwrite(os.path.join(self.mask_dir, im_name), self.im / 1500)
                 self.mask_meta = self.mask_meta.append(
                     aux_utils.parse_idx_from_name(im_name, aux_utils.DF_NAMES),
                     ignore_index=True,
                 )
+
+        # Write frames meta to image dir too
+        self.frames_meta.to_csv(os.path.join(self.image_dir, 'frames_meta.csv'))
         # Write frames meta to mask dir too
         self.mask_meta.to_csv(os.path.join(self.mask_dir, 'frames_meta.csv'))
         # Setup model dir
@@ -386,7 +398,7 @@ class TestImageInference2p5D(unittest.TestCase):
         )
         # Make configs with fields necessary for 2.5D segmentation inference
         self.pp_config = {
-            'normalize_im': 'stack'
+            'normalize_im': 'dataset'
         }
 
         self.train_config = {
@@ -410,7 +422,7 @@ class TestImageInference2p5D(unittest.TestCase):
             'data_split': 'test',
             'images': {
                 'image_format': 'zyx',
-                'image_ext': '.png',
+                'image_ext': '.tif',
             },
             'metrics': {
                 'metrics': ['dice'],
@@ -419,7 +431,7 @@ class TestImageInference2p5D(unittest.TestCase):
             'masks': {
                 'mask_dir': self.mask_dir,
                 'mask_type': 'target',
-                'mask_channel': 50,
+                'mask_channel': self.mask_channel,
             }
         }
         # Instantiate class
@@ -446,7 +458,7 @@ class TestImageInference2p5D(unittest.TestCase):
         self.assertEqual(self.infer_inst.data_format, 'channels_first')
         self.assertEqual(self.infer_inst.model, 'dummy_model')
         self.assertEqual(self.infer_inst.image_format, 'zyx')
-        self.assertEqual(self.infer_inst.image_ext, '.png')
+        self.assertEqual(self.infer_inst.image_ext, '.tif')
         self.assertFalse(self.infer_inst.mask_metrics)
         self.assertEqual(self.infer_inst.mask_dir, self.mask_dir)
         self.assertListEqual(self.infer_inst.metrics_orientations, ['xy'])
@@ -457,19 +469,19 @@ class TestImageInference2p5D(unittest.TestCase):
 
     @patch('micro_dl.inference.model_inference.predict_large_image')
     def test_predict_2d(self, mock_predict):
-        mock_predict.return_value = 1. + np.ones((1, 1, 1, 8, 16), dtype=np.float32)
+        mock_predict.return_value = np.ones((1, 1, 1, 8, 16), dtype=np.float32)
         # Predict row 0 from inference dataset iterator
         pred_im, target_im, mask_im = self.infer_inst.predict_2d([0])
         self.assertTupleEqual(pred_im.shape, (8, 16, 1))
         self.assertEqual(pred_im.dtype, np.float32)
-        self.assertEqual(pred_im.max(), 2.0)
+        self.assertEqual(pred_im.max(), 1)
         # Read saved prediction, z=2 for first slice with depth=5
         pred_name = os.path.join(
             self.model_dir,
-            'predictions/im_c050_z002_t002_p003.png',
+            'predictions/im_c050_z002_t002_p003.tif',
         )
         im_pred = cv2.imread(pred_name, cv2.IMREAD_ANYDEPTH)
-        self.assertEqual(im_pred.dtype, np.uint16)
+        self.assertEqual(im_pred.dtype, np.float32)
         self.assertTupleEqual(im_pred.shape, (8, 16))
         # Check target and no mask
         self.assertTupleEqual(target_im.shape, (8, 16, 1))
@@ -497,10 +509,10 @@ class TestImageInference2p5D(unittest.TestCase):
             for z in [2, 3]:
                 pred_name = os.path.join(
                     self.model_dir,
-                    'predictions/im_c050_z00{}_t002_p00{}.png'.format(z, p),
+                    'predictions/im_c050_z00{}_t002_p00{}.tif'.format(z, p),
                 )
             im_pred = cv2.imread(pred_name, cv2.IMREAD_ANYDEPTH)
-            self.assertEqual(im_pred.dtype, np.uint16)
+            self.assertEqual(im_pred.dtype, np.float32)
             self.assertTupleEqual(im_pred.shape, (8, 16))
 
 
@@ -522,7 +534,7 @@ class TestImageInference3D(unittest.TestCase):
         self.mask_dir = os.path.join(self.temp_path, 'mask_dir')
         self.model_dir = os.path.join(self.temp_path, 'model_dir')
         # Create a temp image dir
-        self.im = np.zeros((10, 10, 8), dtype=np.uint8)
+        self.im = 15 * np.ones((10, 10, 8), dtype=np.uint8)
         self.frames_meta = aux_utils.make_dataframe()
         self.time_idx = 2
         self.slice_idx = 0
@@ -539,8 +551,12 @@ class TestImageInference3D(unittest.TestCase):
                             self.im + c * 10,
                             allow_pickle=True,
                             fix_imports=True)
+                    meta_row = aux_utils.parse_idx_from_name(
+                        im_name)
+                    meta_row['zscore_median'] = 15 + c * 10
+                    meta_row['zscore_iqr'] = 1
                     self.frames_meta = self.frames_meta.append(
-                        aux_utils.parse_idx_from_name(im_name, aux_utils.DF_NAMES),
+                        meta_row,
                         ignore_index=True,
                     )
         # Write frames meta to image dir too
@@ -578,7 +594,7 @@ class TestImageInference3D(unittest.TestCase):
         )
         # Make configs with fields necessary for 3D segmentation inference
         self.pp_config = {
-            'normalize_im': 'stack'
+            'normalize_im': 'dataset'
         }
 
         self.train_config = {
@@ -603,7 +619,7 @@ class TestImageInference3D(unittest.TestCase):
             'data_split': 'test',
             'images': {
                 'image_format': 'zyx',
-                'image_ext': '.png',
+                'image_ext': '.tif',
             },
             'metrics': {
                 'metrics': ['mse'],
@@ -612,7 +628,7 @@ class TestImageInference3D(unittest.TestCase):
             'masks': {
                 'mask_dir': self.mask_dir,
                 'mask_type': 'metrics',
-                'mask_channel': 50,
+                'mask_channel': self.mask_channel,
             },
             'inference_3d': {
                 'tile_shape': [5, 5, 5],
@@ -808,7 +824,7 @@ class TestImageInference3D(unittest.TestCase):
             'predictions/im_c002_z000_t002_p003.npy',
         )
         im_pred = np.load(pred_name)
-        self.assertEqual(im_pred.dtype, np.float32)
+        self.assertEqual(im_pred.dtype, np.uint16)
         self.assertTupleEqual(im_pred.shape, (8, 8, 8))
 
     @patch('micro_dl.inference.model_inference.predict_large_image')
@@ -831,7 +847,7 @@ class TestImageInference3D(unittest.TestCase):
             'predictions/im_c002_z000_t002_p003.npy',
         )
         im_pred = np.load(pred_name)
-        self.assertEqual(im_pred.dtype, np.float32)
+        self.assertEqual(im_pred.dtype, np.uint16)
         self.assertTupleEqual(im_pred.shape, (3, 3, 3))
 
     @patch('micro_dl.inference.model_inference.predict_large_image')
@@ -856,5 +872,5 @@ class TestImageInference3D(unittest.TestCase):
                 'predictions/im_c002_z000_t002_p00{}.npy'.format(p),
             )
             im_pred = np.load(pred_name)
-            self.assertEqual(im_pred.dtype, np.float32)
+            self.assertEqual(im_pred.dtype, np.uint16)
             self.assertTupleEqual(im_pred.shape, (8, 8, 8))

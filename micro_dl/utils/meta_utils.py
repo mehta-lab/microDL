@@ -53,11 +53,16 @@ def ints_meta_generator(
         input_dir,
         order='cztp',
         name_parser='parse_sms_name',
-        num_workers=4
+        num_workers=4,
+        block_size=256,
         ):
     """
-    Generate metadata from file names for preprocessing.
-    Will write found data in frames_metadata.csv in input directory.
+    Generate pixel intensity metadata for estimating image normalization
+    parameters during preprocessing step. Pixels are sub-sampled from the image
+    following a grid pattern defined by block_size to for efficient estimation of
+    median and interquatile range. Grid sampling is preferred over random sampling
+    in the case due to the spatial correlation in images.
+    Will write found data in ints_meta.csv in input directory.
     Assumed default file naming convention is:
     dir_name
     |
@@ -75,13 +80,16 @@ def ints_meta_generator(
     :param list args:    parsed args containing
         str input_dir:   path to input directory containing images
         str name_parser: Function in aux_utils for parsing indices from file name
+        int num_workers: number of workers for multiprocessing
+        int block_size: block size for the grid sampling pattern. Default value works
+        well for 2048 X 2048 images.
     """
     parse_func = aux_utils.import_object('utils.aux_utils', name_parser, 'function')
     im_names = aux_utils.get_sorted_names(input_dir)
     channel_names = []
     mp_fn_args = []
     mp_block_args = []
-    block_size = 256
+
     # Fill dataframe with rows from image names
     for i in range(len(im_names)):
         kwargs = {"im_name": im_names[i]}

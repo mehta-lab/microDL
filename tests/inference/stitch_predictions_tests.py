@@ -238,7 +238,7 @@ class TestImageStitcher(unittest.TestCase):
         # Tile 4: Mean along 2 overlapping rows 4, 5:
         # 0.67 * 1.22 + 0.33 * 2, 0.67 * 1.44 + 0.33 * 2 = 1.48, 1.63
         # 0.33 * 1.11 + 0.67 * 2, 0.33 * 1.22 + 0.67 * 2 = 1.71, 1.74
-        exp_z1 = np.ones((10, 10))
+        exp_z1 = np.ones((10, 10), dtype=np.float32)
         exp_z1[:, 4:] = 2
         exp_z1[2:, 4] = 1.33
         exp_z1[2:, 5] = 1.67

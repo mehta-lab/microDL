@@ -45,8 +45,12 @@ class TestInferenceScript(unittest.TestCase):
                     ext=self.ext,
                 )
                 cv2.imwrite(os.path.join(self.image_dir, im_name), self.im)
+                meta_row = aux_utils.parse_idx_from_name(
+                    im_name)
+                meta_row['zscore_median'] = 1500
+                meta_row['zscore_iqr'] = 1
                 self.frames_meta = self.frames_meta.append(
-                    aux_utils.parse_idx_from_name(im_name),
+                    meta_row,
                     ignore_index=True,
                 )
         # Write metadata
@@ -60,7 +64,7 @@ class TestInferenceScript(unittest.TestCase):
         aux_utils.write_json(split_samples, split_fname)
         # Create preprocessing config
         self.pp_config = {
-            'normalize_im': 'stack'
+            'normalize_im': 'dataset'
         }
         processing_info = [{'processing_time': 1,
                             'config':
@@ -135,7 +139,7 @@ class TestInferenceScript(unittest.TestCase):
     def test_run_inference(self, mock_predict, mock_model):
         mock_model.return_value = 'dummy_model'
         # Image shape is cropped to the nearest factor of 2
-        mock_predict.return_value = np.ones((1, 16, 16), dtype=np.float32)
+        mock_predict.return_value = np.zeros((1, 16, 16), dtype=np.float32)
         # Run inference
         inference_script.run_inference(
             config_fname=self.infer_config_name,
@@ -143,7 +147,6 @@ class TestInferenceScript(unittest.TestCase):
         )
         # Check 3D metrics
         metrics = pd.read_csv(os.path.join(self.pred_dir, 'metrics_xyz.csv'))
-        print(metrics)
         self.assertTupleEqual(metrics.shape, (1, 3))
         self.assertEqual(metrics.mse[0], 0.)
         self.assertEqual(metrics.mae[0], 0.)

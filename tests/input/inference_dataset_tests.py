@@ -36,8 +36,12 @@ class TestInferenceDataSet(unittest.TestCase):
                     pos_idx=p,
                 )
                 cv2.imwrite(os.path.join(self.image_dir, im_name), im + c * 10)
+                meta_row = aux_utils.parse_idx_from_name(
+                    im_name)
+                meta_row['zscore_median'] = 10
+                meta_row['zscore_iqr'] = 2
                 self.frames_meta = self.frames_meta.append(
-                    aux_utils.parse_idx_from_name(im_name, aux_utils.DF_NAMES),
+                    meta_row,
                     ignore_index=True,
                 )
         # Write frames meta to image dir too
@@ -63,7 +67,7 @@ class TestInferenceDataSet(unittest.TestCase):
         self.split_col_ids = ('pos_idx', [1, 3])
         # Make configs with fields necessary for inference dataset
         dataset_config = {
-            'input_channels': [1],
+            'input_channels': [2],
             'target_channels': [self.mask_channel],
             'model_task': 'segmentation',
         }
@@ -73,7 +77,7 @@ class TestInferenceDataSet(unittest.TestCase):
             'data_format': 'channels_first',
         }
         self.preprocess_config = {
-            'normalize_im': 'stack'
+            'normalize_im': 'dataset'
         }
         # Instantiate class
         self.data_inst = inference_dataset.InferenceDataSet(
@@ -105,7 +109,7 @@ class TestInferenceDataSet(unittest.TestCase):
         self.assertTrue(self.data_inst.squeeze)
         self.assertFalse(self.data_inst.im_3d)
         self.assertEqual(self.data_inst.data_format, 'channels_first')
-        self.assertListEqual(self.data_inst.input_channels, [1])
+        self.assertListEqual(self.data_inst.input_channels, [2])
         self.assertListEqual(self.data_inst.target_channels, [self.mask_channel])
         # Two inference samples (pos idx 1 and 3)
         self.assertEqual(self.data_inst.num_samples, 2)
@@ -144,7 +148,7 @@ class TestInferenceDataSet(unittest.TestCase):
     def test_get_iteration_meta(self):
         iteration_meta = self.data_inst.get_iteration_meta()
         # This contains metadata for first target channel only
-        self.assertTupleEqual(iteration_meta.shape, (2, 6))
+        self.assertTupleEqual(iteration_meta.shape, (2, 9))
         self.assertListEqual(
             iteration_meta.channel_idx.unique().tolist(),
             [self.mask_channel],
@@ -170,13 +174,13 @@ class TestInferenceDataSet(unittest.TestCase):
             cur_row=meta_row,
             channel_ids=[2],
             depth=1,
-            normalize_im=False,
+            normalize_im=self.preprocess_config['normalize_im']
         )
         # Image shapes are cropped to nearest factor of two, channels first
         self.assertTupleEqual(im_stack.shape, (1, 8, 16))
         # Channel 2 has constant values of 20
-        self.assertEqual(im_stack.max(), 20)
-        self.assertEqual(im_stack.min(), 20)
+        self.assertEqual(im_stack.max(), 5)
+        self.assertEqual(im_stack.min(), 5)
 
     def test__getitem__(self):
         # There are 2 test indices (pos 1 and 3)
@@ -185,15 +189,15 @@ class TestInferenceDataSet(unittest.TestCase):
         self.assertTupleEqual(input_stack.shape, (1, 1, 8, 16))
         self.assertTupleEqual(target_stack.shape, (1, 1, 8, 16))
         # input stack should be normalized, not target
-        self.assertEqual(input_stack.max(), 0.0)
+        self.assertEqual(input_stack.max(), 5)
         self.assertEqual(target_stack.max(), 1)
         self.assertEqual(input_stack.dtype, np.float32)
         self.assertEqual(target_stack.dtype, np.float32)
 
     def test__getitem__regression(self):
         dataset_config = {
-            'input_channels': [1, 2],
-            'target_channels': [0],
+            'input_channels': [0, 1],
+            'target_channels': [2],
             'model_task': 'regression',
         }
         # Instantiate class
@@ -210,8 +214,8 @@ class TestInferenceDataSet(unittest.TestCase):
         self.assertTupleEqual(input_stack.shape, (1, 2, 8, 16))
         self.assertTupleEqual(target_stack.shape, (1, 1, 8, 16))
         # input stack should be normalized, not target
-        self.assertEqual(input_stack.max(), 0.0)
-        self.assertEqual(target_stack.max(), 0.0)
+        self.assertEqual(input_stack.max(), 0)
+        self.assertEqual(target_stack.max(), 20)
         self.assertEqual(input_stack.dtype, np.float32)
         self.assertEqual(target_stack.dtype, np.float32)
 
@@ -244,8 +248,12 @@ class TestInferenceDataSet2p5D(unittest.TestCase):
                         pos_idx=p,
                     )
                     cv2.imwrite(os.path.join(self.image_dir, im_name), im + c * 10)
+                    meta_row = aux_utils.parse_idx_from_name(
+                        im_name)
+                    meta_row['zscore_median'] = 10
+                    meta_row['zscore_iqr'] = 2
                     self.frames_meta = self.frames_meta.append(
-                        aux_utils.parse_idx_from_name(im_name, aux_utils.DF_NAMES),
+                        meta_row,
                         ignore_index=True,
                     )
         # Write frames meta to image dir too
@@ -282,7 +290,7 @@ class TestInferenceDataSet2p5D(unittest.TestCase):
             'data_format': 'channels_first',
         }
         self.preprocess_config = {
-            'normalize_im': 'stack'
+            'normalize_im': 'dataset'
         }
         # Instantiate class
         self.data_inst = inference_dataset.InferenceDataSet(
@@ -330,7 +338,7 @@ class TestInferenceDataSet2p5D(unittest.TestCase):
     def test_get_iteration_meta(self):
         iteration_meta = self.data_inst.get_iteration_meta()
         # This contains metadata for first target channel only z=1,2, p=1,3
-        self.assertTupleEqual(iteration_meta.shape, (4, 6))
+        self.assertTupleEqual(iteration_meta.shape, (4, 9))
         self.assertListEqual(
             iteration_meta.channel_idx.unique().tolist(),
             [self.mask_channel],
@@ -361,13 +369,13 @@ class TestInferenceDataSet2p5D(unittest.TestCase):
             cur_row=meta_row,
             channel_ids=[2],
             depth=3,
-            normalize_im=False,
+            normalize_im=self.preprocess_config['normalize_im'],
         )
         # Image shapes are cropped to nearest factor of two, channels first
         self.assertTupleEqual(im_stack.shape, (1, 3, 8, 16))
         # Channel 2 has constant values of 20
-        self.assertEqual(im_stack.max(), 20)
-        self.assertEqual(im_stack.min(), 20)
+        self.assertEqual(im_stack.max(), 5)
+        self.assertEqual(im_stack.min(), 5)
 
     def test__getitem__(self):
         # There are 2 test indices (pos 1 and 3)
@@ -376,15 +384,15 @@ class TestInferenceDataSet2p5D(unittest.TestCase):
         self.assertTupleEqual(input_stack.shape, (1, 1, 3, 8, 16))
         self.assertTupleEqual(target_stack.shape, (1, 1, 1, 8, 16))
         # input stack should be normalized, not target
-        self.assertEqual(input_stack.max(), 0.0)
+        self.assertEqual(input_stack.max(), 5)
         self.assertEqual(target_stack.max(), 1)
         self.assertEqual(input_stack.dtype, np.float32)
         self.assertEqual(target_stack.dtype, np.float32)
 
     def test__getitem__regression(self):
         dataset_config = {
-            'input_channels': [1, 2],
-            'target_channels': [0],
+            'input_channels': [0, 1],
+            'target_channels': [2],
             'model_task': 'regression',
         }
         # Instantiate class
@@ -401,7 +409,7 @@ class TestInferenceDataSet2p5D(unittest.TestCase):
         self.assertTupleEqual(input_stack.shape, (1, 2, 3, 8, 16))
         self.assertTupleEqual(target_stack.shape, (1, 1, 1, 8, 16))
         # input stack should be normalized, not target
-        self.assertEqual(input_stack.max(), 0.0)
-        self.assertEqual(target_stack.max(), 0.0)
+        self.assertEqual(input_stack.max(), 0)
+        self.assertEqual(target_stack.max(), 20)
         self.assertEqual(input_stack.dtype, np.float32)
         self.assertEqual(target_stack.dtype, np.float32)
