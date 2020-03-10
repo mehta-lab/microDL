@@ -60,6 +60,9 @@ def create_save_mask(input_fnames,
     binary masks. Only used when mask_type is 'dataset_otsu'
     :return dict cur_meta for each mask
     """
+    if mask_type == 'dataset otsu':
+        assert isinstance(channel_thrs, list), \
+            'channel threshold is required for mask_type="dataset otsu"'
     im_stack = image_utils.read_imstack(
         input_fnames,
         flat_field_fname,
@@ -68,13 +71,12 @@ def create_save_mask(input_fnames,
     masks = []
     for idx in range(im_stack.shape[-1]):
         im = im_stack[..., idx].astype('float32')
-        thr = channel_thrs[idx]
         if mask_type == 'otsu':
             mask = mask_utils.create_otsu_mask(im, str_elem_radius)
         elif mask_type == 'unimodal':
             mask = mask_utils.create_unimodal_mask(im,  str_elem_radius)
         elif mask_type == 'dataset otsu':
-            mask = mask_utils.create_otsu_mask(im, str_elem_radius, thr)
+            mask = mask_utils.create_otsu_mask(im, str_elem_radius, channel_thrs[idx])
         elif mask_type == 'borders_weight_loss_map':
             mask = mask_utils.get_unet_border_weight_map(im)
         masks += [mask]

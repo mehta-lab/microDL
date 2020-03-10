@@ -57,7 +57,6 @@ class MaskProcessor:
         self.num_workers = num_workers
 
         self.frames_metadata = aux_utils.read_meta(self.input_dir)
-        self.ints_metadata = aux_utils.read_meta(self.input_dir, 'ints_meta.csv')
         # Create a unique mask channel number so masks can be treated
         # as a new channel
         if mask_channel is None:
@@ -91,18 +90,20 @@ class MaskProcessor:
         self.nested_id_dict = nested_id_dict
 
         assert mask_type in ['otsu', 'unimodal', 'dataset otsu', 'borders_weight_loss_map'], \
-            'Masking method invalid, Otsu, dataset otsu, borders_weight_loss_map, " +\
-            "and unimodal are currently supported'
+            "Masking method invalid, 'otsu', 'unimodal', 'dataset otsu', 'borders_weight_loss_map'\
+             are currently supported"
         self.mask_type = mask_type
-        self.mask_ext = mask_ext
-        channel_thrs = []
+        self.ints_metadata = None
+        self.channel_thrs = []
+        if mask_type == 'dataset otsu':
+            self.ints_metadata = aux_utils.read_meta(self.input_dir, 'ints_meta.csv')
         for channel_idx in channel_ids:
             row_idxs = self.ints_metadata['channel_idx'] == channel_idx
             pix_ints = self.ints_metadata.loc[row_idxs, 'intensity'].values
+            self.channel_thr = threshold_otsu(pix_ints, nbins=32)
+            self.channel_thrs.append(0.4 * self.channel_thr)
+        self.mask_ext = mask_ext
 
-            channel_thr = threshold_otsu(pix_ints, nbins=32)
-            channel_thrs.append(0.4*channel_thr)
-        self.channel_thrs = channel_thrs
     def get_mask_dir(self):
         """
         Return mask directory
