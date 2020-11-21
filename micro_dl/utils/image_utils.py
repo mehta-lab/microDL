@@ -243,7 +243,7 @@ def read_imstack(input_fnames,
                  flat_field_fname=None,
                  hist_clip_limits=None,
                  is_mask=False,
-                 normalize_im=True,
+                 normalize_im=None,
                  zscore_mean=None,
                  zscore_std=None):
     """
@@ -287,7 +287,7 @@ def read_imstack(input_fnames,
                 hist_clip_limits[0],
                 hist_clip_limits[1]
             )
-        if normalize_im:
+        if normalize_im is not None:
             input_image = normalize.zscore(
                 input_image, mean=zscore_mean,
                 std=zscore_std

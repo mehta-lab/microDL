@@ -17,7 +17,7 @@ def tile_image(input_image,
 
      USE MIN_FRACTION WITH INPUT_IMAGE.DTYPE=bool / MASKS
 
-    :param np.array input_image: input image to be tiled
+    :param np.array input_image: 3D input image to be tiled
     :param list/tuple/np array tile_size: size of the blocks to be tiled
      from the image
     :param list/tuple/np array step_size: size of the window shift. In case of
@@ -69,7 +69,8 @@ def tile_image(input_image,
                                               slice_idx=save_dict['slice_idx'],
                                               pos_idx=save_dict['pos_idx'],
                                               int2str_len=save_dict['int2str_len'],
-                                              extra_field=img_id)
+                                              extra_field=img_id,
+                                              ext='.npy')
             cur_metadata = {'channel_idx': save_dict['channel_idx'],
                             'slice_idx': save_dict['slice_idx'],
                             'time_idx': save_dict['time_idx'],
@@ -82,17 +83,15 @@ def tile_image(input_image,
         return cur_metadata
 
     # Add to tile size and step size in case of 3D images
+    tile_3d = False
     im_shape = input_image.shape
-    im_depth = im_shape[2]
     if len(im_shape) == 3:
+        im_depth = im_shape[2]
         if len(tile_size) == 2:
-            tile_size.append(im_shape[2])
-            step_size.append(im_shape[2])
-            tile_3d = False
+            tile_size.append(im_depth)
+            step_size.append(im_depth)
         else:
-            if step_size[2] == im_depth:
-                tile_3d = False
-            else:
+            if not step_size[2] == im_depth:
                 tile_3d = True
 
     assert len(tile_size) == len(step_size),\
@@ -152,12 +151,13 @@ def tile_image(input_image,
 
                 tiles_list.append(cropped_img)
                 cropping_index.append(cur_index)
-                cur_tile_meta = get_tile_meta(img_id,
-                                              save_dict,
-                                              row, col)
-                file_name = cur_tile_meta['file_name']
-                tiled_metadata.append(cur_tile_meta)
-                file_names_list.append(file_name)
+                if save_dict is not None:
+                    cur_tile_meta = get_tile_meta(img_id,
+                                                  save_dict,
+                                                  row, col)
+                    file_name = cur_tile_meta['file_name']
+                    tiled_metadata.append(cur_tile_meta)
+                    file_names_list.append(file_name)
     # print('tiling takes {:02f} s'.format(time.time() - time_start))
     # time_start = time.time()
 
@@ -218,7 +218,8 @@ def crop_at_indices(input_image,
                                               slice_idx=save_dict['slice_idx'],
                                               pos_idx=save_dict['pos_idx'],
                                               int2str_len=save_dict['int2str_len'],
-                                              extra_field=img_id)
+                                              extra_field=img_id,
+                                              ext='.npy')
 
             cur_metadata = {'channel_idx': save_dict['channel_idx'],
                             'slice_idx': save_dict['slice_idx'],

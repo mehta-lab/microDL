@@ -112,6 +112,27 @@ def get_meta_idx(frames_metadata,
         (frames_metadata["pos_idx"] == pos_idx)].tolist()
     return frame_idx[0]
 
+def get_sub_meta(frames_metadata,
+                 time_ids,
+                 channel_ids,
+                 slice_ids,
+                 pos_ids):
+    """
+    Get sliced metadata dataframe given variable indices
+
+    :param dataframe frames_metadata: Dataframe with column names given below
+    :param int time_ids: Timepoint indices
+    :param int channel_ids: Channel indices
+    :param int slice_ids: Slize (z) indices
+    :param int pos_ids: Position (FOV) indices
+    :return: int pos_ids: Row positions matching indices above
+    """
+    frames_meta_sub = frames_metadata[
+        (frames_metadata['channel_idx'].isin(channel_ids)) &
+        (frames_metadata['time_idx'].isin(time_ids)) &
+        (frames_metadata["slice_idx"].isin(slice_ids)) &
+        (frames_metadata["pos_idx"].isin(pos_ids))]
+    return frames_meta_sub
 
 def get_im_name(time_idx=None,
                 channel_idx=None,

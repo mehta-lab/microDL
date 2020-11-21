@@ -7,7 +7,7 @@ import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.image_utils as image_utils
 import micro_dl.utils.masks as mask_utils
 import micro_dl.utils.tile_utils as tile_utils
-
+from micro_dl.utils.normalize import hist_clipping
 
 def mp_create_save_mask(fn_args, workers):
     """Create and save masks with multiprocessing
@@ -61,12 +61,12 @@ def create_save_mask(input_fnames,
     :return dict cur_meta for each mask
     """
     if mask_type == 'dataset otsu':
-        assert isinstance(channel_thrs, list), \
+        assert channel_thrs is not None, \
             'channel threshold is required for mask_type="dataset otsu"'
     im_stack = image_utils.read_imstack(
         input_fnames,
         flat_field_fname,
-        normalize_im=False,
+        normalize_im=None,
     )
     masks = []
     for idx in range(im_stack.shape[-1]):
@@ -99,6 +99,24 @@ def create_save_mask(input_fnames,
         int2str_len=int2str_len,
         ext=mask_ext,
     )
+
+    # file_name = aux_utils.get_sms_im_name(
+    #             time_idx=time_idx,
+    #             channel_name='mask',
+    #             slice_idx=slice_idx,
+    #             pos_idx=pos_idx,
+    #             ext=mask_ext,
+    #             int2str_len=3)
+
+    overlay_name = aux_utils.get_im_name(
+        time_idx=time_idx,
+        channel_idx=mask_channel_idx,
+        slice_idx=slice_idx,
+        pos_idx=pos_idx,
+        int2str_len=int2str_len,
+        extra_field='overlay',
+        ext=mask_ext,
+    )
     if mask_ext == '.npy':
         # Save mask for given channels, mask is 2D
         np.save(os.path.join(mask_dir, file_name),
@@ -114,6 +132,16 @@ def create_save_mask(input_fnames,
             # Note: Border weight map mask should only be generated from one binary image
         else:
             mask = mask.astype(np.uint8) * np.iinfo(np.uint8).max
+            im_mean = np.mean(im_stack, axis=-1)
+            im_mean = hist_clipping(im_mean, 1, 99)
+            im_mean = \
+                cv2.convertScaleAbs(
+                    im_mean - np.min(im_mean),
+                  alpha=255 / (np.max(im_mean) - np.min(im_mean))
+                )
+            im_mask_overlay = np.stack([mask, im_mean, mask], axis=2)
+            cv2.imwrite(os.path.join(mask_dir, overlay_name), im_mask_overlay)
+
         cv2.imwrite(os.path.join(mask_dir, file_name), mask)
     else:
         raise ValueError("mask_ext can be '.npy' or '.png', not {}".format(mask_ext))
@@ -153,6 +181,7 @@ def tile_and_save(input_fnames,
                   save_dir,
                   int2str_len=3,
                   is_mask=False,
+                  normalize_im=None,
                   zscore_mean=None,
                   zscore_std=None
                   ):
@@ -182,7 +211,7 @@ def tile_and_save(input_fnames,
             flat_field_fname=flat_field_fname,
             hist_clip_limits=hist_clip_limits,
             is_mask=is_mask,
-            normalize_im=True,
+            normalize_im=normalize_im,
             zscore_mean=zscore_mean,
             zscore_std=zscore_std
         )
@@ -239,6 +268,7 @@ def crop_at_indices_save(input_fnames,
                          int2str_len=3,
                          is_mask=False,
                          tile_3d=False,
+                         normalize_im=True,
                          zscore_mean=None,
                          zscore_std=None
                          ):
@@ -268,7 +298,7 @@ def crop_at_indices_save(input_fnames,
             flat_field_fname=flat_field_fname,
             hist_clip_limits=hist_clip_limits,
             is_mask=is_mask,
-            normalize_im=True,
+            normalize_im=normalize_im,
             zscore_mean=zscore_mean,
             zscore_std=zscore_std
         )

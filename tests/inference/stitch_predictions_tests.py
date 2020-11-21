@@ -108,7 +108,7 @@ class TestImageStitcher(unittest.TestCase):
         exp_stitched_img[4] = 3
         exp_stitched_img[5] = 3
 
-        self.stitch_inst_z.shape_3d = (6, 32, 32)
+        self.stitch_inst_z.im_shape = (6, 32, 32)
         self.stitch_inst_z.overlap_dict['overlap_shape'] = 1
         stitched_img = self.stitch_inst_z._stitch_along_z(
             tile_imgs_list=tile_imgs_list,
@@ -218,7 +218,7 @@ class TestImageStitcher(unittest.TestCase):
                               (0, 3, 4, 10, 0, 6),
                               (0, 3, 4, 10, 4, 10)]
 
-        self.stitch_inst_zyx.shape_3d = (3, 10, 10)
+        self.stitch_inst_zyx.im_shape = (3, 10, 10)
         self.stitch_inst_zyx.overlap_dict['overlap_shape'] = [1, 2, 2]
         stitched_img = self.stitch_inst_zyx._stitch_along_xyz(
             tile_imgs_list=tile_imgs_list,

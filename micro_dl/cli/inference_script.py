@@ -64,7 +64,7 @@ def run_inference(config_fname,
         'more than one train config yaml found in model dir'
     with open(train_config_fname[0], 'r') as f:
         train_config = yaml.safe_load(f)
-    preprocess_config = preprocess_utils.get_preprocess_config(train_config['dataset']['data_dir'])
+    preprocess_config = preprocess_utils.get_preprocess_config(inference_config['preprocess_dir'])
     inference_inst = image_inf.ImagePredictor(
         train_config=train_config,
         inference_config=inference_config,

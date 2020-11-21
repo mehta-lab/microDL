@@ -69,7 +69,6 @@ class ImageTilerUniform:
         """
         self.input_dir = input_dir
         self.output_dir = output_dir
-        self.normalize_channels = normalize_channels
         self.depths = depths
         self.tile_size = tile_size
         self.step_size = step_size
@@ -124,19 +123,23 @@ class ImageTilerUniform:
         self.time_ids = metadata_ids['time_ids']
         self.slice_ids = metadata_ids['slice_ids']
         self.pos_ids = metadata_ids['pos_ids']
-        self.normalize_im = normalize_im
         self.min_fraction = min_fraction
-        self.normalize_channels = normalize_channels
         # Determine which channels should be normalized in tiling
-        if self.normalize_channels == -1:
-            self.normalize_channels = [True] * len(self.channel_ids)
+        if normalize_channels == -1:
+            self.normalize_channels = \
+                dict(zip(self.channel_ids, [normalize_im] * len(self.channel_ids)))
         else:
             assert len(self.normalize_channels) == len(self.channel_ids),\
                 "Channel ids {} and normalization list {} mismatch".format(
                     self.channel_ids,
                     self.normalize_channels,
                 )
-        # If more than one depth is specified, length must match channel ids
+
+            normalize_channels = [normalize_im if flag else None for flag in normalize_channels]
+
+            self.normalize_channels = \
+                dict(zip(self.channel_ids, normalize_channels))
+                # If more than one depth is specified, length must match channel ids
         if isinstance(self.depths, list):
             assert len(self.depths) == len(self.channel_ids),\
              "depths ({}) and channels ({}) length mismatch".format(
@@ -364,7 +367,9 @@ class ImageTilerUniform:
         zscore_median = None
         zscore_iqr = None
         is_mask = False
+        normalize_im = None
         if mask_dir is None:
+            normalize_im = self.normalize_channels[channel_idx]
             if self.flat_field_dir is not None:
                 flat_field_fname = os.path.join(
                     self.flat_field_dir,
@@ -382,7 +387,7 @@ class ImageTilerUniform:
                 slice_idx,
                 pos_idx,
             )
-            if self.normalize_im in ['dataset', 'volume', 'slice']:
+            if normalize_im in ['dataset', 'volume', 'slice']:
                 zscore_median, zscore_iqr = \
                     self.frames_metadata.loc[frame_idx, ['zscore_median', 'zscore_iqr']].tolist()
         else:
@@ -402,6 +407,7 @@ class ImageTilerUniform:
                         self.int2str_len,
                         is_mask,
                         self.tile_3d,
+                        normalize_im,
                         zscore_median,
                         zscore_iqr)
         elif task_type == 'tile':
@@ -419,6 +425,7 @@ class ImageTilerUniform:
                         self.tile_dir,
                         self.int2str_len,
                         is_mask,
+                        normalize_im,
                         zscore_median,
                         zscore_iqr)
         return cur_args
@@ -440,8 +447,6 @@ class ImageTilerUniform:
         tiled_meta0 = None
         fn_args = []
         for channel_idx in self.channel_ids:
-            # Find channel index position in channel_ids list
-            list_idx = self.channel_ids.index(channel_idx)
             # Perform flatfield correction if flatfield dir is specified
             flat_field_im = self._get_flat_field(channel_idx=channel_idx)
             for slice_idx in self.slice_ids:
@@ -460,8 +465,7 @@ class ImageTilerUniform:
                                 pos_idx=pos_idx,
                                 flat_field_im=flat_field_im,
                                 hist_clip_limits=self.hist_clip_limits,
-                                normalize_im=self.normalize_im,
-                                normalize_channels=self.normalize_channels[list_idx],
+                                normalize_im=self.normalize_channels[channel_idx],
                             )
                             save_dict = {'time_idx': time_idx,
                                          'channel_idx': channel_idx,
@@ -598,7 +602,6 @@ class ImageTilerUniform:
                                 pos_idx,
                                 task_type='crop',
                                 tile_indices=cur_tile_indices,
-                                normalize_channels=self.normalize_channels[i],
                             )
                             fn_args.append(cur_args)
         tiled_meta_df_list = mp_utils.mp_crop_save(

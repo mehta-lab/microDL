@@ -3,7 +3,7 @@ import argparse
 import os
 import yaml
 import pandas as pd
-from shutil import copy2
+from shutil import copy, copy2
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.meta_utils as meta_utils
 
@@ -84,7 +84,7 @@ def pool_dataset(config):
                     )
                 frames_meta_src_new.loc[row_idx, 'file_name'] = im_name_dst
                 im_name_src = frames_meta_src.loc[row_idx, 'file_name']
-                copy2(os.path.join(src_dir, im_name_src),
+                copy(os.path.join(src_dir, im_name_src),
                       os.path.join(dst_dir, im_name_dst))
 
             frames_meta_dst = frames_meta_dst.append(

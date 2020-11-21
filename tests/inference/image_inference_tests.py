@@ -169,7 +169,7 @@ class TestImageInference(unittest.TestCase):
         im = np.zeros((1, 10, 15), dtype=np.uint8)
         im[:, 5, :] = 128
         self.infer_inst.save_pred_image(
-            predicted_image=im,
+            im_pred=im,
             time_idx=10,
             target_channel_idx=20,
             pos_idx=30,

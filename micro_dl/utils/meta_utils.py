@@ -115,7 +115,7 @@ def compute_zscore_params(frames_meta,
                           ints_meta,
                           input_dir,
                           normalize_im,
-                          min_fraction=0):
+                          min_fraction=0.99):
     """Get zscore mean and standard deviation
 
     :param int time_idx: Time index
@@ -147,13 +147,16 @@ def compute_zscore_params(frames_meta,
     else:
         agg_cols = ['time_idx', 'channel_idx', 'dir_name', 'pos_idx', 'slice_idx']
     # median and inter-quartile range are more robust than mean and std
-    ints_meta = ints_meta[ints_meta['fg_frac'] >= min_fraction]
+    ints_meta_sub = ints_meta[ints_meta['fg_frac'] >= min_fraction]
+    print('min_fraction:', min_fraction)
+    print('ints_meta:', len(ints_meta))
+    print('ints_meta_sub:', len(ints_meta_sub))
     ints_agg_median = \
-        ints_meta[agg_cols + ['intensity']].groupby(agg_cols).median()
+        ints_meta_sub[agg_cols + ['intensity']].groupby(agg_cols).median()
     ints_agg_hq = \
-        ints_meta[agg_cols + ['intensity']].groupby(agg_cols).quantile(0.75)
+        ints_meta_sub[agg_cols + ['intensity']].groupby(agg_cols).quantile(0.75)
     ints_agg_lq = \
-        ints_meta[agg_cols + ['intensity']].groupby(agg_cols).quantile(0.25)
+        ints_meta_sub[agg_cols + ['intensity']].groupby(agg_cols).quantile(0.25)
     ints_agg = ints_agg_median
     ints_agg.columns = ['zscore_median']
     ints_agg['zscore_iqr'] = ints_agg_hq['intensity'] - ints_agg_lq['intensity']
@@ -167,7 +170,15 @@ def compute_zscore_params(frames_meta,
     frames_meta_filename = os.path.join(input_dir, 'frames_meta.csv')
     frames_meta.to_csv(frames_meta_filename, sep=",")
 
-    return frames_meta
+    cols_to_merge = \
+        ints_meta.columns[[
+            col not in ['zscore_median', 'zscore_iqr']
+            for col in ints_meta.columns]]
+    ints_meta = \
+        pd.merge(ints_meta[cols_to_merge], ints_agg, how='left', on=agg_cols)
+    ints_meta['intensity_norm'] = \
+        (ints_meta['intensity'] - ints_meta['zscore_median']) / ints_meta['zscore_iqr']
+    return frames_meta, ints_meta
 
 
 

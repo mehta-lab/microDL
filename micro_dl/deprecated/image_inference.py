@@ -17,6 +17,7 @@ import micro_dl.utils.image_utils as image_utils
 from micro_dl.utils.image_utils import preprocess_imstack
 import micro_dl.utils.train_utils as train_utils
 import micro_dl.utils.preprocess_utils as preprocess_utils
+import micro_dl.utils.normalize as normalize
 
 def parse_args():
     """Parse command line arguments
@@ -32,7 +33,8 @@ def parse_args():
                               ', -1 for debugging. Default: pick best GPU'))
     parser.add_argument('--gpu_mem_frac', type=float, default=None,
                         help='Optional: specify the gpu memory fraction to use')
-
+    parser.add_argument('--pred_offset', type=int, default=0,
+                        help=('offset added to the predicted image'))
     parser.add_argument(
         '--model_dir',
         type=str,
@@ -108,6 +110,20 @@ def parse_args():
     args = parser.parse_args()
     return args
 
+def unzscore(im_pred,
+             im_target,
+             normalize_im,
+             meta_row):
+
+    if normalize_im is not None:
+        if normalize_im in ['dataset', 'volume', 'slice']:
+            zscore_median = meta_row.loc['zscore_median']
+            zscore_iqr = meta_row.loc['zscore_iqr']
+        else:
+            zscore_median = np.nanmean(im_target)
+            zscore_iqr = np.nanstd(im_target)
+        im_pred = normalize.unzscore(im_pred, zscore_median, zscore_iqr)
+    return im_pred
 
 def run_prediction(model_dir,
                    image_dir,
@@ -118,7 +134,8 @@ def run_prediction(model_dir,
                    test_data=True,
                    ext='.tif',
                    save_figs=False,
-                   save_to_image_dir=False):
+                   save_to_image_dir=False,
+                   pred_offset=0):
     """
     Predict images given model + weights.
     If the test_data flag is set to True, the test indices in
@@ -292,32 +309,7 @@ def run_prediction(model_dir,
                     input_image=im_stack,
                 )
                 print("Inference time:", time.time() - start)
-                # Write prediction image
-                im_name = aux_utils.get_im_name(
-                    time_idx=time_idx,
-                    channel_idx=input_channel,
-                    slice_idx=slice_idx,
-                    pos_idx=pos_idx,
-                    ext=ext,
-                )
-                file_name = os.path.join(pred_dir, im_name)
-                if ext == '.png':
-                    # Convert to uint16 for now
-                    im_pred = 2 ** 16 * (im_pred - im_pred.min()) / \
-                              (im_pred.max() - im_pred.min())
-                    im_pred = im_pred.astype(np.uint16)
-                    cv2.imwrite(file_name, np.squeeze(im_pred))
-                if ext == '.tif':
-                    # Convert to float32 and remove batch dimension
-                    im_pred = im_pred.astype(np.float32)
-                    cv2.imwrite(file_name, np.squeeze(im_pred))
-                elif ext == '.npy':
-                    np.save(file_name, im_pred, allow_pickle=True)
-                else:
-                    raise ValueError('Unsupported file extension')
 
-                # assuming target and predicted images are always 2D for now
-                # Load target
                 meta_idx = aux_utils.get_meta_idx(
                     frames_meta,
                     time_idx,
@@ -327,6 +319,10 @@ def run_prediction(model_dir,
                 )
                 # get a single row of frame meta data
                 test_frames_meta_row = frames_meta.loc[meta_idx].copy()
+
+                # assuming target and predicted images are always 2D for now
+                # Load target
+
                 im_target = preprocess_imstack(
                     frames_metadata=frames_meta,
                     input_dir=image_dir,
@@ -335,7 +331,7 @@ def run_prediction(model_dir,
                     channel_idx=target_channel,
                     slice_idx=slice_idx,
                     pos_idx=pos_idx,
-                    normalize_im=normalize_im,
+                    normalize_im=None,
                 )
                 im_target = image_utils.crop2base(im_target)
                 # TODO: Add image_format option to network config
@@ -351,10 +347,36 @@ def run_prediction(model_dir,
                     im_target = im_target[..., np.newaxis]
                 # add batch dimensions
                 im_target = im_target[np.newaxis, ...]
+                im_pred = unzscore(im_pred,
+                                 im_target,
+                                 normalize_im,
+                                 test_frames_meta_row)
 
-                metric_vals = model.evaluate(x=im_stack, y=im_target)
-                for metric, metric_val in zip([loss] + metrics, metric_vals):
-                    test_frames_meta_row[metric] = metric_val
+                # Write prediction image
+                im_name = aux_utils.get_im_name(
+                    time_idx=time_idx,
+                    channel_idx=target_channel,
+                    slice_idx=slice_idx,
+                    pos_idx=pos_idx,
+                    ext=ext,
+                )
+                file_name = os.path.join(pred_dir, im_name)
+                if ext == '.png':
+                    im_pred = np.clip(im_pred + pred_offset, 0, 2 ** 16 - 1)
+                    im_pred = im_pred.astype(np.uint16)
+                    cv2.imwrite(file_name, np.squeeze(im_pred))
+                elif ext == '.tif':
+                    # Convert to float32 and remove batch dimension
+                    im_pred = im_pred.astype(np.float32)
+                    cv2.imwrite(file_name, np.squeeze(im_pred))
+                elif ext == '.npy':
+                    np.save(file_name, im_pred, allow_pickle=True)
+                else:
+                    raise ValueError('Unsupported file extension "{}"'.format(ext))
+
+                # metric_vals = model.evaluate(x=im_stack, y=im_target)
+                # for metric, metric_val in zip([loss] + metrics, metric_vals):
+                #     test_frames_meta_row[metric] = metric_val
 
                 test_frames_meta = test_frames_meta.append(
                     test_frames_meta_row,
@@ -400,5 +422,6 @@ if __name__ == '__main__':
         ext=args.ext,
         save_figs=args.save_figs,
         save_to_image_dir=args.save_to_image_dir,
+        pred_offset=args.pred_offset,
     )
 

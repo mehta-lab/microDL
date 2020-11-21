@@ -173,6 +173,7 @@ def generate_masks(params_dict,
     return mask_dir, mask_channel
 
 def generate_zscore_table(params_dict,
+                          norm_dict,
                           mask_dir):
     """
     Compute z-score parameters and update frames_metadata based on the normalize_im
@@ -189,11 +190,13 @@ def generate_zscore_table(params_dict,
         pd.merge(ints_metadata[cols_to_merge],
                  mask_metadata[['pos_idx', 'time_idx', 'slice_idx', 'fg_frac']],
                  how='left', on=['pos_idx', 'time_idx', 'slice_idx'])
-    meta_utils.compute_zscore_params(frames_metadata,
+    _, ints_metadata = \
+        meta_utils.compute_zscore_params(frames_metadata,
                                      ints_metadata,
                                      params_dict['input_dir'],
                                      normalize_im=params_dict['normalize_im'],
-                                     min_fraction=params_dict['min_fraction'], )
+                                     min_fraction=norm_dict['min_fraction']
+                                     )
     ints_metadata.to_csv(os.path.join(input_dir, 'ints_meta.csv'),
                          sep=',')
 
@@ -263,9 +266,6 @@ def tile_images(params_dict,
 
     # retain tiles with a minimum amount of foreground
     if 'mask_dir' in tile_dict:
-        min_fraction = 0.
-        if 'min_fraction' in tile_dict:
-            min_fraction = tile_dict['min_fraction']
         mask_channel = tile_dict['mask_channel']
         mask_dir = tile_dict['mask_dir']
         mask_depth = 1
@@ -275,7 +275,6 @@ def tile_images(params_dict,
         tile_inst.tile_mask_stack(
             mask_dir=mask_dir,
             mask_channel=mask_channel,
-            min_fraction=min_fraction,
             mask_depth=mask_depth,
         )
     else:
@@ -402,7 +401,7 @@ def pre_process(preprocess_config, req_params_dict):
     if req_params_dict['normalize_im'] in ['dataset', 'volume', 'slice']:
         assert mask_dir is not None, \
             "'dataset', 'volume', 'slice' normalization requires masks"
-        generate_zscore_table(req_params_dict, mask_dir)
+        generate_zscore_table(req_params_dict, preprocess_config['normalize'], mask_dir)
 
     # ----------------------Generate weight map-----------------------
     if 'make_weight_map' in preprocess_config and preprocess_config['make_weight_map']:
@@ -424,7 +423,6 @@ def pre_process(preprocess_config, req_params_dict):
             mask_channel=weights_channel,
             mask_ext='.npy',
             mask_dir=mask_dir,
-            normalize_im=False,
         )
         preprocess_config['weights'] = {
             'weights_dir': weights_dir,
@@ -493,6 +491,7 @@ def save_config(cur_config, runtime):
     if prior_preprocess_config is not None:
         prior_preprocess_config.append(processing_info[0])
         processing_info = prior_preprocess_config
+    os.makedirs(cur_config['output_dir'], exist_ok=True)
     aux_utils.write_json(processing_info, meta_path)
 
 
@@ -519,7 +518,7 @@ if __name__ == '__main__':
         channel_ids = preprocess_config['channel_ids']
 
     normalize_channels = -1
-    if 'normalize_channels' in preprocess_config['tile']:
+    if 'tile' in preprocess_config and 'normalize_channels' in preprocess_config['tile']:
         normalize_channels = preprocess_config['tile']['normalize_channels']
         if isinstance(channel_ids, list):
             assert len(channel_ids) == len(normalize_channels),\
@@ -541,12 +540,9 @@ if __name__ == '__main__':
         num_workers = preprocess_config['num_workers']
 
     normalize_im = 'stack'
-    if 'normalize_im' in preprocess_config:
-        normalize_im = preprocess_config['normalize_im']
-
-    min_fraction = 0
-    if 'min_fraction' in preprocess_config:
-        min_fraction = preprocess_config['min_fraction']
+    if 'normalize' in preprocess_config:
+        if 'normalize_im' in preprocess_config['normalize']:
+            normalize_im = preprocess_config['normalize']['normalize_im']
 
     base_config = {'input_dir': input_dir,
                    'output_dir': output_dir,
@@ -560,7 +556,7 @@ if __name__ == '__main__':
                    'normalize_channels': normalize_channels,
                    'num_workers': num_workers,
                    'normalize_im': normalize_im,
-                   'min_fraction': min_fraction}
+                   }
 
     preprocess_config, runtime = pre_process(preprocess_config, base_config)
     save_config(preprocess_config, runtime)

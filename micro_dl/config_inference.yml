@@ -12,7 +12,7 @@ masks:
     mask_dir: '/data/kidney_tiles/mask_channels_2'
     mask_type: 'metrics'
     mask_channel: 9
-inference_3d:
+tile:
     tile_shape: [96, 512, 512]
     num_overlap: [0, 32, 32]
     overlap_operation: 'mean'

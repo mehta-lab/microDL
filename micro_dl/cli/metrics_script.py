@@ -198,24 +198,23 @@ def compute_metrics(model_dir,
                 im_pred = image_utils.read_image(pred_fname)
 
                 # Un-zscore the predicted image. Necessary before computing SSIM
-                if normalize_im is not None:
-                    if normalize_im in ['dataset', 'volume', 'slice']:
-                        zscore_median = frames_meta.loc[im_idx, 'zscore_median']
-                        zscore_iqr = frames_meta.loc[im_idx, 'zscore_iqr']
-                    else:
-                        zscore_median = np.nanmean(im_target)
-                        zscore_iqr = np.nanstd(im_target)
-                    im_pred = normalize.unzscore(im_pred, zscore_median, zscore_iqr)
+                # if normalize_im is not None:
+                #     if normalize_im in ['dataset', 'volume', 'slice']:
+                #         zscore_median = frames_meta.loc[im_idx, 'zscore_median']
+                #         zscore_iqr = frames_meta.loc[im_idx, 'zscore_iqr']
+                #     else:
+                #         zscore_median = np.nanmean(im_target)
+                #         zscore_iqr = np.nanstd(im_target)
+                #     im_pred = normalize.unzscore(im_pred, zscore_median, zscore_iqr)
                 target_stack.append(im_target)
                 pred_stack.append(im_pred)
 
-            target_stack = np.dstack(target_stack)
-            pred_stack = np.stack(pred_stack, axis=-1)
+            target_stack = np.squeeze(np.dstack(target_stack)).astype(np.float32)
+            pred_stack = np.squeeze(np.stack(pred_stack, axis=-1)).astype(np.float32)
 
-            if target_stack.dtype == np.float64:
-                target_stack = target_stack.astype(np.float32)
             pred_name = "t{}_p{}".format(time_idx, pos_idx)
             for orientation in orientations_list:
+                print('Compute {} metrics...'.format(orientation))
                 metric_fn = fn_mapping[orientation]
                 metric_fn(
                     target=target_stack,

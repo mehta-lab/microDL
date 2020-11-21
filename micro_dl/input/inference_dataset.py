@@ -14,13 +14,15 @@ class InferenceDataSet(keras.utils.Sequence):
 
     def __init__(self,
                  image_dir,
+                 inference_config,
                  dataset_config,
                  network_config,
                  preprocess_config,
                  split_col_ids,
                  image_format='zyx',
                  mask_dir=None,
-                 flat_field_dir=None):
+                 flat_field_dir=None,
+                 crop2base=True):
         """Init
 
         :param str image_dir: dir containing images AND NOT TILES!
@@ -62,22 +64,29 @@ class InferenceDataSet(keras.utils.Sequence):
             self.model_task = dataset_config['model_task']
             assert self.model_task in {'regression', 'segmentation'}, \
                 "Model task must be either 'segmentation' or 'regression'"
-
         normalize_im = 'stack'
-        if 'normalize_im' in preprocess_config:
+        if 'normalize' in preprocess_config:
+            if 'normalize_im' in preprocess_config['normalize']:
+                normalize_im = preprocess_config['normalize']['normalize_im']
+        elif 'normalize_im' in preprocess_config:
             normalize_im = preprocess_config['normalize_im']
         elif 'normalize_im' in preprocess_config['tile']:
             normalize_im = preprocess_config['tile']['normalize_im']
 
         self.normalize_im = normalize_im
-        self.input_channels = dataset_config['input_channels']
-        self.target_channels = dataset_config['target_channels']
+        # assume input and target channels are the same as training if not specified
+        if 'dataset' in inference_config:
+            self.input_channels = inference_config['dataset']['input_channels']
+            self.target_channels = inference_config['dataset']['target_channels']
+        else:
+            self.input_channels = dataset_config['input_channels']
+            self.target_channels = dataset_config['target_channels']
 
         # get a subset of frames meta for only one channel to easily
         # extract indices (pos, time, slice) to iterate over
-        df_idx = (self.frames_meta['channel_idx'] == self.target_channels[0])
-        self.iteration_meta = self.frames_meta.copy()
-        self.iteration_meta = self.iteration_meta[df_idx]
+        target_row_ids = (self.frames_meta['channel_idx'] == self.target_channels[0])
+        self.target_meta = self.frames_meta.copy()
+        self.target_meta = self.target_meta[target_row_ids]
 
         self.depth = 1
         self.target_depth = 1
@@ -101,43 +110,44 @@ class InferenceDataSet(keras.utils.Sequence):
             self.data_format = network_config['data_format']
 
         # check if sorted values look right
-        self.iteration_meta = self.iteration_meta.sort_values(
+        self.target_meta = self.target_meta.sort_values(
             ['pos_idx',  'slice_idx'],
             ascending=[True, True],
         )
-        self.iteration_meta = self.iteration_meta.reset_index(drop=True)
-        self.num_samples = len(self.iteration_meta)
+        self.target_meta = self.target_meta.reset_index(drop=True)
+        self.num_samples = len(self.target_meta)
+        self.crop2base = crop2base
 
     def adjust_slice_indices(self):
         """
         Adjust slice indices if model is UNetStackTo2D or UNetStackToStack.
         These networks will have a depth > 1.
-        Adjust iteration_meta only as we'll need all the indices to load
+        Adjust target_meta only as we'll need all the indices to load
         stack with depth > 1.
         """
         margin = self.depth // 2
         # Drop indices above margin
-        max_slice_idx = self.iteration_meta['slice_idx'].max() + 1
+        max_slice_idx = self.target_meta['slice_idx'].max() + 1
         drop_idx = list(range(max_slice_idx - margin, max_slice_idx))
-        df_drop_idx = self.iteration_meta.index[
-            self.iteration_meta['slice_idx'].isin(drop_idx),
+        df_drop_idx = self.target_meta.index[
+            self.target_meta['slice_idx'].isin(drop_idx),
         ]
-        self.iteration_meta.drop(df_drop_idx, inplace=True)
+        self.target_meta.drop(df_drop_idx, inplace=True)
         # Drop indices below margin
-        df_drop_idx = self.iteration_meta.index[
-            self.iteration_meta['slice_idx'].isin(list(range(margin)))
+        df_drop_idx = self.target_meta.index[
+            self.target_meta['slice_idx'].isin(list(range(margin)))
         ]
-        self.iteration_meta.drop(df_drop_idx, inplace=True)
+        self.target_meta.drop(df_drop_idx, inplace=True)
 
     def get_iteration_meta(self):
         """
         Get the dataframe containing indices for one channel for
         inference iterations.
 
-        :return pandas Dataframe iteration_meta: Metadata and indices for
+        :return pandas Dataframe target_meta: Metadata and indices for
          first target channel
         """
-        return self.iteration_meta
+        return self.target_meta
 
     def __len__(self):
         """
@@ -152,7 +162,8 @@ class InferenceDataSet(keras.utils.Sequence):
                    cur_row,
                    channel_ids,
                    depth,
-                   normalize_im):
+                   normalize_im,
+                   is_mask=False):
         """
         Assemble one input or target tensor
 
@@ -188,7 +199,8 @@ class InferenceDataSet(keras.utils.Sequence):
                 normalize_im=normalize_im,
             )
             # Crop image to nearest factor of two in xy
-            im = image_utils.crop2base(im)  # crop_z=self.im_3d)
+            if self.crop2base:
+                im = image_utils.crop2base(im)  # crop_z=self.im_3d)
             # Make sure image format is right and squeeze for 2D models
             if self.image_format == 'zyx' and len(im.shape) > 2:
                 im = np.transpose(im, [2, 0, 1])
@@ -200,6 +212,9 @@ class InferenceDataSet(keras.utils.Sequence):
             im_stack = np.stack(im_stack)
         else:
             im_stack = np.stack(im_stack, axis=self.n_dims - 2)
+        # binarize the target images for segmentation task
+        if is_mask:
+            im_stack = im_stack > 0
         # Make sure all images have the same dtype
         im_stack = im_stack.astype(np.float32)
         return im_stack
@@ -214,7 +229,11 @@ class InferenceDataSet(keras.utils.Sequence):
         :return np.array target_stack: Target image stack for model inference
         """
         # Get indices for current inference iteration
-        cur_row = self.iteration_meta.iloc[index]
+        cur_row = self.target_meta.iloc[index]
+        # binarize the target images for segmentation task
+        is_mask = False
+        if self.model_task == 'segmentation':
+            is_mask = True
         # Get input and target stacks for inference
         input_stack = self._get_image(
             input_dir=self.image_dir,
@@ -229,6 +248,7 @@ class InferenceDataSet(keras.utils.Sequence):
             channel_ids=self.target_channels,
             depth=self.target_depth,
             normalize_im=None,
+            is_mask=is_mask,
         )
         # Add batch dimension
         input_stack = np.expand_dims(input_stack, axis=0)
