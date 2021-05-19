@@ -8,6 +8,7 @@ import natsort
 import numpy as np
 import os
 from micro_dl.utils.normalize import hist_clipping
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
 def save_predicted_images(input_batch,
@@ -93,25 +94,30 @@ def save_predicted_images(input_batch,
                 clip_limits,
                 100 - clip_limits,
             )
-            ax[axis_count].imshow(cur_pred_chan, cmap='gray')
+            ax_img = ax[axis_count].imshow(cur_pred_chan, cmap='gray')
             ax[axis_count].axis('off')
+
+            divider = make_axes_locatable(ax[axis_count])
+            cax = divider.append_axes('right', size='5%', pad=0.05)
+            cbar = plt.colorbar(ax_img, cax=cax, orientation='vertical')
 
             ax[axis_count].set_title('Prediction', fontsize=font_size)
             axis_count += 1
             cur_target_pred = np.stack([cur_target_chan, cur_pred_chan,
                                         cur_target_chan], axis=2)
-            cur_target_pred = cv2.convertScaleAbs(cur_target_pred - np.min(cur_target_pred),
-                                                  alpha=255 / (np.max(cur_target_pred)
-                                                               - np.min(cur_target_pred)))
+            # cur_target_pred = cv2.convertScaleAbs(cur_target_pred - np.min(cur_target_pred),
+            #                                       alpha=255 / (np.max(cur_target_pred)
+            #                                                    - np.min(cur_target_pred)))
 
-            # cur_target_8bit = cv2.convertScaleAbs(cur_target_chan - np.min(cur_target_chan),
-            #                                       alpha=255/(np.max(cur_target_chan)
-            #                                             - np.min(cur_target_chan)))
-            # cur_prediction_8bit = cv2.convertScaleAbs(cur_pred_chan - np.min(cur_pred_chan),
-            #                                           alpha=255/(np.max(cur_pred_chan)
-            #                                                 - np.min(cur_pred_chan)))
-            # cur_target_pred = np.stack([cur_target_8bit, cur_prediction_8bit,
-            #                             cur_target_8bit], axis=2)
+
+            cur_target_8bit = cv2.convertScaleAbs(cur_target_chan - np.min(cur_target_chan),
+                                                  alpha=255/(np.max(cur_target_chan)
+                                                        - np.min(cur_target_chan)))
+            cur_prediction_8bit = cv2.convertScaleAbs(cur_pred_chan - np.min(cur_pred_chan),
+                                                      alpha=255/(np.max(cur_pred_chan)
+                                                            - np.min(cur_pred_chan)))
+            cur_target_pred = np.stack([cur_target_8bit, cur_prediction_8bit,
+                                        cur_target_8bit], axis=2)
 
             ax[axis_count].imshow(cur_target_pred)
             ax[axis_count].set_title('Overlay', fontsize=font_size)

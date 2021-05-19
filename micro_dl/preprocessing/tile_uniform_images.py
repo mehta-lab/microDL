@@ -129,7 +129,7 @@ class ImageTilerUniform:
             self.normalize_channels = \
                 dict(zip(self.channel_ids, [normalize_im] * len(self.channel_ids)))
         else:
-            assert len(self.normalize_channels) == len(self.channel_ids),\
+            assert len(normalize_channels) == len(self.channel_ids),\
                 "Channel ids {} and normalization list {} mismatch".format(
                     self.channel_ids,
                     self.normalize_channels,

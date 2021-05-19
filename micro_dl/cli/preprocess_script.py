@@ -543,6 +543,14 @@ if __name__ == '__main__':
     if 'normalize' in preprocess_config:
         if 'normalize_im' in preprocess_config['normalize']:
             normalize_im = preprocess_config['normalize']['normalize_im']
+        if 'normalize_channels' in preprocess_config['normalize']:
+            normalize_channels = preprocess_config['normalize']['normalize_channels']
+            if isinstance(channel_ids, list):
+                assert len(channel_ids) == len(normalize_channels), \
+                    "Nbr channels {} and normalization {} mismatch".format(
+                        channel_ids,
+                        normalize_channels,
+                    )
 
     base_config = {'input_dir': input_dir,
                    'output_dir': output_dir,

@@ -116,6 +116,9 @@ class ImagePredictor:
         self.image_format = 'zyx'
         if 'image_format' in images_dict:
             self.image_format = images_dict['image_format']
+        self.pred_chan_name = None
+        if 'pred_chan_name' in images_dict:
+            self.pred_chan_name = images_dict['pred_chan_name']
         self.image_ext = '.png'
         if 'image_ext' in images_dict:
             self.image_ext = images_dict['image_ext']
@@ -490,7 +493,7 @@ class ImagePredictor:
                         target_channel_idx,
                         pos_idx,
                         slice_idx,
-                        chan_name=None):
+                        ):
         """
         Save predicted images with image extension given in init.
 
@@ -514,7 +517,7 @@ class ImagePredictor:
         else:
             im_name = aux_utils.get_sms_im_name(
                 time_idx=time_idx,
-                channel_name=chan_name,
+                channel_name=self.pred_chan_name,
                 slice_idx=slice_idx,
                 pos_idx=pos_idx,
                 ext=self.image_ext,
