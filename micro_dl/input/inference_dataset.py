@@ -17,8 +17,8 @@ class InferenceDataSet(keras.utils.Sequence):
                  inference_config,
                  dataset_config,
                  network_config,
-                 preprocess_config,
                  split_col_ids,
+                 preprocess_config=None,
                  image_format='zyx',
                  mask_dir=None,
                  flat_field_dir=None,
@@ -65,28 +65,42 @@ class InferenceDataSet(keras.utils.Sequence):
             assert self.model_task in {'regression', 'segmentation'}, \
                 "Model task must be either 'segmentation' or 'regression'"
         normalize_im = 'stack'
-        if 'normalize' in preprocess_config:
-            if 'normalize_im' in preprocess_config['normalize']:
-                normalize_im = preprocess_config['normalize']['normalize_im']
-        elif 'normalize_im' in preprocess_config:
-            normalize_im = preprocess_config['normalize_im']
-        elif 'normalize_im' in preprocess_config['tile']:
-            normalize_im = preprocess_config['tile']['normalize_im']
+        if preprocess_config is not None:
+            if 'normalize' in preprocess_config:
+                if 'normalize_im' in preprocess_config['normalize']:
+                    normalize_im = preprocess_config['normalize']['normalize_im']
+            elif 'normalize_im' in preprocess_config:
+                normalize_im = preprocess_config['normalize_im']
+            elif 'normalize_im' in preprocess_config['tile']:
+                normalize_im = preprocess_config['tile']['normalize_im']
 
         self.normalize_im = normalize_im
         # assume input and target channels are the same as training if not specified
+        self.input_channels = dataset_config['input_channels']
+        self.target_channels = dataset_config['target_channels']
+        slice_ids = self.frames_meta['slice_idx'].unique()
+        pos_ids = self.frames_meta['pos_idx'].unique()
+        time_ids = self.frames_meta['time_idx'].unique()
         if 'dataset' in inference_config:
-            self.input_channels = inference_config['dataset']['input_channels']
-            self.target_channels = inference_config['dataset']['target_channels']
-        else:
-            self.input_channels = dataset_config['input_channels']
-            self.target_channels = dataset_config['target_channels']
+            if 'input_channels' in inference_config['dataset']:
+                self.input_channels = inference_config['dataset']['input_channels']
+            if 'target_channels' in inference_config['dataset']:
+                self.target_channels = inference_config['dataset']['target_channels']
+            if 'slice_ids' in inference_config['dataset']:
+                slice_ids = inference_config['dataset']['slice_ids']
+            if 'pos_ids' in inference_config['dataset']:
+                pos_ids = inference_config['dataset']['pos_ids']
+            if 'time_ids' in inference_config['dataset']:
+                time_ids = inference_config['dataset']['time_ids']
 
         # get a subset of frames meta for only one channel to easily
         # extract indices (pos, time, slice) to iterate over
-        target_row_ids = (self.frames_meta['channel_idx'] == self.target_channels[0])
-        self.target_meta = self.frames_meta.copy()
-        self.target_meta = self.target_meta[target_row_ids]
+        self.target_meta = aux_utils.get_sub_meta(
+            self.frames_meta,
+            time_ids=time_ids,
+            pos_ids=pos_ids,
+            slice_ids=slice_ids,
+            channel_ids=self.target_channels)
 
         self.depth = 1
         self.target_depth = 1
@@ -232,8 +246,8 @@ class InferenceDataSet(keras.utils.Sequence):
         cur_row = self.target_meta.iloc[index]
         # binarize the target images for segmentation task
         is_mask = False
-        if self.model_task == 'segmentation':
-            is_mask = True
+        # if self.model_task == 'segmentation':
+        #     is_mask = True
         # Get input and target stacks for inference
         input_stack = self._get_image(
             input_dir=self.image_dir,

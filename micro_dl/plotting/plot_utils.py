@@ -89,11 +89,12 @@ def save_predicted_images(input_batch,
             ax[axis_count].axis('off')
             ax[axis_count].set_title('Target', fontsize=font_size)
             axis_count += 1
-            cur_pred_chan = hist_clipping(
-                cur_prediction[channel_idx],
-                clip_limits,
-                100 - clip_limits,
-            )
+            # cur_pred_chan = hist_clipping(
+            #     cur_prediction[channel_idx],
+            #     clip_limits,
+            #     100 - clip_limits,
+            # )
+            cur_pred_chan = cur_prediction[channel_idx]
             ax_img = ax[axis_count].imshow(cur_pred_chan, cmap='gray')
             ax[axis_count].axis('off')
 
@@ -113,9 +114,11 @@ def save_predicted_images(input_batch,
             cur_target_8bit = cv2.convertScaleAbs(cur_target_chan - np.min(cur_target_chan),
                                                   alpha=255/(np.max(cur_target_chan)
                                                         - np.min(cur_target_chan)))
-            cur_prediction_8bit = cv2.convertScaleAbs(cur_pred_chan - np.min(cur_pred_chan),
-                                                      alpha=255/(np.max(cur_pred_chan)
-                                                            - np.min(cur_pred_chan)))
+            # cur_prediction_8bit = cv2.convertScaleAbs(cur_pred_chan - np.min(cur_pred_chan),
+            #                                           alpha=255/(np.max(cur_pred_chan)
+            #                                                 - np.min(cur_pred_chan)))
+            cur_prediction_8bit = cv2.convertScaleAbs(cur_pred_chan,
+                                                      alpha=150)
             cur_target_pred = np.stack([cur_target_8bit, cur_prediction_8bit,
                                         cur_target_8bit], axis=2)
 
@@ -129,6 +132,8 @@ def save_predicted_images(input_batch,
             )
         fig.savefig(fname, dpi=300, bbox_inches='tight')
         plt.close(fig)
+        fname = os.path.join(output_dir, '{}_overlay.{}'.format(output_fname, ext))
+        cv2.imwrite(fname, cur_target_pred)
 
 
 def save_center_slices(image_dir,

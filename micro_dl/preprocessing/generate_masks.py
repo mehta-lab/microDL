@@ -118,7 +118,7 @@ class MaskProcessor:
         ]
         # channel_thr_df = ints_meta_sub.groupby(['dir_name', 'channel_idx']).agg(get_unimodal_threshold).reset_index()
         channel_thr_df = ints_meta_sub.groupby(['dir_name', 'channel_idx']).agg(threshold_otsu).reset_index()
-        channel_thr_df['intensity'] = channel_thr_df['intensity'] * 1.5
+        channel_thr_df['intensity'] = channel_thr_df['intensity']
         return channel_thr_df
 
     def get_mask_dir(self):

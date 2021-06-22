@@ -23,7 +23,7 @@ class ImagePredictor:
     def __init__(self,
                  train_config,
                  inference_config,
-                 preprocess_config,
+                 preprocess_config=None,
                  gpu_id=-1,
                  gpu_mem_frac=None):
         """Init
@@ -172,13 +172,14 @@ class ImagePredictor:
                 mask_dir = self.mask_dir
 
         normalize_im = 'stack'
-        if 'normalize' in preprocess_config:
-            if 'normalize_im' in preprocess_config['normalize']:
-                normalize_im = preprocess_config['normalize']['normalize_im']
-        elif 'normalize_im' in preprocess_config:
-            normalize_im = preprocess_config['normalize_im']
-        elif 'normalize_im' in preprocess_config['tile']:
-            normalize_im = preprocess_config['tile']['normalize_im']
+        if preprocess_config is not None:
+            if 'normalize' in preprocess_config:
+                if 'normalize_im' in preprocess_config['normalize']:
+                    normalize_im = preprocess_config['normalize']['normalize_im']
+            elif 'normalize_im' in preprocess_config:
+                normalize_im = preprocess_config['normalize_im']
+            elif 'normalize_im' in preprocess_config['tile']:
+                normalize_im = preprocess_config['tile']['normalize_im']
 
         self.normalize_im = normalize_im
 

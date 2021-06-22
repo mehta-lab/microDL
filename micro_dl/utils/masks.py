@@ -1,11 +1,13 @@
 import numpy as np
 import scipy.ndimage
+import cv2
 from scipy.ndimage import binary_fill_holes
 from skimage.filters import threshold_otsu
 from skimage.morphology import disk, ball, binary_opening, binary_erosion
+from micro_dl.utils.image_utils import im_adjust
 
 
-def create_otsu_mask(input_image, str_elem_size=3, thr=None):
+def create_otsu_mask(input_image, str_elem_size=3, thr=None, kernel_size=3):
     """Create a binary mask using morphological operations
 
     Opening removes small objects in the foreground.
@@ -15,18 +17,21 @@ def create_otsu_mask(input_image, str_elem_size=3, thr=None):
     :return: mask of input_image, np.array
     """
 
+    # input_image = im_adjust(cv2.GaussianBlur(input_image, (kernel_size, kernel_size), 0))
+    input_image = im_adjust(input_image)
     if thr is None:
         if np.min(input_image) == np.max(input_image):
             thr = np.unique(input_image)
         else:
-            thr = threshold_otsu(input_image, nbins=512)
+            thr = threshold_otsu(input_image, nbins=128)
     if len(input_image.shape) == 2:
         str_elem = disk(str_elem_size)
     else:
         str_elem = ball(str_elem_size)
     # remove small objects in mask
-    thr_image = binary_opening(input_image > thr, str_elem)
-    mask = binary_fill_holes(thr_image)
+    mask = input_image > thr
+    mask = binary_opening(mask, str_elem)
+    # mask = binary_fill_holes(mask)
     return mask
 
 
@@ -74,7 +79,7 @@ def get_unimodal_threshold(input_image):
     return best_threshold
 
 
-def create_unimodal_mask(input_image, str_elem_size=3):
+def create_unimodal_mask(input_image, str_elem_size=3, kernel_size=3):
     """Create a mask with unimodal thresholding and morphological operations
 
     unimodal thresholding seems to oversegment, erode it by a fraction
@@ -84,6 +89,7 @@ def create_unimodal_mask(input_image, str_elem_size=3):
     :return mask of input_image, np.array
     """
 
+    input_image = im_adjust(cv2.GaussianBlur(input_image, (kernel_size, kernel_size), 0))
     if np.min(input_image) == np.max(input_image):
         thr = np.unique(input_image)
     else:
@@ -93,8 +99,9 @@ def create_unimodal_mask(input_image, str_elem_size=3):
     else:
         str_elem = ball(str_elem_size)
     # remove small objects in mask
-    thr_image = binary_opening(input_image > thr, str_elem)
-    mask = binary_erosion(thr_image, str_elem)
+    mask = input_image > thr
+    mask = binary_opening(mask, str_elem)
+    mask = binary_fill_holes(mask)
     return mask
 
 

@@ -140,7 +140,7 @@ def create_save_mask(input_fnames,
                   alpha=255 / (np.max(im_mean) - np.min(im_mean))
                 )
             im_mask_overlay = np.stack([mask, im_mean, mask], axis=2)
-            cv2.imwrite(os.path.join(mask_dir, overlay_name), im_mask_overlay)
+            c
 
         cv2.imwrite(os.path.join(mask_dir, file_name), mask)
     else:

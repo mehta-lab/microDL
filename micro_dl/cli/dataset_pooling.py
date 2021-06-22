@@ -84,8 +84,10 @@ def pool_dataset(config):
                     )
                 frames_meta_src_new.loc[row_idx, 'file_name'] = im_name_dst
                 im_name_src = frames_meta_src.loc[row_idx, 'file_name']
-                copy(os.path.join(src_dir, im_name_src),
-                      os.path.join(dst_dir, im_name_dst))
+                # copy(os.path.join(src_dir, im_name_src),
+                #       os.path.join(dst_dir, im_name_dst))
+                os.link(os.path.join(src_dir, im_name_src),
+                     os.path.join(dst_dir, im_name_dst))
 
             frames_meta_dst = frames_meta_dst.append(
                 frames_meta_src_new,
