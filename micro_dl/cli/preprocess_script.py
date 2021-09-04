@@ -197,7 +197,7 @@ def generate_zscore_table(params_dict,
                                      normalize_im=params_dict['normalize_im'],
                                      min_fraction=norm_dict['min_fraction']
                                      )
-    ints_metadata.to_csv(os.path.join(input_dir, 'ints_meta.csv'),
+    ints_metadata.to_csv(os.path.join(params_dict['input_dir'], 'ints_meta.csv'),
                          sep=',')
 
 
@@ -386,12 +386,23 @@ def pre_process(preprocess_config, req_params_dict):
             mask_meta_fname = None
             if 'csv_name' in preprocess_config['masks']:
                 mask_meta_fname = preprocess_config['masks']['csv_name']
-            mask_channel = preprocess_utils.validate_mask_meta(
-                mask_dir=mask_dir,
-                input_dir=req_params_dict['input_dir'],
-                csv_name=mask_meta_fname,
-                mask_channel=mask_channel,
-            )
+            mask_meta = \
+            meta_utils.mask_meta_generator(mask_dir,
+                                             name_parser='parse_sms_name',
+                                             )
+            frames_meta = aux_utils.read_meta(req_params_dict['input_dir'])
+            mask_meta['channel_idx'] += (frames_meta['channel_idx'].max() + 1)
+            # use the first mask channel as the default mask for tiling
+            mask_channel = int(mask_meta['channel_idx'].unique()[0])
+            # Write metadata
+            mask_meta_fname = os.path.join(mask_dir, 'frames_meta.csv')
+            mask_meta.to_csv(mask_meta_fname, sep=",")
+            # mask_channel = preprocess_utils.validate_mask_meta(
+            #     mask_dir=mask_dir,
+            #     input_dir=req_params_dict['input_dir'],
+            #     csv_name=mask_meta_fname,
+            #     mask_channel=mask_channel,
+            # )
         else:
             raise ValueError("If using masks, specify either mask_channel",
                              "or mask_dir.")
@@ -560,7 +571,6 @@ if __name__ == '__main__':
                    'channel_ids': channel_ids,
                    'uniform_struct': uniform_struct,
                    'int2strlen': int2str_len,
-                   'num_workers': num_workers,
                    'normalize_channels': normalize_channels,
                    'num_workers': num_workers,
                    'normalize_im': normalize_im,

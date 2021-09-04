@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import pandas as pd
+import shutil
 
 import micro_dl.utils.tile_utils as tile_utils
 import micro_dl.utils.aux_utils as aux_utils
@@ -89,19 +90,11 @@ class ImageTilerUniform:
             self.str_tile_step,
         )
 
-        # If tile dir already exist, only tile channels not already present
         self.tiles_exist = False
-        # If tile dir already exist, things could get messy because we don't
-        # have any checks in place for how to add to existing tiles
-        try:
-            os.makedirs(self.tile_dir, exist_ok=False)
-            # make dir for saving indiv meta per image, could be used for
-            # tracking job success / fail
-            os.makedirs(os.path.join(self.tile_dir, 'meta_dir'),
-                        exist_ok=False)
-        except FileExistsError as e:
-            print("Tile dir exists. Only add untiled channels.")
-            self.tiles_exist = True
+        # Delete the old tile dir if it already exists
+        if os.path.exists(self.tile_dir):
+            shutil.rmtree(self.tile_dir)
+        os.makedirs(self.tile_dir)
 
         # make dir for saving individual meta per image, could be used for
         # tracking job success / fail
@@ -535,44 +528,38 @@ class ImageTilerUniform:
         self.mask_depth = mask_depth
 
         # tile and save masks
-        # if mask channel is already tiled
-        if self.tiles_exist and mask_channel in self.channel_ids:
-            mask_meta_df = pd.read_csv(
-                os.path.join(self.tile_dir, 'frames_meta.csv')
-            )
-        else:
-            # TODO: different masks across timepoints (but MaskProcessor
-            # generates mask for tp=0 only)
-            mask_fn_args = []
-            for slice_idx in self.slice_ids:
-                for time_idx in self.time_ids:
-                    for pos_idx in self.pos_ids:
-                        # Evaluate mask, then channels.The masks will influence
-                        # tiling indices, so it's not allowed to add masks to
-                        # existing tiled data sets (indices will be retrieved
-                        # from existing meta)
-                        cur_args = self.get_crop_tile_args(
-                            channel_idx=mask_channel,
-                            time_idx=time_idx,
-                            slice_idx=slice_idx,
-                            pos_idx=pos_idx,
-                            task_type='tile',
-                            mask_dir=mask_dir,
-                        )
-                        mask_fn_args.append(cur_args)
+        # TODO: different masks across timepoints (but MaskProcessor
+        # generates mask for tp=0 only)
+        mask_fn_args = []
+        for slice_idx in self.slice_ids:
+            for time_idx in self.time_ids:
+                for pos_idx in self.pos_ids:
+                    # Evaluate mask, then channels.The masks will influence
+                    # tiling indices, so it's not allowed to add masks to
+                    # existing tiled data sets (indices will be retrieved
+                    # from existing meta)
+                    cur_args = self.get_crop_tile_args(
+                        channel_idx=mask_channel,
+                        time_idx=time_idx,
+                        slice_idx=slice_idx,
+                        pos_idx=pos_idx,
+                        task_type='tile',
+                        mask_dir=mask_dir,
+                    )
+                    mask_fn_args.append(cur_args)
 
-            # tile_image uses min_fraction assuming input_image is a bool
-            mask_meta_df_list = mp_utils.mp_tile_save(
-                mask_fn_args,
-                workers=self.num_workers,
-            )
-            mask_meta_df = pd.concat(mask_meta_df_list, ignore_index=True)
-            # Finally, save all the metadata
-            mask_meta_df = mask_meta_df.sort_values(by=['file_name'])
-            mask_meta_df.to_csv(
-                os.path.join(self.tile_dir, 'frames_meta.csv'),
-                sep=',',
-            )
+        # tile_image uses min_fraction assuming input_image is a bool
+        mask_meta_df_list = mp_utils.mp_tile_save(
+            mask_fn_args,
+            workers=self.num_workers,
+        )
+        mask_meta_df = pd.concat(mask_meta_df_list, ignore_index=True)
+        # Finally, save all the metadata
+        mask_meta_df = mask_meta_df.sort_values(by=['file_name'])
+        mask_meta_df.to_csv(
+            os.path.join(self.tile_dir, 'frames_meta.csv'),
+            sep=',',
+        )
         # remove mask_channel from self.channel_ids if included
         _ = [self.channel_ids.pop(idx)
              for idx, val in enumerate(self.channel_ids)

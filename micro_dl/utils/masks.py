@@ -1,13 +1,18 @@
 import numpy as np
-import scipy.ndimage
+import scipy.ndimage as ndimage
 import cv2
 from scipy.ndimage import binary_fill_holes
 from skimage.filters import threshold_otsu
-from skimage.morphology import disk, ball, binary_opening, binary_erosion
+from skimage.feature import peak_local_max
+from skimage.morphology import disk, ball, binary_opening, binary_erosion, watershed
 from micro_dl.utils.image_utils import im_adjust
 
 
-def create_otsu_mask(input_image, str_elem_size=3, thr=None, kernel_size=3):
+def create_otsu_mask(input_image,
+                     str_elem_size=3,
+                     thr=None,
+                     kernel_size=3,
+                     w_shed=True):
     """Create a binary mask using morphological operations
 
     Opening removes small objects in the foreground.
@@ -17,13 +22,13 @@ def create_otsu_mask(input_image, str_elem_size=3, thr=None, kernel_size=3):
     :return: mask of input_image, np.array
     """
 
-    # input_image = im_adjust(cv2.GaussianBlur(input_image, (kernel_size, kernel_size), 0))
+    input_image = im_adjust(cv2.GaussianBlur(input_image, (kernel_size, kernel_size), 0))
     input_image = im_adjust(input_image)
     if thr is None:
         if np.min(input_image) == np.max(input_image):
             thr = np.unique(input_image)
         else:
-            thr = threshold_otsu(input_image, nbins=128)
+            thr = 1.5 * threshold_otsu(input_image, nbins=128)
     if len(input_image.shape) == 2:
         str_elem = disk(str_elem_size)
     else:
@@ -32,8 +37,17 @@ def create_otsu_mask(input_image, str_elem_size=3, thr=None, kernel_size=3):
     mask = input_image > thr
     mask = binary_opening(mask, str_elem)
     # mask = binary_fill_holes(mask)
+    if not w_shed:
+        return mask
+    dist = ndimage.distance_transform_edt(mask)
+    localMax = peak_local_max(dist, indices=False, min_distance=5,
+                              labels=mask)
+    # perform a connected component analysis on the local peaks
+    markers = ndimage.label(localMax, structure=np.ones((3, 3)))[0]
+    labels = watershed(-dist, markers, mask=mask, watershed_line=True)
+    mask = labels > 0
+    # mask = binary_erosion(mask, str_elem)
     return mask
-
 
 def get_unimodal_threshold(input_image):
     """Determines optimal unimodal threshold

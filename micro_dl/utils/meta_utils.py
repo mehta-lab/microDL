@@ -88,7 +88,6 @@ def ints_meta_generator(
     im_names = aux_utils.get_sorted_names(input_dir)
     channel_names = []
     mp_fn_args = []
-    mp_block_args = []
 
     # Fill dataframe with rows from image names
     for i in range(len(im_names)):
@@ -100,16 +99,73 @@ def ints_meta_generator(
         meta_row = parse_func(**kwargs)
         meta_row['dir_name'] = input_dir
         im_path = os.path.join(input_dir, im_names[i])
-        mp_fn_args.append(im_path)
-        mp_block_args.append((im_path, block_size, meta_row))
+        mp_fn_args.append((im_path, block_size, meta_row))
 
-    im_ints_list = mp_utils.mp_sample_im_pixels(mp_block_args, num_workers)
+    im_ints_list = mp_utils.mp_sample_im_pixels(mp_fn_args, num_workers)
     im_ints_list = list(itertools.chain.from_iterable(im_ints_list))
     ints_meta = pd.DataFrame.from_dict(im_ints_list)
 
     ints_meta_filename = os.path.join(input_dir, 'ints_meta.csv')
     ints_meta.to_csv(ints_meta_filename, sep=",")
     return ints_meta
+
+def mask_meta_generator(
+        input_dir,
+        order='cztp',
+        name_parser='parse_sms_name',
+        num_workers=4,
+        ):
+    """
+    Generate pixel intensity metadata for estimating image normalization
+    parameters during preprocessing step. Pixels are sub-sampled from the image
+    following a grid pattern defined by block_size to for efficient estimation of
+    median and interquatile range. Grid sampling is preferred over random sampling
+    in the case due to the spatial correlation in images.
+    Will write found data in ints_meta.csv in input directory.
+    Assumed default file naming convention is:
+    dir_name
+    |
+    |- im_c***_z***_t***_p***.png
+    |- im_c***_z***_t***_p***.png
+
+    c is channel
+    z is slice in stack (z)
+    t is time
+    p is position (FOV)
+
+    Other naming convention is:
+    img_channelname_t***_p***_z***.tif for parse_sms_name
+
+    :param list args:    parsed args containing
+        str input_dir:   path to input directory containing images
+        str name_parser: Function in aux_utils for parsing indices from file name
+        int num_workers: number of workers for multiprocessing
+        int block_size: block size for the grid sampling pattern. Default value works
+        well for 2048 X 2048 images.
+    """
+    parse_func = aux_utils.import_object('utils.aux_utils', name_parser, 'function')
+    im_names = aux_utils.get_sorted_names(input_dir)
+    channel_names = []
+    mp_fn_args = []
+
+    # Fill dataframe with rows from image names
+    for i in range(len(im_names)):
+        kwargs = {"im_name": im_names[i]}
+        if name_parser == 'parse_idx_from_name':
+            kwargs["order"] = order
+        elif name_parser == 'parse_sms_name':
+            kwargs["channel_names"] = channel_names
+        meta_row = parse_func(**kwargs)
+        meta_row['dir_name'] = input_dir
+        im_path = os.path.join(input_dir, im_names[i])
+        mp_fn_args.append((im_path, meta_row))
+
+    meta_row_list = mp_utils.mp_wrapper(mp_utils.get_mask_meta_row, mp_fn_args, num_workers)
+    mask_meta = pd.DataFrame.from_dict(meta_row_list)
+
+    mask_meta_filename = os.path.join(input_dir, 'mask_meta.csv')
+    mask_meta.to_csv(mask_meta_filename, sep=",")
+    return mask_meta
 
 def compute_zscore_params(frames_meta,
                           ints_meta,
