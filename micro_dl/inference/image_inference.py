@@ -871,6 +871,7 @@ class ImagePredictor:
                 )
                 pred_fnames.append(pred_fname)
             if self.metrics_inst is not None:
+                print('Computing metrics on position {}/{}'.format(idx, len(pos_ids)))
                 if not self.mask_metrics:
                     mask_image = None
 

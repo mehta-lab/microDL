@@ -202,9 +202,10 @@ def generate_zscore_table(params_dict,
 
 
 def tile_images(params_dict,
+                tile_dict,
                 resize_flag,
                 flat_field_dir,
-                tile_dict):
+                ):
     """
     Tile images.
 
@@ -284,7 +285,7 @@ def tile_images(params_dict,
     return tile_dir
 
 
-def pre_process(preprocess_config, req_params_dict):
+def pre_process(preprocess_config):
     """
     Preprocess data. Possible options are:
 
@@ -307,6 +308,62 @@ def pre_process(preprocess_config, req_params_dict):
      and mask_dir (the former is for generating masks from a channel)
     """
     time_start = time.time()
+    input_dir = preprocess_config['input_dir']
+    output_dir = preprocess_config['output_dir']
+    slice_ids = -1
+    if 'slice_ids' in preprocess_config:
+        slice_ids = preprocess_config['slice_ids']
+
+    time_ids = -1
+    if 'time_ids' in preprocess_config:
+        time_ids = preprocess_config['time_ids']
+
+    pos_ids = -1
+    if 'pos_ids' in preprocess_config:
+        pos_ids = preprocess_config['pos_ids']
+
+    channel_ids = -1
+    if 'channel_ids' in preprocess_config:
+        channel_ids = preprocess_config['channel_ids']
+
+    uniform_struct = True
+    if 'uniform_struct' in preprocess_config:
+        uniform_struct = preprocess_config['uniform_struct']
+
+    int2str_len = 3
+    if 'int2str_len' in preprocess_config:
+        int2str_len = preprocess_config['int2str_len']
+
+    num_workers = 4
+    if 'num_workers' in preprocess_config:
+        num_workers = preprocess_config['num_workers']
+
+    normalize_im = 'stack'
+    normalize_channels = -1
+    if 'normalize' in preprocess_config:
+        if 'normalize_im' in preprocess_config['normalize']:
+            normalize_im = preprocess_config['normalize']['normalize_im']
+        if 'normalize_channels' in preprocess_config['normalize']:
+            normalize_channels = preprocess_config['normalize']['normalize_channels']
+            if isinstance(channel_ids, list):
+                assert len(channel_ids) == len(normalize_channels), \
+                    "Nbr channels {} and normalization {} mismatch".format(
+                        channel_ids,
+                        normalize_channels,
+                    )
+
+    req_params_dict = {'input_dir': input_dir,
+                   'output_dir': output_dir,
+                   'slice_ids': slice_ids,
+                   'time_ids': time_ids,
+                   'pos_ids': pos_ids,
+                   'channel_ids': channel_ids,
+                   'uniform_struct': uniform_struct,
+                   'int2strlen': int2str_len,
+                   'normalize_channels': normalize_channels,
+                   'num_workers': num_workers,
+                   'normalize_im': normalize_im,
+                   }
 
     # -----------------Estimate flat field images--------------------
     flat_field_dir = None
@@ -508,73 +565,6 @@ def save_config(cur_config, runtime):
 
 if __name__ == '__main__':
     args = parse_args()
-
     preprocess_config = aux_utils.read_config(args.config)
-    input_dir = preprocess_config['input_dir']
-    output_dir = preprocess_config['output_dir']
-    slice_ids = -1
-    if 'slice_ids' in preprocess_config:
-        slice_ids = preprocess_config['slice_ids']
-
-    time_ids = -1
-    if 'time_ids' in preprocess_config:
-        time_ids = preprocess_config['time_ids']
-
-    pos_ids = -1
-    if 'pos_ids' in preprocess_config:
-        pos_ids = preprocess_config['pos_ids']
-
-    channel_ids = -1
-    if 'channel_ids' in preprocess_config:
-        channel_ids = preprocess_config['channel_ids']
-
-    normalize_channels = -1
-    if 'tile' in preprocess_config and 'normalize_channels' in preprocess_config['tile']:
-        normalize_channels = preprocess_config['tile']['normalize_channels']
-        if isinstance(channel_ids, list):
-            assert len(channel_ids) == len(normalize_channels),\
-                "Nbr channels {} and normalization {} mismatch".format(
-                    channel_ids,
-                    normalize_channels,
-                )
-
-    uniform_struct = False
-    if 'uniform_struct' in preprocess_config:
-        uniform_struct = preprocess_config['uniform_struct']
-
-    int2str_len = 3
-    if 'int2str_len' in preprocess_config:
-        int2str_len = preprocess_config['int2str_len']
-
-    num_workers = 4
-    if 'num_workers' in preprocess_config:
-        num_workers = preprocess_config['num_workers']
-
-    normalize_im = 'stack'
-    if 'normalize' in preprocess_config:
-        if 'normalize_im' in preprocess_config['normalize']:
-            normalize_im = preprocess_config['normalize']['normalize_im']
-        if 'normalize_channels' in preprocess_config['normalize']:
-            normalize_channels = preprocess_config['normalize']['normalize_channels']
-            if isinstance(channel_ids, list):
-                assert len(channel_ids) == len(normalize_channels), \
-                    "Nbr channels {} and normalization {} mismatch".format(
-                        channel_ids,
-                        normalize_channels,
-                    )
-
-    base_config = {'input_dir': input_dir,
-                   'output_dir': output_dir,
-                   'slice_ids': slice_ids,
-                   'time_ids': time_ids,
-                   'pos_ids': pos_ids,
-                   'channel_ids': channel_ids,
-                   'uniform_struct': uniform_struct,
-                   'int2strlen': int2str_len,
-                   'normalize_channels': normalize_channels,
-                   'num_workers': num_workers,
-                   'normalize_im': normalize_im,
-                   }
-
-    preprocess_config, runtime = pre_process(preprocess_config, base_config)
+    preprocess_config, runtime = pre_process(preprocess_config)
     save_config(preprocess_config, runtime)

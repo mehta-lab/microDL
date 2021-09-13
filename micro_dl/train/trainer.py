@@ -1,6 +1,7 @@
 """Keras trainer"""
 from keras import callbacks as keras_callbacks
 from keras import optimizers as keras_optimizers
+from keras import backend as K
 import os
 import time
 
@@ -238,6 +239,8 @@ class BaseKerasTrainer:
                                      verbose=1)
             time_el = time.time() - time_start
             self.logger.info("Training time: {}".format(time_el))
+            K.clear_session()
+            self.sess.close()
         except Exception as e:
             self.logger.error('problems with fit_generator: ' + str(e))
             raise

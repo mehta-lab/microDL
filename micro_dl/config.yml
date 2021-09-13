@@ -19,6 +19,7 @@ trainer:
     max_epochs: 200
     metrics: coeff_determination
     loss: mean_squared_error
+    num_workers: 32
     callbacks:
         EarlyStopping:
             mode: min

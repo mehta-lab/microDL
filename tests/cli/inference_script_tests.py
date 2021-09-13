@@ -106,7 +106,7 @@ class TestInferenceScript(unittest.TestCase):
                 'metrics_orientations': ['xy', 'xyz'],
             },
         }
-        self.infer_config_name = os.path.join(self.pred_dir, 'config_inference.yml')
+        self.infer_config_name = os.path.join(self.pred_dir, 'config_inference_3d.yml')
         with open(self.infer_config_name, 'w') as outfile:
             yaml.dump(self.inference_config, outfile, default_flow_style=False)
 

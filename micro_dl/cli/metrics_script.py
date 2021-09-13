@@ -64,6 +64,12 @@ def parse_args():
         nargs='*',
         help='Evaluate metrics along these orientations (xy, xz, yz, xyz)'
     )
+    parser.add_argument(
+        '--name_parser',
+        type=str,
+        default='parse_sms_name',
+        help="The function in aux_utils that will parse the file name for indices",
+    )
     return parser.parse_args()
 
 
@@ -71,7 +77,8 @@ def compute_metrics(model_dir,
                     image_dir,
                     metrics_list,
                     orientations_list,
-                    test_data=True):
+                    test_data=True,
+                    name_parser='parse_sms_name'):
     """
     Compute specified metrics for given orientations for predictions, which
     are assumed to be stored in model_dir/predictions. Targets are stored in
@@ -137,8 +144,9 @@ def compute_metrics(model_dir,
         normalize_im = preprocess_config['tile']['normalize_im']
 
     # Get channel name and extension for predictions
-    pred_fnames = [f for f in os.listdir(pred_dir) if f.startswith('im_')]
-    meta_row = aux_utils.parse_idx_from_name(pred_fnames[0])
+    parse_func = aux_utils.import_object('utils.aux_utils', name_parser, 'function')
+    pred_fnames = [f for f in os.listdir(pred_dir) if f.startswith('im')]
+    meta_row = parse_func(pred_fnames[0])
     pred_channel = meta_row['channel_idx']
     _, ext = os.path.splitext(pred_fnames[0])
 
@@ -242,4 +250,5 @@ if __name__ == '__main__':
         metrics_list=args.metrics,
         orientations_list=args.orientations,
         test_data=args.test_data,
+        name_parser=args.name_parser,
     )

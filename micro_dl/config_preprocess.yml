@@ -14,12 +14,13 @@ normalize:
     normalize_im: 'dataset'
     min_fraction: 0.25
     normalize_channels: [True, True, True]
+uniform_struct: True
 masks:
     channels: [1]
     str_elem_radius: 3
     mask_type: 'otsu'
     mask_ext: '.png'
-make_weight_map: True
+make_weight_map: False
 
 tile:
     tile_size: [256, 256]
