@@ -4,6 +4,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
+  - python<3.7
   - Cython
   - jupyter
   - matplotlib
@@ -14,11 +15,9 @@ dependencies:
   - pandas
   - pydot
   - PyYAML
-  - tensorflow-gpu
+  - tensorflow-gpu==1.13.1
   - testfixtures
   - scikit-image
   - scikit-learn
   - scipy
-  - pip
-  - pip:
-    - keras==2.1.6
+  - keras==2.1.6
