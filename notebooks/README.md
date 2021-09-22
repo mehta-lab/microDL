@@ -2,6 +2,25 @@
 
 ## Setup
 
+Download `microDL` repository:
+
+```
+git clone https://github.com/czbiohub/microDL.git
+```
+
+Go the repository directory, switch the branch: 
+
+```
+cd microDL
+git checkout dl_mbl_2021
+```
+
+Add microDL to python path:
+
+```
+export PYTHONPATH=$PYTHONPATH:$(pwd)
+```
+
 Create a `conda` environment for this exercise from the yaml file and activate it:
 
 ```
