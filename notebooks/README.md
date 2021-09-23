@@ -15,17 +15,17 @@ cd microDL
 git checkout dl_mbl_2021
 ```
 
-Add microDL to python path:
-
-```
-export PYTHONPATH=$PYTHONPATH:$(pwd)
-```
-
 Create a `conda` environment for this exercise from the yaml file and activate it:
 
 ```
 conda env create --file=conda_environment.yml
 conda activate micro_dl
+```
+
+Add microDL to python path:
+
+```
+export PYTHONPATH=$PYTHONPATH:$(pwd)
 ```
 
 Next, launch a jupyter notebook server, if you're running the notebook from a server: 
