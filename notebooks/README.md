@@ -40,4 +40,5 @@ Then you can access your notebooks in your browser at:
 http://<your server name>:8888
 ```
 
-Enter the token jupyter generated when you launched the notebook, and continue with the instructions in the notebook.
+Enter the token jupyter generated when you launched the notebook, open the notebook under \microDL\notebook\, 
+and continue with the instructions in the notebook.
