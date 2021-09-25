@@ -2,6 +2,13 @@
 
 ## Setup
 
+Copy the data to the home directory:
+
+```
+mkdir 04_image_translation
+cp -r /mnt/efs/woods_hole/04_image_translation/data ~/04_image_translation
+```
+
 Download `microDL` repository:
 
 ```
@@ -40,5 +47,5 @@ Then you can access your notebooks in your browser at:
 http://<your server name>:8888
 ```
 
-Enter the token jupyter generated when you launched the notebook, open the notebook under \microDL\notebook\, 
+Enter the token jupyter generated when you launched the notebook, open the notebook under /microDL/notebook/, 
 and continue with the instructions in the notebook.
