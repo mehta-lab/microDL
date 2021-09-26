@@ -11,7 +11,7 @@ Open the terminal and copy the data to the home directory:
 
 ```
 mkdir 04_image_translation
-cp -r /mnt/efs/woods_hole/04_image_translation/data ~/04_image_translation
+cp -r /mnt/efs/woods_hole/04_image_translation_data ~
 ```
 
 
