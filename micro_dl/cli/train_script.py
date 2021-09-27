@@ -184,9 +184,9 @@ def get_image_dir_format(dataset_config):
     tile_dir = dataset_config['data_dir']
     image_format = 'zyx'
     try:
-        preprocess_config = preprocess_utils.get_preprocess_config(tile_dir)
-        if 'tile' in preprocess_config and 'tile_dir' in preprocess_config['tile']:
-            tile_dir = preprocess_config['tile']['tile_dir']
+        preprocess_config = preprocess_utils.get_preprocess_config(os.path.dirname(tile_dir))
+        # if 'tile' in preprocess_config and 'tile_dir' in preprocess_config['tile']:
+        #     tile_dir = preprocess_config['tile']['tile_dir']
 
         # Get shape order from recent_json
         if 'image_format' in preprocess_config['tile']:
