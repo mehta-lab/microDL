@@ -204,9 +204,6 @@ def compute_zscore_params(frames_meta,
         agg_cols = ['time_idx', 'channel_idx', 'dir_name', 'pos_idx', 'slice_idx']
     # median and inter-quartile range are more robust than mean and std
     ints_meta_sub = ints_meta[ints_meta['fg_frac'] >= min_fraction]
-    print('min_fraction:', min_fraction)
-    print('ints_meta:', len(ints_meta))
-    print('ints_meta_sub:', len(ints_meta_sub))
     ints_agg_median = \
         ints_meta_sub[agg_cols + ['intensity']].groupby(agg_cols).median()
     ints_agg_hq = \
@@ -223,6 +220,8 @@ def compute_zscore_params(frames_meta,
             for col in frames_meta.columns]]
     frames_meta = \
         pd.merge(frames_meta[cols_to_merge], ints_agg, how='left', on=agg_cols)
+    if frames_meta['zscore_median'].isnull().values.any():
+        raise ValueError('Found NaN in normalization parameters. min_fraction might be too low or images might be corrupted.')
     frames_meta_filename = os.path.join(input_dir, 'frames_meta.csv')
     frames_meta.to_csv(frames_meta_filename, sep=",")
 

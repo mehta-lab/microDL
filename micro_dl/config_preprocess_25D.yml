@@ -1,4 +1,4 @@
-output_dir: '/CompMicro/projects/virtualstaining/kidneyslice/2019_02_15_kidney_slice/MBL_DL_image_translation/temp/tile_small'
+output_dir: '/CompMicro/projects/virtualstaining/kidneyslice/2019_02_15_kidney_slice/MBL_DL_image_translation/temp/tile_small_25D'
 verbose: 10
 input_dir: '/CompMicro/projects/virtualstaining/kidneyslice/2019_02_15_kidney_slice/MBL_DL_image_translation/data'
 channel_ids: [0, 1, 2, 3]
@@ -25,6 +25,6 @@ make_weight_map: False
 tile:
     tile_size: [256, 256]
     step_size: [128, 128]
-    depths: [1, 1, 1, 1]
+    depths: [1, 1, 5, 5]
     image_format: 'zyx'
     min_fraction: 0.25
