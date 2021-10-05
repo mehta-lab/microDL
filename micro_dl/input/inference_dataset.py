@@ -140,9 +140,11 @@ class InferenceDataSet(keras.utils.Sequence):
         stack with depth > 1.
         """
         margin = self.depth // 2
-        # Drop indices above margin
+        # Drop indices on both margins
         max_slice_idx = self.target_meta['slice_idx'].max() + 1
-        drop_idx = list(range(max_slice_idx - margin, max_slice_idx))
+        min_slice_idx = self.target_meta['slice_idx'].min()
+        drop_idx = list(range(max_slice_idx - margin, max_slice_idx)) + \
+                   list(range(min_slice_idx, min_slice_idx + margin))
         df_drop_idx = self.target_meta.index[
             self.target_meta['slice_idx'].isin(drop_idx),
         ]

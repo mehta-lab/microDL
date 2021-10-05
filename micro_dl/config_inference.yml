@@ -1,9 +1,9 @@
-model_dir: '/CompMicro/projects/virtualstaining/kidneyslice/2019_02_15_kidney_slice/MBL_DL_image_translation/temp/translation_model_adam_mae'
+model_dir: '/CompMicro/projects/virtualstaining/kidneyslice/2019_02_15_kidney_slice/MBL_DL_image_translation//model25d/'
 image_dir: '/CompMicro/projects/virtualstaining/kidneyslice/2019_02_15_kidney_slice/MBL_DL_image_translation/data'
-preprocess_dir: '/CompMicro/projects/virtualstaining/kidneyslice/2019_02_15_kidney_slice/MBL_DL_image_translation/temp/tile_small'
+preprocess_dir: '/CompMicro/projects/virtualstaining/kidneyslice/2019_02_15_kidney_slice/MBL_DL_image_translation/temp/tile_small_25D'
 dataset:
-  input_channels: [2]
-  target_channels: [1]
+  input_channels: [3]
+  target_channels: [0]
   slice_ids: [10, 11, 12, 13, 14, 15]
 images:
     image_format: 'zyx'
