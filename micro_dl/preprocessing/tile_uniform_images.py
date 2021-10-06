@@ -112,6 +112,12 @@ class ImageTilerUniform:
             pos_ids=pos_ids,
             uniform_structure=True
         )
+        self.frames_meta_sub = aux_utils.get_sub_meta(
+            frames_metadata=self.frames_metadata,
+            time_ids=metadata_ids['time_ids'],
+            channel_ids=metadata_ids['channel_ids'],
+            slice_ids=metadata_ids['slice_ids'],
+            pos_ids=metadata_ids['pos_ids'])
         self.channel_ids = metadata_ids['channel_ids']
         self.time_ids = metadata_ids['time_ids']
         self.slice_ids = metadata_ids['slice_ids']
@@ -531,22 +537,22 @@ class ImageTilerUniform:
         # TODO: different masks across timepoints (but MaskProcessor
         # generates mask for tp=0 only)
         mask_fn_args = []
-        for slice_idx in self.slice_ids:
-            for time_idx in self.time_ids:
-                for pos_idx in self.pos_ids:
-                    # Evaluate mask, then channels.The masks will influence
-                    # tiling indices, so it's not allowed to add masks to
-                    # existing tiled data sets (indices will be retrieved
-                    # from existing meta)
-                    cur_args = self.get_crop_tile_args(
-                        channel_idx=mask_channel,
-                        time_idx=time_idx,
-                        slice_idx=slice_idx,
-                        pos_idx=pos_idx,
-                        task_type='tile',
-                        mask_dir=mask_dir,
-                    )
-                    mask_fn_args.append(cur_args)
+        id_df = self.frames_meta_sub[['time_idx', 'pos_idx', 'slice_idx']].drop_duplicates()
+        for id_row in id_df.to_numpy():
+            time_idx, pos_idx, slice_idx = id_row
+            # Evaluate mask, then channels.The masks will influence
+            # tiling indices, so it's not allowed to add masks to
+            # existing tiled data sets (indices will be retrieved
+            # from existing meta)
+            cur_args = self.get_crop_tile_args(
+                channel_idx=mask_channel,
+                time_idx=time_idx,
+                slice_idx=slice_idx,
+                pos_idx=pos_idx,
+                task_type='tile',
+                mask_dir=mask_dir,
+            )
+            mask_fn_args.append(cur_args)
 
         # tile_image uses min_fraction assuming input_image is a bool
         mask_meta_df_list = mp_utils.mp_tile_save(
@@ -569,28 +575,26 @@ class ImageTilerUniform:
              if val == mask_channel]
 
         fn_args = []
-        for slice_idx in self.slice_ids:
-            for time_idx in self.time_ids:
-                for pos_idx in np.unique(self.frames_metadata["pos_idx"]):
-                    # Loop through all channels and tile from indices
-                    cur_tile_indices = self._get_tile_indices(
-                        tiled_meta=mask_meta_df,
-                        time_idx=time_idx,
-                        channel_idx=mask_channel,
-                        pos_idx=pos_idx,
-                        slice_idx=slice_idx
+        for id_row in id_df.to_numpy():
+            time_idx, pos_idx, slice_idx = id_row
+            cur_tile_indices = self._get_tile_indices(
+                tiled_meta=mask_meta_df,
+                time_idx=time_idx,
+                channel_idx=mask_channel,
+                pos_idx=pos_idx,
+                slice_idx=slice_idx
+            )
+            if np.any(cur_tile_indices):
+                for i, channel_idx in enumerate(self.channel_ids):
+                    cur_args = self.get_crop_tile_args(
+                        channel_idx,
+                        time_idx,
+                        slice_idx,
+                        pos_idx,
+                        task_type='crop',
+                        tile_indices=cur_tile_indices,
                     )
-                    if np.any(cur_tile_indices):
-                        for i, channel_idx in enumerate(self.channel_ids):
-                            cur_args = self.get_crop_tile_args(
-                                channel_idx,
-                                time_idx,
-                                slice_idx,
-                                pos_idx,
-                                task_type='crop',
-                                tile_indices=cur_tile_indices,
-                            )
-                            fn_args.append(cur_args)
+                    fn_args.append(cur_args)
         tiled_meta_df_list = mp_utils.mp_crop_save(
             fn_args,
             workers=self.num_workers,

@@ -114,14 +114,6 @@ def create_save_mask(input_fnames,
         ext=mask_ext,
     )
 
-    # file_name = aux_utils.get_sms_im_name(
-    #             time_idx=time_idx,
-    #             channel_name='mask',
-    #             slice_idx=slice_idx,
-    #             pos_idx=pos_idx,
-    #             ext=mask_ext,
-    #             int2str_len=3)
-
     overlay_name = aux_utils.get_im_name(
         time_idx=time_idx,
         channel_idx=mask_channel_idx,

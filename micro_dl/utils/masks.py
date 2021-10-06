@@ -12,7 +12,7 @@ def create_otsu_mask(input_image,
                      str_elem_size=3,
                      thr=None,
                      kernel_size=3,
-                     w_shed=True):
+                     w_shed=False):
     """Create a binary mask using morphological operations
 
     Opening removes small objects in the foreground.
@@ -28,7 +28,7 @@ def create_otsu_mask(input_image,
         if np.min(input_image) == np.max(input_image):
             thr = np.unique(input_image)
         else:
-            thr = 1.5 * threshold_otsu(input_image, nbins=128)
+            thr = 1.1 * threshold_otsu(input_image, nbins=128)
     if len(input_image.shape) == 2:
         str_elem = disk(str_elem_size)
     else:
@@ -40,7 +40,7 @@ def create_otsu_mask(input_image,
     if not w_shed:
         return mask
     dist = ndimage.distance_transform_edt(mask)
-    localMax = peak_local_max(dist, indices=False, min_distance=5,
+    localMax = peak_local_max(dist, indices=False, min_distance=15,
                               labels=mask)
     # perform a connected component analysis on the local peaks
     markers = ndimage.label(localMax, structure=np.ones((3, 3)))[0]
