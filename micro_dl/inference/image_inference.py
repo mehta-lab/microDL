@@ -154,6 +154,9 @@ class ImagePredictor:
         mask_dir = None
         if 'masks' in inference_config:
             self.masks_dict = inference_config['masks']
+        else:
+            assert self.model_task == 'regression', \
+                    '"masks" are required in the inference config for segmentation task'
         if self.masks_dict is not None:
             assert 'mask_channel' in self.masks_dict , 'mask_channel is needed'
             assert 'mask_dir' in self.masks_dict, 'mask_dir is needed'
