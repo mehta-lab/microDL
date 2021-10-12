@@ -151,7 +151,7 @@ def get_unet_border_weight_map(annotation, w0=10, sigma=5):
     # structuring element to measure connectivy
     # If cells are 8 connected/touching they are labeled as one single object
     # Loss metric on such borders is not useful
-    labeled_array, _ = scipy.ndimage.measurements.label(annotation)
+    labeled_array, _ = ndimage.measurements.label(annotation)
     # class balance weights w_c(x)
     unique_values = np.unique(labeled_array).tolist()
     weight_map = [0] * len(unique_values)
@@ -180,7 +180,7 @@ def get_unet_border_weight_map(annotation, w0=10, sigma=5):
             mask = np.ones_like(labeled_array)
             mask[labeled_array == index + 1] = 0
             distance_maps[:, :, index] = \
-                scipy.ndimage.distance_transform_edt(mask)
+                ndimage.distance_transform_edt(mask)
     distance_maps = np.sort(distance_maps, 2)
     d1 = distance_maps[:, :, 0]
     d2 = distance_maps[:, :, 1]
