@@ -351,7 +351,7 @@ class BaseDataSet(keras.utils.Sequence):
         if end_idx >= self.num_samples:
             end_idx = self.num_samples
 
-        norm_output = self.model_task is not 'segmentation' and self.normalize
+        norm_output = self.model_task != 'segmentation' and self.normalize
 
         input_image = []
         target_image = []
