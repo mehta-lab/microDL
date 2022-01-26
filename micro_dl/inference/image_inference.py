@@ -154,9 +154,9 @@ class ImagePredictor:
         mask_dir = None
         if 'masks' in inference_config:
             self.masks_dict = inference_config['masks']
-        else:
-            assert self.model_task == 'regression', \
-                    '"masks" are required in the inference config for segmentation task'
+        elif preprocess_config is not None:
+            self.masks_dict = preprocess_config['masks']
+
         if self.masks_dict is not None:
             assert 'mask_channel' in self.masks_dict , 'mask_channel is needed'
             assert 'mask_dir' in self.masks_dict, 'mask_dir is needed'
@@ -848,11 +848,13 @@ class ImagePredictor:
     def run_prediction(self):
         """Run prediction for entire 2D image or a 3D stack"""
         pos_ids = self.target_meta['pos_idx'].unique()
-
-        for idx, pos_idx in enumerate(pos_ids):
-            print('Running inference on position {}/{}'.format(idx, len(pos_ids)))
+        id_df = self.target_meta[['time_idx', 'pos_idx']].drop_duplicates()
+        for id_row in id_df.to_numpy():
+            time_idx, pos_idx = id_row
+            print('Running inference on time {} position {}'.format(time_idx, pos_idx))
             target_row_ids = self.target_meta.index[
-                self.target_meta['pos_idx'] == pos_idx,
+                (self.target_meta['time_idx'] == time_idx) &
+                (self.target_meta['pos_idx'] == pos_idx)
             ].values
             if self.config['network']['class'] == 'UNet3D':
                 pred_image, target_image, mask_image = self.predict_3d(
@@ -874,7 +876,7 @@ class ImagePredictor:
                 )
                 pred_fnames.append(pred_fname)
             if self.metrics_inst is not None:
-                print('Computing metrics on position {}/{}'.format(idx, len(pos_ids)))
+                print('Computing metrics on time {} position {}'.format(time_idx, pos_idx))
                 if not self.mask_metrics:
                     mask_image = None
 

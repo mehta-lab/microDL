@@ -1,14 +1,14 @@
-FROM ibmcom/powerai:1.5.4-all-ubuntu18.04-py3
+FROM ibmcom/powerai:1.6.0-all-ubuntu18.04-py3-ppc64le
 
-ENV USER_NAME pwrai
-ENV CONDA_DIR /home/pwrai/anaconda3
+ENV USER_NAME root
+ENV CONDA_DIR /root/anaconda3
 ENV PATH ${CONDA_DIR}/bin:${PATH}
-ENV WORK_DIR /home/${USER_NAME}/microDL
+ENV WORK_DIR /${USER_NAME}/microDL
 
-RUN echo 1 | sudo /opt/DL/license/bin/accept-powerai-license.sh
+RUN echo 1 | sudo /opt/anaconda3/bin/accept-powerai-license.sh
 RUN sudo /bin/ln -sf /bin/bash /bin/sh
-RUN sudo /bin/sed -i -e "/ddl-tensorflow/a\
-\ \ \ \ scripts['tensorboard']=\'/opt/DL/tensorboard/bin/tensorboard-activate\'" /var/local/powerai/default_framework.sh
+#RUN sudo /bin/sed -i -e "/ddl-tensorflow/a\
+#\ \ \ \ scripts['tensorboard']=\'/opt/DL/tensorboard/bin/tensorboard-activate\'" /var/local/powerai/default_framework.sh
 
 # Tools
 RUN sudo apt-get update && sudo apt-get install -y --no-install-recommends \
@@ -22,31 +22,37 @@ RUN sudo apt-get update && sudo apt-get install -y --no-install-recommends \
          pkg-config \
          tmux \
          graphviz \
-         vim && \
+         vim
 
-wget -O ~/get-pip.py \
-    https://bootstrap.pypa.io/get-pip.py && \
-python3.6 ~/get-pip.py && \
+#RUN sudo wget -O ~/get-pip.py \
+#    https://bootstrap.pypa.io/get-pip.py && \
+#python3.6 ~/get-pip.py && \
 
 # keras
-pip install --upgrade --no-cache-dir keras==2.1.6 && \
+#pip install --upgrade --no-cache-dir keras==2.1.6 && \
 
 # Jupyter
-pip install --upgrade --no-cache-dir jupyter && \
+#pip install --upgrade --no-cache-dir jupyter && \
 
 # Cleanup
-sudo apt-get clean && \
+RUN sudo apt-get clean && \
 sudo apt-get autoremove && \
 sudo rm -rf /var/lib/apt/lists/*
 
 # Install pip packages from requirements text file
 
-ADD requirements_docker.txt /tmp/requirements.txt
-RUN pip install -r /tmp/requirements.txt
+#ADD requirements_docker.txt /tmp/requirements.txt
+#RUN pip install -r /tmp/requirements.txt
+
+ADD conda_environment_docker.yml /tmp/conda.yml
+#ENV PATH ${CONDA_DIR}/bin:${PATH}
+RUN conda env create --file=/tmp/conda.yml
+#conda init bash && \
+#conda activate micro_dl && \
 
 WORKDIR ${WORK_DIR}
 ENV PYTHONPATH ${WORK_DIR}
-RUN sudo chown ${USER_NAME} ${WORK_DIR}
-RUN sudo chgrp ${USER_NAME} ${WORK_DIR}
+#RUN sudo chown ${USER_NAME} ${WORK_DIR}
+#RUN sudo chgrp ${USER_NAME} ${WORK_DIR}
 
 EXPOSE 8888 6006

@@ -61,7 +61,7 @@ def run_inference(config_fname,
         os.path.join(inference_config['model_dir'], '*.yml')
     )
     assert len(train_config_fname) == 1, \
-        'more than one train config yaml found in model dir'
+        '{} train config yaml found in model directory. Number of train config file can only be 1.'.format(len(train_config_fname))
     with open(train_config_fname[0], 'r') as f:
         train_config = yaml.safe_load(f)
     preprocess_config = None

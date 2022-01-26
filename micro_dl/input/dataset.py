@@ -1,5 +1,5 @@
 """Dataset classes"""
-
+import cv2
 import keras
 import numpy as np
 import os
@@ -186,12 +186,25 @@ class BaseDataSet(keras.utils.Sequence):
         self.augmentations = False
         self.zoom_range = (1, 1)
         self.rotate_range = 0
+        self.mean_jitter = 0
+        self.std_jitter = 0
+        self.noise_std = 0
+        self.blur_range = (0, 0)
+        self.shear_range = 0
         if 'augmentations' in dataset_config:
             self.augmentations = True
             if 'zoom_range' in dataset_config['augmentations']:
                 self.zoom_range = dataset_config['augmentations']['zoom_range']
             if 'rotate_range' in dataset_config['augmentations']:
                 self.rotate_range = dataset_config['augmentations']['rotate_range']
+            if 'intensity_jitter' in dataset_config['augmentations']:
+                self.mean_jitter, self.std_jitter = dataset_config['augmentations']['intensity_jitter']
+            if 'noise_std' in dataset_config['augmentations']:
+                self.noise_std = dataset_config['augmentations']['noise_std']
+            if 'blur_range' in dataset_config['augmentations']:
+                self.blur_range = dataset_config['augmentations']['blur_range']
+            if 'shear_range' in dataset_config['augmentations']:
+                self.shear_range = dataset_config['augmentations']['shear_range']
 
         # Whether to do zscore normalization on tile level
         self.normalize = False
@@ -252,7 +265,17 @@ class BaseDataSet(keras.utils.Sequence):
         """
         return self.steps_per_epoch
 
-    def _augment_image(self, input_image, aug_idx, zoom=1, theta=0):
+    def _augment_image(self,
+                       input_image,
+                       aug_idx,
+                       zoom=1,
+                       theta=0,
+                       mean_offset=0,
+                       std_scale=1,
+                       noise_std=0,
+                       blur_img=False,
+                       blur_sigma=0,
+                       shear=0):
         """Adds image augmentation among 6 possible options
 
         :param np.array input_image: input image to be transformed
@@ -302,12 +325,30 @@ class BaseDataSet(keras.utils.Sequence):
         else:
             msg = '{} not in allowed aug_idx: 0-5'.format(aug_idx)
             raise ValueError(msg)
-
+        if blur_img:
+            trans_image = cv2.GaussianBlur(trans_image, ksize=(0, 0), sigmaX=blur_sigma)
+        if noise_std != 0:
+            trans_image = trans_image + np.random.normal(scale=noise_std, size=trans_image.shape)
+        if not (mean_offset == 0 and std_scale == 1):
+            trans_image = norm.unzscore(trans_image, mean_offset, std_scale)
         trans_image = apply_affine_transform(trans_image, zx=zoom, theta=theta,
-                                             zy=zoom, fill_mode='constant', cval=0., order=1)
+                                             zy=zoom, shear=shear, fill_mode='constant',
+                                             cval=0., order=1)
         return trans_image
 
-    def _get_volume(self, fname_list, normalize=True, aug_idx=0, zoom=1, theta=0):
+    def _get_volume(self,
+                    fname_list,
+                    normalize=True,
+                    aug_idx=0,
+                    zoom=1,
+                    theta=0,
+                    mean_offset=0,
+                    std_scale=1,
+                    noise_std=0,
+                    blur_img=False,
+                    blur_sigma=0,
+                    shear=0,
+                    ):
         """
         Read tiles from fname_list and stack them into an image volume.
 
@@ -320,7 +361,16 @@ class BaseDataSet(keras.utils.Sequence):
         for fname in fname_list:
             cur_tile = np.load(os.path.join(self.tile_dir, fname))
             if self.augmentations:
-                cur_tile = self._augment_image(cur_tile, aug_idx, zoom=zoom, theta=theta)
+                cur_tile = self._augment_image(cur_tile,
+                                               aug_idx,
+                                               zoom=zoom,
+                                               theta=theta,
+                                               mean_offset=mean_offset,
+                                               std_scale=std_scale,
+                                               noise_std=noise_std,
+                                               blur_img=blur_img,
+                                               blur_sigma=blur_sigma,
+                                               shear=shear)
             if self.squeeze:
                 cur_tile = np.squeeze(cur_tile)
             image_volume.append(cur_tile)
@@ -358,6 +408,12 @@ class BaseDataSet(keras.utils.Sequence):
         aug_idx = 0
         zoom = 1
         theta = 0
+        mean_offset = 0
+        std_scale = 1
+        noise_std = 0
+        blur_img = False
+        blur_sigma = 0
+        shear = 0
         for idx in range(start_idx, end_idx, 1):
             cur_input_fnames = self.input_fnames.iloc[self.row_idx[idx]]
             cur_target_fnames = self.target_fnames.iloc[self.row_idx[idx]]
@@ -366,13 +422,26 @@ class BaseDataSet(keras.utils.Sequence):
                 aug_idx = np.random.choice([0, 1, 2, 3, 4, 5], 1)
                 zoom = np.random.uniform(self.zoom_range[0], self.zoom_range[1])
                 theta = np.random.uniform(-self.rotate_range, self.rotate_range)
-
+                mean_offset = np.random.uniform(-self.mean_jitter, self.mean_jitter)
+                std_scale = 1 + np.random.uniform(-self.std_jitter, self.std_jitter)
+                noise_std = np.random.uniform(0, self.noise_std)
+                shear = np.random.uniform(-self.shear_range, self.shear_range)
+                if not (self.blur_range[0] == 0 and self.blur_range[1] == 0):
+                    blur_img = np.random.choice([True, False], 1)[0]
+                    blur_sigma = np.random.uniform(self.blur_range[0], self.blur_range[1])
+            # only apply intensity jitter to input
             cur_input = self._get_volume(
                 fname_list=cur_input_fnames.split(','),
                 normalize=self.normalize,
                 aug_idx=aug_idx,
                 zoom=zoom,
                 theta=theta,
+                mean_offset=mean_offset,
+                std_scale=std_scale,
+                noise_std=noise_std,
+                blur_img=blur_img,
+                blur_sigma=blur_sigma,
+                shear=shear,
             )
             cur_target = self._get_volume(
                 fname_list=cur_target_fnames.split(','),
@@ -380,6 +449,12 @@ class BaseDataSet(keras.utils.Sequence):
                 aug_idx=aug_idx,
                 zoom=zoom,
                 theta=theta,
+                shear=shear,
+                mean_offset=0,
+                std_scale=1,
+                noise_std=0,
+                blur_img=False,
+                blur_sigma=0,
             )
             input_image.append(cur_input)
             target_image.append(cur_target)

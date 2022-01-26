@@ -81,6 +81,7 @@ class InferenceDataSet(keras.utils.Sequence):
         slice_ids = self.frames_meta['slice_idx'].unique()
         pos_ids = self.frames_meta['pos_idx'].unique()
         time_ids = self.frames_meta['time_idx'].unique()
+        # overwrite default parameters from train config
         if 'dataset' in inference_config:
             if 'input_channels' in inference_config['dataset']:
                 self.input_channels = inference_config['dataset']['input_channels']
@@ -92,7 +93,8 @@ class InferenceDataSet(keras.utils.Sequence):
                 pos_ids = inference_config['dataset']['pos_ids']
             if 'time_ids' in inference_config['dataset']:
                 time_ids = inference_config['dataset']['time_ids']
-
+        if not set(self.target_channels) <= set(self.frames_meta['channel_idx'].unique()):
+            ValueError('target channels are out of range. Add "mask" to config if target channel is mask')
         # get a subset of frames meta for only one channel to easily
         # extract indices (pos, time, slice) to iterate over
         self.target_meta = aux_utils.get_sub_meta(

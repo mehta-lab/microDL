@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 # import tensorflow.keras as K
 import keras as K
-from tensorflow.keras import backend as Kb
+# from tensorflow.keras import backend as Kb
 import matplotlib.pyplot as plt
 from micro_dl.networks.base_conv_net import BaseConvNet
 import micro_dl.utils.aux_utils as aux_utils
