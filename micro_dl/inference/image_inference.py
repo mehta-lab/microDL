@@ -725,7 +725,7 @@ class ImagePredictor:
                     input_image=cur_input,
                 )
             for i, chan_idx in enumerate(self.target_channels):
-                meta_row = chan_meta[chan_meta['channel_idx'] == chan_idx]
+                meta_row = chan_meta.loc[chan_meta['channel_idx'] == chan_idx, :].squeeze()
                 if self.model_task == 'regression':
                     pred_image[:, i, ...] = self.unzscore(pred_image[:, i, ...],
                                                    cur_target[:, i, ...],
