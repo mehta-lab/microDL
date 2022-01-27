@@ -116,9 +116,9 @@ class ImagePredictor:
         self.image_format = 'zyx'
         if 'image_format' in images_dict:
             self.image_format = images_dict['image_format']
-        self.pred_chan_name = None
-        if 'pred_chan_name' in images_dict:
-            self.pred_chan_name = images_dict['pred_chan_name']
+        self.pred_chan_names = None
+        if 'pred_chan_names' in images_dict:
+            self.pred_chan_names = images_dict['pred_chan_names']
         self.image_ext = '.png'
         if 'image_ext' in images_dict:
             self.image_ext = images_dict['image_ext']
@@ -214,8 +214,14 @@ class ImagePredictor:
             crop2base=crop2base,
         )
         # create an instance of MetricsEstimator
-        self.target_meta = self.dataset_inst.get_iteration_meta()
-        assert not self.target_meta.empty, 'inference metadata is empty.'
+        self.inf_frames_meta = self.dataset_inst.get_iteration_meta()
+        self.target_channels = self.dataset_inst.target_channels
+        if self.pred_chan_names is not None:
+            assert len(self.target_channels) == len(self.pred_chan_names), \
+                '"pred_chan_names" and "target_channels" have to have the same lengths'
+        else:
+            self.pred_chan_names = [None] * len(self.target_channels)
+        assert not self.inf_frames_meta.empty, 'inference metadata is empty.'
         # Handle metrics config settings
         self.metrics_inst = None
         self.metrics_dict = None
@@ -477,12 +483,12 @@ class ImagePredictor:
     def unzscore(self,
                  im_pred,
                  im_target,
-                 idx):
+                 meta_row):
 
         if self.normalize_im is not None:
             if self.normalize_im in ['dataset', 'volume', 'slice']:
-                zscore_median = self.target_meta.loc[idx, 'zscore_median']
-                zscore_iqr = self.target_meta.loc[idx, 'zscore_iqr']
+                zscore_median = meta_row['zscore_median']
+                zscore_iqr =  meta_row['zscore_iqr']
             else:
                 zscore_median = np.nanmean(im_target)
                 zscore_iqr = np.nanstd(im_target)
@@ -493,10 +499,8 @@ class ImagePredictor:
                         im_input,
                         im_target,
                         im_pred,
-                        time_idx,
-                        target_channel_idx,
-                        pos_idx,
-                        slice_idx,
+                        meta_row,
+                        pred_chan_name=None,
                         ):
         """
         Save predicted images with image extension given in init.
@@ -511,19 +515,21 @@ class ImagePredictor:
         # Write prediction image
         if self.name_format == 'cztp':
             im_name = aux_utils.get_im_name(
-                time_idx=time_idx,
-                channel_idx=target_channel_idx,
-                slice_idx=slice_idx,
-                pos_idx=pos_idx,
+                time_idx=meta_row['time_idx'],
+                channel_idx=meta_row['channel_idx'],
+                slice_idx=meta_row['slice_idx'],
+                pos_idx=meta_row['pos_idx'],
                 ext=self.image_ext,
                 extra_field=self.suffix,
             )
         else:
+            if pred_chan_name is None:
+                pred_chan_name = meta_row['channel_name']
             im_name = aux_utils.get_sms_im_name(
-                time_idx=time_idx,
-                channel_name=self.pred_chan_name,
-                slice_idx=slice_idx,
-                pos_idx=pos_idx,
+                time_idx=meta_row['time_idx'],
+                channel_name=pred_chan_name,
+                slice_idx=meta_row['slice_idx'],
+                pos_idx=meta_row['pos_idx'],
                 ext=self.image_ext,
                 extra_field=self.suffix,
             )
@@ -656,11 +662,11 @@ class ImagePredictor:
             mask = np.transpose(mask, [2, 0, 1])
         return mask
 
-    def predict_2d(self, target_row_ids):
+    def predict_2d(self, chan_slice_meta):
         """
         Run prediction on 2D or 2.5D on indices given by metadata row.
 
-        :param list target_row_ids: Inference meta rows
+        :param list meta_row_ids: Inference meta rows
         :return np.array pred_stack: Prediction
         :return np.array target_stack: Target
         :return np.array/list mask_stack: Mask for metrics (empty list if
@@ -669,9 +675,11 @@ class ImagePredictor:
         pred_stack = []
         target_stack = []
         mask_stack = []
-        for row_idx in target_row_ids:
+        # going through z for given p & t
+        for z_idx in chan_slice_meta['slice_idx'].unique():
+            chan_meta = chan_slice_meta[chan_slice_meta['slice_idx'] == z_idx]
             cur_input, cur_target = \
-                self.dataset_inst.__getitem__(row_idx)
+                self.dataset_inst.__getitem__(chan_meta.index[0])
             if self.crop_shape is not None:
                 cur_input = image_utils.center_crop_to_shape(
                     cur_input,
@@ -716,39 +724,38 @@ class ImagePredictor:
                     model=self.model,
                     input_image=cur_input,
                 )
-            if self.model_task == 'regression':
-                pred_image = self.unzscore(pred_image,
-                                           cur_target,
-                                           row_idx)
-            # save prediction
-            cur_row = self.target_meta.iloc[row_idx]
-            self.save_pred_image(
-                im_input=cur_input,
-                im_target=cur_target,
-                im_pred=pred_image,
-                time_idx=cur_row['time_idx'],
-                target_channel_idx=cur_row['channel_idx'],
-                pos_idx=cur_row['pos_idx'],
-                slice_idx=cur_row['slice_idx'],
-            )
+            for i, chan_idx in enumerate(self.target_channels):
+                meta_row = chan_meta[chan_meta['channel_idx'] == chan_idx]
+                if self.model_task == 'regression':
+                    pred_image[:, i, ...] = self.unzscore(pred_image[:, i, ...],
+                                                   cur_target[:, i, ...],
+                                                   meta_row)
+                # save prediction
+                self.save_pred_image(
+                    im_input=cur_input,
+                    im_target=cur_target[:, i, ...],
+                    im_pred=pred_image[:, i, ...],
+                    meta_row=meta_row,
+                    pred_chan_name=self.pred_chan_names[i]
+                )
 
             # get mask
             if self.mask_metrics:
-                cur_mask = self.get_mask(cur_row)
+                cur_mask = self.get_mask(meta_row[0])
                 mask_stack.append(cur_mask)
             # add to vol
-            pred_stack.append(np.squeeze(pred_image))
-            target_stack.append(np.squeeze(cur_target).astype(np.float32))
-        pred_stack = np.stack(pred_stack)
-        target_stack = np.stack(target_stack)
-        # Stack images and transpose (metrics assumes xyz format)
+            pred_stack.append(pred_image)
+            target_stack.append(cur_target.astype(np.float32))
+        pred_stack = np.concatenate(pred_stack, axis=0) #zcyx
+        target_stack = np.concatenate(target_stack, axis=0)
+        # Stack images and transpose (metrics assumes cyxz format)
         if self.image_format == 'zyx':
-            pred_stack = np.transpose(pred_stack, [1, 2, 0])
-            target_stack = np.transpose(target_stack, [1, 2, 0])
+            pred_stack = np.transpose(pred_stack, [1, 2, 3, 0])
+            target_stack = np.transpose(target_stack, [1, 2, 3, 0])
         if self.mask_metrics:
-            mask_stack = np.stack(mask_stack)
+            mask_stack = np.concatenate(mask_stack, axis=0)
             if self.image_format == 'zyx':
-                mask_stack = np.transpose(mask_stack, [1, 2, 0])
+                mask_stack = np.transpose(mask_stack, [1, 2, 3, 0])
         return pred_stack, target_stack, mask_stack
 
     def predict_3d(self, iteration_rows):
@@ -820,7 +827,7 @@ class ImagePredictor:
                                        cur_target,
                                        iteration_rows[0])
         # save prediction
-        cur_row = self.target_meta.iloc[iteration_rows[0]]
+        cur_row = self.inf_frames_meta.iloc[iteration_rows[0]]
         self.save_pred_image(
             im_pred=pred_image,
             time_idx=cur_row['time_idx'],
@@ -847,46 +854,47 @@ class ImagePredictor:
 
     def run_prediction(self):
         """Run prediction for entire 2D image or a 3D stack"""
-        pos_ids = self.target_meta['pos_idx'].unique()
-        id_df = self.target_meta[['time_idx', 'pos_idx']].drop_duplicates()
+        id_df = self.inf_frames_meta[['time_idx', 'pos_idx']].drop_duplicates()
         for id_row in id_df.to_numpy():
             time_idx, pos_idx = id_row
             print('Running inference on time {} position {}'.format(time_idx, pos_idx))
-            target_row_ids = self.target_meta.index[
-                (self.target_meta['time_idx'] == time_idx) &
-                (self.target_meta['pos_idx'] == pos_idx)
-            ].values
+            chan_slice_meta = self.inf_frames_meta[
+                (self.inf_frames_meta['time_idx'] == time_idx) &
+                (self.inf_frames_meta['pos_idx'] == pos_idx)
+                ]
             if self.config['network']['class'] == 'UNet3D':
                 pred_image, target_image, mask_image = self.predict_3d(
-                    target_row_ids,
+                    chan_slice_meta,
                 )
             else:
                 pred_image, target_image, mask_image = self.predict_2d(
-                    target_row_ids,
+                    chan_slice_meta,
                 )
-            pred_fnames = []
-            for row_idx in target_row_ids:
-                cur_row = self.target_meta.iloc[row_idx]
-                pred_fname = aux_utils.get_im_name(
-                    time_idx=cur_row['time_idx'],
-                    channel_idx=cur_row['channel_idx'],
-                    slice_idx=cur_row['slice_idx'],
-                    pos_idx=cur_row['pos_idx'],
-                    ext='',
-                )
-                pred_fnames.append(pred_fname)
-            if self.metrics_inst is not None:
-                print('Computing metrics on time {} position {}'.format(time_idx, pos_idx))
-                if not self.mask_metrics:
-                    mask_image = None
 
-                self.estimate_metrics(
-                    target=target_image,
-                    prediction=pred_image,
-                    pred_fnames=pred_fnames,
-                    mask=mask_image,
-                )
-                del pred_image, target_image
+            for i, chan_idx in enumerate(self.target_channels):
+                pred_fnames = []
+                slice_ids = chan_slice_meta.loc[chan_slice_meta['channel_idx'] == chan_idx, 'slice_idx'].to_list()
+                for z_idx in slice_ids:
+                    pred_fname = aux_utils.get_im_name(
+                        time_idx=time_idx,
+                        channel_idx=chan_idx,
+                        slice_idx=z_idx,
+                        pos_idx=pos_idx,
+                        ext='',
+                    )
+                    pred_fnames.append(pred_fname)
+                if self.metrics_inst is not None:
+                    print('Computing metrics on time {} position {}'.format(time_idx, pos_idx))
+                    if not self.mask_metrics:
+                        mask_image = None
+
+                    self.estimate_metrics(
+                        target=target_image[i],
+                        prediction=pred_image[i],
+                        pred_fnames=pred_fnames,
+                        mask=mask_image,
+                    )
+            del pred_image, target_image
 
         # Save metrics csv files
         if self.metrics_inst is not None:

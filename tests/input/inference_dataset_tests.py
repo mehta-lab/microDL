@@ -136,13 +136,13 @@ class TestInferenceDataSet(unittest.TestCase):
                 aux_utils.parse_idx_from_name(im_name, aux_utils.DF_NAMES),
                 ignore_index=True,
             )
-        self.data_inst.target_meta = temp_meta
+        self.data_inst.inf_frames_meta = temp_meta
         self.data_inst.depth = 5
         # This should remove first and last two slices
         self.data_inst.adjust_slice_indices()
         # Original slice ids are 0-9 so after removing margins should be 2-7
         self.assertListEqual(
-            self.data_inst.target_meta.slice_idx.unique().tolist(),
+            self.data_inst.inf_frames_meta.slice_idx.unique().tolist(),
             [2, 3, 4, 5, 6, 7])
 
     def test_get_iteration_meta(self):

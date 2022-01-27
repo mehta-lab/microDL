@@ -97,7 +97,7 @@ class InferenceDataSet(keras.utils.Sequence):
             ValueError('target channels are out of range. Add "mask" to config if target channel is mask')
         # get a subset of frames meta for only one channel to easily
         # extract indices (pos, time, slice) to iterate over
-        self.target_meta = aux_utils.get_sub_meta(
+        self.inf_frames_meta = aux_utils.get_sub_meta(
             self.frames_meta,
             time_ids=time_ids,
             pos_ids=pos_ids,
@@ -126,46 +126,46 @@ class InferenceDataSet(keras.utils.Sequence):
             self.data_format = network_config['data_format']
 
         # check if sorted values look right
-        self.target_meta = self.target_meta.sort_values(
+        self.inf_frames_meta = self.inf_frames_meta.sort_values(
             ['pos_idx',  'slice_idx'],
             ascending=[True, True],
         )
-        self.target_meta = self.target_meta.reset_index(drop=True)
-        self.num_samples = len(self.target_meta)
+        self.inf_frames_meta = self.inf_frames_meta.reset_index(drop=True)
+        self.num_samples = len(self.inf_frames_meta)
         self.crop2base = crop2base
 
     def adjust_slice_indices(self):
         """
         Adjust slice indices if model is UNetStackTo2D or UNetStackToStack.
         These networks will have a depth > 1.
-        Adjust target_meta only as we'll need all the indices to load
+        Adjust inf_frames_meta only as we'll need all the indices to load
         stack with depth > 1.
         """
         margin = self.depth // 2
         # Drop indices on both margins
-        max_slice_idx = self.target_meta['slice_idx'].max() + 1
-        min_slice_idx = self.target_meta['slice_idx'].min()
+        max_slice_idx = self.inf_frames_meta['slice_idx'].max() + 1
+        min_slice_idx = self.inf_frames_meta['slice_idx'].min()
         drop_idx = list(range(max_slice_idx - margin, max_slice_idx)) + \
                    list(range(min_slice_idx, min_slice_idx + margin))
-        df_drop_idx = self.target_meta.index[
-            self.target_meta['slice_idx'].isin(drop_idx),
+        df_drop_idx = self.inf_frames_meta.index[
+            self.inf_frames_meta['slice_idx'].isin(drop_idx),
         ]
-        self.target_meta.drop(df_drop_idx, inplace=True)
+        self.inf_frames_meta.drop(df_drop_idx, inplace=True)
         # Drop indices below margin
-        df_drop_idx = self.target_meta.index[
-            self.target_meta['slice_idx'].isin(list(range(margin)))
+        df_drop_idx = self.inf_frames_meta.index[
+            self.inf_frames_meta['slice_idx'].isin(list(range(margin)))
         ]
-        self.target_meta.drop(df_drop_idx, inplace=True)
+        self.inf_frames_meta.drop(df_drop_idx, inplace=True)
 
     def get_iteration_meta(self):
         """
         Get the dataframe containing indices for one channel for
         inference iterations.
 
-        :return pandas Dataframe target_meta: Metadata and indices for
+        :return pandas Dataframe inf_frames_meta: Metadata and indices for
          first target channel
         """
-        return self.target_meta
+        return self.inf_frames_meta
 
     def __len__(self):
         """
@@ -247,7 +247,7 @@ class InferenceDataSet(keras.utils.Sequence):
         :return np.array target_stack: Target image stack for model inference
         """
         # Get indices for current inference iteration
-        cur_row = self.target_meta.iloc[index]
+        cur_row = self.inf_frames_meta.iloc[index]
         # binarize the target images for segmentation task
         is_mask = False
         # if self.model_task == 'segmentation':
