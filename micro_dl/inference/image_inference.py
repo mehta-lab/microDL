@@ -547,7 +547,7 @@ class ImagePredictor:
                     'Change file extension as ".tif" or ".npy" instead'
             cv2.imwrite(file_name, np.squeeze(im_pred))
         elif self.image_ext == '.npy':
-            np.save(file_name, im_pred, allow_pickle=True)
+            np.save(file_name, np.squeeze(im_pred), allow_pickle=True)
         else:
             raise ValueError(
                 'Unsupported file extension: {}'.format(self.image_ext),
@@ -733,8 +733,8 @@ class ImagePredictor:
                 # save prediction
                 self.save_pred_image(
                     im_input=cur_input,
-                    im_target=cur_target[:, i, ...],
-                    im_pred=pred_image[:, i, ...],
+                    im_target=cur_target[:, i:i+1, ...],
+                    im_pred=pred_image[:, i:i+1, ...],
                     meta_row=meta_row,
                     pred_chan_name=self.pred_chan_names[i]
                 )

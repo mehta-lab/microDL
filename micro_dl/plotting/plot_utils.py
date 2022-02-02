@@ -114,11 +114,9 @@ def save_predicted_images(input_batch,
             cur_target_8bit = cv2.convertScaleAbs(cur_target_chan - np.min(cur_target_chan),
                                                   alpha=255/(np.max(cur_target_chan)
                                                         - np.min(cur_target_chan)))
-            # cur_prediction_8bit = cv2.convertScaleAbs(cur_pred_chan - np.min(cur_pred_chan),
-            #                                           alpha=255/(np.max(cur_pred_chan)
-            #                                                 - np.min(cur_pred_chan)))
-            cur_prediction_8bit = cv2.convertScaleAbs(cur_pred_chan,
-                                                      alpha=150)
+            cur_prediction_8bit = cv2.convertScaleAbs(cur_pred_chan - np.min(cur_pred_chan),
+                                                      alpha=255/(np.max(cur_pred_chan)
+                                                            - np.min(cur_pred_chan)))
             cur_target_pred = np.stack([cur_target_8bit, cur_prediction_8bit,
                                         cur_target_8bit], axis=2)
 
