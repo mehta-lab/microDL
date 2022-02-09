@@ -154,10 +154,6 @@ class ImagePredictor:
         mask_dir = None
         if 'masks' in inference_config:
             self.masks_dict = inference_config['masks']
-        elif preprocess_config is not None:
-            self.masks_dict = preprocess_config['masks']
-
-        if self.masks_dict is not None:
             assert 'mask_channel' in self.masks_dict , 'mask_channel is needed'
             assert 'mask_dir' in self.masks_dict, 'mask_dir is needed'
             self.mask_dir = self.masks_dict['mask_dir']
@@ -560,6 +556,7 @@ class ImagePredictor:
             if self.input_depth > 1:
                 im_input = im_input[..., self.input_depth // 2, :, :]
                 im_target = im_target[..., 0, :, :]
+                im_pred = im_pred[..., 0, :, :]
             plot_utils.save_predicted_images(
                 input_batch=im_input,
                 target_batch=im_target,

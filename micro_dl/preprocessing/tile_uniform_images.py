@@ -112,33 +112,13 @@ class ImageTilerUniform:
             pos_ids=pos_ids,
             uniform_structure=True
         )
-        self.frames_meta_sub = aux_utils.get_sub_meta(
-            frames_metadata=self.frames_metadata,
-            time_ids=metadata_ids['time_ids'],
-            channel_ids=metadata_ids['channel_ids'],
-            slice_ids=metadata_ids['slice_ids'],
-            pos_ids=metadata_ids['pos_ids'])
+
         self.channel_ids = metadata_ids['channel_ids']
         self.time_ids = metadata_ids['time_ids']
         self.slice_ids = metadata_ids['slice_ids']
         self.pos_ids = metadata_ids['pos_ids']
         self.min_fraction = min_fraction
-        # Determine which channels should be normalized in tiling
-        if normalize_channels == -1:
-            self.normalize_channels = \
-                dict(zip(self.channel_ids, [normalize_im] * len(self.channel_ids)))
-        else:
-            assert len(normalize_channels) == len(self.channel_ids),\
-                "Channel ids {} and normalization list {} mismatch".format(
-                    self.channel_ids,
-                    self.normalize_channels,
-                )
 
-            normalize_channels = [normalize_im if flag else None for flag in normalize_channels]
-
-            self.normalize_channels = \
-                dict(zip(self.channel_ids, normalize_channels))
-                # If more than one depth is specified, length must match channel ids
         if isinstance(self.depths, list):
             assert len(self.depths) == len(self.channel_ids),\
              "depths ({}) and channels ({}) length mismatch".format(
@@ -161,6 +141,30 @@ class ImageTilerUniform:
             slice_ids=self.slice_ids,
             depth=max_depth,
         )
+        self.frames_meta_sub = aux_utils.get_sub_meta(
+            frames_metadata=self.frames_metadata,
+            time_ids=self.time_ids,
+            channel_ids=self.channel_ids,
+            slice_ids=self.slice_ids,
+            pos_ids=self.pos_ids)
+
+        # Determine which channels should be normalized in tiling
+        if normalize_channels == -1:
+            self.normalize_channels = \
+                dict(zip(self.channel_ids, [normalize_im] * len(self.channel_ids)))
+        else:
+            assert len(normalize_channels) == len(self.channel_ids),\
+                "Channel ids {} and normalization list {} mismatch".format(
+                    self.channel_ids,
+                    self.normalize_channels,
+                )
+
+            normalize_channels = [normalize_im if flag else None for flag in normalize_channels]
+
+            self.normalize_channels = \
+                dict(zip(self.channel_ids, normalize_channels))
+                # If more than one depth is specified, length must match channel ids
+
 
     def get_tile_dir(self):
         """

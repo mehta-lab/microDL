@@ -1,5 +1,5 @@
 dataset:
-    data_dir: '/CompMicro/projects/virtualstaining/kidneyslice/2019_02_15_kidney_slice/MBL_DL_image_translation/temp/tile_small/tiles_256-256_step_128-128'
+    data_dir: '/gpfs/CompMicro/projects/virtualstaining/kidneyslice/2019_02_15_kidney_slice/MBL_DL_image_translation/temp/tile_small/tiles_256-256_step_128-128'
     input_channels: [3]
     target_channels: [0]
     train_fraction: 1
@@ -15,7 +15,7 @@ dataset:
     augmentation: True
 verbose: 10
 trainer:
-    model_dir: '/CompMicro/projects/virtualstaining/kidneyslice/2019_02_15_kidney_slice/MBL_DL_image_translation/model2d/'
+    model_dir: '/gpfs/CompMicro/projects/virtualstaining/kidneyslice/2019_02_15_kidney_slice/MBL_DL_image_translation/model2d/'
     batch_size: 64
     max_epochs: 5
     metrics: coeff_determination
