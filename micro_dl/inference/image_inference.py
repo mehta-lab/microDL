@@ -704,7 +704,7 @@ class ImagePredictor:
                     step_size=step_size,
                     return_index=True
                 )
-                print('crop_indices:' , crop_indices)
+                print('crop_indices:', crop_indices)
                 pred_block_list = self._predict_sub_block_xy(
                     cur_input,
                     crop_indices,
@@ -745,10 +745,17 @@ class ImagePredictor:
             target_stack.append(cur_target.astype(np.float32))
         pred_stack = np.concatenate(pred_stack, axis=0) #zcyx
         target_stack = np.concatenate(target_stack, axis=0)
+
         # Stack images and transpose (metrics assumes cyxz format)
         if self.image_format == 'zyx':
-            pred_stack = np.transpose(pred_stack, [1, 2, 3, 0])
-            target_stack = np.transpose(target_stack, [1, 2, 3, 0])
+            if len(np.shape(pred_stack)) == 4:
+                pred_stack = np.transpose(pred_stack, [1, 2, 3, 0])
+                target_stack = np.transpose(target_stack, [1, 2, 3, 0])
+            else:
+                pred_stack = pred_stack[:, :, 0, :, :]
+                pred_stack = np.transpose(pred_stack, [1, 2, 3, 0])
+                target_stack = target_stack[:, :, 0, :, :]
+                target_stack = np.transpose(target_stack, [1, 2, 3, 0])
         if self.mask_metrics:
             mask_stack = np.concatenate(mask_stack, axis=0)
             if self.image_format == 'zyx':
