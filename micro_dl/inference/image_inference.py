@@ -104,7 +104,7 @@ class ImagePredictor:
         self.data_format = self.config['network']['data_format']
         assert self.data_format in {'channels_first', 'channels_last'}, \
             "Data format should be channels_first/last"
-        self.input_depth =1
+        self.input_depth = 1
         if 'depth' in self.config['network']:
             self.input_depth = self.config['network']['depth']
         flat_field_dir = None
@@ -745,17 +745,13 @@ class ImagePredictor:
             target_stack.append(cur_target.astype(np.float32))
         pred_stack = np.concatenate(pred_stack, axis=0) #zcyx
         target_stack = np.concatenate(target_stack, axis=0)
-
         # Stack images and transpose (metrics assumes cyxz format)
         if self.image_format == 'zyx':
-            if len(np.shape(pred_stack)) == 4:
-                pred_stack = np.transpose(pred_stack, [1, 2, 3, 0])
-                target_stack = np.transpose(target_stack, [1, 2, 3, 0])
-            else:
+            if self.input_depth > 1:
                 pred_stack = pred_stack[:, :, 0, :, :]
-                pred_stack = np.transpose(pred_stack, [1, 2, 3, 0])
                 target_stack = target_stack[:, :, 0, :, :]
-                target_stack = np.transpose(target_stack, [1, 2, 3, 0])
+            pred_stack = np.transpose(pred_stack, [1, 2, 3, 0])
+            target_stack = np.transpose(target_stack, [1, 2, 3, 0])
         if self.mask_metrics:
             mask_stack = np.concatenate(mask_stack, axis=0)
             if self.image_format == 'zyx':
