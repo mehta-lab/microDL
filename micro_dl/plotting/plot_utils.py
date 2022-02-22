@@ -34,7 +34,6 @@ def save_predicted_images(input_batch,
     :param float clip_limits: top and bottom % of intensity to saturate
     :param int font_size: font size of the image title
     """
-
     if not os.path.exists(output_dir):
         os.makedirs(output_dir, exist_ok=True)
 
@@ -42,7 +41,6 @@ def save_predicted_images(input_batch,
     if batch_size == 1:
         assert output_fname is not None, 'need fname for saving image'
         fname = os.path.join(output_dir, '{}.{}'.format(output_fname, ext))
-
 
     # 3D images are better saved as movies/gif
     # assume only 1 target and prediction channel
@@ -66,7 +64,7 @@ def save_predicted_images(input_batch,
         ax = ax.flatten()
         for axs in ax:
             axs.axis('off')
-        fig.set_size_inches((15, 5 * n_rows))
+        fig.set_size_inches((12, 5 * n_rows))
         axis_count = 0
         for channel_idx in range(n_ip_channels):
             cur_im = hist_clipping(
@@ -85,8 +83,11 @@ def save_predicted_images(input_batch,
                 clip_limits,
                 100 - clip_limits,
             )
-            ax[axis_count].imshow(cur_target_chan, cmap='gray')
+            ax_target = ax[axis_count].imshow(cur_target_chan, cmap='gray')
             ax[axis_count].axis('off')
+            divider = make_axes_locatable(ax[axis_count])
+            cax = divider.append_axes('right', size='5%', pad=0.05)
+            cbar = plt.colorbar(ax_target, cax=cax, orientation='vertical')
             ax[axis_count].set_title('Target', fontsize=font_size)
             axis_count += 1
             # cur_pred_chan = hist_clipping(
