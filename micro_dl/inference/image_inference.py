@@ -501,15 +501,17 @@ class ImagePredictor:
         """
         Save predicted images with image extension given in init.
 
+        :param np.array im_input: Input image
+        :param np.array im_target: Target image
         :param np.array im_pred: 2D / 3D predicted image
-        :param int time_idx: time index
-        :param int target_channel_idx: target / predicted channel index
-        :param int pos_idx: FOV / position index
-        :param int slice_idx: slice index
-        :param str chan_name: channel name
+        :param pd.DataFrame meta_row: Row of meta dataframe containing sample
+        :param str/None pred_chan_name: Predicted channel name
         """
-        # Write prediction image
-        if self.name_format == 'cztp':
+        if pred_chan_name is None:
+            if 'channel_name' in meta_row:
+                pred_chan_name = meta_row['channel_name']
+
+        if pred_chan_name is not None:
             im_name = aux_utils.get_im_name(
                 time_idx=meta_row['time_idx'],
                 channel_idx=meta_row['channel_idx'],
@@ -519,8 +521,6 @@ class ImagePredictor:
                 extra_field=self.suffix,
             )
         else:
-            if pred_chan_name is None:
-                pred_chan_name = meta_row['channel_name']
             im_name = aux_utils.get_sms_im_name(
                 time_idx=meta_row['time_idx'],
                 channel_name=pred_chan_name,
@@ -714,13 +714,13 @@ class ImagePredictor:
                     pred_block_list,
                     crop_indices,
                 )
-                # add batch dimension
-                pred_image = pred_image[np.newaxis, ...]
             else:
                 pred_image = inference.predict_large_image(
                     model=self.model,
                     input_image=cur_input,
                 )
+            # add batch dimension
+            pred_image = pred_image[np.newaxis, ...]
             for i, chan_idx in enumerate(self.target_channels):
                 meta_row = chan_meta.loc[chan_meta['channel_idx'] == chan_idx, :].squeeze()
                 if self.model_task == 'regression':
@@ -829,11 +829,11 @@ class ImagePredictor:
         # save prediction
         cur_row = self.inf_frames_meta.iloc[iteration_rows[0]]
         self.save_pred_image(
+            im_input=cur_input,
+            im_target=cur_target,
             im_pred=pred_image,
-            time_idx=cur_row['time_idx'],
-            target_channel_idx=cur_row['channel_idx'],
-            pos_idx=cur_row['pos_idx'],
-            slice_idx=cur_row['slice_idx'],
+            meta_row=cur_row,
+            pred_chan_name=self.pred_chan_names[i]
         )
         # 3D uses zyx, estimate metrics expects xyz
         if self.image_format == 'zyx':
