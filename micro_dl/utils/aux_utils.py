@@ -112,6 +112,7 @@ def get_meta_idx(frames_metadata,
         (frames_metadata["pos_idx"] == pos_idx)].tolist()
     return frame_idx[0]
 
+
 def get_sub_meta(frames_metadata,
                  time_ids,
                  channel_ids,
@@ -133,6 +134,7 @@ def get_sub_meta(frames_metadata,
         (frames_metadata["slice_idx"].isin(slice_ids)) &
         (frames_metadata["pos_idx"].isin(pos_ids))]
     return frames_meta_sub
+
 
 def get_im_name(time_idx=None,
                 channel_idx=None,
@@ -208,6 +210,7 @@ def get_sms_im_name(time_idx=None,
     im_name += ext
 
     return im_name
+
 
 def sort_meta_by_channel(frames_metadata):
     """
