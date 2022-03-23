@@ -507,15 +507,17 @@ class ImagePredictor:
         """
         Save predicted images with image extension given in init.
 
-        :param np.array im_input: input images
-        :param np.array im_pred: predicted image
-        :param np.array im_target: target image
-        :param pd.series metric: xy similarity metrics between prediction and target
-        :param pd.series meta_row: file information, name, position, channel, slice idx, fg_frag, zscore
-        :param str pred_chan_name: custom channel name
+        :param np.array im_input: Input image
+        :param np.array im_target: Target image
+        :param np.array im_pred: 2D / 3D predicted image
+        :param pd.DataFrame meta_row: Row of meta dataframe containing sample
+        :param str/None pred_chan_name: Predicted channel name
         """
-        # Write prediction image
-        if self.name_format == 'cztp':
+        if pred_chan_name is None:
+            if 'channel_name' in meta_row:
+                pred_chan_name = meta_row['channel_name']
+
+        if pred_chan_name is not None:
             im_name = aux_utils.get_im_name(
                 time_idx=meta_row['time_idx'],
                 channel_idx=meta_row['channel_idx'],
@@ -525,8 +527,6 @@ class ImagePredictor:
                 extra_field=self.suffix,
             )
         else:
-            if pred_chan_name is None:
-                pred_chan_name = meta_row['channel_name']
             im_name = aux_utils.get_sms_im_name(
                 time_idx=meta_row['time_idx'],
                 channel_name=pred_chan_name,
@@ -837,11 +837,11 @@ class ImagePredictor:
         # save prediction
         cur_row = self.inf_frames_meta.iloc[iteration_rows[0]]
         self.save_pred_image(
+            im_input=cur_input,
+            im_target=cur_target,
             im_pred=pred_image,
-            time_idx=cur_row['time_idx'],
-            target_channel_idx=cur_row['channel_idx'],
-            pos_idx=cur_row['pos_idx'],
-            slice_idx=cur_row['slice_idx'],
+            meta_row=cur_row,
+            pred_chan_name=self.pred_chan_names[i]
         )
         # 3D uses zyx, estimate metrics expects xyz
         if self.image_format == 'zyx':

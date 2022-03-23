@@ -168,6 +168,7 @@ def get_im_name(time_idx=None,
     im_name += ext
     return im_name
 
+
 def get_sms_im_name(time_idx=None,
                     channel_name=None,
                     slice_idx=None,
@@ -184,7 +185,7 @@ def get_sms_im_name(time_idx=None,
     This function will alter list and dict in place.
 
     :param int time_idx: Time index
-    :param str channel_name: Channel name
+    :param str/None channel_name: Channel name
     :param int slice_idx: Slice (z) index
     :param int pos_idx: Position (FOV) index
     :param str extra_field: Any extra string you want to include in the name
