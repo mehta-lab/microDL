@@ -79,6 +79,11 @@ class ImagePredictor:
         else:
             model_dir = train_config['trainer']['model_dir']
 
+        if 'save_folder_name' in inference_config:
+            self.save_folder_name = inference_config['save_folder_name']
+        else:
+            self.save_folder_name = 'predictions'
+
         if 'model_fname' in inference_config:
             model_fname = inference_config['model_fname']
         else:
@@ -130,7 +135,7 @@ class ImagePredictor:
         if 'name_format' in images_dict:
             self.name_format = images_dict['name_format']
         # Create image subdirectory to write predicted images
-        self.pred_dir = os.path.join(self.model_dir, 'predictions')
+        self.pred_dir = os.path.join(self.model_dir, self.save_folder_name)
         if 'save_to_image_dir' in inference_config:
             if inference_config['save_to_image_dir']:
                 self.pred_dir = os.path.join(self.image_dir, os.path.basename(model_dir))
@@ -182,7 +187,6 @@ class ImagePredictor:
                 normalize_im = preprocess_config['tile']['normalize_im']
 
         self.normalize_im = normalize_im
-
         # Handle 3D volume inference settings
         self.num_overlap = 0
         self.stitch_inst = None
@@ -485,7 +489,7 @@ class ImagePredictor:
         if self.normalize_im is not None:
             if self.normalize_im in ['dataset', 'volume', 'slice']:
                 zscore_median = meta_row['zscore_median']
-                zscore_iqr =  meta_row['zscore_iqr']
+                zscore_iqr = meta_row['zscore_iqr']
             else:
                 zscore_median = np.nanmean(im_target)
                 zscore_iqr = np.nanstd(im_target)
@@ -496,18 +500,19 @@ class ImagePredictor:
                         im_input,
                         im_target,
                         im_pred,
+                        metric,
                         meta_row,
                         pred_chan_name=None,
                         ):
         """
         Save predicted images with image extension given in init.
 
-        :param np.array im_pred: 2D / 3D predicted image
-        :param int time_idx: time index
-        :param int target_channel_idx: target / predicted channel index
-        :param int pos_idx: FOV / position index
-        :param int slice_idx: slice index
-        :param str chan_name: channel name
+        :param np.array im_input: input image
+        :param np.array im_pred: predicted image
+        :param np.array im_target: target image
+        :param pd.series metric: xy similarity metrics between prediction and target
+        :param pd.series meta_row: file information, name, position, channel, slice idx, fg_frag, zscore
+        :param str pred_chan_name: custom channel names
         """
         # Write prediction image
         if self.name_format == 'cztp':
@@ -549,19 +554,15 @@ class ImagePredictor:
             raise ValueError(
                 'Unsupported file extension: {}'.format(self.image_ext),
             )
-
         if self.save_figs:
             # save predicted images assumes 2D
             fig_dir = os.path.join(self.pred_dir, 'figures')
             os.makedirs(self.pred_dir, exist_ok=True)
-            if self.input_depth > 1:
-                im_input = im_input[..., self.input_depth // 2, :, :]
-                im_target = im_target[..., 0, :, :]
-                im_pred = im_pred[..., 0, :, :]
             plot_utils.save_predicted_images(
-                input_batch=im_input,
-                target_batch=im_target,
-                pred_batch=im_pred,
+                input_img=im_input,
+                target_img=im_target,
+                pred_img=im_pred,
+                metric=metric,
                 output_dir=fig_dir,
                 output_fname=im_name[:-4],
                 ext='jpg',
@@ -670,11 +671,12 @@ class ImagePredictor:
         :return np.array/list mask_stack: Mask for metrics (empty list if
          not using masked metrics)
         """
+        input_stack = []
         pred_stack = []
         target_stack = []
         mask_stack = []
         # going through z for given p & t
-        with tqdm(total=len(chan_slice_meta['slice_idx'].unique()), desc='z-stack', leave=False) as pbar:
+        with tqdm(total=len(chan_slice_meta['slice_idx'].unique()), desc='z-stack prediction', leave=False) as pbar:
             for z_idx in chan_slice_meta['slice_idx'].unique():
                 chan_meta = chan_slice_meta[chan_slice_meta['slice_idx'] == z_idx]
                 cur_input, cur_target = \
@@ -723,44 +725,46 @@ class ImagePredictor:
                         model=self.model,
                         input_image=cur_input,
                     )
+
                 for i, chan_idx in enumerate(self.target_channels):
                     meta_row = chan_meta.loc[chan_meta['channel_idx'] == chan_idx, :].squeeze()
                     if self.model_task == 'regression':
-                        pred_image[:, i, ...] = self.unzscore(pred_image[:, i, ...],
-                                                       cur_target[:, i, ...],
-                                                       meta_row)
-                    # save prediction
-                    self.save_pred_image(
-                        im_input=cur_input,
-                        im_target=cur_target[:, i:i+1, ...],
-                        im_pred=pred_image[:, i:i+1, ...],
-                        meta_row=meta_row,
-                        pred_chan_name=self.pred_chan_names[i]
-                    )
+                        if self.input_depth > 1:
+                            pred_image[:, i, 0, ...] = self.unzscore(pred_image[:, i, 0, ...],
+                                                           cur_target[:, i, 0, ...],
+                                                           meta_row)
+                        else:
+                            pred_image[:, i, ...] = self.unzscore(pred_image[:, i, ...],
+                                                           cur_target[:, i, ...],
+                                                           meta_row)
 
                 # get mask
                 if self.mask_metrics:
-                    cur_mask = self.get_mask(meta_row[0])
+                    cur_mask = self.get_mask(chan_meta[0])
                     mask_stack.append(cur_mask)
                 # add to vol
+                input_stack.append(cur_input)
                 pred_stack.append(pred_image)
                 target_stack.append(cur_target.astype(np.float32))
                 pbar.update(1)
 
+        input_stack = np.concatenate(input_stack, axis=0)
         pred_stack = np.concatenate(pred_stack, axis=0) #zcyx
         target_stack = np.concatenate(target_stack, axis=0)
         # Stack images and transpose (metrics assumes cyxz format)
         if self.image_format == 'zyx':
             if self.input_depth > 1:
+                input_stack = input_stack[:, :, 0, :, :]
                 pred_stack = pred_stack[:, :, 0, :, :]
                 target_stack = target_stack[:, :, 0, :, :]
+            input_stack = np.transpose(input_stack,  [1, 2, 3, 0])
             pred_stack = np.transpose(pred_stack, [1, 2, 3, 0])
             target_stack = np.transpose(target_stack, [1, 2, 3, 0])
         if self.mask_metrics:
             mask_stack = np.concatenate(mask_stack, axis=0)
             if self.image_format == 'zyx':
                 mask_stack = np.transpose(mask_stack, [1, 2, 3, 0])
-        return pred_stack, target_stack, mask_stack
+        return pred_stack, target_stack, mask_stack, input_stack
 
     def predict_3d(self, iteration_rows):
         """
@@ -860,7 +864,7 @@ class ImagePredictor:
         """Run prediction for entire 2D image or a 3D stack"""
         id_df = self.inf_frames_meta[['time_idx', 'pos_idx']].drop_duplicates()
         pbar = tqdm(id_df.to_numpy())
-        for id_row in id_df.to_numpy():
+        for id_row_idx, id_row in enumerate(id_df.to_numpy()):
             time_idx, pos_idx = id_row
             pbar.set_description('time {} position {}'.format(time_idx, pos_idx))
             chan_slice_meta = self.inf_frames_meta[
@@ -872,7 +876,7 @@ class ImagePredictor:
                     chan_slice_meta,
                 )
             else:
-                pred_image, target_image, mask_image = self.predict_2d(
+                pred_image, target_image, mask_image, input_image = self.predict_2d(
                     chan_slice_meta,
                 )
 
@@ -891,13 +895,32 @@ class ImagePredictor:
                 if self.metrics_inst is not None:
                     if not self.mask_metrics:
                         mask_image = None
-
                     self.estimate_metrics(
                         target=target_image[i],
                         prediction=pred_image[i],
                         pred_fnames=pred_fnames,
                         mask=mask_image,
                     )
+
+                with tqdm(total=len(chan_slice_meta['slice_idx'].unique()), desc='z-stack saving', leave=False) as pbar_s:
+                    for j, z_idx in enumerate(chan_slice_meta['slice_idx'].unique()):
+                        im_name = aux_utils.get_im_name(
+                            time_idx=time_idx,
+                            channel_idx=chan_idx,
+                            slice_idx=z_idx,
+                            pos_idx=pos_idx,
+                            ext="",
+                            extra_field="xy0",
+                        )
+                        self.save_pred_image(
+                            im_input=input_image[0][:, :, j],
+                            im_target=target_image[i][:, :, j],
+                            im_pred=pred_image[i][:, :, j],
+                            metric=self.df_xy[self.df_xy["pred_name"] == im_name],
+                            meta_row=chan_slice_meta[(chan_slice_meta['channel_idx'] == chan_idx) & (chan_slice_meta['slice_idx'] == z_idx)].squeeze(),
+                            pred_chan_name=self.pred_chan_names[i]
+                        )
+                        pbar_s.update(1)
             del pred_image, target_image
             pbar.update(1)
 
