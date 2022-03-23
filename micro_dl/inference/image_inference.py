@@ -539,6 +539,10 @@ class ImagePredictor:
         :param str/None pred_chan_name: Predicted channel name
         """
         if pred_chan_name is None:
+            if 'channel_name' in meta_row:
+                pred_chan_name = meta_row['channel_name']
+
+        if pred_chan_name is not None:
             im_name = aux_utils.get_im_name(
                 time_idx=meta_row['time_idx'],
                 channel_idx=meta_row['channel_idx'],
@@ -869,6 +873,7 @@ class ImagePredictor:
         pred_image = pred_image[0, ...]
         target_image = target_image[0, ...]
         input_image = input_image[0, ...]
+
         if self.image_format == 'zyx':
             input_image = np.transpose(input_image, [0, 2, 3, 1])
             pred_image = np.transpose(pred_image, [0, 2, 3, 1])
