@@ -155,16 +155,15 @@ def get_im_name(time_idx=None,
     :param int int2str_len: Length of string of the converted integers
     :return st im_name: Image file name
     """
-
     im_name = "im"
     if channel_idx is not None:
-        im_name += "_c" + str(channel_idx).zfill(int2str_len)
+        im_name += "_c" + str(int(channel_idx)).zfill(int2str_len)
     if slice_idx is not None:
-        im_name += "_z" + str(slice_idx).zfill(int2str_len)
+        im_name += "_z" + str(int(slice_idx)).zfill(int2str_len)
     if time_idx is not None:
-        im_name += "_t" + str(time_idx).zfill(int2str_len)
+        im_name += "_t" + str(int(time_idx)).zfill(int2str_len)
     if pos_idx is not None:
-        im_name += "_p" + str(pos_idx).zfill(int2str_len)
+        im_name += "_p" + str(int(pos_idx)).zfill(int2str_len)
     if extra_field is not None:
         im_name += "_" + extra_field
     im_name += ext

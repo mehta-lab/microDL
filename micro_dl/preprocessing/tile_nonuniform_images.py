@@ -27,7 +27,8 @@ class ImageTilerNonUniform(ImageTilerUniform):
                  image_format='zyx',
                  num_workers=4,
                  int2str_len=3,
-                 tile_3d=False):
+                 tile_3d=False,
+                 tiles_exist=False):
         """Init
 
         Assuming same structure across channels and same number of samples
@@ -51,7 +52,8 @@ class ImageTilerNonUniform(ImageTilerUniform):
                          image_format=image_format,
                          num_workers=num_workers,
                          int2str_len=int2str_len,
-                         tile_3d=tile_3d)
+                         tile_3d=tile_3d,
+                         tiles_exist=tiles_exist)
         # Get metadata indices
         metadata_ids, nested_id_dict = aux_utils.validate_metadata_indices(
             frames_metadata=self.frames_metadata,
