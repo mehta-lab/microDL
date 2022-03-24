@@ -135,6 +135,7 @@ class TestMetricsScript(unittest.TestCase):
         for i, row in metrics_xy.iterrows():
             expected_name = 't5_p7_xy{}'.format(i)
             self.assertEqual(row.pred_name, expected_name)
+            # TODO: Find out why metrics changed
             # self.assertEqual(row.mse, 1.0)
             # self.assertEqual(row.mae, 1.0)
         # Same for xyz

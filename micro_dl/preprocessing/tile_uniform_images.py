@@ -30,7 +30,8 @@ class ImageTilerUniform:
                  int2str_len=3,
                  normalize_im='stack',
                  min_fraction=None,
-                 tile_3d=False):
+                 tile_3d=False,
+                 tiles_exist=False):
         """
         Tiles images.
         If tile_dir already exist, it will check which channels are already
@@ -67,6 +68,8 @@ class ImageTilerUniform:
         :param bool tile_3d: Whether tiling is 3D or 2D
          in file names
         :param None or str normalize_im: normalization scheme for input images
+        :param bool tiles_exist: If tiles from channels/masks exist while tiling weights,
+            don't delete previously tiled channels
         """
         self.input_dir = input_dir
         self.output_dir = output_dir
@@ -90,11 +93,12 @@ class ImageTilerUniform:
             self.str_tile_step,
         )
 
-        self.tiles_exist = False
-        # Delete the old tile dir if it already exists
-        if os.path.exists(self.tile_dir):
-            shutil.rmtree(self.tile_dir)
-        os.makedirs(self.tile_dir)
+        self.tiles_exist = tiles_exist
+        if tiles_exist is False:
+            # Delete the old tile dir if it already exists
+            if os.path.exists(self.tile_dir):
+                shutil.rmtree(self.tile_dir)
+        os.makedirs(self.tile_dir, exist_ok=True)
 
         # make dir for saving individual meta per image, could be used for
         # tracking job success / fail
@@ -164,7 +168,6 @@ class ImageTilerUniform:
             self.normalize_channels = \
                 dict(zip(self.channel_ids, normalize_channels))
                 # If more than one depth is specified, length must match channel ids
-
 
     def get_tile_dir(self):
         """
