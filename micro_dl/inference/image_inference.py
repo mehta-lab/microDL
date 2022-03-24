@@ -558,6 +558,11 @@ class ImagePredictor:
             # save predicted images assumes 2D
             fig_dir = os.path.join(self.pred_dir, 'figures')
             os.makedirs(self.pred_dir, exist_ok=True)
+            # Check the 2.5 input depth handling
+            # if self.input_depth > 1:
+            #     im_input = im_input[..., self.input_depth // 2, :, :]
+            #     im_target = im_target[..., 0, :, :]
+            #     im_pred = im_pred[..., 0, :, :]
             plot_utils.save_predicted_images(
                 input_img=im_input,
                 target_img=im_target,
@@ -912,6 +917,7 @@ class ImagePredictor:
                             ext="",
                             extra_field="xy0",
                         )
+                        # Check idx of input and target
                         self.save_pred_image(
                             im_input=input_image[0][:, :, j],
                             im_target=target_image[i][:, :, j],
