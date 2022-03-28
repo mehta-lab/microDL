@@ -213,7 +213,6 @@ class TestPreprocessScript(unittest.TestCase):
             tile_meta.time_idx.unique().tolist(),
             [self.time_idx],
         )
-        print(list(tile_meta))
         self.assertListEqual(
             list(tile_meta),
             ['channel_idx',
