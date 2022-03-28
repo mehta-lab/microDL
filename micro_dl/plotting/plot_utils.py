@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import natsort
 import numpy as np
 import os
+import sys
 from micro_dl.utils.normalize import hist_clipping
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
@@ -31,6 +32,7 @@ def save_predicted_images(input_batch,
     :param str output_dir: dir to store the output images/mosaics
     :param int batch_idx: current batch number/index
     :param str output_fname: fname for saving collage
+    :param str ext: 3 letter file extension
     :param float clip_limits: top and bottom % of intensity to saturate
     :param int font_size: font size of the image title
     """
@@ -43,19 +45,20 @@ def save_predicted_images(input_batch,
         assert output_fname is not None, 'need fname for saving image'
         fname = os.path.join(output_dir, '{}.{}'.format(output_fname, ext))
 
-
     # 3D images are better saved as movies/gif
     # assume only 1 target and prediction channel
     if batch_size != 1:
         assert len(input_batch.shape) == 4, 'saves 2D images only'
-
     for img_idx in range(batch_size):
         cur_input = input_batch[img_idx]
         cur_target = target_batch[img_idx]
         cur_prediction = pred_batch[img_idx]
-        # print('cur_input.shape:', cur_input.shape)
-        # print('cur_target.shape:', cur_target.shape)
-        # print('cur_pred.shape:', cur_prediction.shape)
+        # Make sure it works for 2D images
+        if len(cur_input.shape) == 2:
+            cur_input = cur_input[np.newaxis, ...]
+        if len(cur_target.shape) == 2:
+            cur_target = cur_target[np.newaxis, ...]
+            cur_prediction = cur_prediction[np.newaxis, ...]
         n_ip_channels = cur_input.shape[0]
         n_op_channels = cur_target.shape[0]
         n_subplot = n_ip_channels + 2 * n_op_channels + 1
@@ -79,6 +82,7 @@ def save_predicted_images(input_batch,
             if axis_count == 0:
                 ax[axis_count].set_title('Input', fontsize=font_size)
             axis_count += 1
+
         for channel_idx in range(n_op_channels):
             cur_target_chan = hist_clipping(
                 cur_target[channel_idx],
@@ -104,22 +108,24 @@ def save_predicted_images(input_batch,
 
             ax[axis_count].set_title('Prediction', fontsize=font_size)
             axis_count += 1
-            cur_target_pred = np.stack([cur_target_chan, cur_pred_chan,
-                                        cur_target_chan], axis=2)
-            # cur_target_pred = cv2.convertScaleAbs(cur_target_pred - np.min(cur_target_pred),
-            #                                       alpha=255 / (np.max(cur_target_pred)
-            #                                                    - np.min(cur_target_pred)))
-
-
-            cur_target_8bit = cv2.convertScaleAbs(cur_target_chan - np.min(cur_target_chan),
-                                                  alpha=255/(np.max(cur_target_chan)
-                                                        - np.min(cur_target_chan)))
-            cur_prediction_8bit = cv2.convertScaleAbs(cur_pred_chan - np.min(cur_pred_chan),
-                                                      alpha=255/(np.max(cur_pred_chan)
-                                                            - np.min(cur_pred_chan)))
-            cur_target_pred = np.stack([cur_target_8bit, cur_prediction_8bit,
-                                        cur_target_8bit], axis=2)
-
+            cur_alpha = 255 / (np.max(cur_target_chan) -
+                               np.min(cur_target_chan) +
+                               sys.float_info.epsilon)
+            cur_target_8bit = cv2.convertScaleAbs(
+                cur_target_chan - np.min(cur_target_chan),
+                alpha=cur_alpha,
+            )
+            cur_alpha = 255 / (np.max(cur_pred_chan) -
+                               np.min(cur_pred_chan) +
+                               sys.float_info.epsilon)
+            cur_prediction_8bit = cv2.convertScaleAbs(
+                cur_pred_chan - np.min(cur_pred_chan),
+                alpha=cur_alpha,
+            )
+            cur_target_pred = np.stack(
+                [cur_target_8bit, cur_prediction_8bit,cur_target_8bit],
+                axis=2,
+            )
             ax[axis_count].imshow(cur_target_pred)
             ax[axis_count].set_title('Overlay', fontsize=font_size)
             axis_count += 1
