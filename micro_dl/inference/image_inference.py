@@ -98,7 +98,6 @@ class ImagePredictor:
         self.model_dir = model_dir
         self.image_dir = inference_config['image_dir']
 
-
         # Set default for data split, determine column name and indices
         data_split = 'test'
         if 'data_split' in inference_config:
@@ -160,7 +159,7 @@ class ImagePredictor:
         mask_dir = None
         if 'masks' in inference_config:
             self.masks_dict = inference_config['masks']
-            assert 'mask_channel' in self.masks_dict , 'mask_channel is needed'
+            assert 'mask_channel' in self.masks_dict, 'mask_channel is needed'
             assert 'mask_dir' in self.masks_dict, 'mask_dir is needed'
             self.mask_dir = self.masks_dict['mask_dir']
             self.mask_meta = aux_utils.read_meta(self.mask_dir)
@@ -196,6 +195,7 @@ class ImagePredictor:
         if 'crop_shape' in images_dict:
             self.crop_shape = images_dict['crop_shape']
         crop2base = True
+        self.tile_params = None
         if 'tile' in inference_config:
             self.tile_params = inference_config['tile']
             self._assign_3d_inference()
@@ -229,7 +229,7 @@ class ImagePredictor:
         if 'metrics' in inference_config:
             self.metrics_dict = inference_config['metrics']
         if self.metrics_dict is not None:
-            assert 'metrics' in self.metrics_dict,\
+            assert 'metrics' in self.metrics_dict, \
                 'Must specify with metrics to use'
             self.metrics_inst = MetricsEstimator(
                 metrics_list=self.metrics_dict['metrics'],
@@ -240,8 +240,8 @@ class ImagePredictor:
             if 'metrics_orientations' in self.metrics_dict:
                 self.metrics_orientations = \
                     self.metrics_dict['metrics_orientations']
-                assert set(self.metrics_orientations).\
-                    issubset(available_orientations),\
+                assert set(self.metrics_orientations). \
+                    issubset(available_orientations), \
                     'orientation not in [xy, xyz, xz, yz]'
             self.df_xy = pd.DataFrame()
             self.df_xyz = pd.DataFrame()
@@ -419,18 +419,18 @@ class ImagePredictor:
         for idx, crop_idx in enumerate(crop_indices):
             print('Running inference on tile {}/{}'.format(idx, len(crop_indices)))
             if self.data_format == 'channels_first':
-                if len(input_image.shape) == 5: # bczyx
+                if len(input_image.shape) == 5:  # bczyx
                     cur_block = input_image[:, :, :, crop_idx[0]: crop_idx[1],
-                                            crop_idx[2]: crop_idx[3]]
-                else: # bcyx
+                                crop_idx[2]: crop_idx[3]]
+                else:  # bcyx
                     cur_block = input_image[:, :, crop_idx[0]: crop_idx[1],
                                 crop_idx[2]: crop_idx[3]]
             else:
-                if len(input_image.shape) == 5: # bzyxc
+                if len(input_image.shape) == 5:  # bzyxc
                     cur_block = input_image[:, :, crop_idx[0]: crop_idx[1],
-                                            crop_idx[2]: crop_idx[3],
-                                            :]
-                else: # byxc
+                                crop_idx[2]: crop_idx[3],
+                                :]
+                else:  # byxc
                     cur_block = input_image[:, crop_idx[0]: crop_idx[1],
                                 crop_idx[2]: crop_idx[3],
                                 :]
@@ -443,7 +443,7 @@ class ImagePredictor:
             if self.data_format == 'channels_first':
                 if len(pred_block.shape) == 5:  # bczyx
                     pred_block = pred_block[0, :, 0, ...]
-                else: # bcyx
+                else:  # bcyx
                     pred_block = pred_block[0, :, ...]
             else:
                 if len(pred_block.shape) == 5:  # bzyxc
@@ -466,12 +466,12 @@ class ImagePredictor:
         for crop_idx in crop_indices:
             if self.data_format == 'channels_first':
                 cur_block = input_image[:, :, crop_idx[0]: crop_idx[1],
-                                        crop_idx[2]: crop_idx[3],
-                                        crop_idx[4]: crop_idx[5]]
+                            crop_idx[2]: crop_idx[3],
+                            crop_idx[4]: crop_idx[5]]
             else:
                 cur_block = input_image[:, crop_idx[0]: crop_idx[1],
-                                        crop_idx[2]: crop_idx[3],
-                                        crop_idx[4]: crop_idx[5], :]
+                            crop_idx[2]: crop_idx[3],
+                            crop_idx[4]: crop_idx[5], :]
 
             pred_block = inference.predict_large_image(
                 model=self.model,
@@ -516,8 +516,10 @@ class ImagePredictor:
         if pred_chan_name is None:
             if 'channel_name' in meta_row:
                 pred_chan_name = meta_row['channel_name']
-
-        if pred_chan_name is not None:
+        if pred_chan_name != pred_chan_name:
+            # Then it's nan and we don't want that
+            pred_chan_name = None
+        if pred_chan_name is None:
             im_name = aux_utils.get_im_name(
                 time_idx=meta_row['time_idx'],
                 channel_idx=meta_row['channel_idx'],
@@ -544,7 +546,7 @@ class ImagePredictor:
             im_pred = im_pred.astype(np.float32)
         if self.image_ext in ['.png', '.tif']:
             if self.image_ext == '.png':
-                assert im_pred.dtype == np.uint16,\
+                assert im_pred.dtype == np.uint16, \
                     'PNG format does not support float type. ' \
                     'Change file extension as ".tif" or ".npy" instead'
             cv2.imwrite(file_name, np.squeeze(im_pred))
@@ -632,7 +634,8 @@ class ImagePredictor:
             )
 
     def get_mask(self, cur_row, transpose=False):
-        """Get mask, either from image or mask dir
+        """
+        Get mask, either from image or mask dir
 
         :param pd.Series/dict cur_row: row containing indices
         :param bool transpose: Changes image format from xyz to zxy
@@ -657,6 +660,8 @@ class ImagePredictor:
                 self.crop_shape,
                 self.image_format,
             )
+        if len(mask.shape) == 2:
+            mask = mask[np.newaxis, ...]
         # moves z from last axis to first axis
         if transpose and len(mask.shape) > 2:
             mask = np.transpose(mask, [2, 0, 1])
@@ -831,9 +836,11 @@ class ImagePredictor:
         pred_image = np.squeeze(pred_image).astype(np.float32)
         target_image = np.squeeze(cur_target).astype(np.float32)
         if self.model_task == 'regression':
-            pred_image = self.unzscore(pred_image,
-                                       cur_target,
-                                       iteration_rows[0])
+            pred_image = self.unzscore(
+                pred_image,
+                cur_target,
+                iteration_rows[0],
+            )
         # save prediction
         cur_row = self.inf_frames_meta.iloc[iteration_rows[0]]
         self.save_pred_image(
@@ -841,7 +848,7 @@ class ImagePredictor:
             im_target=cur_target,
             im_pred=pred_image,
             meta_row=cur_row,
-            pred_chan_name=self.pred_chan_names[i]
+            pred_chan_name=self.pred_chan_names[i],
         )
         # 3D uses zyx, estimate metrics expects xyz
         if self.image_format == 'zyx':

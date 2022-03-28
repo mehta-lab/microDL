@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import natsort
 import numpy as np
 import os
+import sys
 from micro_dl.utils.normalize import hist_clipping
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
@@ -31,7 +32,7 @@ def save_predicted_images(input_imgs,
     :param pd.series metric: xy similarity metrics between prediction and target
     :param str output_dir: dir to store the output images/mosaics
     :param str output_fname: fname for saving collage
-    :param str ext: image format
+    :param str ext: 3 letter file extension
     :param float clip_limits: top and bottom % of intensity to saturate
     :param int font_size: font size of the image title
     """
@@ -93,7 +94,6 @@ def save_predicted_images(input_imgs,
     ax[axis_count].imshow(cur_target_pred)
     ax[axis_count].set_title('Overlay', fontsize=font_size)
     axis_count += 1
-
     # add metrics
     for c, (metric_name, value) in enumerate(zip(list(metric.keys()), metric.values[0][0:-1]), 1):
         plt.figtext(0.5, 0.001+c*0.015, metric_name + ": {:.4f}".format(value), ha="center", fontsize=12)
