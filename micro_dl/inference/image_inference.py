@@ -541,8 +541,10 @@ class ImagePredictor:
         if pred_chan_name is None:
             if 'channel_name' in meta_row:
                 pred_chan_name = meta_row['channel_name']
-
-        if pred_chan_name is not None:
+        if pred_chan_name != pred_chan_name:
+            # Then it's nan and we don't want that
+            pred_chan_name = None
+        if pred_chan_name is None:
             im_name = aux_utils.get_im_name(
                 time_idx=meta_row['time_idx'],
                 channel_idx=meta_row['channel_idx'],
@@ -586,6 +588,7 @@ class ImagePredictor:
             fig_dir = os.path.join(self.pred_dir, 'figures')
             os.makedirs(self.pred_dir, exist_ok=True)
             # for every target image channel a new overlay image is saved
+
             plot_utils.save_predicted_images(
                 input_imgs=im_input,
                 target_img=im_target,
