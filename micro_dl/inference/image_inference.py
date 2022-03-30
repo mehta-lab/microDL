@@ -499,15 +499,14 @@ class ImagePredictor:
                  im_target,
                  meta_row):
         """
-    Revert z-score normalization applied during preprocessing. Necessary
-    before computing SSIM
+        Revert z-score normalization applied during preprocessing. Necessary
+        before computing SSIM
 
-    :param im_pred: Prediction image, normalized image for un-zscore
-    :param im_target: Target image to compute stats from
-    :param pd.DataFrame meta_row: Metadata row for image
-    :return im_pred: image at its original scale
-    """
-
+        :param im_pred: Prediction image, normalized image for un-zscore
+        :param im_target: Target image to compute stats from
+        :param pd.DataFrame meta_row: Metadata row for image
+        :return im_pred: image at its original scale
+        """
         if self.normalize_im is not None:
             if self.normalize_im in ['dataset', 'volume', 'slice'] \
                 and ('zscore_median' in meta_row and
