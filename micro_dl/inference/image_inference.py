@@ -485,9 +485,13 @@ class ImagePredictor:
                  im_pred,
                  im_target,
                  meta_row):
-
+        print('norm', self.normalize_im)
+        print(meta_row)
+        print('zscore_median' in meta_row)
         if self.normalize_im is not None:
-            if self.normalize_im in ['dataset', 'volume', 'slice']:
+            if self.normalize_im in ['dataset', 'volume', 'slice'] \
+                and ('zscore_median' in meta_row and
+                     'zscore_iqr' in meta_row):
                 zscore_median = meta_row['zscore_median']
                 zscore_iqr = meta_row['zscore_iqr']
             else:
