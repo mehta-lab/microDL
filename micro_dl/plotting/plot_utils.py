@@ -98,7 +98,7 @@ def save_predicted_images(input_batch,
             #     clip_limits,
             #     100 - clip_limits,
             # )
-            cur_pred_chan = cur_prediction[channel_idx]
+            cur_pred_chan = np.squeeze(cur_prediction[channel_idx])
             ax_img = ax[axis_count].imshow(cur_pred_chan, cmap='gray')
             ax[axis_count].axis('off')
 
