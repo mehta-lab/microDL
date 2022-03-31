@@ -701,7 +701,6 @@ class TestImageInference3D(unittest.TestCase):
     def test_assign_3d_inference_xyz(self):
         # Test other settings
         self.infer_inst.params = {
-            'num_slices': 5,
             'num_overlap': 1,
             'overlap_operation': 'mean',
         }
@@ -714,16 +713,16 @@ class TestImageInference3D(unittest.TestCase):
     @nose.tools.raises(AssertionError)
     def test_assign_3d_inference_few_slices(self):
         # Test other settings
-        self.infer_inst.params = {
-            'num_slices': 3,
-            'num_overlap': 1,
+        self.infer_inst.tile_params = {
+            'num_slices': 2,
+            'num_overlap': 5,
             'overlap_operation': 'mean',
         }
         self.infer_inst._assign_3d_inference()
 
     @nose.tools.raises(AssertionError)
     def test_assign_3d_inference_not_3d(self):
-        self.infer_inst.params = {
+        self.infer_inst.tile_params = {
             'num_slices': 5,
             'num_overlap': 1,
             'overlap_operation': 'mean',
@@ -785,7 +784,7 @@ class TestImageInference3D(unittest.TestCase):
     @patch('micro_dl.inference.model_inference.predict_large_image')
     def test_predict_sub_block_z(self, mock_predict):
         mock_predict.return_value = np.zeros((1, 1, 5, 10, 10), dtype=np.float32)
-        self.infer_inst.params_3d = {
+        self.infer_inst.tile_params = {
             'num_slices': 5,
             'num_overlap': 1,
             'overlap_operation': 'mean',
@@ -853,8 +852,11 @@ class TestImageInference3D(unittest.TestCase):
         self.infer_inst.crop_shape = [5, 5, 5]
         self.infer_inst.tile_option = 'infer_on_center'
         self.infer_inst.tile_params['inf_shape'] = [3, 3, 3]
-        # Predict row 0 from inference dataset iterator
-        pred_im, target_im, mask_im = self.infer_inst.predict_3d([0])
+        meta_row = pd.DataFrame(
+            [[2, self.mask_channel, 3, 0]],
+            columns=['time_idx', 'channel_idx', 'pos_idx', 'slice_idx'],
+        )
+        pred_im, target_im, mask_im = self.infer_inst.predict_3d(meta_row)
         self.assertTupleEqual(pred_im.shape, (3, 3, 3))
         self.assertEqual(pred_im.dtype, np.float32)
         self.assertTupleEqual(target_im.shape, (3, 3, 3))

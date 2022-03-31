@@ -299,7 +299,7 @@ class ImagePredictor:
             self.tile_option = 'tile_z'
             assert self.tile_params['num_slices'] >= self.input_depth, \
                 'inference num of slices < num of slices used for training. ' \
-                'Inference on reduced num of slices gives sub optimal results' \
+                'Inference on reduced num of slices gives sub optimal results. \n' \
                 'Train slices: {}, inference slices: {}'.format(
                     self.input_depth, self.tile_params['num_slices'],
                 )
@@ -329,8 +329,11 @@ class ImagePredictor:
 
         # create an instance of ImageStitcher
         if self.tile_option in ['tile_z', 'tile_xyz', 'tile_xy']:
+            num_overlap = self.num_overlap
+            if isinstance(num_overlap, list):
+                num_overlap = self.num_overlap[-1]
             overlap_dict = {
-                'overlap_shape': self.num_overlap,
+                'overlap_shape': num_overlap,
                 'overlap_operation': self.tile_params['overlap_operation']
             }
             self.stitch_inst = ImageStitcher(
@@ -378,11 +381,16 @@ class ImagePredictor:
         start_end_idx = []
         num_z = input_image.shape[self.z_dim]
         num_slices = self.tile_params['num_slices']
+        print('num sl', num_slices)
+        num_overlap = self.num_overlap
+        if isinstance(self.num_overlap, list):
+            num_overlap = self.num_overlap[-1]
+        print('overlap', num_overlap)
         num_blocks = np.ceil(
-            num_z / (num_slices - self.num_overlap)
+            num_z / (num_slices - num_overlap)
         ).astype('int')
         for block_idx in range(num_blocks):
-            start_idx = block_idx * (num_slices - self.num_overlap)
+            start_idx = block_idx * (num_slices - num_overlap)
             end_idx = start_idx + num_slices
             if end_idx >= num_z:
                 end_idx = num_z
@@ -482,7 +490,7 @@ class ImagePredictor:
                  meta_row):
         print('norm', self.normalize_im)
         print(meta_row)
-        print('zscore_median' in meta_row)
+        print('zscore_median', meta_row)
         if self.normalize_im is not None:
             if self.normalize_im in ['dataset', 'volume', 'slice'] \
                 and ('zscore_median' in meta_row and
@@ -777,15 +785,16 @@ class ImagePredictor:
 
         :param list iteration_rows: Inference meta rows
         :return np.array pred_stack: Prediction
-        :return np.array target_stack: Target
         :return np.array/list mask_stack: Mask for metrics
         """
         crop_indices = None
         assert len(iteration_rows) == 1, \
             'more than one matching row found for position ' \
             '{}'.format(iteration_rows.pos_idx)
+        print('inter rows')
+        print(iteration_rows)
         cur_input, cur_target = \
-            self.dataset_inst.__getitem__(iteration_rows[0])
+            self.dataset_inst.__getitem__(iteration_rows.index[0])
         # If crop shape is defined in images dict
         if self.crop_shape is not None:
             cur_input = image_utils.center_crop_to_shape(
@@ -811,7 +820,7 @@ class ImagePredictor:
             pred_image = self.stitch_inst.stitch_predictions(
                 np.squeeze(cur_input).shape,
                 pred_block_list,
-                start_end_idx
+                start_end_idx,
             )
         elif self.tile_option == 'tile_xyz':
             step_size = (np.array(self.tile_params['tile_shape']) -
@@ -833,27 +842,36 @@ class ImagePredictor:
                 pred_block_list,
                 crop_indices,
             )
-        pred_image = np.squeeze(pred_image).astype(np.float32)
-        target_image = np.squeeze(cur_target).astype(np.float32)
+        # pred_image = np.squeeze(pred_image).astype(np.float32)
+        # target_image = np.squeeze(cur_target).astype(np.float32)
+        pred_image = pred_image.astype(np.float32)
+        cur_target = cur_target.astype(np.float32)
         if self.model_task == 'regression':
+            print('regression')
+            print(iteration_rows)
             pred_image = self.unzscore(
                 pred_image,
                 cur_target,
-                iteration_rows[0],
+                iteration_rows,
             )
         # save prediction
-        cur_row = self.inf_frames_meta.iloc[iteration_rows[0]]
+        print(self.inf_frames_meta)
+        cur_row = self.inf_frames_meta.iloc[iteration_rows.index[0]]
+        print(cur_row)
+        print(cur_input.shape)
+        print(cur_target.shape)
+        print(pred_image.shape)
         self.save_pred_image(
             im_input=cur_input,
             im_target=cur_target,
             im_pred=pred_image,
             meta_row=cur_row,
-            pred_chan_name=self.pred_chan_names[i],
+            pred_chan_name=self.pred_chan_names[0],
         )
         # 3D uses zyx, estimate metrics expects xyz
         if self.image_format == 'zyx':
             pred_image = np.transpose(pred_image, [1, 2, 0])
-            target_image = np.transpose(target_image, [1, 2, 0])
+            target_image = np.transpose(cur_target, [1, 2, 0])
         # get mask
         mask_image = None
         if self.masks_dict is not None:
@@ -878,6 +896,7 @@ class ImagePredictor:
                 (self.inf_frames_meta['pos_idx'] == pos_idx)
                 ]
             if self.config['network']['class'] == 'UNet3D':
+                print(chan_slice_meta)
                 pred_image, target_image, mask_image = self.predict_3d(
                     chan_slice_meta,
                 )
