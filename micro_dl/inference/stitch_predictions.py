@@ -173,6 +173,9 @@ class ImageStitcher:
             return idx_in_block, idx_in_img
 
         idx_in_block, idx_in_img = _init_block_img_idx()
+        print('idxs')
+        print(idx_in_img)
+        print(idx_in_block)
         # assign non-overlapping regions
         for idx_3D, idx_5D in enumerate(self.img_dim):
             idx_in_img[idx_3D] = np.s_[crop_index[idx_3D * 2] +
@@ -232,8 +235,12 @@ class ImageStitcher:
         assert self.data_format is not None, \
             'data format needed for stitching images along xyz'
         for idx, cur_tile in enumerate(tile_imgs_list):
+            print('idx', idx)
+            print(cur_tile.shape)
+            print(stitched_img.shape)
             try:
                 cur_crop_idx = block_indices_list[idx]
+                print(cur_crop_idx)
                 self._place_block_xyz(pred_block=cur_tile,
                                       pred_image=stitched_img,
                                       crop_index=cur_crop_idx)

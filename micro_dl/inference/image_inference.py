@@ -343,7 +343,6 @@ class ImagePredictor:
             if isinstance(num_overlap, list) and \
                     self.config['network']['class'] != 'UNet3D':
                 num_overlap = self.num_overlap[-1]
-
             overlap_dict = {
                 'overlap_shape': num_overlap,
                 'overlap_operation': self.tile_params['overlap_operation']
@@ -396,6 +395,7 @@ class ImagePredictor:
         num_overlap = self.num_overlap
         if isinstance(self.num_overlap, list):
             num_overlap = self.num_overlap[-1]
+
         num_blocks = np.ceil(
             num_z / (num_slices - num_overlap)
         ).astype('int')
@@ -865,6 +865,7 @@ class ImagePredictor:
         pred_image = pred_image.astype(np.float32)
         target_image = target_image.astype(np.float32)
         cur_row = self.inf_frames_meta.iloc[iteration_rows.index[0]]
+
         if self.model_task == 'regression':
             pred_image = self.unzscore(
                 pred_image,
@@ -880,6 +881,7 @@ class ImagePredictor:
             input_image = np.transpose(input_image, [0, 2, 3, 1])
             pred_image = np.transpose(pred_image, [0, 2, 3, 1])
             target_image = np.transpose(target_image, [0, 2, 3, 1])
+
         # get mask
         mask_image = None
         if self.masks_dict is not None:
