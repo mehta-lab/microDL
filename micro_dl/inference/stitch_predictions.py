@@ -77,7 +77,6 @@ class ImageStitcher:
         num_overlap = self.overlap_dict['overlap_shape']
         overlap_operation = self.overlap_dict['overlap_operation']
         z_dim = self.z_dim_3d
-
         # smoothly weight the two images in overlapping slices
         forward_wts = np.linspace(0, 1.0, num_overlap + 2)[1:-1]
         reverse_wts = forward_wts[::-1]
@@ -89,7 +88,6 @@ class ImageStitcher:
             idx_in_block.append(np.s_[:])
         idx_in_img[z_dim] = np.s_[start_idx + num_overlap: end_idx]
         idx_in_block[z_dim] = np.s_[num_overlap:]
-
         pred_image[tuple(idx_in_img)] = pred_block[tuple(idx_in_block)]
         if start_idx > 0:
             for sl_idx in range(num_overlap):
@@ -121,9 +119,7 @@ class ImageStitcher:
         :param list block_indices_list: list with tuples of (start, end) idx
         :return np.array stitched_img: 3D image with blocks assembled in place
         """
-
         stitched_img = np.zeros(self.im_shape)
-
         if 'overlap_shape' in self.overlap_dict:
             assert isinstance(self.overlap_dict['overlap_shape'], int), \
                 'tile_z only supports an overlap of int slices along z'
@@ -178,6 +174,9 @@ class ImageStitcher:
             return idx_in_block, idx_in_img
 
         idx_in_block, idx_in_img = _init_block_img_idx()
+        print('idxs')
+        print(idx_in_img)
+        print(idx_in_block)
         # assign non-overlapping regions
         for idx_3D, idx_5D in enumerate(self.img_dim):
             idx_in_img[idx_3D] = np.s_[crop_index[idx_3D * 2] +
@@ -237,8 +236,12 @@ class ImageStitcher:
         assert self.data_format is not None, \
             'data format needed for stitching images along xyz'
         for idx, cur_tile in enumerate(tile_imgs_list):
+            print('idx', idx)
+            print(cur_tile.shape)
+            print(stitched_img.shape)
             try:
                 cur_crop_idx = block_indices_list[idx]
+                print(cur_crop_idx)
                 self._place_block_xyz(pred_block=cur_tile,
                                       pred_image=stitched_img,
                                       crop_index=cur_crop_idx)
