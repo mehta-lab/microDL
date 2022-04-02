@@ -152,6 +152,10 @@ class ImageStitcher:
         """
         overlap_shape = self.overlap_dict['overlap_shape']
         overlap_operation = self.overlap_dict['overlap_operation']
+        print('overlap', overlap_shape, overlap_operation)
+        print(pred_image.shape)
+        print(pred_block.shape)
+        print(crop_index)
 
         def _init_block_img_idx(task='init'):
             """Helper function to initialize slicing indices
@@ -176,11 +180,20 @@ class ImageStitcher:
         print('idxs')
         print(idx_in_img)
         print(idx_in_block)
+        print('im dim', self.img_dim)
         # assign non-overlapping regions
         for idx_3D, idx_5D in enumerate(self.img_dim):
+            print('idx 3 5', idx_3D, idx_5D)
+            print(crop_index)
+            print(overlap_shape)
+            print([crop_index[idx_3D * 2] + overlap_shape[idx_3D],
+                   crop_index[idx_3D * 2 + 1]])
+            print(idx_in_img[idx_3D])
+
             idx_in_img[idx_3D] = np.s_[crop_index[idx_3D * 2] +
                                        overlap_shape[idx_3D]:
                                        crop_index[idx_3D * 2 + 1]]
+            print(np.s_[overlap_shape[idx_3D]:])
             idx_in_block[idx_5D] = np.s_[overlap_shape[idx_3D]:]
 
         pred_image[tuple(idx_in_img)] = pred_block[tuple(idx_in_block)]
@@ -232,6 +245,7 @@ class ImageStitcher:
         :return np.array stitched_img: 3D image with blocks assembled in place
         """
         stitched_img = np.zeros(self.im_shape, dtype=np.float32)
+        print(self.im_shape)
         assert self.data_format is not None, \
             'data format needed for stitching images along xyz'
         for idx, cur_tile in enumerate(tile_imgs_list):
@@ -241,7 +255,7 @@ class ImageStitcher:
             try:
                 cur_crop_idx = block_indices_list[idx]
                 print(cur_crop_idx)
-                self._place_block_xyz(pred_block=cur_tile,
+                self._place_block_xyz(pred_block=np.squeeze(cur_tile),
                                       pred_image=stitched_img,
                                       crop_index=cur_crop_idx)
             except Exception as e:
