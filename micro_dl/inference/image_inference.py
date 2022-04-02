@@ -344,6 +344,7 @@ class ImagePredictor:
             if isinstance(num_overlap, list) and \
                     self.config['network']['class'] != 'UNet3D':
                 num_overlap = self.num_overlap[-1]
+
             overlap_dict = {
                 'overlap_shape': num_overlap,
                 'overlap_operation': self.tile_params['overlap_operation']
