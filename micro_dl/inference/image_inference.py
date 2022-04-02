@@ -326,6 +326,12 @@ class ImagePredictor:
         elif 'tile_shape' in self.tile_params:
             if self.config['network']['class'] == 'UNet3D':
                 self.tile_option = 'tile_xyz'
+                self.num_overlap = self.tile_params['num_overlap'] \
+                    if 'num_overlap' in self.tile_params else [0, 0, 0]
+                print('num overlap', self.num_overlap)
+                if isinstance(self.num_overlap, int):
+                    self.num_overlap = self.num_overlap * [1, 1, 1]
+                print(self.num_overlap)
             else:
                 self.tile_option = 'tile_xy'
             self.num_overlap = self.tile_params['num_overlap'] \
@@ -337,8 +343,9 @@ class ImagePredictor:
         # create an instance of ImageStitcher
         if self.tile_option in ['tile_z', 'tile_xyz', 'tile_xy']:
             num_overlap = self.num_overlap
-            if isinstance(num_overlap, list):
-                num_overlap = self.num_overlap[-1]
+            if isinstance(num_overlap, list) and \
+                    self.config['network']['class'] != 'UNet3D':
+                        num_overlap = self.num_overlap[-1]
             overlap_dict = {
                 'overlap_shape': num_overlap,
                 'overlap_operation': self.tile_params['overlap_operation']
