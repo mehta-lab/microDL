@@ -183,12 +183,12 @@ class ImageStitcher:
         print('im dim', self.img_dim)
         # assign non-overlapping regions
         for idx_3D, idx_5D in enumerate(self.img_dim):
-            print('idx 3 5', idx_3D, idx_5D)
+            print('idx 35D', idx_3D, idx_5D)
             print(crop_index)
             print(overlap_shape)
             print([crop_index[idx_3D * 2] + overlap_shape[idx_3D],
                    crop_index[idx_3D * 2 + 1]])
-            print(idx_in_img[idx_3D])
+            print(idx_in_img)
 
             idx_in_img[idx_3D] = np.s_[crop_index[idx_3D * 2] +
                                        overlap_shape[idx_3D]:

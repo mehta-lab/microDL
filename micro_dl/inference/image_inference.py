@@ -196,10 +196,12 @@ class ImagePredictor:
             self.crop_shape = images_dict['crop_shape']
         crop2base = True
         self.tile_params = None
+        print(self.config['network']['class'])
         if 'tile' in inference_config:
             self.tile_params = inference_config['tile']
             self._assign_3d_inference()
-            crop2base = False
+            if self.config['network']['class'] != 'UNet3D':
+                crop2base = False
             # Make image ext npy default for 3D
         # Create dataset instance
         self.dataset_inst = InferenceDataSet(
