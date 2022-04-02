@@ -196,6 +196,7 @@ class ImagePredictor:
             self.crop_shape = images_dict['crop_shape']
         crop2base = True
         self.tile_params = None
+        print(self.config['network']['class'])
         if 'tile' in inference_config:
             self.tile_params = inference_config['tile']
             self._assign_3d_inference()
