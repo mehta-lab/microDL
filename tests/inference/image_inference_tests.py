@@ -857,9 +857,9 @@ class TestImageInference3D(unittest.TestCase):
             columns=['time_idx', 'channel_idx', 'pos_idx', 'slice_idx'],
         )
         pred_im, target_im, mask_im = self.infer_inst.predict_3d(meta_row)
-        self.assertTupleEqual(pred_im.shape, (3, 3, 3))
+        self.assertTupleEqual(pred_im.shape, (1, 1, 3, 3, 3))
         self.assertEqual(pred_im.dtype, np.float32)
-        self.assertTupleEqual(target_im.shape, (3, 3, 3))
+        self.assertTupleEqual(target_im.shape, (1, 1, 3, 3, 3))
         self.assertEqual(target_im.dtype, np.float32)
         self.assertTupleEqual(mask_im.shape, (3, 3, 3))
         self.assertEqual(mask_im.dtype, np.uint8)

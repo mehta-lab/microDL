@@ -870,8 +870,9 @@ class ImagePredictor:
         )
         # 3D uses zyx, estimate metrics expects xyz
         if self.image_format == 'zyx':
-            pred_image = np.transpose(pred_image, [1, 2, 0])
-            target_image = np.transpose(cur_target, [1, 2, 0])
+            print('transposing')
+            pred_image = np.transpose(pred_image, [0, 1, 3, 4, 2])
+            target_image = np.transpose(cur_target, [0, 1, 3, 4, 2])
         # get mask
         mask_image = None
         if self.masks_dict is not None:
