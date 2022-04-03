@@ -321,6 +321,7 @@ class TestImageInference(unittest.TestCase):
         mock_predict.return_value = np.zeros((1, 8, 16), dtype=np.float32)
         # Run prediction. Should create a metrics_xy.csv in pred dir
         self.infer_inst.run_prediction()
+
         metrics = pd.read_csv(os.path.join(self.model_dir, 'predictions/metrics_xy.csv'))
         self.assertTupleEqual(metrics.shape, (2, 2))
         self.assertEqual(metrics.mae.mean(), 1)
@@ -511,6 +512,7 @@ class TestImageInference2p5D(unittest.TestCase):
         mock_predict.return_value = 1. + np.ones((1, 1, 1, 8, 16), dtype=np.float32)
         # Run prediction. Should create a metrics_xy.csv in pred dir
         self.infer_inst.run_prediction()
+        assert 0 == 1
         metrics = pd.read_csv(os.path.join(self.model_dir, 'predictions/metrics_xy.csv'))
         self.assertTupleEqual(metrics.shape, (4, 2))
         # Dice should be 1.
@@ -571,7 +573,7 @@ class TestImageInference3D(unittest.TestCase):
                     meta_row = aux_utils.parse_idx_from_name(
                         im_name)
                     meta_row['zscore_median'] = 15 + c * 10
-                    meta_row['zscore_iqr'] = 1
+                    meta_row['zscore_iqr'] = 1.
                     self.frames_meta = self.frames_meta.append(
                         meta_row,
                         ignore_index=True,
@@ -831,9 +833,9 @@ class TestImageInference3D(unittest.TestCase):
             columns=['time_idx', 'channel_idx', 'pos_idx', 'slice_idx'],
         )
         pred_im, target_im, mask_im = self.infer_inst.predict_3d(meta_row)
-        self.assertTupleEqual(pred_im.shape, (8, 8, 8))
+        self.assertTupleEqual(pred_im.shape, (1, 1, 8, 8, 8))
         self.assertEqual(pred_im.dtype, np.float32)
-        self.assertTupleEqual(target_im.shape, (8, 8, 8))
+        self.assertTupleEqual(target_im.shape, (1, 1, 8, 8, 8))
         self.assertEqual(target_im.dtype, np.float32)
         self.assertTupleEqual(mask_im.shape, (8, 8, 8))
         self.assertEqual(mask_im.dtype, np.uint8)

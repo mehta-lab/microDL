@@ -1,5 +1,6 @@
 """Image normalization related functions"""
 import numpy as np
+import sys
 from skimage.exposure import equalize_adapthist
 
 
@@ -20,18 +21,19 @@ def zscore(input_image, mean=None, std=None):
     return norm_img
 
 
-def unzscore(im_norm, mean, std):
+def unzscore(im_norm, zscore_median, zscore_iqr):
     """
     Revert z-score normalization applied during preprocessing. Necessary
     before computing SSIM
 
-    :param input_image: input image for un-zscore
-    :return: image at its original scale
+    :param im_norm: Normalized image for un-zscore
+    :param zscore_median: Image median
+    :param zscore_iqr:
+    :return im: image at its original scale
     """
-
-    im = im_norm * (std + np.finfo(float).eps) + mean
-
+    im = im_norm * (zscore_iqr + sys.float_info.epsilon) + zscore_median
     return im
+
 
 def hist_clipping(input_image, min_percentile=2, max_percentile=98):
     """Clips and rescales histogram from min to max intensity percentiles
