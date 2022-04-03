@@ -500,7 +500,6 @@ class TestImageInference2p5D(unittest.TestCase):
         mock_predict.return_value = 1. + np.ones((1, 1, 1, 8, 16), dtype=np.float32)
         # Run prediction. Should create a metrics_xy.csv in pred dir
         self.infer_inst.run_prediction()
-        assert 0 == 1
         metrics = pd.read_csv(os.path.join(self.model_dir, 'predictions/metrics_xy.csv'))
         self.assertTupleEqual(metrics.shape, (4, 2))
         # Dice should be 1.

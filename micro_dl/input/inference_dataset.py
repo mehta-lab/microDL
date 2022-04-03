@@ -133,7 +133,6 @@ class InferenceDataSet(keras.utils.Sequence):
         self.inf_frames_meta = self.inf_frames_meta.reset_index(drop=True)
         self.num_samples = len(self.inf_frames_meta)
         self.crop2base = crop2base
-        print('crop2base', crop2base)
 
     def adjust_slice_indices(self):
         """
