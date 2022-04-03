@@ -512,7 +512,6 @@ class TestImageInference2p5D(unittest.TestCase):
         mock_predict.return_value = 1. + np.ones((1, 1, 1, 8, 16), dtype=np.float32)
         # Run prediction. Should create a metrics_xy.csv in pred dir
         self.infer_inst.run_prediction()
-        assert 0 == 1
         metrics = pd.read_csv(os.path.join(self.model_dir, 'predictions/metrics_xy.csv'))
         self.assertTupleEqual(metrics.shape, (4, 2))
         # Dice should be 1.
@@ -833,9 +832,9 @@ class TestImageInference3D(unittest.TestCase):
             columns=['time_idx', 'channel_idx', 'pos_idx', 'slice_idx'],
         )
         pred_im, target_im, mask_im = self.infer_inst.predict_3d(meta_row)
-        self.assertTupleEqual(pred_im.shape, (1, 1, 8, 8, 8))
+        self.assertTupleEqual(pred_im.shape, (8, 8, 8))
         self.assertEqual(pred_im.dtype, np.float32)
-        self.assertTupleEqual(target_im.shape, (1, 1, 8, 8, 8))
+        self.assertTupleEqual(target_im.shape, (8, 8, 8))
         self.assertEqual(target_im.dtype, np.float32)
         self.assertTupleEqual(mask_im.shape, (8, 8, 8))
         self.assertEqual(mask_im.dtype, np.uint8)
@@ -859,9 +858,9 @@ class TestImageInference3D(unittest.TestCase):
             columns=['time_idx', 'channel_idx', 'pos_idx', 'slice_idx'],
         )
         pred_im, target_im, mask_im = self.infer_inst.predict_3d(meta_row)
-        self.assertTupleEqual(pred_im.shape, (1, 1, 3, 3, 3))
+        self.assertTupleEqual(pred_im.shape, (3, 3, 3))
         self.assertEqual(pred_im.dtype, np.float32)
-        self.assertTupleEqual(target_im.shape, (1, 1, 3, 3, 3))
+        self.assertTupleEqual(target_im.shape, (3, 3, 3))
         self.assertEqual(target_im.dtype, np.float32)
         self.assertTupleEqual(mask_im.shape, (3, 3, 3))
         self.assertEqual(mask_im.dtype, np.uint8)
