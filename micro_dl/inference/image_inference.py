@@ -196,7 +196,6 @@ class ImagePredictor:
             self.crop_shape = images_dict['crop_shape']
         crop2base = True
         self.tile_params = None
-        print(self.config['network']['class'])
         if 'tile' in inference_config:
             self.tile_params = inference_config['tile']
             self._assign_3d_inference()
@@ -515,9 +514,12 @@ class ImagePredictor:
                      'zscore_iqr' in meta_row):
                 zscore_median = meta_row['zscore_median']
                 zscore_iqr = meta_row['zscore_iqr']
+                print('in meta row')
             else:
                 zscore_median = np.nanmean(im_target)
                 zscore_iqr = np.nanstd(im_target)
+                print('nn nan men')
+            print(zscore_median, zscore_iqr)
             im_pred = normalize.unzscore(im_pred, zscore_median, zscore_iqr)
         return im_pred
 
@@ -616,6 +618,10 @@ class ImagePredictor:
         :param list pred_fnames: File names (str) for saving model predictions
         :param np.array mask: foreground/ background mask
         """
+        print('in estimate metrics')
+        print(target.shape)
+        print(prediction.shape)
+        print(mask.shape)
         kw_args = {'target': target,
                    'prediction': prediction,
                    'pred_name': pred_fnames[0]}
