@@ -28,7 +28,7 @@ def unzscore(im_norm, zscore_median, zscore_iqr):
 
     :param im_norm: Normalized image for un-zscore
     :param zscore_median: Image median
-    :param zscore_iqr:
+    :param zscore_iqr: Image interquartile range
     :return im: image at its original scale
     """
     im = im_norm * (zscore_iqr + sys.float_info.epsilon) + zscore_median

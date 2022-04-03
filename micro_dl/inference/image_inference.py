@@ -392,11 +392,9 @@ class ImagePredictor:
         start_end_idx = []
         num_z = input_image.shape[self.z_dim]
         num_slices = self.tile_params['num_slices']
-        print('num sl', num_slices)
         num_overlap = self.num_overlap
         if isinstance(self.num_overlap, list):
             num_overlap = self.num_overlap[-1]
-        print('overlap', num_overlap)
         num_blocks = np.ceil(
             num_z / (num_slices - num_overlap)
         ).astype('int')
@@ -499,20 +497,24 @@ class ImagePredictor:
                  im_pred,
                  im_target,
                  meta_row):
-        print('norm', self.normalize_im)
-        print(meta_row)
+        """
+    Revert z-score normalization applied during preprocessing. Necessary
+    before computing SSIM
+
+    :param im_pred: Prediction image, normalized image for un-zscore
+    :param im_target: Target image to compute stats from
+    :return im_pred: image at its original scale
+    """
+
         if self.normalize_im is not None:
             if self.normalize_im in ['dataset', 'volume', 'slice'] \
                 and ('zscore_median' in meta_row and
                      'zscore_iqr' in meta_row):
                 zscore_median = meta_row['zscore_median']
                 zscore_iqr = meta_row['zscore_iqr']
-                print('in meta row')
             else:
                 zscore_median = np.nanmean(im_target)
                 zscore_iqr = np.nanstd(im_target)
-                print('nn nan men')
-            print(zscore_median, zscore_iqr)
             im_pred = normalize.unzscore(im_pred, zscore_median, zscore_iqr)
         return im_pred
 
@@ -607,10 +609,6 @@ class ImagePredictor:
         :param list pred_fnames: File names (str) for saving model predictions
         :param np.array mask: foreground/ background mask
         """
-        print('in estimate metrics')
-        print(target.shape)
-        print(prediction.shape)
-        print(mask.shape)
         kw_args = {'target': target,
                    'prediction': prediction,
                    'pred_name': pred_fnames[0]}
@@ -876,10 +874,12 @@ class ImagePredictor:
             pred_chan_name=self.pred_chan_names[0],
         )
         # 3D uses zyx, estimate metrics expects xyz
+        pred_image = np.squeeze(pred_image)
+        target_image = np.squeeze(cur_target)
         if self.image_format == 'zyx':
             print('transposing')
-            pred_image = np.transpose(pred_image, [0, 1, 3, 4, 2])
-            target_image = np.transpose(cur_target, [0, 1, 3, 4, 2])
+            pred_image = np.transpose(pred_image, [1, 2, 0])
+            target_image = np.transpose(target_image, [1, 2, 0])
         # get mask
         mask_image = None
         if self.masks_dict is not None:
@@ -905,7 +905,6 @@ class ImagePredictor:
                 (self.inf_frames_meta['pos_idx'] == pos_idx)
                 ]
             if self.config['network']['class'] == 'UNet3D':
-                print(chan_slice_meta)
                 pred_image, target_image, mask_image = self.predict_3d(
                     chan_slice_meta,
                 )
@@ -929,9 +928,15 @@ class ImagePredictor:
                 if self.metrics_inst is not None:
                     if not self.mask_metrics:
                         mask_image = None
+                    if self.config['network']['class'] == 'UNet3D':
+                        target = target_image
+                        prediction = pred_image
+                    else:
+                        target = target_image[c]
+                        prediction = pred_image[c]
                     self.estimate_metrics(
-                        target=target_image[c],
-                        prediction=pred_image[c],
+                        target=target,
+                        prediction=prediction,
                         pred_fnames=pred_fnames,
                         mask=mask_image,
                     )
