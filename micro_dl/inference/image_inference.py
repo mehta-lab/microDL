@@ -196,7 +196,6 @@ class ImagePredictor:
             self.crop_shape = images_dict['crop_shape']
         crop2base = True
         self.tile_params = None
-        print(self.config['network']['class'])
         if 'tile' in inference_config:
             self.tile_params = inference_config['tile']
             self._assign_3d_inference()
@@ -328,10 +327,8 @@ class ImagePredictor:
                 self.tile_option = 'tile_xyz'
                 self.num_overlap = self.tile_params['num_overlap'] \
                     if 'num_overlap' in self.tile_params else [0, 0, 0]
-                print('num overlap', self.num_overlap)
                 if isinstance(self.num_overlap, int):
                     self.num_overlap = self.num_overlap * [1, 1, 1]
-                print(self.num_overlap)
             else:
                 self.tile_option = 'tile_xy'
             self.num_overlap = self.tile_params['num_overlap'] \
@@ -504,16 +501,18 @@ class ImagePredictor:
                  meta_row):
         print('norm', self.normalize_im)
         print(meta_row)
-        print('zscore_median', meta_row)
         if self.normalize_im is not None:
             if self.normalize_im in ['dataset', 'volume', 'slice'] \
                 and ('zscore_median' in meta_row and
                      'zscore_iqr' in meta_row):
                 zscore_median = meta_row['zscore_median']
                 zscore_iqr = meta_row['zscore_iqr']
+                print('in meta row')
             else:
                 zscore_median = np.nanmean(im_target)
                 zscore_iqr = np.nanstd(im_target)
+                print('nn nan men')
+            print(zscore_median, zscore_iqr)
             im_pred = normalize.unzscore(im_pred, zscore_median, zscore_iqr)
         return im_pred
 
@@ -608,6 +607,10 @@ class ImagePredictor:
         :param list pred_fnames: File names (str) for saving model predictions
         :param np.array mask: foreground/ background mask
         """
+        print('in estimate metrics')
+        print(target.shape)
+        print(prediction.shape)
+        print(mask.shape)
         kw_args = {'target': target,
                    'prediction': prediction,
                    'pred_name': pred_fnames[0]}
@@ -804,8 +807,6 @@ class ImagePredictor:
         assert len(iteration_rows) == 1, \
             'more than one matching row found for position ' \
             '{}'.format(iteration_rows.pos_idx)
-        print('inter rows')
-        print(iteration_rows)
         cur_input, cur_target = \
             self.dataset_inst.__getitem__(iteration_rows.index[0])
         # If crop shape is defined in images dict
@@ -859,21 +860,14 @@ class ImagePredictor:
         # target_image = np.squeeze(cur_target).astype(np.float32)
         pred_image = pred_image.astype(np.float32)
         cur_target = cur_target.astype(np.float32)
+        cur_row = self.inf_frames_meta.iloc[iteration_rows.index[0]]
         if self.model_task == 'regression':
-            print('regression')
-            print(iteration_rows)
             pred_image = self.unzscore(
                 pred_image,
                 cur_target,
-                iteration_rows,
+                cur_row,
             )
         # save prediction
-        print(self.inf_frames_meta)
-        cur_row = self.inf_frames_meta.iloc[iteration_rows.index[0]]
-        print(cur_row)
-        print(cur_input.shape)
-        print(cur_target.shape)
-        print(pred_image.shape)
         self.save_pred_image(
             im_input=cur_input,
             im_target=cur_target,
