@@ -139,7 +139,8 @@ class ImageStitcher:
                          pred_block,
                          pred_image,
                          crop_index):
-        """Place the current block prediction in the larger vol
+        """
+        Place the current block prediction in the larger vol
 
         pred_image mutated in-place. Tile predictions in 5D and stitched img
         in 3D
