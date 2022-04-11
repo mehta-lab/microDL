@@ -4,8 +4,8 @@ import pandas as pd
 
 import micro_dl.utils.aux_utils as aux_utils
 from micro_dl.utils.mp_utils import mp_create_save_mask
-from micro_dl.utils.masks import get_unimodal_threshold
 from skimage.filters import threshold_otsu
+
 
 class MaskProcessor:
     """Generate masks from channels"""
