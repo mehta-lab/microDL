@@ -111,8 +111,6 @@ class ImageTilerNonUniform(ImageTilerUniform):
                             pos_idx=pos_idx,
                             task_type='tile',
                             mask_dir=cur_mask_dir,
-                            min_fraction=min_fraction,
-                            normalize_im=normalize_im,
                         )
                         fn_args.append(cur_args)
 
@@ -164,7 +162,6 @@ class ImageTilerNonUniform(ImageTilerUniform):
                                 pos_idx,
                                 task_type='crop',
                                 tile_indices=cur_tile_indices,
-                                normalize_im=self.normalize_channels[list_idx]
                             )
                             fn_args.append(cur_args)
 
@@ -253,8 +250,6 @@ class ImageTilerNonUniform(ImageTilerUniform):
         # across channels. Get time, pos and slice indices for mask channel
 
         mask_meta_df = aux_utils.read_meta(mask_dir)
-        # TODO: different masks across timepoints (but MaskProcessor generates
-        # mask for tp=0 only)
         _, mask_nested_id_dict = aux_utils.validate_metadata_indices(
             frames_metadata=mask_meta_df,
             time_ids=self.time_ids,
