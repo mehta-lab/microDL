@@ -23,9 +23,11 @@ def test_save_predicted_images():
             output_fname=output_fname,
         )
         fig_glob = glob.glob(os.path.join(output_dir, '*'))
-        nose.tools.assert_equal(len(fig_glob), 1)
+        nose.tools.assert_equal(len(fig_glob), 2)
         expected_fig = os.path.join(output_dir, 'test_plot.jpg')
         nose.tools.assert_equal(fig_glob[0], expected_fig)
+        expected_overlay = os.path.join(output_dir, 'test_plot_overlay.jpg')
+        nose.tools.assert_equal(fig_glob[1], expected_overlay)
 
 
 def test_save_center_slices():
