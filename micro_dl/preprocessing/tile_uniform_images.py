@@ -56,7 +56,7 @@ class ImageTilerUniform:
             indicating if channel should be normalized or not.
         :param int slice_ids: Index of which focal plane acquisition to
             use (for 2D). default=-1 for the whole z-stack
-        :param int pos_ids: Position (FOV) indices to use
+        :param list/int pos_ids: Position (FOV) indices to use
         :param list hist_clip_limits: lower and upper percentiles used for
             histogram clipping.
         :param str flat_field_dir: Flatfield directory. None if no flatfield
@@ -160,7 +160,7 @@ class ImageTilerUniform:
             assert len(normalize_channels) == len(self.channel_ids),\
                 "Channel ids {} and normalization list {} mismatch".format(
                     self.channel_ids,
-                    self.normalize_channels,
+                    normalize_channels,
                 )
 
             normalize_channels = [normalize_im if flag else None for flag in normalize_channels]
