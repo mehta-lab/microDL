@@ -4,20 +4,22 @@ import sys
 from skimage.exposure import equalize_adapthist
 
 
-def zscore(input_image, mean=None, std=None):
+def zscore(input_image, im_mean=None, im_std=None):
     """
     Performs z-score normalization. Adds epsilon in denominator for robustness
 
-    :param input_image: input image for intensity normalization
-    :return: z score normalized image
+    :param np.array input_image: input image for intensity normalization
+    :param float/None im_mean: Image mean
+    :param float/None im_std: Image std
+    :return np.array norm_img: z score normalized image
     """
 
-    if not mean:
-        mean = np.nanmean(input_image)
-    if not std:
-        std = np.nanstd(input_image)
-    norm_img = (input_image - mean.astype(np.float64)) /\
-               (std + np.finfo(float).eps)
+    if not im_mean:
+        im_mean = np.nanmean(input_image)
+    if not im_std:
+        im_std = np.nanstd(input_image)
+    norm_img = (input_image - im_mean.astype(np.float64)) /\
+               (im_std + np.finfo(float).eps)
     return norm_img
 
 
