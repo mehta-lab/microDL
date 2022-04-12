@@ -201,7 +201,7 @@ def test_read_json():
 def test_write_json():
     with TempDirectory() as tempdir:
         valid_json = {
-            "a": 5
+            "a": 5,
             "b": 'test',
         }
         tempdir.write('json_file.json', json.dumps(valid_json).encode())
