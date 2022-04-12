@@ -74,9 +74,11 @@ def get_row_idx(frames_metadata,
     :param int channel_idx: get info for this channel
     :param int slice_idx: get info for this focal plane (2D)
     :param int pos_idx: Specify FOV (default to all if -1)
+    :param str dir_names: Directory names if not in dataframe?
+    :return row_idx: Row index in dataframe
     """
     if dir_names is None:
-        dir_names = frames_metadata['dir_name'].unique()
+        dir_names = frames_metadata['dir_name'].unique().tolist()
     if not isinstance(dir_names, list):
         dir_names = [dir_names]
     row_idx = ((frames_metadata['time_idx'] == time_idx) &
