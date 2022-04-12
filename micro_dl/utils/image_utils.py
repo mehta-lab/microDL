@@ -23,9 +23,9 @@ def im_bit_convert(im, bit=16, norm=False, limit=[]):
             (limit[1]-limit[0] + sys.float_info.epsilon) * (2**bit-1)
     im = np.clip(im, 0, 2**bit-1) # clip the values to avoid wrap-around by np.astype
     if bit == 8:
-        im = im.astype(np.uint8, copy=False) # convert to 8 bit
+        im = im.astype(np.uint8, copy=False)  # convert to 8 bit
     else:
-        im = im.astype(np.uint16, copy=False) # convert to 16 bit
+        im = im.astype(np.uint16, copy=False)  # convert to 16 bit
     return im
 
 
@@ -277,7 +277,7 @@ def read_imstack(input_fnames,
     Read the images in the fnames and assembles a stack.
     If images are masks, make sure they're boolean by setting >0 to True
 
-    :param tuple input_fnames: tuple of input fnames with full path
+    :param tuple/list input_fnames: tuple of input fnames with full path
     :param str flat_field_fname: fname of flat field image
     :param tuple hist_clip_limits: limits for histogram clipping
     :param bool is_mask: Indicator for if files contain masks
@@ -316,8 +316,9 @@ def read_imstack(input_fnames,
             )
         if normalize_im is not None:
             input_image = normalize.zscore(
-                input_image, mean=zscore_mean,
-                std=zscore_std
+                input_image,
+                im_mean=zscore_mean,
+                im_std=zscore_std,
             )
     else:
         if input_image.dtype != bool:
@@ -389,14 +390,16 @@ def preprocess_imstack(frames_metadata,
         zscore_median = None
         zscore_iqr = None
         if normalize_im in ['dataset', 'volume', 'slice']:
-            zscore_median = frames_metadata.loc[meta_idx, 'zscore_median']
-            zscore_iqr = frames_metadata.loc[meta_idx, 'zscore_iqr']
-
+            if 'zscore_median' in frames_metadata:
+                zscore_median = frames_metadata.loc[meta_idx, 'zscore_median']
+            if 'zscore_iqr' in frames_metadata:
+                zscore_iqr = frames_metadata.loc[meta_idx, 'zscore_iqr']
+        print('norm', normalize_im, zscore_median, zscore_iqr)
         if normalize_im is not None:
             im = normalize.zscore(
                 im,
-                mean=zscore_median,
-                std=zscore_iqr
+                im_mean=zscore_median,
+                im_std=zscore_iqr,
             )
         im_stack.append(im)
 
