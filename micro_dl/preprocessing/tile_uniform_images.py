@@ -399,6 +399,7 @@ class ImageTilerUniform:
         else:
             # Using masks, need to make sure they're bool
             is_mask = True
+
         if task_type == 'crop':
             cur_args = (tuple(input_fnames),
                         flat_field_fname,

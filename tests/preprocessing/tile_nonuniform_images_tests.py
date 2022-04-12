@@ -308,9 +308,9 @@ class TestImageTilerNonUniform(unittest.TestCase):
         self.tile_inst.pos_ids = [7]
 
         self.tile_inst.normalize_channels = [None, None, None, False]
+        self.tile_inst.min_fraction = 0.5
         self.tile_inst.tile_mask_stack(mask_dir,
                                        mask_channel=3,
-                                       min_fraction=0.5,
                                        mask_depth=3)
         nose.tools.assert_equal(self.tile_inst.mask_depth, 3)
 
