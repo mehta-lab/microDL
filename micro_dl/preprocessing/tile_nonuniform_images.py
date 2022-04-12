@@ -74,7 +74,6 @@ class ImageTilerNonUniform(ImageTilerUniform):
                            channel0_ids,
                            channel0_depth,
                            cur_mask_dir=None,
-                           min_fraction=None,
                            is_mask=False):
         """Tile first channel or mask and use the tile indices for the rest
 
@@ -86,7 +85,6 @@ class ImageTilerNonUniform(ImageTilerUniform):
          or mask channel
         :param int channel0_depth: image depth for first channel or mask
         :param str cur_mask_dir: mask dir if tiling mask channel else none
-        :param float min_fraction: Min fraction of foreground in tiled masks
         :param bool is_mask: Is mask channel
         :return pd.DataFrame ch0_meta_df: pd.Dataframe with ids, row_start
          and col_start
@@ -224,7 +222,6 @@ class ImageTilerNonUniform(ImageTilerUniform):
     def tile_mask_stack(self,
                         mask_dir,
                         mask_channel,
-                        min_fraction,
                         mask_depth=1):
         """
         Tiles images in the specified channels assuming there are masks
@@ -237,7 +234,6 @@ class ImageTilerNonUniform(ImageTilerUniform):
 
         :param str mask_dir: Directory containing masks
         :param int mask_channel: Channel number assigned to mask
-        :param float min_fraction: Min fraction of foreground in tiled masks
         :param int mask_depth: Depth for mask channel
         """
 
@@ -272,7 +268,6 @@ class ImageTilerNonUniform(ImageTilerUniform):
             channel0_ids=mask_ch_ids,
             channel0_depth=mask_depth,
             cur_mask_dir=mask_dir,
-            min_fraction=min_fraction,
             is_mask=True,
         )
         # tile the rest
