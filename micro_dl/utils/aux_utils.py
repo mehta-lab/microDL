@@ -370,6 +370,7 @@ def make_dataframe(nbr_rows=None, df_names=DF_NAMES):
     and standard column names defined below
 
     :param [None, int] nbr_rows: The number of rows in the dataframe
+    :param list df_names: Dataframe column names
     :return dataframe frames_meta: Empty dataframe with given
         indices and column names
     """
