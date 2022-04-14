@@ -57,7 +57,7 @@ def create_save_mask(input_fnames,
     generated then added together.
 
     :param tuple input_fnames: tuple of input fnames with full path
-    :param str flat_field_fname: fname of flat field image
+    :param str/None flat_field_fname: fname of flat field image
     :param int str_elem_radius: size of structuring element used for binary
      opening. str_elem: disk or ball
     :param str mask_dir: dir to save masks
@@ -74,7 +74,8 @@ def create_save_mask(input_fnames,
      to uint8.
     :param list channel_thrs: list of threshold for each channel to generate
     binary masks. Only used when mask_type is 'dataset_otsu'
-    :return dict cur_meta for each mask
+    :return dict cur_meta for each mask. fg_frac is added to metadata
+            - how is it used?
     """
     if mask_type == 'dataset otsu':
         assert channel_thrs is not None, \
@@ -105,7 +106,7 @@ def create_save_mask(input_fnames,
         masks = np.stack(masks, axis=-1)
         # mask = np.any(masks, axis=-1)
         mask = np.mean(masks, axis=-1)
-        fg_frac = np.sum(mask) / mask.size
+        fg_frac = np.mean(mask)
 
     # Create mask name for given slice, time and position
     file_name = aux_utils.get_im_name(
@@ -415,7 +416,7 @@ def rescale_vol_and_save(time_idx,
     :param str output_fname: output_fname
     :param float/list scale_factor: scale factor for resizing
     :param str input_dir: input dir for 2D images
-    :param str ff_path: path to flat field correction image
+    :param str/None ff_path: path to flat field correction image
     """
 
     input_stack = []
