@@ -178,6 +178,8 @@ class TestImageUtils(unittest.TestCase):
             'channel_name': '3d_test',
             'file_name': 'im_c001_z000_t000_p001_3d.npy',
             'pos_idx': 1,
+            'zscore_median': np.nanmean(sph),
+            'zscore_iqr': np.nanstd(sph)
         }])
         self.meta_3d = meta_3d
 
@@ -232,7 +234,6 @@ class TestImageUtils(unittest.TestCase):
 
     def test_preprocess_imstack(self):
         """Test preprocess_imstack"""
-
         im_stack = image_utils.preprocess_imstack(
             frames_metadata=self.frames_meta,
             input_dir=self.temp_path,
@@ -244,20 +245,14 @@ class TestImageUtils(unittest.TestCase):
             normalize_im='dataset',
         )
         np.testing.assert_equal(im_stack.shape, (32, 32, 3))
-        print(self.sph.shape)
-        exp_stack = self.sph[:, :, 1:4]
-        print(exp_stack.shape)
-        for i in range(exp_stack.shape[2]):
-            print(exp_stack[..., i])
-            print(i, np.nanmean(exp_stack[:, :, i]))
-            print(i, np.nanstd(exp_stack[:, :, i]))
-            exp_stack[..., i] = normalize.zscore(exp_stack[..., i])
-            print(np.nanmean(exp_stack[..., i]))
-            print(exp_stack[..., i])
-            print('---------------')
-
+        exp_stack = np.zeros((32, 32, 3))
+        # Right now the code normalizes on a z slice basis for all
+        # normalization schemes
+        for z in range(exp_stack.shape[2]):
+            exp_stack[..., z] = normalize.zscore(self.sph[..., z + 1])
         np.testing.assert_array_equal(im_stack, exp_stack)
 
+    def test_preprocess_imstack_3d(self):
         # preprocess a 3D image
         im_stack = image_utils.preprocess_imstack(
             frames_metadata=self.meta_3d,
@@ -270,10 +265,11 @@ class TestImageUtils(unittest.TestCase):
             normalize_im='dataset',
         )
         np.testing.assert_equal(im_stack.shape, (32, 32, 8))
+        # Normalization for 3D image is done on the entire volume
         exp_stack = normalize.zscore(
             self.sph,
-            im_mean=self.dataset_mean,
-            im_std=self.dataset_std,
+            im_mean=np.nanmean(self.sph),
+            im_std=np.nanstd(self.sph),
         )
         np.testing.assert_array_equal(im_stack, exp_stack)
 

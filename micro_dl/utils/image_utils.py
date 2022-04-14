@@ -360,7 +360,7 @@ def preprocess_imstack(frames_metadata,
     metadata_ids, _ = aux_utils.validate_metadata_indices(
         frames_metadata=frames_metadata,
         slice_ids=-1,
-        uniform_structure=True
+        uniform_structure=True,
     )
     margin = 0 if depth == 1 else depth // 2
     im_stack = []
@@ -389,12 +389,12 @@ def preprocess_imstack(frames_metadata,
 
         zscore_median = None
         zscore_iqr = None
+        # TODO: Are all the normalization schemes below the same now?
         if normalize_im in ['dataset', 'volume', 'slice']:
             if 'zscore_median' in frames_metadata:
                 zscore_median = frames_metadata.loc[meta_idx, 'zscore_median']
             if 'zscore_iqr' in frames_metadata:
                 zscore_iqr = frames_metadata.loc[meta_idx, 'zscore_iqr']
-        print('norm', normalize_im, zscore_median, zscore_iqr)
         if normalize_im is not None:
             im = normalize.zscore(
                 im,
