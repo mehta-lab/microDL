@@ -13,7 +13,6 @@ def zscore(input_image, im_mean=None, im_std=None):
     :param float/None im_std: Image std
     :return np.array norm_img: z score normalized image
     """
-
     if not im_mean:
         im_mean = np.nanmean(input_image)
     if not im_std:
