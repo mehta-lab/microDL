@@ -101,6 +101,7 @@ class TestEstimateFlatField(unittest.TestCase):
         flatfields.sort()
         for i, c in enumerate(self.channel_ids):
             file_name = 'flat-field_channel-{}.npy'.format(c)
+            print(file_name)
             self.assertEqual(flatfields[i], file_name)
             ff = np.load(os.path.join(self.flat_field_dir, file_name))
             self.assertLessEqual(ff.max(), 5.)
