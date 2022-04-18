@@ -108,20 +108,17 @@ class TestTileUtils(unittest.TestCase):
             step_size=self.step_size,
             return_index=True,
         )
-        print(cropping_index)
         nose.tools.assert_equal(len(tiles_list), 9)
         c = 0
         for row in range(0, 17, 8):
             for col in range(0, 17, 8):
-                id_str = 'r{}-{}_c{}-{}_sl{}-{}'.format(
+                expected_idx = (
                     row,
                     row + self.tile_size[0],
                     col,
                     col + self.tile_size[1],
-                    0,
-                    3,
                 )
-                nose.tools.assert_equal(id_str, cropping_index[c])
+                nose.tools.assert_equal(expected_idx, cropping_index[c])
                 tile = self.input_image[row:row + self.tile_size[0],
                                    col: col + self.tile_size[1], ...]
                 numpy.testing.assert_array_equal(tile, tiles_list[c])
@@ -218,12 +215,13 @@ class TestTileUtils(unittest.TestCase):
         tile_size = [16, 16, 6]
         step_size = [8, 8, 4]
         # returns at tuple of (img_id, tile)
-        tiled_image_list = tile_utils.tile_image(
+        tiles_list, cropping_index = tile_utils.tile_image(
             input_image,
             tile_size=tile_size,
             step_size=step_size,
+            return_index=True,
         )
-        nose.tools.assert_equal(len(tiled_image_list), 18)
+        nose.tools.assert_equal(len(tiles_list), 18)
         c = 0
         for row in range(0, 17, 8):
             for col in range(0, 17, 8):
@@ -233,17 +231,21 @@ class TestTileUtils(unittest.TestCase):
                     else:
                         sl_start_end = [2, 8]
 
-                    id_str = 'r{}-{}_c{}-{}_sl{}-{}'.format(
-                        row, row + tile_size[0], col, col + tile_size[1],
-                        sl_start_end[0], sl_start_end[1]
+                    expected_idx = (
+                        row,
+                        row + tile_size[0],
+                        col,
+                        col + tile_size[1],
+                        sl_start_end[0],
+                        sl_start_end[1],
                     )
-                    nose.tools.assert_equal(id_str, tiled_image_list[c][0])
+                    nose.tools.assert_equal(expected_idx, cropping_index[c])
                     tile = input_image[row:row + tile_size[0],
                                        col: col + tile_size[1],
                                        sl_start_end[0]: sl_start_end[1]]
                     numpy.testing.assert_array_equal(
                         tile,
-                        tiled_image_list[c][1],
+                        tiles_list[c],
                     )
                     c += 1
 
@@ -255,8 +257,6 @@ class TestTileUtils(unittest.TestCase):
             input_image=input_image,
             crop_indices=self.crop_indices,
         )
-        print(ids_list)
-        print(len(tiles_list))
         for idx, cur_idx in enumerate(self.crop_indices):
             tile = input_image[cur_idx[0]: cur_idx[1],
                                cur_idx[2]: cur_idx[3],
