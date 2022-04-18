@@ -97,11 +97,10 @@ class TestEstimateFlatField(unittest.TestCase):
     def test_estimate_flat_field(self):
         self.flatfield_inst.estimate_flat_field()
         flatfields = os.listdir(self.flat_field_dir)
-        print(flatfields)
-        print(self.channel_ids)
+        # Make sure list is sorted
+        flatfields.sort()
         for i, c in enumerate(self.channel_ids):
             file_name = 'flat-field_channel-{}.npy'.format(c)
-            print(file_name)
             self.assertEqual(flatfields[i], file_name)
             ff = np.load(os.path.join(self.flat_field_dir, file_name))
             self.assertLessEqual(ff.max(), 5.)
