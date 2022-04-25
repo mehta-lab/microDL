@@ -27,9 +27,9 @@ def frames_meta_generator(
     Other naming convention is:
     img_channelname_t***_p***_z***.tif for parse_sms_name
 
-    :param list args:    parsed args containing
-        str input_dir:   path to input directory containing images
-        str name_parser: Function in aux_utils for parsing indices from file name
+    :param str input_dir:   path to input directory containing images
+    :param str order: Order in which file name encodes cztp
+    :param str name_parser: Function in aux_utils for parsing indices from file name
     """
     parse_func = aux_utils.import_object('utils.aux_utils', name_parser, 'function')
     im_names = aux_utils.get_sorted_names(input_dir)
@@ -49,6 +49,7 @@ def frames_meta_generator(
     frames_meta_filename = os.path.join(input_dir, 'frames_meta.csv')
     frames_meta.to_csv(frames_meta_filename, sep=",")
     return frames_meta
+
 
 def ints_meta_generator(
         input_dir,
@@ -78,11 +79,11 @@ def ints_meta_generator(
     Other naming convention is:
     img_channelname_t***_p***_z***.tif for parse_sms_name
 
-    :param list args:    parsed args containing
-        str input_dir:   path to input directory containing images
-        str name_parser: Function in aux_utils for parsing indices from file name
-        int num_workers: number of workers for multiprocessing
-        int block_size: block size for the grid sampling pattern. Default value works
+    :param str input_dir: path to input directory containing images
+    :param str order: Order in which file name encodes cztp
+    :param str name_parser: Function in aux_utils for parsing indices from file name
+    :param int num_workers: number of workers for multiprocessing
+    :param int block_size: block size for the grid sampling pattern. Default value works
         well for 2048 X 2048 images.
     """
     parse_func = aux_utils.import_object('utils.aux_utils', name_parser, 'function')
@@ -108,7 +109,7 @@ def ints_meta_generator(
 
     ints_meta_filename = os.path.join(input_dir, 'ints_meta.csv')
     ints_meta.to_csv(ints_meta_filename, sep=",")
-    return ints_meta
+
 
 def mask_meta_generator(
         input_dir,
@@ -137,12 +138,11 @@ def mask_meta_generator(
     Other naming convention is:
     img_channelname_t***_p***_z***.tif for parse_sms_name
 
-    :param list args:    parsed args containing
-        str input_dir:   path to input directory containing images
-        str name_parser: Function in aux_utils for parsing indices from file name
-        int num_workers: number of workers for multiprocessing
-        int block_size: block size for the grid sampling pattern. Default value works
-        well for 2048 X 2048 images.
+    :param str input_dir: path to input directory containing images
+    :param str order: Order in which file name encodes cztp
+    :param str name_parser: Function in aux_utils for parsing indices from file name
+    :param int num_workers: number of workers for multiprocessing
+    :return pd.DataFrame mask_meta: Metadata with mask info
     """
     parse_func = aux_utils.import_object('utils.aux_utils', name_parser, 'function')
     im_names = aux_utils.get_sorted_names(input_dir)
@@ -168,24 +168,26 @@ def mask_meta_generator(
     mask_meta.to_csv(mask_meta_filename, sep=",")
     return mask_meta
 
+
 def compute_zscore_params(frames_meta,
                           ints_meta,
                           input_dir,
                           normalize_im,
                           min_fraction=0.99):
-    """Get zscore mean and standard deviation
+    """
+    Get zscore median and interquartile range
 
-    :param int time_idx: Time index
-    :param int channel_idx: Channel index
-    :param int slice_idx: Slice (z) index
-    :param int pos_idx: Position (FOV) index
-    :param int slice_ids: Index of which focal plane acquisition to
-         use (for 2D).
+    :param pd.DataFrame frames_meta: Dataframe containing all metadata
+    :param pd.DataFrame ints_meta: Metadata containing intensity statistics
+        each z-slice
     :param str mask_dir: Directory containing masks
     :param None or str normalize_im: normalization scheme for input images
-    :param dataframe frames_meta: metadata contains mean and std info of each z-slice
-    :return float zscore_mean: mean for z-scoring the image
-    :return float zscore_std: std for z-scoring the image
+    :param float min_fraction: Minimum foreground fraction (in case of masks)
+        for computing intensity statistics.
+
+    :return pd.DataFrame frames_meta: Dataframe containing all metadata
+    :return pd.DataFrame ints_meta: Metadata containing intensity statistics
+        each z-slice
     """
 
     assert normalize_im in [None, 'slice', 'volume', 'dataset'], \
@@ -194,7 +196,7 @@ def compute_zscore_params(frames_meta,
     if normalize_im is None:
         # No normalization
         frames_meta['zscore_median'] = 0
-        frames_meta['zscore_median'] = 1
+        frames_meta['zscore_iqr'] = 1
         return frames_meta
 
     elif normalize_im == 'dataset':
@@ -222,7 +224,8 @@ def compute_zscore_params(frames_meta,
     frames_meta = \
         pd.merge(frames_meta[cols_to_merge], ints_agg, how='left', on=agg_cols)
     if frames_meta['zscore_median'].isnull().values.any():
-        raise ValueError('Found NaN in normalization parameters. min_fraction might be too low or images might be corrupted.')
+        raise ValueError('Found NaN in normalization parameters. \
+        min_fraction might be too low or images might be corrupted.')
     frames_meta_filename = os.path.join(input_dir, 'frames_meta.csv')
     frames_meta.to_csv(frames_meta_filename, sep=",")
 
@@ -235,7 +238,6 @@ def compute_zscore_params(frames_meta,
     ints_meta['intensity_norm'] = \
         (ints_meta['intensity'] - ints_meta['zscore_median']) / ints_meta['zscore_iqr']
     return frames_meta, ints_meta
-
 
 
 
