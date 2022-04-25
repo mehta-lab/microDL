@@ -15,7 +15,6 @@ from micro_dl.preprocessing.tile_nonuniform_images import \
     ImageTilerNonUniform
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.meta_utils as meta_utils
-import micro_dl.utils.preprocess_utils as preprocess_utils
 
 
 def parse_args():
@@ -24,7 +23,6 @@ def parse_args():
     In python namespaces are implemented as dictionaries
     :return: namespace containing the arguments passed.
     """
-
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '--config',
@@ -35,11 +33,91 @@ def parse_args():
     return args
 
 
+def get_required_params(preprocess_config):
+    """
+    Create a dictionary with required parameters for preprocessing
+    from the preprocessing config. Required parameters are:
+        'input_dir': Directory containing input image data
+        'output_dir': Directory to write preprocessed data
+        'slice_ids': Slice indices
+        'time_ids': Time indices
+        'pos_ids': Position indices
+        'channel_ids': Channel indices
+        'uniform_struct': (bool) If images are uniform
+        'int2strlen': (int) How long of a string to convert integers to
+        'normalize_channels': (list) Containing bools the length of channels
+        'num_workers': Number of workers for multiprocessing
+        'normalize_im': (str) E.g. stack, dataset
+
+    :param dict preprocess_config: Preprocessing config
+    :return dict required_params: Required parameters
+    """
+    input_dir = preprocess_config['input_dir']
+    output_dir = preprocess_config['output_dir']
+    slice_ids = -1
+    if 'slice_ids' in preprocess_config:
+        slice_ids = preprocess_config['slice_ids']
+
+    time_ids = -1
+    if 'time_ids' in preprocess_config:
+        time_ids = preprocess_config['time_ids']
+
+    pos_ids = -1
+    if 'pos_ids' in preprocess_config:
+        pos_ids = preprocess_config['pos_ids']
+
+    channel_ids = -1
+    if 'channel_ids' in preprocess_config:
+        channel_ids = preprocess_config['channel_ids']
+
+    uniform_struct = True
+    if 'uniform_struct' in preprocess_config:
+        uniform_struct = preprocess_config['uniform_struct']
+
+    int2str_len = 3
+    if 'int2str_len' in preprocess_config:
+        int2str_len = preprocess_config['int2str_len']
+
+    num_workers = 4
+    if 'num_workers' in preprocess_config:
+        num_workers = preprocess_config['num_workers']
+
+    normalize_im = 'stack'
+    normalize_channels = -1
+    if 'normalize' in preprocess_config:
+        if 'normalize_im' in preprocess_config['normalize']:
+            normalize_im = preprocess_config['normalize']['normalize_im']
+        if 'normalize_channels' in preprocess_config['normalize']:
+            normalize_channels = preprocess_config['normalize']['normalize_channels']
+            if isinstance(channel_ids, list):
+                assert len(channel_ids) == len(normalize_channels), \
+                    "Nbr channels {} and normalization {} mismatch".format(
+                        channel_ids,
+                        normalize_channels,
+                    )
+
+    required_params = {
+        'input_dir': input_dir,
+        'output_dir': output_dir,
+        'slice_ids': slice_ids,
+        'time_ids': time_ids,
+        'pos_ids': pos_ids,
+        'channel_ids': channel_ids,
+        'uniform_struct': uniform_struct,
+        'int2strlen': int2str_len,
+        'normalize_channels': normalize_channels,
+        'num_workers': num_workers,
+        'normalize_im': normalize_im,
+    }
+    return required_params
+
+
 def flat_field_correct(params_dict, block_size):
     """Estimate flat_field_images
 
     :param dict params_dict: dict with keys: input_dir, output_dir, time_ids,
      channel_ids, pos_ids, slice_ids, int2strlen, uniform_struct, num_workers
+    :param int block_size: Specify block size if different from default (32 pixels)
     :return str flat_field_dir: full path of dir with flat field correction
      images
     """
@@ -116,7 +194,8 @@ def generate_masks(params_dict,
                    mask_ext,
                    mask_dir=None,
                    ):
-    """Generate masks per image or volume
+    """
+    Generate masks per image or volume
 
     :param dict params_dict: dict with keys: input_dir, output_dir, time_ids,
         channel_ids, pos_ids, slice_ids, int2strlen, uniform_struct, num_workers
@@ -191,15 +270,17 @@ def generate_zscore_table(params_dict,
         pd.merge(ints_metadata[cols_to_merge],
                  mask_metadata[['pos_idx', 'time_idx', 'slice_idx', 'fg_frac']],
                  how='left', on=['pos_idx', 'time_idx', 'slice_idx'])
-    _, ints_metadata = \
-        meta_utils.compute_zscore_params(frames_metadata,
-                                     ints_metadata,
-                                     params_dict['input_dir'],
-                                     normalize_im=params_dict['normalize_im'],
-                                     min_fraction=norm_dict['min_fraction']
-                                     )
-    ints_metadata.to_csv(os.path.join(params_dict['input_dir'], 'ints_meta.csv'),
-                         sep=',')
+    _, ints_metadata = meta_utils.compute_zscore_params(
+        frames_metadata,
+        ints_metadata,
+        params_dict['input_dir'],
+        normalize_im=params_dict['normalize_im'],
+        min_fraction=norm_dict['min_fraction'],
+    )
+    ints_metadata.to_csv(
+        os.path.join(params_dict['input_dir'], 'ints_meta.csv'),
+        sep=',',
+    )
 
 
 def tile_images(params_dict,
@@ -293,6 +374,35 @@ def tile_images(params_dict,
     return tile_dir
 
 
+def save_config(cur_config, runtime):
+    """
+    Save the current config (cur_config) or append to existing config.
+
+    :param dict cur_config: Current config
+    :param float runtime: Run time for preprocessing
+    """
+
+    # Read preprocessing.json if exists in input dir
+    parent_dir = cur_config['input_dir'].split(os.sep)[:-1]
+    parent_dir = os.sep.join(parent_dir)
+
+    prior_config_fname = os.path.join(parent_dir, 'preprocessing_info.json')
+    prior_preprocess_config = None
+    if os.path.exists(prior_config_fname):
+        prior_preprocess_config = aux_utils.read_json(prior_config_fname)
+
+    meta_path = os.path.join(cur_config['output_dir'],
+                             'preprocessing_info.json')
+
+    processing_info = [{'processing_time': runtime,
+                        'config': cur_config}]
+    if prior_preprocess_config is not None:
+        prior_preprocess_config.append(processing_info[0])
+        processing_info = prior_preprocess_config
+    os.makedirs(cur_config['output_dir'], exist_ok=True)
+    aux_utils.write_json(processing_info, meta_path)
+
+
 def pre_process(preprocess_config):
     """
     Preprocess data. Possible options are:
@@ -316,63 +426,7 @@ def pre_process(preprocess_config):
      and mask_dir (the former is for generating masks from a channel)
     """
     time_start = time.time()
-    input_dir = preprocess_config['input_dir']
-    output_dir = preprocess_config['output_dir']
-    slice_ids = -1
-    if 'slice_ids' in preprocess_config:
-        slice_ids = preprocess_config['slice_ids']
-
-    time_ids = -1
-    if 'time_ids' in preprocess_config:
-        time_ids = preprocess_config['time_ids']
-
-    pos_ids = -1
-    if 'pos_ids' in preprocess_config:
-        pos_ids = preprocess_config['pos_ids']
-
-    channel_ids = -1
-    if 'channel_ids' in preprocess_config:
-        channel_ids = preprocess_config['channel_ids']
-
-    uniform_struct = True
-    if 'uniform_struct' in preprocess_config:
-        uniform_struct = preprocess_config['uniform_struct']
-
-    int2str_len = 3
-    if 'int2str_len' in preprocess_config:
-        int2str_len = preprocess_config['int2str_len']
-
-    num_workers = 4
-    if 'num_workers' in preprocess_config:
-        num_workers = preprocess_config['num_workers']
-
-    normalize_im = 'stack'
-    normalize_channels = -1
-    if 'normalize' in preprocess_config:
-        if 'normalize_im' in preprocess_config['normalize']:
-            normalize_im = preprocess_config['normalize']['normalize_im']
-        if 'normalize_channels' in preprocess_config['normalize']:
-            normalize_channels = preprocess_config['normalize']['normalize_channels']
-            if isinstance(channel_ids, list):
-                assert len(channel_ids) == len(normalize_channels), \
-                    "Nbr channels {} and normalization {} mismatch".format(
-                        channel_ids,
-                        normalize_channels,
-                    )
-
-    req_params_dict = {
-        'input_dir': input_dir,
-        'output_dir': output_dir,
-        'slice_ids': slice_ids,
-        'time_ids': time_ids,
-        'pos_ids': pos_ids,
-        'channel_ids': channel_ids,
-        'uniform_struct': uniform_struct,
-        'int2strlen': int2str_len,
-        'normalize_channels': normalize_channels,
-        'num_workers': num_workers,
-        'normalize_im': normalize_im,
-       }
+    required_params = get_required_params(preprocess_config)
 
     # -----------------Estimate flat field images--------------------
     flat_field_dir = None
@@ -384,12 +438,14 @@ def pre_process(preprocess_config):
             block_size = None
             if 'block_size' in preprocess_config['flat_field']:
                 block_size = preprocess_config['flat_field']['block_size']
-            flat_field_dir = flat_field_correct(req_params_dict, block_size)
+            flat_field_dir = flat_field_correct(required_params, block_size)
             preprocess_config['flat_field']['flat_field_dir'] = flat_field_dir
 
         elif 'correct' in preprocess_config['flat_field'] and \
                 preprocess_config['flat_field']['correct']:
             flat_field_dir = preprocess_config['flat_field']['flat_field_dir']
+
+    # -------Compute intensities for flatfield corrected images-------
 
     # -------------------------Resize images--------------------------
     if 'resize' in preprocess_config:
@@ -400,7 +456,7 @@ def pre_process(preprocess_config):
                 preprocess_config['resize']['num_slices_subvolume']
 
         resize_dir, slice_ids = resize_images(
-            req_params_dict,
+            required_params,
             scale_factor,
             num_slices_subvolume,
             preprocess_config['resize']['resize_3d'],
@@ -410,11 +466,10 @@ def pre_process(preprocess_config):
         flat_field_dir = None
         preprocess_config['resize']['resize_dir'] = resize_dir
         init_frames_meta = pd.read_csv(
-            os.path.join(req_params_dict['input_dir'], 'frames_meta.csv')
+            os.path.join(required_params['input_dir'], 'frames_meta.csv')
         )
-        mask_out_channel = int(init_frames_meta['channel_idx'].max() + 1)
-        req_params_dict['input_dir'] = resize_dir
-        req_params_dict['slice_ids'] = slice_ids
+        required_params['input_dir'] = resize_dir
+        required_params['slice_ids'] = slice_ids
 
     # ------------------------Generate masks-------------------------
     mask_dir = None
@@ -436,7 +491,7 @@ def pre_process(preprocess_config):
                 mask_ext = preprocess_config['masks']['mask_ext']
 
             mask_dir, mask_channel = generate_masks(
-                params_dict=req_params_dict,
+                params_dict=required_params,
                 mask_from_channel=mask_from_channel,
                 flat_field_dir=flat_field_dir,
                 str_elem_radius=str_elem_radius,
@@ -449,14 +504,11 @@ def pre_process(preprocess_config):
                 "Don't specify channels to mask if using pre-generated masks"
             mask_dir = preprocess_config['masks']['mask_dir']
             # Get preexisting masks from directory and match to input dir
-            mask_meta_fname = None
-            if 'csv_name' in preprocess_config['masks']:
-                mask_meta_fname = preprocess_config['masks']['csv_name']
             mask_meta = meta_utils.mask_meta_generator(
                 mask_dir,
                 name_parser='parse_sms_name',
             )
-            frames_meta = aux_utils.read_meta(req_params_dict['input_dir'])
+            frames_meta = aux_utils.read_meta(required_params['input_dir'])
             # Automatically assign existing masks the next available channel number
             mask_meta['channel_idx'] += (frames_meta['channel_idx'].max() + 1)
             # use the first mask channel as the default mask for tiling
@@ -466,7 +518,7 @@ def pre_process(preprocess_config):
             mask_meta.to_csv(mask_meta_fname, sep=",")
             # mask_channel = preprocess_utils.validate_mask_meta(
             #     mask_dir=mask_dir,
-            #     input_dir=req_params_dict['input_dir'],
+            #     input_dir=required_params['input_dir'],
             #     csv_name=mask_meta_fname,
             #     mask_channel=mask_channel,
             # )
@@ -476,10 +528,11 @@ def pre_process(preprocess_config):
         preprocess_config['masks']['mask_dir'] = mask_dir
         preprocess_config['masks']['mask_channel'] = mask_channel
 
-    if req_params_dict['normalize_im'] in ['dataset', 'volume', 'slice']:
+    # ---------------------Generate z score table---------------------
+    if required_params['normalize_im'] in ['dataset', 'volume', 'slice']:
         assert mask_dir is not None, \
             "'dataset', 'volume', 'slice' normalization requires masks"
-        generate_zscore_table(req_params_dict, preprocess_config['normalize'], mask_dir)
+        generate_zscore_table(required_params, preprocess_config['normalize'], mask_dir)
 
     # ----------------------Generate weight map-----------------------
     if 'make_weight_map' in preprocess_config and preprocess_config['make_weight_map']:
@@ -493,7 +546,7 @@ def pre_process(preprocess_config):
         weights_channel = mask_channel + 1
         # Generate weights
         weights_dir, _ = generate_masks(
-            params_dict=req_params_dict,
+            params_dict=required_params,
             mask_from_channel=mask_channel,
             flat_field_dir=None,
             str_elem_radius=5,
@@ -519,14 +572,14 @@ def pre_process(preprocess_config):
             if 'mask_channel' not in preprocess_config['tile']:
                 preprocess_config['tile']['mask_channel'] = mask_channel
         tile_dir = tile_images(
-            params_dict=req_params_dict,
+            params_dict=required_params,
             tile_dict=preprocess_config['tile'],
             resize_flag=resize_flag,
             flat_field_dir=flat_field_dir,
         )
         # Tile weight maps as well if they exist
         if 'weights' in preprocess_config:
-            weight_params_dict = req_params_dict.copy()
+            weight_params_dict = required_params.copy()
             weight_params_dict["input_dir"] = weights_dir
             weight_params_dict["channel_ids"] = [weights_channel]
             weight_tile_config = preprocess_config['tile'].copy()
@@ -548,30 +601,6 @@ def pre_process(preprocess_config):
     # Write in/out/mask/tile paths and config to json in output directory
     time_el = time.time() - time_start
     return preprocess_config, time_el
-
-
-def save_config(cur_config, runtime):
-    """Save the cur_config or append to existing config"""
-
-    # Read preprocessing.json if exists in input dir
-    parent_dir = cur_config['input_dir'].split(os.sep)[:-1]
-    parent_dir = os.sep.join(parent_dir)
-
-    prior_config_fname = os.path.join(parent_dir, 'preprocessing_info.json')
-    prior_preprocess_config = None
-    if os.path.exists(prior_config_fname):
-        prior_preprocess_config = aux_utils.read_json(prior_config_fname)
-
-    meta_path = os.path.join(cur_config['output_dir'],
-                             'preprocessing_info.json')
-
-    processing_info = [{'processing_time': runtime,
-                        'config': cur_config}]
-    if prior_preprocess_config is not None:
-        prior_preprocess_config.append(processing_info[0])
-        processing_info = prior_preprocess_config
-    os.makedirs(cur_config['output_dir'], exist_ok=True)
-    aux_utils.write_json(processing_info, meta_path)
 
 
 if __name__ == '__main__':
