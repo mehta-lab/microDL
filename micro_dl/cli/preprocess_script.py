@@ -263,7 +263,7 @@ def generate_zscore_table(params_dict,
     """
     frames_metadata = aux_utils.read_meta(params_dict['input_dir'])
     ints_metadata = aux_utils.read_meta(params_dict['input_dir'],
-                                        meta_fname='ints_meta.csv')
+                                        meta_fname='intensity_meta.csv')
     mask_metadata = aux_utils.read_meta(mask_dir)
     cols_to_merge = ints_metadata.columns[ints_metadata.columns != 'fg_frac']
     ints_metadata = \
@@ -278,7 +278,7 @@ def generate_zscore_table(params_dict,
         min_fraction=norm_dict['min_fraction'],
     )
     ints_metadata.to_csv(
-        os.path.join(params_dict['input_dir'], 'ints_meta.csv'),
+        os.path.join(params_dict['input_dir'], 'intensity_meta.csv'),
         sep=',',
     )
 
@@ -434,7 +434,6 @@ def pre_process(preprocess_config):
         aux_utils.read_meta(required_params['input_dir'])
     except AssertionError as e:
         print(e)
-        # Create metadata from file names instead
         order = 'cztp'
         name_parser = 'parse_sms_name'
         if 'metadata' in preprocess_config:
@@ -442,6 +441,7 @@ def pre_process(preprocess_config):
                 order = preprocess_config['metadata']['order']
             if 'name_parser' in preprocess_config['metadata']:
                 name_parser = preprocess_config['metadata']['name_parser']
+        # Create metadata from file names instead
         meta_utils.frames_meta_generator(
             input_dir=required_params['input_dir'],
             order=order,
@@ -466,6 +466,13 @@ def pre_process(preprocess_config):
             flat_field_dir = preprocess_config['flat_field']['flat_field_dir']
 
     # -------Compute intensities for flatfield corrected images-------
+    if required_params['normalize_im'] in ['dataset', 'volume', 'slice']:
+        meta_utils.ints_meta_generator(
+            input_dir=required_params['input_dir'],
+            order=parsed_args.order,
+            name_parser=parsed_args.name_parser,
+            num_workers=required_params['num_workers'],
+        )
 
     # -------------------------Resize images--------------------------
     if 'resize' in preprocess_config:
@@ -549,7 +556,11 @@ def pre_process(preprocess_config):
     if required_params['normalize_im'] in ['dataset', 'volume', 'slice']:
         assert mask_dir is not None, \
             "'dataset', 'volume', 'slice' normalization requires masks"
-        generate_zscore_table(required_params, preprocess_config['normalize'], mask_dir)
+        generate_zscore_table(
+            required_params,
+            preprocess_config['normalize'],
+            mask_dir,
+        )
 
     # ----------------------Generate weight map-----------------------
     if 'make_weight_map' in preprocess_config and preprocess_config['make_weight_map']:

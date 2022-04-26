@@ -110,3 +110,29 @@ class TestGenerateMeta(unittest.TestCase):
             name_parser='nonexisting_function',
         )
         generate_meta.main(args)
+
+    def test_generate_intensity_meta(self):
+        args = argparse.Namespace(
+            input=self.sms_dir,
+            name_parser='parse_sms_name',
+            order="cztp",
+            normalize_im='dataset',
+            num_workers=4,
+        )
+        generate_meta.main(args)
+        frames_meta = pd.read_csv(os.path.join(self.sms_dir, 'frames_meta.csv'))
+        # This function sorts channel names
+        sorted_names = natsort.natsorted(self.channel_names)
+        iterator = itertools.product(range(len(self.channel_names)), range(5, 10))
+        for i, (c, z) in enumerate(iterator):
+            row = frames_meta.iloc[i]
+            self.assertEqual(row.channel_idx, c)
+            self.assertEqual(row.channel_name, sorted_names[c])
+            self.assertEqual(row.slice_idx, z)
+            self.assertEqual(row.time_idx, self.time_idx)
+            self.assertEqual(row.pos_idx, self.pos_idx)
+        # Check intensity data
+        print(os.listdir(self.sms_dir))
+        ints_meta = pd.read_csv(os.path.join(self.sms_dir, 'ints_meta.csv'))
+        print(ints_meta)
+        assert 0 == 1
