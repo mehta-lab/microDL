@@ -107,7 +107,7 @@ def ints_meta_generator(
     im_ints_list = list(itertools.chain.from_iterable(im_ints_list))
     ints_meta = pd.DataFrame.from_dict(im_ints_list)
 
-    ints_meta_filename = os.path.join(input_dir, 'ints_meta.csv')
+    ints_meta_filename = os.path.join(input_dir, 'intensity_meta.csv')
     ints_meta.to_csv(ints_meta_filename, sep=",")
 
 
@@ -123,7 +123,7 @@ def mask_meta_generator(
     following a grid pattern defined by block_size to for efficient estimation of
     median and interquatile range. Grid sampling is preferred over random sampling
     in the case due to the spatial correlation in images.
-    Will write found data in ints_meta.csv in input directory.
+    Will write found data in intensity_meta.csv in input directory.
     Assumed default file naming convention is:
     dir_name
     |
