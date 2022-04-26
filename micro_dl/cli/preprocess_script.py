@@ -428,6 +428,26 @@ def pre_process(preprocess_config):
     time_start = time.time()
     required_params = get_required_params(preprocess_config)
 
+    # ------------------Check or create metadata---------------------
+    try:
+        # Check if metadata is present
+        aux_utils.read_meta(required_params['input_dir'])
+    except AssertionError as e:
+        print(e)
+        # Create metadata from file names instead
+        order = 'cztp'
+        name_parser = 'parse_sms_name'
+        if 'metadata' in preprocess_config:
+            if 'order' in preprocess_config['metadata']:
+                order = preprocess_config['metadata']['order']
+            if 'name_parser' in preprocess_config['metadata']:
+                name_parser = preprocess_config['metadata']['name_parser']
+        meta_utils.frames_meta_generator(
+            input_dir=required_params['input_dir'],
+            order=order,
+            name_parser=name_parser,
+        )
+
     # -----------------Estimate flat field images--------------------
     flat_field_dir = None
     if 'flat_field' in preprocess_config:
@@ -465,9 +485,6 @@ def pre_process(preprocess_config):
         # the images are resized after flat field correction
         flat_field_dir = None
         preprocess_config['resize']['resize_dir'] = resize_dir
-        init_frames_meta = pd.read_csv(
-            os.path.join(required_params['input_dir'], 'frames_meta.csv')
-        )
         required_params['input_dir'] = resize_dir
         required_params['slice_ids'] = slice_ids
 
@@ -578,6 +595,8 @@ def pre_process(preprocess_config):
             flat_field_dir=flat_field_dir,
         )
         # Tile weight maps as well if they exist
+        weights_dir = None
+        weights_channel = None
         if 'weights' in preprocess_config:
             weight_params_dict = required_params.copy()
             weight_params_dict["input_dir"] = weights_dir
