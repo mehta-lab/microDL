@@ -13,7 +13,7 @@ def frames_meta_generator(
     """
     Generate metadata from file names for preprocessing.
     Will write found data in frames_metadata.csv in input directory.
-    Assumed default file naming convention is:
+    Assumed default file naming convention is for 'parse_idx_from_name':
     dir_name
     |
     |- im_c***_z***_t***_p***.png
@@ -24,7 +24,7 @@ def frames_meta_generator(
     t is time
     p is position (FOV)
 
-    Other naming convention is:
+    Other naming convention for 'parse_sms_name':
     img_channelname_t***_p***_z***.tif for parse_sms_name
 
     :param str input_dir:   path to input directory containing images
