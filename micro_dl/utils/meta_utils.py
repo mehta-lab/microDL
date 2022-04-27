@@ -53,8 +53,6 @@ def frames_meta_generator(
 
 def ints_meta_generator(
         input_dir,
-        order='cztp',
-        name_parser='parse_sms_name',
         num_workers=4,
         block_size=256,
         ):
@@ -80,27 +78,16 @@ def ints_meta_generator(
     img_channelname_t***_p***_z***.tif for parse_sms_name
 
     :param str input_dir: path to input directory containing images
-    :param str order: Order in which file name encodes cztp
-    :param str name_parser: Function in aux_utils for parsing indices from file name
     :param int num_workers: number of workers for multiprocessing
     :param int block_size: block size for the grid sampling pattern. Default value works
         well for 2048 X 2048 images.
     """
-    parse_func = aux_utils.import_object('utils.aux_utils', name_parser, 'function')
-    im_names = aux_utils.get_sorted_names(input_dir)
-    channel_names = []
+    frames_metadata = aux_utils.read_meta(input_dir)
     mp_fn_args = []
-
     # Fill dataframe with rows from image names
-    for i in range(len(im_names)):
-        kwargs = {"im_name": im_names[i]}
-        if name_parser == 'parse_idx_from_name':
-            kwargs["order"] = order
-        elif name_parser == 'parse_sms_name':
-            kwargs["channel_names"] = channel_names
-        meta_row = parse_func(**kwargs)
+    for i, meta_row in frames_metadata.iterrows():
         meta_row['dir_name'] = input_dir
-        im_path = os.path.join(input_dir, im_names[i])
+        im_path = os.path.join(input_dir, meta_row['file_name'])
         mp_fn_args.append((im_path, block_size, meta_row))
 
     im_ints_list = mp_utils.mp_sample_im_pixels(mp_fn_args, num_workers)
@@ -113,8 +100,6 @@ def ints_meta_generator(
 
 def mask_meta_generator(
         input_dir,
-        order='cztp',
-        name_parser='parse_sms_name',
         num_workers=4,
         ):
     """
@@ -144,24 +129,19 @@ def mask_meta_generator(
     :param int num_workers: number of workers for multiprocessing
     :return pd.DataFrame mask_meta: Metadata with mask info
     """
-    parse_func = aux_utils.import_object('utils.aux_utils', name_parser, 'function')
-    im_names = aux_utils.get_sorted_names(input_dir)
-    channel_names = []
+    frames_metadata = aux_utils.read_meta(input_dir)
     mp_fn_args = []
-
     # Fill dataframe with rows from image names
-    for i in range(len(im_names)):
-        kwargs = {"im_name": im_names[i]}
-        if name_parser == 'parse_idx_from_name':
-            kwargs["order"] = order
-        elif name_parser == 'parse_sms_name':
-            kwargs["channel_names"] = channel_names
-        meta_row = parse_func(**kwargs)
+    for i, meta_row in frames_metadata.iterrows():
         meta_row['dir_name'] = input_dir
-        im_path = os.path.join(input_dir, im_names[i])
+        im_path = os.path.join(input_dir, meta_row['file_name'])
         mp_fn_args.append((im_path, meta_row))
 
-    meta_row_list = mp_utils.mp_wrapper(mp_utils.get_mask_meta_row, mp_fn_args, num_workers)
+    meta_row_list = mp_utils.mp_wrapper(
+        mp_utils.get_mask_meta_row,
+        mp_fn_args,
+        num_workers,
+    )
     mask_meta = pd.DataFrame.from_dict(meta_row_list)
 
     mask_meta_filename = os.path.join(input_dir, 'mask_meta.csv')
@@ -180,7 +160,7 @@ def compute_zscore_params(frames_meta,
     :param pd.DataFrame frames_meta: Dataframe containing all metadata
     :param pd.DataFrame ints_meta: Metadata containing intensity statistics
         each z-slice
-    :param str mask_dir: Directory containing masks
+    :param str input_dir: Directory containing masks
     :param None or str normalize_im: normalization scheme for input images
     :param float min_fraction: Minimum foreground fraction (in case of masks)
         for computing intensity statistics.
