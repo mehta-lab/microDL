@@ -112,10 +112,10 @@ def get_required_params(preprocess_config):
     return required_params
 
 
-def flat_field_correct(params_dict, block_size):
+def flat_field_correct(required_params, block_size):
     """Estimate flat_field_images
 
-    :param dict params_dict: dict with keys: input_dir, output_dir, time_ids,
+    :param dict required_params: dict with keys: input_dir, output_dir, time_ids,
      channel_ids, pos_ids, slice_ids, int2strlen, uniform_struct, num_workers
     :param int block_size: Specify block size if different from default (32 pixels)
     :return str flat_field_dir: full path of dir with flat field correction
@@ -123,10 +123,10 @@ def flat_field_correct(params_dict, block_size):
     """
 
     flat_field_inst = FlatFieldEstimator2D(
-        input_dir=params_dict['input_dir'],
-        output_dir=params_dict['output_dir'],
-        channel_ids=params_dict['channel_ids'],
-        slice_ids=params_dict['slice_ids'],
+        input_dir=required_params['input_dir'],
+        output_dir=required_params['output_dir'],
+        channel_ids=required_params['channel_ids'],
+        slice_ids=required_params['slice_ids'],
         block_size=block_size,
     )
     flat_field_inst.estimate_flat_field()
@@ -134,14 +134,14 @@ def flat_field_correct(params_dict, block_size):
     return flat_field_dir
 
 
-def resize_images(params_dict,
+def resize_images(required_params,
                   scale_factor,
                   num_slices_subvolume,
                   resize_3d,
                   flat_field_dir):
     """Resample images first
 
-    :param dict params_dict: dict with keys: input_dir, output_dir, time_ids,
+    :param dict required_params: dict with keys: input_dir, output_dir, time_ids,
      channel_ids, pos_ids, slice_ids, int2strlen, uniform_struct, num_workers
     :param int/list scale_factor: scale factor for each dimension
     :param int num_slices_subvolume: num of slices to be included in each
@@ -160,18 +160,18 @@ def resize_images(params_dict,
         scale_factor = np.array(scale_factor)
 
     if np.all(scale_factor == 1):
-        return params_dict['input_dir'], params_dict['slice_ids']
+        return required_params['input_dir'], required_params['slice_ids']
 
     resize_inst = ImageResizer(
-        input_dir=params_dict['input_dir'],
-        output_dir=params_dict['output_dir'],
+        input_dir=required_params['input_dir'],
+        output_dir=required_params['output_dir'],
         scale_factor=scale_factor,
-        channel_ids=params_dict['channel_ids'],
-        time_ids=params_dict['time_ids'],
-        slice_ids=params_dict['slice_ids'],
-        pos_ids=params_dict['pos_ids'],
-        int2str_len=params_dict['int2strlen'],
-        num_workers=params_dict['num_workers'],
+        channel_ids=required_params['channel_ids'],
+        time_ids=required_params['time_ids'],
+        slice_ids=required_params['slice_ids'],
+        pos_ids=required_params['pos_ids'],
+        int2str_len=required_params['int2strlen'],
+        num_workers=required_params['num_workers'],
         flat_field_dir=flat_field_dir
     )
 
@@ -180,12 +180,12 @@ def resize_images(params_dict,
         slice_ids = resize_inst.resize_volumes(num_slices_subvolume)
     else:
         resize_inst.resize_frames()
-        slice_ids = params_dict['slice_ids']
+        slice_ids = required_params['slice_ids']
     resize_dir = resize_inst.get_resize_dir()
     return resize_dir, slice_ids
 
 
-def generate_masks(params_dict,
+def generate_masks(required_params,
                    mask_from_channel,
                    flat_field_dir,
                    str_elem_radius,
@@ -197,7 +197,7 @@ def generate_masks(params_dict,
     """
     Generate masks per image or volume
 
-    :param dict params_dict: dict with keys: input_dir, output_dir, time_ids,
+    :param dict required_params: dict with keys: input_dir, output_dir, time_ids,
         channel_ids, pos_ids, slice_ids, int2strlen, uniform_struct, num_workers
     :param int/list mask_from_channel: generate masks from sum of these
         channels
@@ -220,21 +220,21 @@ def generate_masks(params_dict,
         ", not {}".format(mask_type)
 
     # If generating weights map, input dir is the mask dir
-    input_dir = params_dict['input_dir']
+    input_dir = required_params['input_dir']
     if mask_dir is not None:
         input_dir = mask_dir
     # Instantiate channel to mask processor
     mask_processor_inst = MaskProcessor(
         input_dir=input_dir,
-        output_dir=params_dict['output_dir'],
+        output_dir=required_params['output_dir'],
         channel_ids=mask_from_channel,
         flat_field_dir=flat_field_dir,
-        time_ids=params_dict['time_ids'],
-        slice_ids=params_dict['slice_ids'],
-        pos_ids=params_dict['pos_ids'],
-        int2str_len=params_dict['int2strlen'],
-        uniform_struct=params_dict['uniform_struct'],
-        num_workers=params_dict['num_workers'],
+        time_ids=required_params['time_ids'],
+        slice_ids=required_params['slice_ids'],
+        pos_ids=required_params['pos_ids'],
+        int2str_len=required_params['int2strlen'],
+        uniform_struct=required_params['uniform_struct'],
+        num_workers=required_params['num_workers'],
         mask_type=mask_type,
         mask_channel=mask_channel,
         mask_ext=mask_ext,
@@ -252,38 +252,42 @@ def generate_masks(params_dict,
     return mask_dir, mask_channel
 
 
-def generate_zscore_table(params_dict,
+def generate_zscore_table(required_params,
                           norm_dict,
                           mask_dir):
     """
     Compute z-score parameters and update frames_metadata based on the normalize_im
-    :param params_dict:
-    :param mask_dir:
-    :return:
+    :param dict required_params: Required preprocessing parameters
+    :param dict norm_dict: Normalization scheme
+    :param str mask_dir:
     """
-    frames_metadata = aux_utils.read_meta(params_dict['input_dir'])
-    ints_metadata = aux_utils.read_meta(params_dict['input_dir'],
-                                        meta_fname='intensity_meta.csv')
+    frames_metadata = aux_utils.read_meta(required_params['input_dir'])
+    ints_metadata = aux_utils.read_meta(
+        required_params['input_dir'],
+        meta_fname='intensity_meta.csv',
+    )
     mask_metadata = aux_utils.read_meta(mask_dir)
     cols_to_merge = ints_metadata.columns[ints_metadata.columns != 'fg_frac']
-    ints_metadata = \
-        pd.merge(ints_metadata[cols_to_merge],
-                 mask_metadata[['pos_idx', 'time_idx', 'slice_idx', 'fg_frac']],
-                 how='left', on=['pos_idx', 'time_idx', 'slice_idx'])
+    ints_metadata = pd.merge(
+        ints_metadata[cols_to_merge],
+        mask_metadata[['pos_idx', 'time_idx', 'slice_idx', 'fg_frac']],
+        how='left',
+        on=['pos_idx', 'time_idx', 'slice_idx'],
+    )
     _, ints_metadata = meta_utils.compute_zscore_params(
         frames_metadata,
         ints_metadata,
-        params_dict['input_dir'],
-        normalize_im=params_dict['normalize_im'],
+        required_params['input_dir'],
+        normalize_im=required_params['normalize_im'],
         min_fraction=norm_dict['min_fraction'],
     )
     ints_metadata.to_csv(
-        os.path.join(params_dict['input_dir'], 'intensity_meta.csv'),
+        os.path.join(required_params['input_dir'], 'intensity_meta.csv'),
         sep=',',
     )
 
 
-def tile_images(params_dict,
+def tile_images(required_params,
                 tile_dict,
                 resize_flag,
                 flat_field_dir,
@@ -292,7 +296,7 @@ def tile_images(params_dict,
     """
     Tile images.
 
-    :param dict params_dict: dict with keys: input_dir, output_dir, time_ids,
+    :param dict required_params: dict with keys: input_dir, output_dir, time_ids,
      channel_ids, pos_ids, slice_ids, int2strlen, uniform_struct, num_workers
     :param dict tile_dict: dict with tiling related keys: tile_size, step_size,
      image_format, depths, min_fraction. Optional: mask_channel, mask_dir,
@@ -317,27 +321,27 @@ def tile_images(params_dict,
     if 'min_fraction' in tile_dict:
         min_fraction = tile_dict['min_fraction']
     # setup tiling keyword arguments
-    kwargs = {'input_dir': params_dict['input_dir'],
-              'output_dir': params_dict['output_dir'],
-              'normalize_channels': params_dict["normalize_channels"],
+    kwargs = {'input_dir': required_params['input_dir'],
+              'output_dir': required_params['output_dir'],
+              'normalize_channels': required_params["normalize_channels"],
               'tile_size': tile_dict['tile_size'],
               'step_size': tile_dict['step_size'],
               'depths': tile_dict['depths'],
-              'time_ids': params_dict['time_ids'],
-              'channel_ids': params_dict['channel_ids'],
-              'slice_ids': params_dict['slice_ids'],
-              'pos_ids': params_dict['pos_ids'],
+              'time_ids': required_params['time_ids'],
+              'channel_ids': required_params['channel_ids'],
+              'slice_ids': required_params['slice_ids'],
+              'pos_ids': required_params['pos_ids'],
               'hist_clip_limits': hist_clip_limits,
               'flat_field_dir': flat_field_dir,
-              'num_workers': params_dict['num_workers'],
+              'num_workers': required_params['num_workers'],
               'tile_3d': tile_3d,
-              'int2str_len': params_dict['int2strlen'],
+              'int2str_len': required_params['int2strlen'],
               'min_fraction': min_fraction,
-              'normalize_im': params_dict['normalize_im'],
+              'normalize_im': required_params['normalize_im'],
               'tiles_exist': tiles_exist,
               }
 
-    if params_dict['uniform_struct']:
+    if required_params['uniform_struct']:
         if tile_3d:
             if resize_flag:
                 warnings.warn(
@@ -421,7 +425,7 @@ def pre_process(preprocess_config):
     :param dict preprocess_config: dict with key options:
     [input_dir, output_dir, slice_ids, time_ids, pos_ids
     correct_flat_field, use_masks, masks, tile_stack, tile]
-    :param dict req_params_dict: dict with commom params for all tasks
+    :param dict required_params: dict with commom params for all tasks
     :raises AssertionError: If 'masks' in preprocess_config contains both channels
      and mask_dir (the former is for generating masks from a channel)
     """
@@ -467,13 +471,14 @@ def pre_process(preprocess_config):
 
     # -------Compute intensities for flatfield corrected images-------
     if required_params['normalize_im'] in ['dataset', 'volume', 'slice']:
-        block_size = 256
+        block_size = None
         if 'block_size' in preprocess_config['metadata']:
             block_size = preprocess_config['metadata']['block_size']
         meta_utils.ints_meta_generator(
             input_dir=required_params['input_dir'],
             num_workers=required_params['num_workers'],
             block_size=block_size,
+            flat_field_dir=flat_field_dir,
         )
 
     # -------------------------Resize images--------------------------
@@ -517,7 +522,7 @@ def pre_process(preprocess_config):
                 mask_ext = preprocess_config['masks']['mask_ext']
 
             mask_dir, mask_channel = generate_masks(
-                params_dict=required_params,
+                required_params=required_params,
                 mask_from_channel=mask_from_channel,
                 flat_field_dir=flat_field_dir,
                 str_elem_radius=str_elem_radius,
@@ -525,6 +530,7 @@ def pre_process(preprocess_config):
                 mask_channel=None,
                 mask_ext=mask_ext,
             )
+            print('mmmm dir', mask_channel, mask_dir)
         elif 'mask_dir' in preprocess_config['masks']:
             assert 'channels' not in preprocess_config['masks'], \
                 "Don't specify channels to mask if using pre-generated masks"
@@ -532,13 +538,13 @@ def pre_process(preprocess_config):
             # Get preexisting masks from directory and match to input dir
             mask_meta = meta_utils.mask_meta_generator(
                 mask_dir,
-                name_parser='parse_sms_name',
             )
             frames_meta = aux_utils.read_meta(required_params['input_dir'])
             # Automatically assign existing masks the next available channel number
             mask_meta['channel_idx'] += (frames_meta['channel_idx'].max() + 1)
             # use the first mask channel as the default mask for tiling
             mask_channel = int(mask_meta['channel_idx'].unique()[0])
+            print('pregenerated mask', mask_channel)
             # Write metadata
             mask_meta_fname = os.path.join(mask_dir, 'frames_meta.csv')
             mask_meta.to_csv(mask_meta_fname, sep=",")
@@ -565,6 +571,8 @@ def pre_process(preprocess_config):
         )
 
     # ----------------------Generate weight map-----------------------
+    weights_dir = None
+    weights_channel = None
     if 'make_weight_map' in preprocess_config and preprocess_config['make_weight_map']:
         # Must have mask dir and mask channel defined to generate weight map
         assert mask_dir is not None,\
@@ -574,9 +582,10 @@ def pre_process(preprocess_config):
         mask_type = 'borders_weight_loss_map'
         # Mask channel should be highest channel value in dataset at this point
         weights_channel = mask_channel + 1
+        print('weights channel', weights_channel, mask_channel)
         # Generate weights
         weights_dir, _ = generate_masks(
-            params_dict=required_params,
+            required_params=required_params,
             mask_from_channel=mask_channel,
             flat_field_dir=None,
             str_elem_radius=5,
@@ -585,6 +594,7 @@ def pre_process(preprocess_config):
             mask_ext='.npy',
             mask_dir=mask_dir,
         )
+        print('w dir', weights_dir)
         preprocess_config['weights'] = {
             'weights_dir': weights_dir,
             'weights_channel': weights_channel,
@@ -602,27 +612,25 @@ def pre_process(preprocess_config):
             if 'mask_channel' not in preprocess_config['tile']:
                 preprocess_config['tile']['mask_channel'] = mask_channel
         tile_dir = tile_images(
-            params_dict=required_params,
+            required_params=required_params,
             tile_dict=preprocess_config['tile'],
             resize_flag=resize_flag,
             flat_field_dir=flat_field_dir,
         )
         # Tile weight maps as well if they exist
-        weights_dir = None
-        weights_channel = None
         if 'weights' in preprocess_config:
-            weight_params_dict = required_params.copy()
-            weight_params_dict["input_dir"] = weights_dir
-            weight_params_dict["channel_ids"] = [weights_channel]
+            weight_params = required_params.copy()
+            weight_params["input_dir"] = weights_dir
+            weight_params["channel_ids"] = [weights_channel]
             weight_tile_config = preprocess_config['tile'].copy()
-            weight_params_dict['normalize_channels'] = [False]
+            weight_params['normalize_channels'] = [False]
             # Weights depth should be the same as mask depth
             weight_tile_config['depths'] = 1
             weight_tile_config.pop('mask_dir')
             if 'mask_depth' in preprocess_config['tile']:
                 weight_tile_config['depths'] = [preprocess_config['tile']['mask_depth']]
             tile_dir = tile_images(
-                params_dict=weight_params_dict,
+                required_params=weight_params,
                 tile_dict=weight_tile_config,
                 resize_flag=resize_flag,
                 flat_field_dir=None,

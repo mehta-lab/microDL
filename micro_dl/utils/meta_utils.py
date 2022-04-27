@@ -55,6 +55,7 @@ def ints_meta_generator(
         input_dir,
         num_workers=4,
         block_size=256,
+        flat_field_dir=None,
         ):
     """
     Generate pixel intensity metadata for estimating image normalization
@@ -81,14 +82,25 @@ def ints_meta_generator(
     :param int num_workers: number of workers for multiprocessing
     :param int block_size: block size for the grid sampling pattern. Default value works
         well for 2048 X 2048 images.
+    :param str flat_field_dir: Directory containing flatfield images
     """
+    if block_size is None:
+        block_size = 256
     frames_metadata = aux_utils.read_meta(input_dir)
     mp_fn_args = []
     # Fill dataframe with rows from image names
+    ff_path = None
     for i, meta_row in frames_metadata.iterrows():
         meta_row['dir_name'] = input_dir
         im_path = os.path.join(input_dir, meta_row['file_name'])
-        mp_fn_args.append((im_path, block_size, meta_row))
+        if flat_field_dir is not None:
+            channel_idx = meta_row['channel_idx']
+            if isinstance(channel_idx, (int, float)):
+                ff_path = os.path.join(
+                    flat_field_dir,
+                    'flat-field_channel-{}.npy'.format(channel_idx)
+                )
+        mp_fn_args.append((im_path, ff_path, block_size, meta_row))
 
     im_ints_list = mp_utils.mp_sample_im_pixels(mp_fn_args, num_workers)
     im_ints_list = list(itertools.chain.from_iterable(im_ints_list))
