@@ -558,11 +558,7 @@ class ImagePredictor:
             # save predicted images assumes 2D
             fig_dir = os.path.join(self.pred_dir, 'figures')
             os.makedirs(self.pred_dir, exist_ok=True)
-            # Check the 2.5 input depth handling
-            # if self.input_depth > 1:
-            #     im_input = im_input[..., self.input_depth // 2, :, :]
-            #     im_target = im_target[..., 0, :, :]
-            #     im_pred = im_pred[..., 0, :, :]
+
             plot_utils.save_predicted_images(
                 input_img=im_input,
                 target_img=im_target,
@@ -759,7 +755,7 @@ class ImagePredictor:
         # Stack images and transpose (metrics assumes cyxz format)
         if self.image_format == 'zyx':
             if self.input_depth > 1:
-                input_stack = input_stack[:, :, 0, :, :]
+                input_stack = input_stack[:, :, self.input_depth // 2, :, :]
                 pred_stack = pred_stack[:, :, 0, :, :]
                 target_stack = target_stack[:, :, 0, :, :]
             input_stack = np.transpose(input_stack,  [1, 2, 3, 0])
