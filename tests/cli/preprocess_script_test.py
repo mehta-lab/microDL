@@ -247,7 +247,6 @@ class TestPreprocessScript(unittest.TestCase):
         # weight map generation doesn't work
         cur_config['masks'] = {
             'mask_dir': self.input_mask_dir,
-            'mask_channel': self.input_mask_channel,
         }
         cur_config['make_weight_map'] = True
         out_config, runtime = pp.pre_process(cur_config)
