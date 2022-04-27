@@ -37,6 +37,12 @@ def parse_args():
         help="number of workers for multiprocessing",
     )
     parser.add_argument(
+        '--block_size',
+        type=int,
+        default=256,
+        help="Pixel block size for intensity sampling",
+    )
+    parser.add_argument(
         '--normalize_im',
         type=str,
         default='stack',
@@ -75,13 +81,11 @@ def main(parsed_args):
     if parsed_args.normalize_im in ['dataset', 'volume', 'slice']:
         meta_utils.ints_meta_generator(
             input_dir=parsed_args.input,
-            order=parsed_args.order,
-            name_parser=parsed_args.name_parser,
             num_workers=parsed_args.num_workers,
+            block_size=parsed_args.block_size,
         )
 
 
 if __name__ == '__main__':
     parsed_args = parse_args()
     main(parsed_args)
-

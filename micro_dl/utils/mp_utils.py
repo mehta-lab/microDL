@@ -463,16 +463,19 @@ def mp_get_im_stats(fn_args, workers):
 
 
 def get_im_stats(im_path):
-    """Read and computes statistics of images
-
     """
+    Read and computes statistics of images
 
+    :param str im_path: Full path to image
+    :return dict meta_row: Dict with intensity data for image
+    """
     im = image_utils.read_image(im_path)
     meta_row = {
         'mean': np.nanmean(im),
         'std': np.nanstd(im)
         }
     return meta_row
+
 
 def mp_sample_im_pixels(fn_args, workers):
     """Read and computes statistics of images with multiprocessing
@@ -489,10 +492,16 @@ def mp_sample_im_pixels(fn_args, workers):
 
 
 def sample_im_pixels(im_path, grid_spacing, meta_row):
-    """Read and computes statistics of images
-
     """
+    Read and computes statistics of images for each point in a grid.
+    Grid spacing determines distance in pixels between grid points
+    for rows and cols.
 
+    :param str im_path: Full path to image
+    :param int grid_spacing: Distance in pixels between sampling points
+    :param dict meta_row: Metadata row for image
+    :return list meta_rows: Dicts with intensity data for each grid point
+    """
     im = image_utils.read_image(im_path)
     row_ids, col_ids, sample_values = \
         image_utils.grid_sample_pixel_values(im, grid_spacing)
@@ -502,6 +511,6 @@ def sample_im_pixels(im_path, grid_spacing, meta_row):
           'row_idx': row_idx,
           'col_idx': col_idx,
           'intensity': sample_value}
-          for row_idx, col_idx, sample_value
-          in zip(row_ids, col_ids, sample_values)]
+         for row_idx, col_idx, sample_value
+         in zip(row_ids, col_ids, sample_values)]
     return meta_rows

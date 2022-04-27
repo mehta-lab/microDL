@@ -467,11 +467,13 @@ def pre_process(preprocess_config):
 
     # -------Compute intensities for flatfield corrected images-------
     if required_params['normalize_im'] in ['dataset', 'volume', 'slice']:
+        block_size = 256
+        if 'block_size' in preprocess_config['metadata']:
+            block_size = preprocess_config['metadata']['block_size']
         meta_utils.ints_meta_generator(
             input_dir=required_params['input_dir'],
-            order=parsed_args.order,
-            name_parser=parsed_args.name_parser,
             num_workers=required_params['num_workers'],
+            block_size=block_size,
         )
 
     # -------------------------Resize images--------------------------
