@@ -457,6 +457,8 @@ def mp_get_im_stats(fn_args, workers):
     with ProcessPoolExecutor(workers) as ex:
         # can't use map directly as it works only with single arg functions
         res = ex.map(get_im_stats, fn_args)
+        for r in res:
+            print(r)
     return list(res)
 
 
@@ -505,12 +507,12 @@ def sample_im_pixels(im_path, ff_path, grid_spacing, meta_row):
     """
     im = image_utils.read_image(im_path)
     if ff_path is not None:
-        im_ff = image_utils.apply_flat_field_correction(
+        im = image_utils.apply_flat_field_correction(
             input_image=im,
             flat_field_path=ff_path,
         )
     row_ids, col_ids, sample_values = \
-        image_utils.grid_sample_pixel_values(im_ff, grid_spacing)
+        image_utils.grid_sample_pixel_values(im, grid_spacing)
 
     meta_rows = \
         [{**meta_row,
