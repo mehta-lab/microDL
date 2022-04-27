@@ -506,6 +506,7 @@ def pre_process(preprocess_config):
     mask_dir = None
     mask_channel = None
     if 'masks' in preprocess_config:
+        print(preprocess_config['masks'])
         if 'channels' in preprocess_config['masks']:
             # Generate masks from channel
             assert 'mask_dir' not in preprocess_config['masks'], \
@@ -541,10 +542,8 @@ def pre_process(preprocess_config):
             )
             frames_meta = aux_utils.read_meta(required_params['input_dir'])
             # Automatically assign existing masks the next available channel number
-            mask_meta['channel_idx'] += (frames_meta['channel_idx'].max() + 1)
-            # use the first mask channel as the default mask for tiling
-            mask_channel = int(mask_meta['channel_idx'].unique()[0])
-            print('pregenerated mask', mask_channel)
+            mask_channel = (frames_meta['channel_idx'].max() + 1)
+            mask_meta['channel_idx'] = mask_channel
             # Write metadata
             mask_meta_fname = os.path.join(mask_dir, 'frames_meta.csv')
             mask_meta.to_csv(mask_meta_fname, sep=",")
