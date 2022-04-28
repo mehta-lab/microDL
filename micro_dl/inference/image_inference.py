@@ -512,7 +512,7 @@ class ImagePredictor:
         :param np.array im_target: target image
         :param pd.series metric: xy similarity metrics between prediction and target
         :param pd.series meta_row: file information, name, position, channel, slice idx, fg_frag, zscore
-        :param str pred_chan_name: custom channel names
+        :param str pred_chan_name: custom channel name
         """
         # Write prediction image
         if self.name_format == 'cztp':
@@ -709,7 +709,6 @@ class ImagePredictor:
                         step_size=step_size,
                         return_index=True
                     )
-                    print('crop_indices:', crop_indices)
                     pred_block_list = self._predict_sub_block_xy(
                         cur_input,
                         crop_indices,
@@ -881,7 +880,7 @@ class ImagePredictor:
                     chan_slice_meta,
                 )
 
-            for i, chan_idx in enumerate(self.target_channels):
+            for c, chan_idx in enumerate(self.target_channels):
                 pred_fnames = []
                 slice_ids = chan_slice_meta.loc[chan_slice_meta['channel_idx'] == chan_idx, 'slice_idx'].to_list()
                 for z_idx in slice_ids:
@@ -897,14 +896,14 @@ class ImagePredictor:
                     if not self.mask_metrics:
                         mask_image = None
                     self.estimate_metrics(
-                        target=target_image[i],
-                        prediction=pred_image[i],
+                        target=target_image[c],
+                        prediction=pred_image[c],
                         pred_fnames=pred_fnames,
                         mask=mask_image,
                     )
 
                 with tqdm(total=len(chan_slice_meta['slice_idx'].unique()), desc='z-stack saving', leave=False) as pbar_s:
-                    for j, z_idx in enumerate(chan_slice_meta['slice_idx'].unique()):
+                    for z, z_idx in enumerate(chan_slice_meta['slice_idx'].unique()):
                         im_name = aux_utils.get_im_name(
                             time_idx=time_idx,
                             channel_idx=chan_idx,
@@ -913,14 +912,13 @@ class ImagePredictor:
                             ext="",
                             extra_field="xy0",
                         )
-                        print(np.shape(input_image), np.shape(input_image[..., j]))
                         self.save_pred_image(
-                            im_input=input_image[..., j],
-                            im_target=target_image[i][:, :, j],
-                            im_pred=pred_image[i][:, :, j],
+                            im_input=input_image[..., z],
+                            im_target=target_image[c][:, :, z],
+                            im_pred=pred_image[c][:, :, z],
                             metric=self.df_xy[self.df_xy["pred_name"] == im_name],
                             meta_row=chan_slice_meta[(chan_slice_meta['channel_idx'] == chan_idx) & (chan_slice_meta['slice_idx'] == z_idx)].squeeze(),
-                            pred_chan_name=self.pred_chan_names[i]
+                            pred_chan_name=self.pred_chan_names[c]
                         )
                         pbar_s.update(1)
             del pred_image, target_image

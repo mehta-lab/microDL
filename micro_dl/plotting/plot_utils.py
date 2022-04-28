@@ -21,7 +21,9 @@ def save_predicted_images(input_imgs,
                           clip_limits=1,
                           font_size=15):
     """
-    Save predicted image and figure to output dir
+    Save plots of predicted images to prediction-figures directory.
+    - Overlay of target & prediction
+    - Plot of input, target, prediction, and overlay of target & prediction
 
     :param np.ndarray input_imgs: input images [c,y,x]
     :param np.ndarray target_img: target [y,x]
@@ -46,20 +48,19 @@ def save_predicted_images(input_imgs,
     axis_count = 0
 
     # add input images to plot
-    cur_ims = []
-    for input_img in input_imgs:
-        cur_ims.append(hist_clipping(
+    for c, input_img in enumerate(input_imgs):
+        input_imgs[c] = hist_clipping(
             input_img,
             clip_limits,
             100 - clip_limits,
-        ))
-    for cur_im in cur_ims:
+        )
+    for cur_im in input_imgs:
         ax[axis_count].imshow(cur_im, cmap='gray')
         ax[axis_count].axis('off')
         ax[axis_count].set_title('Input', fontsize=font_size)
         axis_count += 1
 
-    # add target image to plot, for every target channel a new plot is created
+    # add target image to plot
     cur_target_chan = hist_clipping(
         target_img,
         clip_limits,
@@ -83,12 +84,9 @@ def save_predicted_images(input_imgs,
     axis_count += 1
 
     # add overlay target - prediction
-    cur_target_8bit = cv2.convertScaleAbs(cur_target_chan - np.min(cur_target_chan),
-                                          alpha=255/(np.max(cur_target_chan)
-                                                - np.min(cur_target_chan)))
-    cur_prediction_8bit = cv2.convertScaleAbs(pred_img - np.min(pred_img),
-                                              alpha=255/(np.max(pred_img)
-                                                    - np.min(pred_img)))
+    cur_target_8bit = convert_to_8bit(cur_target_chan)
+    cur_prediction_8bit = convert_to_8bit(pred_img)
+
     cur_target_pred = np.stack([cur_target_8bit, cur_prediction_8bit,
                                 cur_target_8bit], axis=2)
 
@@ -105,6 +103,17 @@ def save_predicted_images(input_imgs,
     plt.close(fig)
     fname = os.path.join(output_dir, '{}_overlay.{}'.format(output_fname, ext))
     cv2.imwrite(fname, cur_target_pred)
+
+
+def convert_to_8bit(img):
+    """
+    Scales, calculates absolute values, and convert the result to 8-bit.
+    :param np.array img: image
+    :param float alpha: scale factor
+    :return np.array img_8bit: image with 8bit values
+    """
+    img_8bit = cv2.convertScaleAbs(img - np.min(img), alpha=255/(np.max(img) - np.min(img)))
+    return img_8bit
 
 
 def save_center_slices(image_dir,
