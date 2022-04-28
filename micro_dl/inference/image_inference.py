@@ -507,7 +507,7 @@ class ImagePredictor:
         """
         Save predicted images with image extension given in init.
 
-        :param np.array im_input: input image
+        :param np.array im_input: input images
         :param np.array im_pred: predicted image
         :param np.array im_target: target image
         :param pd.series metric: xy similarity metrics between prediction and target
@@ -558,9 +558,9 @@ class ImagePredictor:
             # save predicted images assumes 2D
             fig_dir = os.path.join(self.pred_dir, 'figures')
             os.makedirs(self.pred_dir, exist_ok=True)
-
+            # for every target image channel a new overlay image is saved
             plot_utils.save_predicted_images(
-                input_img=im_input,
+                input_imgs=im_input,
                 target_img=im_target,
                 pred_img=im_pred,
                 metric=metric,
@@ -913,9 +913,9 @@ class ImagePredictor:
                             ext="",
                             extra_field="xy0",
                         )
-                        # Check idx of input and target
+                        print(np.shape(input_image), np.shape(input_image[..., j]))
                         self.save_pred_image(
-                            im_input=input_image[0][:, :, j],
+                            im_input=input_image[..., j],
                             im_target=target_image[i][:, :, j],
                             im_pred=pred_image[i][:, :, j],
                             metric=self.df_xy[self.df_xy["pred_name"] == im_name],

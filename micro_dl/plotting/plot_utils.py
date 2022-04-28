@@ -11,7 +11,7 @@ from micro_dl.utils.normalize import hist_clipping
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
-def save_predicted_images(input_img,
+def save_predicted_images(input_imgs,
                           target_img,
                           pred_img,
                           metric,
@@ -23,8 +23,8 @@ def save_predicted_images(input_img,
     """
     Save predicted image and figure to output dir
 
-    :param np.ndarray input_img: expected shape [x,y,z]
-    :param np.ndarray target_img: target with the same shape as input_img
+    :param np.ndarray input_imgs: input images [c,y,x]
+    :param np.ndarray target_img: target [y,x]
     :param np.ndarray pred_img: output predicted by the model with same shape as input_img
     :param pd.series metric: xy similarity metrics between prediction and target
     :param str output_dir: dir to store the output images/mosaics
@@ -36,9 +36,8 @@ def save_predicted_images(input_img,
     if not os.path.exists(output_dir):
         os.makedirs(output_dir, exist_ok=True)
 
-    n_subplot = 4
     n_rows = 2
-    n_cols = 2
+    n_cols = np.shape(input_imgs)[0] + 1
     fig, ax = plt.subplots(n_rows, n_cols, squeeze=False)
     ax = ax.flatten()
     for axs in ax:
@@ -46,17 +45,21 @@ def save_predicted_images(input_img,
     fig.set_size_inches((12, 5 * n_rows))
     axis_count = 0
 
-    cur_im = hist_clipping(
-        input_img,
-        clip_limits,
-        100 - clip_limits,
-    )
-    ax[axis_count].imshow(cur_im, cmap='gray')
-    ax[axis_count].axis('off')
-    if axis_count == 0:
+    # add input images to plot
+    cur_ims = []
+    for input_img in input_imgs:
+        cur_ims.append(hist_clipping(
+            input_img,
+            clip_limits,
+            100 - clip_limits,
+        ))
+    for cur_im in cur_ims:
+        ax[axis_count].imshow(cur_im, cmap='gray')
+        ax[axis_count].axis('off')
         ax[axis_count].set_title('Input', fontsize=font_size)
-    axis_count += 1
+        axis_count += 1
 
+    # add target image to plot, for every target channel a new plot is created
     cur_target_chan = hist_clipping(
         target_img,
         clip_limits,
@@ -70,16 +73,16 @@ def save_predicted_images(input_img,
     ax[axis_count].set_title('Target', fontsize=font_size)
     axis_count += 1
 
+    # add prediction to plot
     ax_img = ax[axis_count].imshow(pred_img, cmap='gray')
     ax[axis_count].axis('off')
-
     divider = make_axes_locatable(ax[axis_count])
     cax = divider.append_axes('right', size='5%', pad=0.05)
     cbar = plt.colorbar(ax_img, cax=cax, orientation='vertical')
-
     ax[axis_count].set_title('Prediction', fontsize=font_size)
     axis_count += 1
 
+    # add overlay target - prediction
     cur_target_8bit = cv2.convertScaleAbs(cur_target_chan - np.min(cur_target_chan),
                                           alpha=255/(np.max(cur_target_chan)
                                                 - np.min(cur_target_chan)))
@@ -93,6 +96,7 @@ def save_predicted_images(input_img,
     ax[axis_count].set_title('Overlay', fontsize=font_size)
     axis_count += 1
 
+    # add metrics
     for c, (metric_name, value) in enumerate(zip(list(metric.keys()), metric.values[0][0:-1]), 1):
         plt.figtext(0.5, 0.001+c*0.015, metric_name + ": {:.4f}".format(value), ha="center", fontsize=12)
 
