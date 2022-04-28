@@ -163,7 +163,7 @@ def mask_meta_generator(
 
 def compute_zscore_params(frames_meta,
                           ints_meta,
-                          input_dir,
+                          mask_dir,
                           normalize_im,
                           min_fraction=0.99):
     """
@@ -171,8 +171,8 @@ def compute_zscore_params(frames_meta,
 
     :param pd.DataFrame frames_meta: Dataframe containing all metadata
     :param pd.DataFrame ints_meta: Metadata containing intensity statistics
-        each z-slice
-    :param str input_dir: Directory containing masks
+        each z-slice and foreground fraction for masks
+    :param str mask_dir: Directory containing masks
     :param None or str normalize_im: normalization scheme for input images
     :param float min_fraction: Minimum foreground fraction (in case of masks)
         for computing intensity statistics.
@@ -201,24 +201,31 @@ def compute_zscore_params(frames_meta,
     ints_meta_sub = ints_meta[ints_meta['fg_frac'] >= min_fraction]
     ints_agg_median = \
         ints_meta_sub[agg_cols + ['intensity']].groupby(agg_cols).median()
+    print(ints_agg_median)
     ints_agg_hq = \
         ints_meta_sub[agg_cols + ['intensity']].groupby(agg_cols).quantile(0.75)
+    print(ints_agg_hq)
     ints_agg_lq = \
         ints_meta_sub[agg_cols + ['intensity']].groupby(agg_cols).quantile(0.25)
+    print(ints_agg_lq)
     ints_agg = ints_agg_median
     ints_agg.columns = ['zscore_median']
     ints_agg['zscore_iqr'] = ints_agg_hq['intensity'] - ints_agg_lq['intensity']
     ints_agg.reset_index(inplace=True)
+    print(ints_agg)
+    print('--------------')
     cols_to_merge = \
         frames_meta.columns[[
             col not in ['zscore_median', 'zscore_iqr']
             for col in frames_meta.columns]]
+    print('merge cols', cols_to_merge)
     frames_meta = \
         pd.merge(frames_meta[cols_to_merge], ints_agg, how='left', on=agg_cols)
+    print(frames_meta['zscore_median'])
     if frames_meta['zscore_median'].isnull().values.any():
         raise ValueError('Found NaN in normalization parameters. \
         min_fraction might be too low or images might be corrupted.')
-    frames_meta_filename = os.path.join(input_dir, 'frames_meta.csv')
+    frames_meta_filename = os.path.join(mask_dir, 'frames_meta.csv')
     frames_meta.to_csv(frames_meta_filename, sep=",")
 
     cols_to_merge = \
