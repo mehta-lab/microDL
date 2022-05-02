@@ -259,7 +259,7 @@ def generate_zscore_table(required_params,
     Compute z-score parameters and update frames_metadata based on the normalize_im
     :param dict required_params: Required preprocessing parameters
     :param dict norm_dict: Normalization scheme
-    :param str mask_dir:
+    :param str mask_dir: Directory containing masks
     """
     frames_metadata = aux_utils.read_meta(required_params['input_dir'])
     ints_metadata = aux_utils.read_meta(
@@ -275,9 +275,9 @@ def generate_zscore_table(required_params,
         on=['pos_idx', 'time_idx', 'slice_idx'],
     )
     _, ints_metadata = meta_utils.compute_zscore_params(
-        frames_metadata,
-        ints_metadata,
-        required_params['input_dir'],
+        frames_meta=frames_metadata,
+        ints_meta=ints_metadata,
+        input_dir=required_params['input_dir'],
         normalize_im=required_params['normalize_im'],
         min_fraction=norm_dict['min_fraction'],
     )
