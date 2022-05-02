@@ -49,14 +49,16 @@ class TestMetaUtils(unittest.TestCase):
                 )
                 cv2.imwrite(
                     os.path.join(self.input_dir, im_name),
-                    self.im,
+                    self.im + p * 10,
                 )
                 cv2.imwrite(
                     os.path.join(self.mask_dir, im_name),
                     self.mask,
                 )
+                meta_row = aux_utils.parse_idx_from_name(im_name)
+                meta_row['dir_name'] = self.input_dir
                 self.input_meta = self.input_meta.append(
-                    aux_utils.parse_idx_from_name(im_name),
+                    meta_row,
                     ignore_index=True,
                 )
 
@@ -180,18 +182,15 @@ class TestMetaUtils(unittest.TestCase):
             how='left',
             on=['pos_idx', 'time_idx', 'slice_idx'],
         )
-        print(intensity_meta)
         frames_meta, ints_meta = meta_utils.compute_zscore_params(
             frames_meta=self.input_meta,
             ints_meta=intensity_meta,
-            mask_dir=self.mask_dir,
-            normalize_im='dataset',
+            input_dir=self.input_dir,
+            normalize_im='volume',
             min_fraction=.4,
         )
-        print(frames_meta)
-        print('-------------')
-        print(ints_meta)
-        assert 0 == 1
-
-
-
+        # Check medians and iqr values
+        for i, row in frames_meta.iterrows():
+            self.assertEqual(row['zscore_iqr'], 0)
+            # Added 10 for each p when saving images
+            self.assertEqual(row['zscore_median'], 5 + row['pos_idx'] * 10)
