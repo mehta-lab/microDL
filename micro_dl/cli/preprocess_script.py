@@ -47,7 +47,8 @@ def get_required_params(preprocess_config):
         'int2strlen': (int) How long of a string to convert integers to
         'normalize_channels': (list) Containing bools the length of channels
         'num_workers': Number of workers for multiprocessing
-        'normalize_im': (str) E.g. stack, dataset
+        'normalize_im': (str) Normalization scheme
+            (stack, dataset, slice, volume)
 
     :param dict preprocess_config: Preprocessing config
     :return dict required_params: Required parameters
@@ -258,9 +259,11 @@ def generate_zscore_table(required_params,
     """
     Compute z-score parameters and update frames_metadata based on the normalize_im
     :param dict required_params: Required preprocessing parameters
-    :param dict norm_dict: Normalization scheme
+    :param dict norm_dict: Normalization scheme (preprocess_config['normalization'])
     :param str mask_dir: Directory containing masks
     """
+    assert 'min_fraction' in norm_dict, \
+        "normalization part of config must contain min_fraction"
     frames_metadata = aux_utils.read_meta(required_params['input_dir'])
     ints_metadata = aux_utils.read_meta(
         required_params['input_dir'],
@@ -437,7 +440,7 @@ def pre_process(preprocess_config):
         # Check if metadata is present
         aux_utils.read_meta(required_params['input_dir'])
     except AssertionError as e:
-        print(e)
+        print(e, "Generating metadata.")
         order = 'cztp'
         name_parser = 'parse_sms_name'
         if 'metadata' in preprocess_config:
@@ -479,6 +482,7 @@ def pre_process(preprocess_config):
             num_workers=required_params['num_workers'],
             block_size=block_size,
             flat_field_dir=flat_field_dir,
+            channel_ids=required_params['channel_ids'],
         )
 
     # -------------------------Resize images--------------------------
@@ -506,7 +510,6 @@ def pre_process(preprocess_config):
     mask_dir = None
     mask_channel = None
     if 'masks' in preprocess_config:
-        print(preprocess_config['masks'])
         if 'channels' in preprocess_config['masks']:
             # Generate masks from channel
             assert 'mask_dir' not in preprocess_config['masks'], \
@@ -531,7 +534,6 @@ def pre_process(preprocess_config):
                 mask_channel=None,
                 mask_ext=mask_ext,
             )
-            print('mmmm dir', mask_channel, mask_dir)
         elif 'mask_dir' in preprocess_config['masks']:
             assert 'channels' not in preprocess_config['masks'], \
                 "Don't specify channels to mask if using pre-generated masks"
@@ -581,7 +583,6 @@ def pre_process(preprocess_config):
         mask_type = 'borders_weight_loss_map'
         # Mask channel should be highest channel value in dataset at this point
         weights_channel = mask_channel + 1
-        print('weights channel', weights_channel, mask_channel)
         # Generate weights
         weights_dir, _ = generate_masks(
             required_params=required_params,
@@ -593,7 +594,6 @@ def pre_process(preprocess_config):
             mask_ext='.npy',
             mask_dir=mask_dir,
         )
-        print('w dir', weights_dir)
         preprocess_config['weights'] = {
             'weights_dir': weights_dir,
             'weights_channel': weights_channel,
