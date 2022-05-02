@@ -403,6 +403,8 @@ def read_meta(input_dir, meta_fname='frames_meta.csv'):
         frames_metadata = pd.read_csv(meta_fname[0], index_col=0)
     except IOError as e:
         raise IOError('cannot read metadata csv file: {}'.format(e))
+    # Replace NaNs with None
+    frames_metadata = frames_metadata.mask(frames_metadata.isna(), None)
     return frames_metadata
 
 

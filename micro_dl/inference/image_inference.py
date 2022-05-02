@@ -538,9 +538,7 @@ class ImagePredictor:
         if pred_chan_name is None:
             if 'channel_name' in meta_row:
                 pred_chan_name = meta_row['channel_name']
-        if pred_chan_name != pred_chan_name:
-            # Then it's nan and we don't want that
-            pred_chan_name = None
+
         if pred_chan_name is None:
             im_name = aux_utils.get_im_name(
                 time_idx=meta_row['time_idx'],
