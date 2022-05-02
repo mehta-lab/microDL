@@ -57,6 +57,7 @@ def ints_meta_generator(
         num_workers=4,
         block_size=256,
         flat_field_dir=None,
+        channel_ids=-1,
         ):
     """
     Generate pixel intensity metadata for estimating image normalization
@@ -84,10 +85,16 @@ def ints_meta_generator(
     :param int block_size: block size for the grid sampling pattern. Default value works
         well for 2048 X 2048 images.
     :param str flat_field_dir: Directory containing flatfield images
+    :param list/int channel_ids: Channel indices to process
     """
     if block_size is None:
         block_size = 256
     frames_metadata = aux_utils.read_meta(input_dir)
+    print('channel ids', channel_ids)
+    if not isinstance(channel_ids, list):
+        # Use all channels
+        channel_ids = frames_metadata['channel_idx'].unique()
+    print(channel_ids)
     mp_fn_args = []
     # Fill dataframe with rows from image names
     ff_path = None
@@ -96,7 +103,7 @@ def ints_meta_generator(
         im_path = os.path.join(input_dir, meta_row['file_name'])
         if flat_field_dir is not None:
             channel_idx = meta_row['channel_idx']
-            if isinstance(channel_idx, (int, float)):
+            if isinstance(channel_idx, (int, float)) and channel_idx in channel_ids:
                 ff_path = os.path.join(
                     flat_field_dir,
                     'flat-field_channel-{}.npy'.format(channel_idx)
@@ -191,7 +198,6 @@ def compute_zscore_params(frames_meta,
         frames_meta['zscore_median'] = 0
         frames_meta['zscore_iqr'] = 1
         return frames_meta
-
     elif normalize_im == 'dataset':
         agg_cols = ['time_idx', 'channel_idx', 'dir_name']
     elif normalize_im == 'volume':
