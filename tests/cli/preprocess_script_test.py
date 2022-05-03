@@ -276,7 +276,6 @@ class TestPreprocessScript(unittest.TestCase):
             [self.time_idx],
         )
         # Load one weights file and check contents
-        print(os.listdir(out_config['weights']['weights_dir']))
         im = np.load(os.path.join(
             out_config['weights']['weights_dir'],
             'im_c005_z002_t000_p007.npy',

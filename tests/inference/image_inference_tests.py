@@ -166,7 +166,7 @@ class TestImageInference(unittest.TestCase):
         self.assertListEqual(infer_ids, [0, 1, 2, 3, 4])
 
     def test_save_pred_image(self):
-        im = np.zeros((1, 10, 15), dtype=np.uint8)
+        im = np.zeros((10, 15, 1), dtype=np.uint8)
         im[:, 5, :] = 128
         im_in = im.copy() + 1
         im_target = im.copy() + 5
@@ -174,10 +174,17 @@ class TestImageInference(unittest.TestCase):
             [[10, 20, 30, 40]],
             columns=['time_idx', 'channel_idx', 'pos_idx', 'slice_idx'],
         )
+        metrics = pd.DataFrame.from_dict([{
+            'metric 1': 10,
+            'metric 2': 20,
+            'metric 3': 30,
+            'pred_name': 'im_c001_z000_t000_p001_xy0',
+        }])
         self.infer_inst.save_pred_image(
             im_input=im_in,
             im_target=im_target,
             im_pred=im,
+            metric=metrics,
             meta_row=meta_row,
         )
         pred_name = os.path.join(
@@ -269,7 +276,9 @@ class TestImageInference(unittest.TestCase):
             columns=['time_idx', 'channel_idx', 'pos_idx', 'slice_idx'],
         )
         # Predict row 0 from inference dataset iterator
-        pred_im, target_im, mask_im = self.infer_inst.predict_2d(meta_row)
+        pred_im, target_im, mask_im, input_im = self.infer_inst.predict_2d(
+            meta_row,
+        )
         self.assertTupleEqual(pred_im.shape, (1, 8, 16, 1))
         self.assertEqual(pred_im.dtype, np.float32)
         self.assertEqual(pred_im.max(), 0.5)
@@ -277,15 +286,9 @@ class TestImageInference(unittest.TestCase):
         self.assertTupleEqual(target_im.shape, (1, 8, 16, 1))
         self.assertEqual(target_im.dtype, np.float32)
         self.assertEqual(target_im.max(), 1)
+        self.assertTupleEqual(input_im.shape, (2, 8, 16, 1))
+        self.assertEqual(input_im.dtype, np.float32)
         self.assertListEqual(mask_im, [])
-        # Read saved prediction too
-        pred_name = os.path.join(
-            self.model_dir,
-            'predictions/im_c050_z040_t010_p030.tif',
-        )
-        im_pred = cv2.imread(pred_name, cv2.IMREAD_ANYDEPTH)
-        self.assertEqual(im_pred.dtype, np.float32)
-        self.assertTupleEqual(im_pred.shape, (8, 16))
 
     @patch('micro_dl.inference.model_inference.predict_large_image')
     def test_predict_2d_mask(self, mock_predict):
@@ -297,18 +300,12 @@ class TestImageInference(unittest.TestCase):
             columns=['time_idx', 'channel_idx', 'pos_idx', 'slice_idx'],
         )
         # Predict row 0 from inference dataset iterator
-        pred_im, target_im, mask_im = self.infer_inst.predict_2d(meta_row)
+        pred_im, target_im, mask_im, input_im = self.infer_inst.predict_2d(
+            meta_row,
+        )
         self.assertTupleEqual(pred_im.shape, (1, 6, 10, 1))
         self.assertEqual(pred_im.dtype, np.float32)
         self.assertEqual(pred_im.max(), 1)
-        # Read saved prediction too
-        pred_name = os.path.join(
-            self.model_dir,
-            'predictions/im_c050_z003_t002_p000.tif',
-        )
-        im_pred = cv2.imread(pred_name, cv2.IMREAD_ANYDEPTH)
-        self.assertEqual(im_pred.dtype, np.float32)
-        self.assertTupleEqual(im_pred.shape, (6, 10))
         # Check target and no mask
         self.assertTupleEqual(target_im.shape, (1, 6, 10, 1))
         self.assertEqual(target_im.dtype, np.float32)
@@ -489,23 +486,12 @@ class TestImageInference2p5D(unittest.TestCase):
             [[2, self.mask_channel, 3, 2]],
             columns=['time_idx', 'channel_idx', 'pos_idx', 'slice_idx'],
         )
-        pred_im, target_im, mask_im = self.infer_inst.predict_2d(meta_row)
+        pred_im, target_im, mask_im, input_im = self.infer_inst.predict_2d(
+            meta_row,
+        )
         self.assertTupleEqual(pred_im.shape, (1, 8, 16, 1))
         self.assertEqual(pred_im.dtype, np.float32)
         self.assertEqual(pred_im.max(), 1)
-        # Read saved prediction, z=2 for first slice with depth=5
-        pred_name = os.path.join(
-            self.model_dir,
-            'predictions/im_c050_z002_t002_p003.tif',
-        )
-        im_pred = cv2.imread(pred_name, cv2.IMREAD_ANYDEPTH)
-        self.assertEqual(im_pred.dtype, np.float32)
-        self.assertTupleEqual(im_pred.shape, (8, 16))
-        # Check target and no mask
-        self.assertTupleEqual(target_im.shape, (1, 8, 16, 1))
-        self.assertEqual(target_im.dtype, np.float32)
-        self.assertEqual(target_im.max(), 1.)
-        self.assertListEqual(mask_im, [])
 
     @patch('micro_dl.inference.model_inference.predict_large_image')
     def test_run_prediction(self, mock_predict):
@@ -831,21 +817,15 @@ class TestImageInference3D(unittest.TestCase):
             [[2, self.mask_channel, 3, 0]],
             columns=['time_idx', 'channel_idx', 'pos_idx', 'slice_idx'],
         )
-        pred_im, target_im, mask_im = self.infer_inst.predict_3d(meta_row)
+        pred_im, target_im, mask_im, input_im = self.infer_inst.predict_3d(
+            meta_row,
+        )
         self.assertTupleEqual(pred_im.shape, (8, 8, 8))
         self.assertEqual(pred_im.dtype, np.float32)
         self.assertTupleEqual(target_im.shape, (8, 8, 8))
         self.assertEqual(target_im.dtype, np.float32)
         self.assertTupleEqual(mask_im.shape, (8, 8, 8))
         self.assertEqual(mask_im.dtype, np.uint8)
-        # Read saved prediction, z=0 target channel=2
-        pred_name = os.path.join(
-            self.model_dir,
-            'predictions/im_c002_z000_t002_p003.npy',
-        )
-        im_pred = np.load(pred_name)
-        self.assertEqual(im_pred.dtype, np.uint16)
-        self.assertTupleEqual(im_pred.shape, (8, 8, 8))
 
     @patch('micro_dl.inference.model_inference.predict_large_image')
     def test_predict_3d_on_center(self, mock_predict):
@@ -857,21 +837,15 @@ class TestImageInference3D(unittest.TestCase):
             [[2, self.mask_channel, 3, 0]],
             columns=['time_idx', 'channel_idx', 'pos_idx', 'slice_idx'],
         )
-        pred_im, target_im, mask_im = self.infer_inst.predict_3d(meta_row)
+        pred_im, target_im, mask_im, input_im = self.infer_inst.predict_3d(
+            meta_row,
+        )
         self.assertTupleEqual(pred_im.shape, (3, 3, 3))
         self.assertEqual(pred_im.dtype, np.float32)
         self.assertTupleEqual(target_im.shape, (3, 3, 3))
         self.assertEqual(target_im.dtype, np.float32)
         self.assertTupleEqual(mask_im.shape, (3, 3, 3))
         self.assertEqual(mask_im.dtype, np.uint8)
-        # Read saved prediction, z=0 target channel=2
-        pred_name = os.path.join(
-            self.model_dir,
-            'predictions/im_c002_z000_t002_p003.npy',
-        )
-        im_pred = np.load(pred_name)
-        self.assertEqual(im_pred.dtype, np.uint16)
-        self.assertTupleEqual(im_pred.shape, (3, 3, 3))
 
     @patch('micro_dl.inference.model_inference.predict_large_image')
     def test_run_prediction(self, mock_predict):

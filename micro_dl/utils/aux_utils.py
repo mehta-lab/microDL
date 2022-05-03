@@ -108,10 +108,10 @@ def get_meta_idx(frames_metadata,
     :return: int pos_idx: Row position matching indices above
     """
     frame_idx = frames_metadata.index[
-        (frames_metadata['channel_idx'] == channel_idx) &
-        (frames_metadata['time_idx'] == time_idx) &
-        (frames_metadata["slice_idx"] == slice_idx) &
-        (frames_metadata["pos_idx"] == pos_idx)].tolist()
+        (frames_metadata['channel_idx'] == int(channel_idx)) &
+        (frames_metadata['time_idx'] == int(time_idx)) &
+        (frames_metadata["slice_idx"] == int(slice_idx)) &
+        (frames_metadata["pos_idx"] == int(pos_idx))].tolist()
     return frame_idx[0]
 
 

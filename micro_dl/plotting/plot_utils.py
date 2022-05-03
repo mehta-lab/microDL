@@ -29,7 +29,7 @@ def save_predicted_images(input_imgs,
     :param np.ndarray input_imgs: input images [c,y,x]
     :param np.ndarray target_img: target [y,x]
     :param np.ndarray pred_img: output predicted by the model with same shape as input_img
-    :param pd.series metric: xy similarity metrics between prediction and target
+    :param pd.series/None metric: xy similarity metrics between prediction and target
     :param str output_dir: dir to store the output images/mosaics
     :param str output_fname: fname for saving collage
     :param str ext: 3 letter file extension
@@ -95,8 +95,9 @@ def save_predicted_images(input_imgs,
     ax[axis_count].set_title('Overlay', fontsize=font_size)
     axis_count += 1
     # add metrics
-    for c, (metric_name, value) in enumerate(zip(list(metric.keys()), metric.values[0][0:-1]), 1):
-        plt.figtext(0.5, 0.001+c*0.015, metric_name + ": {:.4f}".format(value), ha="center", fontsize=12)
+    if metric is not None:
+        for c, (metric_name, value) in enumerate(zip(list(metric.keys()), metric.values[0][0:-1]), 1):
+            plt.figtext(0.5, 0.001+c*0.015, metric_name + ": {:.4f}".format(value), ha="center", fontsize=12)
 
     fname = os.path.join(output_dir, '{}.{}'.format(output_fname, ext))
     fig.savefig(fname, dpi=300, bbox_inches='tight')
@@ -112,7 +113,10 @@ def convert_to_8bit(img):
     :param float alpha: scale factor
     :return np.array img_8bit: image with 8bit values
     """
-    img_8bit = cv2.convertScaleAbs(img - np.min(img), alpha=255/(np.max(img) - np.min(img)))
+    img_8bit = cv2.convertScaleAbs(
+        img - np.min(img),
+        alpha=255 / (np.max(img) - np.min(img) + sys.float_info.epsilon),
+    )
     return img_8bit
 
 
