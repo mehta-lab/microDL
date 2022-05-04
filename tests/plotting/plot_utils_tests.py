@@ -24,6 +24,7 @@ def test_save_predicted_images():
             output_fname=output_fname,
         )
         fig_glob = glob.glob(os.path.join(output_dir, '*'))
+        fig_glob.sort()
         nose.tools.assert_equal(len(fig_glob), 2)
         expected_fig = os.path.join(output_dir, 'test_plot.jpg')
         nose.tools.assert_equal(fig_glob[0], expected_fig)
