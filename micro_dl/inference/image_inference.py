@@ -539,10 +539,6 @@ class ImagePredictor:
         :param str/None pred_chan_name: Predicted channel name
         """
         if pred_chan_name is None:
-            if 'channel_name' in meta_row:
-                pred_chan_name = meta_row['channel_name']
-
-        if pred_chan_name is None:
             im_name = aux_utils.get_im_name(
                 time_idx=meta_row['time_idx'],
                 channel_idx=meta_row['channel_idx'],
@@ -567,6 +563,7 @@ class ImagePredictor:
         else:
             # assuming segmentation output is probability maps
             im_pred = im_pred.astype(np.float32)
+        # Check file format
         if self.image_ext in ['.png', '.tif']:
             if self.image_ext == '.png':
                 assert im_pred.dtype == np.uint16, \
@@ -574,21 +571,17 @@ class ImagePredictor:
                     'Change file extension as ".tif" or ".npy" instead'
             cv2.imwrite(file_name, np.squeeze(im_pred))
         elif self.image_ext == '.npy':
+            # TODO: add support for saving prediction of 3D slices
             np.save(file_name, np.squeeze(im_pred), allow_pickle=True)
         else:
             raise ValueError(
                 'Unsupported file extension: {}'.format(self.image_ext),
             )
-        if self.save_figs:
+        if self.save_figs and self.image_ext != '.npy':
             # save predicted images assumes 2D
             fig_dir = os.path.join(self.pred_dir, 'figures')
             os.makedirs(self.pred_dir, exist_ok=True)
             # for every target image channel a new overlay image is saved
-            if self.input_depth > 1:
-                im_input = im_input[..., self.input_depth // 2, :, :]
-                im_target = im_target[..., 0, :, :]
-                im_pred = im_pred[..., 0, :, :]
-
             plot_utils.save_predicted_images(
                 input_imgs=im_input,
                 target_img=im_target,
@@ -646,7 +639,6 @@ class ImagePredictor:
                     self.metrics_inst.get_metrics_xy()
                 )
         if 'xyz' in self.metrics_orientations:
-            print('in xyz')
             self.metrics_inst.estimate_xyz_metrics(**kw_args)
             self.df_xyz = self.df_xyz.append(
                 self.metrics_inst.get_metrics_xyz()
@@ -786,7 +778,6 @@ class ImagePredictor:
 
         input_stack = np.concatenate(input_stack, axis=0)
         pred_stack = np.concatenate(pred_stack, axis=0)  #zcyx
-
         target_stack = np.concatenate(target_stack, axis=0)
         # Stack images and transpose (metrics assumes cyxz format)
         if self.image_format == 'zyx':
@@ -816,32 +807,32 @@ class ImagePredictor:
         assert len(iteration_rows) == 1, \
             'more than one matching row found for position ' \
             '{}'.format(iteration_rows.pos_idx)
-        cur_input, cur_target = \
+        input_image, target_image = \
             self.dataset_inst.__getitem__(iteration_rows.index[0])
         # If crop shape is defined in images dict
         if self.crop_shape is not None:
-            cur_input = image_utils.center_crop_to_shape(
-                cur_input,
+            input_image = image_utils.center_crop_to_shape(
+                input_image,
                 self.crop_shape,
             )
-            cur_target = image_utils.center_crop_to_shape(
-                cur_target,
+            target_image = image_utils.center_crop_to_shape(
+                target_image,
                 self.crop_shape,
             )
         inf_shape = None
         if self.tile_option == 'infer_on_center':
             inf_shape = self.tile_params['inf_shape']
-            center_block = image_utils.center_crop_to_shape(cur_input, inf_shape)
-            cur_target = image_utils.center_crop_to_shape(cur_target, inf_shape)
+            center_block = image_utils.center_crop_to_shape(input_image, inf_shape)
+            target_image = image_utils.center_crop_to_shape(target_image, inf_shape)
             pred_image = inference.predict_large_image(
                 model=self.model,
                 input_image=center_block,
             )
         elif self.tile_option == 'tile_z':
             pred_block_list, start_end_idx = \
-                self._predict_sub_block_z(cur_input)
+                self._predict_sub_block_z(input_image)
             pred_image = self.stitch_inst.stitch_predictions(
-                np.squeeze(cur_input).shape,
+                np.squeeze(input_image).shape,
                 pred_block_list,
                 start_end_idx,
             )
@@ -851,39 +842,37 @@ class ImagePredictor:
             if crop_indices is None:
                 # TODO tile_image works for 2D/3D imgs, modify for multichannel
                 _, crop_indices = tile_utils.tile_image(
-                    input_image=np.squeeze(cur_input),
+                    input_image=np.squeeze(input_image),
                     tile_size=self.tile_params['tile_shape'],
                     step_size=step_size,
                     return_index=True
                 )
             pred_block_list = self._predict_sub_block_xyz(
-                cur_input,
+                input_image,
                 crop_indices,
             )
             pred_image = self.stitch_inst.stitch_predictions(
-                np.squeeze(cur_input).shape,
+                np.squeeze(input_image).shape,
                 pred_block_list,
                 crop_indices,
             )
-        # pred_image = np.squeeze(pred_image).astype(np.float32)
-        # target_image = np.squeeze(cur_target).astype(np.float32)
         pred_image = pred_image.astype(np.float32)
-        cur_target = cur_target.astype(np.float32)
+        target_image = target_image.astype(np.float32)
         cur_row = self.inf_frames_meta.iloc[iteration_rows.index[0]]
         if self.model_task == 'regression':
             pred_image = self.unzscore(
                 pred_image,
-                cur_target,
+                target_image,
                 cur_row,
             )
-        # 3D uses zyx, estimate metrics expects xyz
-        pred_image = np.squeeze(pred_image)
-        target_image = np.squeeze(cur_target)
-        input_image = np.squeeze(cur_input)
+        # 3D uses zyx, estimate metrics expects xyz, keep c
+        pred_image = pred_image[0, ...]
+        target_image = target_image[0, ...]
+        input_image = input_image[0, ...]
         if self.image_format == 'zyx':
-            input_image = np.transpose(input_image, [1, 2, 0])
-            pred_image = np.transpose(pred_image, [1, 2, 0])
-            target_image = np.transpose(target_image, [1, 2, 0])
+            input_image = np.transpose(input_image, [0, 2, 3, 1])
+            pred_image = np.transpose(pred_image, [0, 2, 3, 1])
+            target_image = np.transpose(target_image, [0, 2, 3, 1])
         # get mask
         mask_image = None
         if self.masks_dict is not None:
@@ -895,6 +884,8 @@ class ImagePredictor:
                 )
             if self.image_format == 'zyx':
                 mask_image = np.transpose(mask_image, [1, 2, 0])
+            mask_image = mask_image[np.newaxis, ...]
+
         return pred_image, target_image, mask_image, input_image
 
     def run_prediction(self):
@@ -918,18 +909,17 @@ class ImagePredictor:
                 )
 
             for c, chan_idx in enumerate(self.target_channels):
-                pred_fnames = []
+                pred_names = []
                 slice_ids = chan_slice_meta.loc[chan_slice_meta['channel_idx'] == chan_idx, 'slice_idx'].to_list()
                 for z_idx in slice_ids:
-                    pred_fname = aux_utils.get_im_name(
+                    pred_name = aux_utils.get_im_name(
                         time_idx=time_idx,
                         channel_idx=chan_idx,
                         slice_idx=z_idx,
                         pos_idx=pos_idx,
                         ext='',
                     )
-                    pred_fnames.append(pred_fname)
-                print(self.metrics_inst)
+                    pred_names.append(pred_name)
                 if self.metrics_inst is not None:
                     if not self.mask_metrics:
                         mask = None
@@ -938,24 +928,15 @@ class ImagePredictor:
                     self.estimate_metrics(
                         target=target_image[c, ...],
                         prediction=pred_image[c, ...],
-                        pred_fnames=pred_fnames,
+                        pred_fnames=pred_names,
                         mask=mask,
                     )
 
                 with tqdm(total=len(chan_slice_meta['slice_idx'].unique()), desc='z-stack saving', leave=False) as pbar_s:
                     for z, z_idx in enumerate(chan_slice_meta['slice_idx'].unique()):
-                        im_name = aux_utils.get_im_name(
-                            time_idx=time_idx,
-                            channel_idx=chan_idx,
-                            slice_idx=z_idx,
-                            pos_idx=pos_idx,
-                            ext="",
-                            extra_field="xy0",
-                        )
                         meta_row = chan_slice_meta[
                             (chan_slice_meta['channel_idx'] == chan_idx) &
                             (chan_slice_meta['slice_idx'] == z_idx)].squeeze()
-                        print('metric', self.metrics_orientations)
                         metrics = None
                         if self.metrics_inst is not None:
                             metrics_mapping = {
@@ -964,16 +945,25 @@ class ImagePredictor:
                                 'yz': self.df_yz,
                                 'xyz': self.df_xyz,
                             }
-                            # Assume only one orientation is evaluated
+                            # Only one orientation can be added to the plot
                             metrics_df = metrics_mapping[self.metrics_orientations[0]]
-                            metrics = metrics_df[metrics_df["pred_name"] == im_name]
-                        print(metrics)
-                        print('im shapes')
-                        print(input_image.shape, target_image.shape, pred_image.shape)
+                            metrics = metrics_df.loc[
+                                metrics_df['pred_name'].str.contains(pred_names[z], case=False),
+                            ]
+                        if self.config['network']['class'] == 'UNet3D':
+                            assert self.image_ext == '.npy', \
+                                "Must save as numpy to get all 3D data"
+                            input = input_image
+                            target = target_image[c, ...]
+                            pred = pred_image[c, ...]
+                        else:
+                            input = input_image[..., z]
+                            target = target_image[c, ..., z]
+                            pred = pred_image[c, ..., z]
                         self.save_pred_image(
-                            im_input=input_image[..., z],
-                            im_target=target_image[c, ..., z],
-                            im_pred=pred_image[c, ..., z],
+                            im_input=input,
+                            im_target=target,
+                            im_pred=pred,
                             metric=metrics,
                             meta_row=meta_row,
                             pred_chan_name=self.pred_chan_names[c]

@@ -46,6 +46,7 @@ class TestImageInference(unittest.TestCase):
                     im_name)
                 meta_row['zscore_median'] = 1500 + c * 10
                 meta_row['zscore_iqr'] = 1
+                meta_row['dir_name'] = self.image_dir
                 self.frames_meta = self.frames_meta.append(
                     meta_row,
                     ignore_index=True,
@@ -372,6 +373,7 @@ class TestImageInference2p5D(unittest.TestCase):
                         im_name)
                     meta_row['zscore_median'] = 1500 + c * 10
                     meta_row['zscore_iqr'] = 1
+                    meta_row['dir_name'] = self.image_dir
                     self.frames_meta = self.frames_meta.append(
                         meta_row,
                         ignore_index=True,
@@ -480,7 +482,7 @@ class TestImageInference2p5D(unittest.TestCase):
         self.assertIsNone(self.infer_inst.crop_shape)
 
     @patch('micro_dl.inference.model_inference.predict_large_image')
-    def test_predict_2d(self, mock_predict):
+    def test_predict_2p5d(self, mock_predict):
         mock_predict.return_value = np.ones((1, 1, 1, 8, 16), dtype=np.float32)
         meta_row = pd.DataFrame(
             [[2, self.mask_channel, 3, 2]],
@@ -515,9 +517,9 @@ class TestImageInference2p5D(unittest.TestCase):
                     self.model_dir,
                     'predictions/im_c050_z00{}_t002_p00{}.tif'.format(z, p),
                 )
-            im_pred = cv2.imread(pred_name, cv2.IMREAD_ANYDEPTH)
-            self.assertEqual(im_pred.dtype, np.float32)
-            self.assertTupleEqual(im_pred.shape, (8, 16))
+                im_pred = cv2.imread(pred_name, cv2.IMREAD_ANYDEPTH)
+                self.assertEqual(im_pred.dtype, np.float32)
+                self.assertTupleEqual(im_pred.shape, (8, 16))
 
 
 class TestImageInference3D(unittest.TestCase):
@@ -820,11 +822,11 @@ class TestImageInference3D(unittest.TestCase):
         pred_im, target_im, mask_im, input_im = self.infer_inst.predict_3d(
             meta_row,
         )
-        self.assertTupleEqual(pred_im.shape, (8, 8, 8))
+        self.assertTupleEqual(pred_im.shape, (1, 8, 8, 8))
         self.assertEqual(pred_im.dtype, np.float32)
-        self.assertTupleEqual(target_im.shape, (8, 8, 8))
+        self.assertTupleEqual(target_im.shape, (1, 8, 8, 8))
         self.assertEqual(target_im.dtype, np.float32)
-        self.assertTupleEqual(mask_im.shape, (8, 8, 8))
+        self.assertTupleEqual(mask_im.shape, (1, 8, 8, 8))
         self.assertEqual(mask_im.dtype, np.uint8)
 
     @patch('micro_dl.inference.model_inference.predict_large_image')
@@ -840,11 +842,11 @@ class TestImageInference3D(unittest.TestCase):
         pred_im, target_im, mask_im, input_im = self.infer_inst.predict_3d(
             meta_row,
         )
-        self.assertTupleEqual(pred_im.shape, (3, 3, 3))
+        self.assertTupleEqual(pred_im.shape, (1, 3, 3, 3))
         self.assertEqual(pred_im.dtype, np.float32)
-        self.assertTupleEqual(target_im.shape, (3, 3, 3))
+        self.assertTupleEqual(target_im.shape, (1, 3, 3, 3))
         self.assertEqual(target_im.dtype, np.float32)
-        self.assertTupleEqual(mask_im.shape, (3, 3, 3))
+        self.assertTupleEqual(mask_im.shape, (1, 3, 3, 3))
         self.assertEqual(mask_im.dtype, np.uint8)
 
     @patch('micro_dl.inference.model_inference.predict_large_image')
