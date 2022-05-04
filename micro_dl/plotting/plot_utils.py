@@ -87,7 +87,6 @@ def save_predicted_images(input_imgs,
     # add overlay target - prediction
     cur_target_8bit = convert_to_8bit(cur_target_chan)
     cur_prediction_8bit = convert_to_8bit(pred_img)
-
     cur_target_pred = np.stack([cur_target_8bit, cur_prediction_8bit,
                                 cur_target_8bit], axis=2)
 

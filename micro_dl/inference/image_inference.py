@@ -343,6 +343,7 @@ class ImagePredictor:
             if isinstance(num_overlap, list) and \
                     self.config['network']['class'] != 'UNet3D':
                 num_overlap = self.num_overlap[-1]
+
             overlap_dict = {
                 'overlap_shape': num_overlap,
                 'overlap_operation': self.tile_params['overlap_operation']
@@ -537,8 +538,6 @@ class ImagePredictor:
         :param pd.DataFrame meta_row: Row of meta dataframe containing sample
         :param str/None pred_chan_name: Predicted channel name
         """
-        print('in save pred')
-        print(im_input.shape, im_target.shape, im_pred.shape)
         if pred_chan_name is None:
             if 'channel_name' in meta_row:
                 pred_chan_name = meta_row['channel_name']
@@ -585,6 +584,11 @@ class ImagePredictor:
             fig_dir = os.path.join(self.pred_dir, 'figures')
             os.makedirs(self.pred_dir, exist_ok=True)
             # for every target image channel a new overlay image is saved
+            if self.input_depth > 1:
+                im_input = im_input[..., self.input_depth // 2, :, :]
+                im_target = im_target[..., 0, :, :]
+                im_pred = im_pred[..., 0, :, :]
+
             plot_utils.save_predicted_images(
                 input_imgs=im_input,
                 target_img=im_target,
@@ -782,6 +786,7 @@ class ImagePredictor:
 
         input_stack = np.concatenate(input_stack, axis=0)
         pred_stack = np.concatenate(pred_stack, axis=0)  #zcyx
+
         target_stack = np.concatenate(target_stack, axis=0)
         # Stack images and transpose (metrics assumes cyxz format)
         if self.image_format == 'zyx':
