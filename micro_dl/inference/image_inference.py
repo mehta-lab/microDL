@@ -343,7 +343,6 @@ class ImagePredictor:
             if isinstance(num_overlap, list) and \
                     self.config['network']['class'] != 'UNet3D':
                 num_overlap = self.num_overlap[-1]
-
             overlap_dict = {
                 'overlap_shape': num_overlap,
                 'overlap_operation': self.tile_params['overlap_operation']
@@ -588,7 +587,6 @@ class ImagePredictor:
             fig_dir = os.path.join(self.pred_dir, 'figures')
             os.makedirs(self.pred_dir, exist_ok=True)
             # for every target image channel a new overlay image is saved
-
             plot_utils.save_predicted_images(
                 input_imgs=im_input,
                 target_img=im_target,
@@ -919,7 +917,6 @@ class ImagePredictor:
                 )
             for c, chan_idx in enumerate(self.target_channels):
                 pred_names = []
-
                 slice_ids = chan_slice_meta.loc[chan_slice_meta['channel_idx'] == chan_idx, 'slice_idx'].to_list()
                 for z_idx in slice_ids:
                     pred_name = aux_utils.get_im_name(
