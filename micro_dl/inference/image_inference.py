@@ -699,7 +699,7 @@ class ImagePredictor:
         """
         Run prediction on 2D or 2.5D on indices given by metadata row.
 
-        :param list chan_slice_meta: Inference meta rows
+        :param pd.DataFrame chan_slice_meta: Inference meta rows
         :return np.array pred_stack: Prediction
         :return np.array target_stack: Target
         :return np.array/list mask_stack: Mask for metrics (empty list if
