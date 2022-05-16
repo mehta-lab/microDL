@@ -525,7 +525,7 @@ class ImagePredictor:
                         im_pred,
                         metric,
                         meta_row,
-                        pred_chan_name=None,
+                        pred_chan_name=np.nan,
                         ):
         """
         Save predicted images with image extension given in init.
@@ -535,15 +535,13 @@ class ImagePredictor:
         :param np.array im_pred: 2D / 3D predicted image
         :param pd.series metric: xy similarity metrics between prediction and target
         :param pd.DataFrame meta_row: Row of meta dataframe containing sample
-        :param str/None pred_chan_name: Predicted channel name
+        :param str/NaN pred_chan_name: Predicted channel name
         """
-        if pred_chan_name is None:
+        if pd.isnull(pred_chan_name):
             if 'channel_name' in meta_row:
                 pred_chan_name = meta_row['channel_name']
-        if pred_chan_name != pred_chan_name:
-            # Then it's nan and we don't want that
-            pred_chan_name = None
-        if pred_chan_name is None:
+
+        if pd.isnull(pred_chan_name):
             im_name = aux_utils.get_im_name(
                 time_idx=meta_row['time_idx'],
                 channel_idx=meta_row['channel_idx'],

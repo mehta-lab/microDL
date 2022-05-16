@@ -90,16 +90,13 @@ def ints_meta_generator(
     if block_size is None:
         block_size = 256
     frames_metadata = aux_utils.read_meta(input_dir)
-    print('channel ids', channel_ids)
     if not isinstance(channel_ids, list):
         # Use all channels
         channel_ids = frames_metadata['channel_idx'].unique()
-    print(channel_ids)
     mp_fn_args = []
     # Fill dataframe with rows from image names
     ff_path = None
     for i, meta_row in frames_metadata.iterrows():
-        meta_row['dir_name'] = input_dir
         im_path = os.path.join(input_dir, meta_row['file_name'])
         if flat_field_dir is not None:
             channel_idx = meta_row['channel_idx']
