@@ -580,7 +580,7 @@ class ImagePredictor:
             raise ValueError(
                 'Unsupported file extension: {}'.format(self.image_ext),
             )
-        if self.save_figs and self.image_ext != '.npy':
+        if self.save_figs and len(im_target.shape) == 2:
             # save predicted images assumes 2D
             fig_dir = os.path.join(self.pred_dir, 'figures')
             os.makedirs(self.pred_dir, exist_ok=True)

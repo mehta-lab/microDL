@@ -95,9 +95,9 @@ def ints_meta_generator(
         channel_ids = frames_metadata['channel_idx'].unique()
     mp_fn_args = []
     # Fill dataframe with rows from image names
-    ff_path = None
     for i, meta_row in frames_metadata.iterrows():
         im_path = os.path.join(input_dir, meta_row['file_name'])
+        ff_path = None
         if flat_field_dir is not None:
             channel_idx = meta_row['channel_idx']
             if isinstance(channel_idx, (int, float)) and channel_idx in channel_ids:
