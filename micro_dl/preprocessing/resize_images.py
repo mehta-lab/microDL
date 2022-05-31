@@ -101,10 +101,12 @@ class ImageResizer:
                         write_path = os.path.join(self.resize_dir, file_name)
                         ff_path = None
                         if self.flat_field_dir is not None:
-                            ff_path = os.path.join(
-                                self.flat_field_dir,
-                                'flat-field_channel-{}.npy'.format(channel_idx)
-                            )
+                            ff_name = 'flat-field_channel-{}.npy'.format(channel_idx)
+                            if ff_name in os.listdir(self.flat_field_dir):
+                                ff_path = os.path.join(
+                                    self.flat_field_dir,
+                                    ff_name
+                                )
                         kwargs = {
                             'file_path': file_path,
                             'write_path': write_path,

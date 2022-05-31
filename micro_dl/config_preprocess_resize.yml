@@ -10,9 +10,8 @@ resize:
     num_slices_subvolume: 10
     resize_3d: True
 flat_field:
-    estimate: True
-    correct: True
-    ff_dir: '/data/flat_field_images'
+    method: 'correct'
+    flat_field_dir: '/data/flat_field_images'
 uniform_structure: True
 masks:
     channels: [7]

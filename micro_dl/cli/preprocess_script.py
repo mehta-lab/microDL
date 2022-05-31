@@ -113,20 +113,21 @@ def get_required_params(preprocess_config):
     return required_params
 
 
-def flat_field_correct(required_params, block_size):
-    """Estimate flat_field_images
+def flat_field_correct(required_params, block_size, flat_field_channels):
+    """
+    Estimate flat_field_images in given channels.
 
     :param dict required_params: dict with keys: input_dir, output_dir, time_ids,
      channel_ids, pos_ids, slice_ids, int2strlen, uniform_struct, num_workers
     :param int block_size: Specify block size if different from default (32 pixels)
+    :param list flat_field_channels: Channels in which to estimate flatfields.
     :return str flat_field_dir: full path of dir with flat field correction
      images
     """
-
     flat_field_inst = FlatFieldEstimator2D(
         input_dir=required_params['input_dir'],
         output_dir=required_params['output_dir'],
-        channel_ids=required_params['channel_ids'],
+        channel_ids=flat_field_channels,
         slice_ids=required_params['slice_ids'],
         block_size=block_size,
     )
@@ -457,20 +458,39 @@ def pre_process(preprocess_config):
 
     # -----------------Estimate flat field images--------------------
     flat_field_dir = None
+    flat_field_channels = []
     if 'flat_field' in preprocess_config:
-        if 'estimate' in preprocess_config['flat_field'] and \
-                preprocess_config['flat_field']['estimate']:
+        #  method: 'estimate' or 'correct'
+        flat_field_method = 'estimate'
+        if 'method' in preprocess_config['flat_field']:
+            flat_field_method = preprocess_config['flat_field']['method']
+        assert flat_field_method in set('estimate', 'correct'), \
+            "method should be estimate or correct (use existing)"
+        if flat_field_method is 'estimate':
             assert 'flat_field_dir' not in preprocess_config['flat_field'], \
                 'estimate_flat_field or use images in flat_field_dir.'
+            # If flat_field_channels isn't specified, correct all channels
+            flat_field_channels = required_params['channel_ids']
+            if 'flat_field_channels' in preprocess_config['flat_field']:
+                flat_field_channels = preprocess_config['flat_field']['flatfield_channels']
             block_size = None
             if 'block_size' in preprocess_config['flat_field']:
                 block_size = preprocess_config['flat_field']['block_size']
-            flat_field_dir = flat_field_correct(required_params, block_size)
+            flat_field_dir = flat_field_correct(
+                required_params,
+                block_size,
+                flat_field_channels,
+            )
             preprocess_config['flat_field']['flat_field_dir'] = flat_field_dir
 
-        elif 'correct' in preprocess_config['flat_field'] and \
-                preprocess_config['flat_field']['correct']:
+        elif flat_field_method is 'correct':
+            assert 'flat_field_dir' in preprocess_config['flat_field'], \
+                'flat_field_dir must exist if using correct as flat_field method.'
             flat_field_dir = preprocess_config['flat_field']['flat_field_dir']
+            for ff_name in os.listdir(flat_field_dir):
+                # Naming convention is: flat-field-channel_c.npy
+                if ff_name[:10] is 'flat-field':
+                    flat_field_channels.append(int(ff_name[-5]))
 
     # -------Compute intensities for flatfield corrected images-------
     if required_params['normalize_im'] in ['dataset', 'volume', 'slice']:
@@ -482,6 +502,7 @@ def pre_process(preprocess_config):
             num_workers=required_params['num_workers'],
             block_size=block_size,
             flat_field_dir=flat_field_dir,
+            flat_field_channels=flat_field_channels,
             channel_ids=required_params['channel_ids'],
         )
 
