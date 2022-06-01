@@ -4,7 +4,7 @@ import numpy as np
 import os
 
 import micro_dl.utils.aux_utils as aux_utils
-from micro_dl.utils.image_utils import fit_polynomial_surface_2D, read_image
+import micro_dl.utils.image_utils as im_utils
 
 
 class FlatFieldEstimator2D:
@@ -69,8 +69,7 @@ class FlatFieldEstimator2D:
             summed_image = None
             # Average over all positions
             for idx, row in channel_metadata.iterrows():
-                file_path = os.path.join(self.input_dir, row['file_name'])
-                im = read_image(file_path)
+                im = im_utils.read_image_from_row(row)
                 if len(im.shape) == 3:
                     im = np.mean(im, axis=2)
                 if summed_image is None:
@@ -133,7 +132,7 @@ class FlatFieldEstimator2D:
         """
 
         coords, values = self.sample_block_medians(im=im)
-        flatfield = fit_polynomial_surface_2D(
+        flatfield = im_utils.fit_polynomial_surface_2D(
             sample_coords=coords,
             sample_values=values,
             im_shape=im.shape,
