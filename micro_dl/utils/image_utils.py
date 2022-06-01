@@ -259,6 +259,27 @@ def read_image(file_path):
     return im
 
 
+def read_image_from_row(meta_row):
+    """
+    Read 2D grayscale image from file.
+    Checks file extension for npy and load array if true. Otherwise
+    reads regular image using OpenCV (png, tif, jpg, see OpenCV for supported
+    files) of any bit depth.
+
+    :param pd.DataFrame meta_row: Row in metadata
+    :return array im: 2D image
+    :raise IOError if image can't be opened
+    """
+
+    if file_path[-3:] == 'npy':
+        im = np.load(file_path)
+    else:
+        im = cv2.imread(file_path, cv2.IMREAD_ANYDEPTH)
+        if im is None:
+            raise IOError('Image "{}" cannot be found.'.format(file_path))
+    return im
+
+
 def read_imstack(input_fnames,
                  flat_field_fname=None,
                  hist_clip_limits=None,
