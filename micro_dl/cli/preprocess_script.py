@@ -49,6 +49,7 @@ def get_required_params(preprocess_config):
         'num_workers': Number of workers for multiprocessing
         'normalize_im': (str) Normalization scheme
             (stack, dataset, slice, volume)
+        'zarr_file': Zarr file name in case of zarr file (as opposed to tiffs)
 
     :param dict preprocess_config: Preprocessing config
     :return dict required_params: Required parameters
@@ -97,6 +98,12 @@ def get_required_params(preprocess_config):
                         normalize_channels,
                     )
 
+    zarr_file = None
+    if 'zarr_file' in preprocess_config:
+        zarr_file = preprocess_config['zarr_file']
+        assert 'zarr' in zarr_file.split('.')[-1], \
+            "Zarr file {} doesn't have zarr extension".format(zarr_file)
+
     required_params = {
         'input_dir': input_dir,
         'output_dir': output_dir,
@@ -109,6 +116,7 @@ def get_required_params(preprocess_config):
         'normalize_channels': normalize_channels,
         'num_workers': num_workers,
         'normalize_im': normalize_im,
+        'zarr_file': zarr_file,
     }
     return required_params
 
@@ -451,6 +459,7 @@ def pre_process(preprocess_config):
         # Create metadata from file names instead
         meta_utils.frames_meta_generator(
             input_dir=required_params['input_dir'],
+            zarr_file=required_params['zarr_file'],
             order=order,
             name_parser=name_parser,
         )
