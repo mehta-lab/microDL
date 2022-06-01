@@ -10,7 +10,8 @@ resize:
     num_slices_subvolume: 10
     resize_3d: True
 flat_field:
-    method: 'correct'
+    method: 'from_file'
+    flat_field_channels: [1, 7]
     flat_field_dir: '/data/flat_field_images'
 uniform_structure: True
 masks:

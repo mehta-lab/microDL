@@ -57,7 +57,6 @@ def ints_meta_generator(
         num_workers=4,
         block_size=256,
         flat_field_dir=None,
-        flat_field_channels=None,
         channel_ids=-1,
         ):
     """
@@ -86,7 +85,6 @@ def ints_meta_generator(
     :param int block_size: block size for the grid sampling pattern. Default value works
         well for 2048 X 2048 images.
     :param str flat_field_dir: Directory containing flatfield images
-    :param list flat_field_channels: Flatfield channels
     :param list/int channel_ids: Channel indices to process
     """
     if block_size is None:
@@ -103,10 +101,11 @@ def ints_meta_generator(
         if flat_field_dir is not None:
             channel_idx = meta_row['channel_idx']
             if isinstance(channel_idx, (int, float)) and channel_idx in channel_ids:
-                if channel_idx in flat_field_channels:
+                ff_name = 'flat-field_channel-{}.npy'.format(channel_idx)
+                if ff_name in os.listdir(flat_field_dir):
                     ff_path = os.path.join(
                         flat_field_dir,
-                        'flat-field_channel-{}.npy'.format(channel_idx)
+                        ff_name,
                     )
         mp_fn_args.append((im_path, ff_path, block_size, meta_row))
 

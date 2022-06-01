@@ -297,7 +297,7 @@ def read_imstack(input_fnames,
                         flat_field_image=flat_field_image,
                     )
             except FileNotFoundError:
-                print("Flatfield image not found, correction not appied")
+                print("Flatfield image not found, correction not applied.")
         im_stack.append(im)
 
     input_image = np.stack(im_stack, axis=-1)

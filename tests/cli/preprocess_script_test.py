@@ -27,6 +27,7 @@ class TestPreprocessScript(unittest.TestCase):
         self.time_idx = 0
         self.pos_ids = [7, 8, 10]
         self.channel_ids = [0, 1, 2, 3]
+        self.flat_field_channels = [0, 1]
         self.slice_ids = [0, 1, 2, 3, 4, 5]
         self.im = 1500 * np.ones((30, 20), dtype=np.uint16)
         self.im[10:20, 5:15] = 3000
@@ -93,7 +94,7 @@ class TestPreprocessScript(unittest.TestCase):
             'num_workers': 4,
             'flat_field': {'method': 'estimate',
                            'block_size': 2,
-                           'flat_field_channels': [0, 1],
+                           'flat_field_channels': self.flat_field_channels,
                            },
             'masks': {'channels': [3],
                       'str_elem_radius': 3,
@@ -184,13 +185,16 @@ class TestPreprocessScript(unittest.TestCase):
         # Check flatfield images
         ff_dir = out_config['flat_field']['flat_field_dir']
         ff_names = os.listdir(ff_dir)
-        self.assertEqual(len(ff_names), 3)
-        for processed_channel in [0, 1, 3]:
-            expected_name = "flat-field_channel-{}.npy".format(processed_channel)
-            self.assertTrue(expected_name in ff_names)
+        ff_names.sort()
+        for i, ff_name in enumerate(ff_names):
+            expected_name = 'flat-field_channel-{}.npy'.format(
+                self.flat_field_channels[i],
+            )
+            self.assertEqual(ff_name, expected_name)
             im = np.load(os.path.join(ff_dir, expected_name))
             self.assertTrue(im.dtype == np.float64)
             self.assertTupleEqual(im.shape, (30, 20))
+
         # Check tiles
         tile_dir = out_config['tile']['tile_dir']
         tile_meta = aux_utils.read_meta(tile_dir)
