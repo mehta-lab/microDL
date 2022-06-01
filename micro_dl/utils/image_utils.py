@@ -289,7 +289,7 @@ def read_image(file_path):
     return im
 
 
-def read_image_from_row(meta_row, zarr_object=None):
+def read_image_from_row(meta_row):
     """
     Read 2D grayscale image from file.
     Checks file extension for npy and load array if true. Otherwise
