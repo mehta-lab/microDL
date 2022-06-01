@@ -1,7 +1,14 @@
 import itertools
+<<<<<<< HEAD
+=======
+import micro_dl.utils.aux_utils as aux_utils
+import micro_dl.utils.mp_utils as mp_utils
+import numpy as np
+>>>>>>> b0eb02d... sketching zarr support
 import os
 import pandas as pd
 import sys
+import zarr
 
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.mp_utils as mp_utils
@@ -86,20 +93,50 @@ def frames_meta_from_zarr(input_dir, zarr_object):
     Reads ome-zarr file and creates frames_meta based on metadata and
     array information.
 
-    :param class zarr_object: Zarr class instance
+    :param str input_dir: Input directory containing zarr file
+    :param str zarr_name: Name of zarr file including extension
     :return pd.DataFrame frames_meta: Metadata for all frames in zarr
     """
-    nbr_rows = zarr_object.get_channels() * zarr_object.get_pos() * \
-        zarr_object.get_slices() * zarr_object.get_times()
+    zarr_data = zarr.open(os.path.join(input_dir, zarr_name), mode='r')
+    plate_info = zarr_data.attrs.get('plate')
+    # TODO: Create a zarr object that can be passed around preprocessing?
+
+    well_pos = []
+    # Assumes that the positions are indexed in the order of Row-->Well-->FOV
+    for well in plate_info['wells']:
+        for pos in zarr_data[well['path']].attrs.get('well').get('images'):
+            well_pos.append(
+                {'well': well['path'], 'pos': pos['path']}
+            )
+
+    # Get channel names
+    omero_meta = zarr_data[well_pos[0]['well']][well_pos[0]['pos']].attrs.asdict()['omero']
+    channel_names = []
+    for chan in omero_meta['channels']:
+        channel_names.append(chan['label'])
+
+    array_name = list(zarr_data[well_pos[0]['well']][well_pos[0]['pos']].array_keys())[0]
+    array_shape = zarr_data[well_pos[0]['well']][well_pos[0]['pos']][array_name].shape
+
+    nbr_pos = len(well_pos)
+    nbr_times = array_shape[0]
+    nbr_channels = array_shape[1]
+    nbr_slices = array_shape[2]
+
+    # If there isn't a channel name for each channel, set to nan
+    if len(channel_names) != nbr_channels:
+        channel_names = nbr_channels * [np.nan]
+
+    nbr_rows = nbr_channels * nbr_pos * nbr_slices * nbr_times
     frames_meta = aux_utils.make_dataframe(nbr_rows=nbr_rows)
     meta_row = dict.fromkeys(list(frames_meta))
     meta_row['dir_name'] = input_dir
-    meta_row['file_name'] = zarr_object.get_zarr_name()
+    meta_row['file_name'] = zarr_name
     idx = 0
-    for channel_idx in range(zarr_object.get_channels()):
-        for pos_idx in range(zarr_object.get_pos()):
-            for slice_idx in range(zarr_object.get_slices()):
-                for time_idx in range(zarr_object.get_times()):
+    for channel_idx in range(nbr_channels):
+        for pos_idx in range(nbr_pos):
+            for slice_idx in range(nbr_slices):
+                for time_idx in range(nbr_times):
                     meta_row['channel_idx'] = channel_idx
                     meta_row['pos_idx'] = pos_idx
                     meta_row['slice_idx'] = slice_idx
