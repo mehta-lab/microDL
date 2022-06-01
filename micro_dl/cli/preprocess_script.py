@@ -487,9 +487,10 @@ def pre_process(preprocess_config):
             existing_channels = []
             for ff_name in os.listdir(flat_field_dir):
                 # Naming convention is: flat-field-channel_c.npy
-                if ff_name[:10] is 'flat-field':
+                if ff_name[:10] == 'flat-field':
+                    print('channel', int(ff_name[-5]))
                     existing_channels.append(int(ff_name[-5]))
-            assert existing_channels.sort() == flat_field_channels.sort(), \
+            assert set(existing_channels) == set(flat_field_channels), \
                 "Expected flatfield channels {}, and saved channels {} " \
                 "mismatch".format(flat_field_channels, existing_channels)
 
