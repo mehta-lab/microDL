@@ -1,6 +1,7 @@
 output_dir: '/gpfs/CompMicro/projects/virtualstaining/kidneyslice/2019_02_15_kidney_slice/MBL_DL_image_translation/temp/tile_small'
 verbose: 10
 input_dir: '/gpfs/CompMicro/projects/virtualstaining/kidneyslice/2019_02_15_kidney_slice/MBL_DL_image_translation/data'
+zarr_file: 'first_experiement.zarr'
 channel_ids: [0, 1, 2, 3]
 slice_ids: [10, 11, 12, 13, 14, 15]
 pos_ids: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
