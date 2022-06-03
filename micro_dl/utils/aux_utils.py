@@ -198,7 +198,7 @@ def get_sms_im_name(time_idx=None,
     """
 
     im_name = "img"
-    if np.isnan(channel_name):
+    if channel_name is not None:
         im_name += "_" + str(channel_name)
     if time_idx is not None:
         im_name += "_t" + str(time_idx).zfill(int2str_len)
