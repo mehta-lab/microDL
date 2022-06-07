@@ -1,10 +1,11 @@
 import itertools
 import os
 import pandas as pd
+import pickle
 import sys
-import zarr
 
 import micro_dl.utils.aux_utils as aux_utils
+import micro_dl.utils.image_utils as im_utils
 import micro_dl.utils.mp_utils as mp_utils
 
 
@@ -118,6 +119,7 @@ def ints_meta_generator(
         block_size=256,
         flat_field_dir=None,
         channel_ids=-1,
+        zarr_object=None,
         ):
     """
     Generate pixel intensity metadata for estimating image normalization
@@ -153,21 +155,20 @@ def ints_meta_generator(
     if not isinstance(channel_ids, list):
         # Use all channels
         channel_ids = frames_metadata['channel_idx'].unique()
+    # Pickle zarr object if passing it to multiprocessing
+    zarr_pickle = None
+    if zarr_object is not None:
+        zarr_pickle = pickle.dumps(zarr_object)
     mp_fn_args = []
     # Fill dataframe with rows from image names
     for i, meta_row in frames_metadata.iterrows():
-        im_path = os.path.join(input_dir, meta_row['file_name'])
-        ff_path = None
-        if flat_field_dir is not None:
-            channel_idx = meta_row['channel_idx']
-            if isinstance(channel_idx, (int, float)) and channel_idx in channel_ids:
-                ff_name = 'flat-field_channel-{}.npy'.format(channel_idx)
-                if ff_name in os.listdir(flat_field_dir):
-                    ff_path = os.path.join(
-                        flat_field_dir,
-                        ff_name,
-                    )
-        mp_fn_args.append((im_path, ff_path, block_size, meta_row))
+        channel_idx = meta_row['channel_idx']
+        ff_path = im_utils.get_flat_field_path(
+            flat_field_dir,
+            channel_idx,
+            channel_ids,
+        )
+        mp_fn_args.append((meta_row, ff_path, block_size, zarr_pickle))
 
     im_ints_list = mp_utils.mp_sample_im_pixels(mp_fn_args, num_workers)
     im_ints_list = list(itertools.chain.from_iterable(im_ints_list))

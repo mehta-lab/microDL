@@ -2,6 +2,7 @@ import cv2
 from concurrent.futures import ProcessPoolExecutor
 import numpy as np
 import os
+import pickle
 import sys
 
 import micro_dl.utils.aux_utils as aux_utils
@@ -490,7 +491,7 @@ def mp_sample_im_pixels(fn_args, workers):
     return list(res)
 
 
-def sample_im_pixels(im_path, ff_path, grid_spacing, meta_row):
+def sample_im_pixels(meta_row, ff_path, grid_spacing, zarr_pickle):
     """
     Read and computes statistics of images for each point in a grid.
     Grid spacing determines distance in pixels between grid points
@@ -498,13 +499,16 @@ def sample_im_pixels(im_path, ff_path, grid_spacing, meta_row):
     Applies flatfield correction prior to intensity sampling if flatfield
     path is specified.
 
-    :param str im_path: Full path to image
+    :param dict meta_row: Metadata row for image
     :param str ff_path: Full path to flatfield image corresponding to image
     :param int grid_spacing: Distance in pixels between sampling points
-    :param dict meta_row: Metadata row for image
+    :param bytes/None zarr_pickle: Pickled zarr object
     :return list meta_rows: Dicts with intensity data for each grid point
     """
-    im = image_utils.read_image(im_path)
+    zarr_object = None
+    if zarr_pickle is not None:
+        zarr_object = pickle.loads(zarr_pickle)
+    im = image_utils.read_image_from_row(meta_row, zarr_object)
     if ff_path is not None:
         im = image_utils.apply_flat_field_correction(
             input_image=im,

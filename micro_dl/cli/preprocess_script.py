@@ -184,6 +184,7 @@ def resize_images(required_params,
         int2str_len=required_params['int2strlen'],
         num_workers=required_params['num_workers'],
         flat_field_dir=flat_field_dir,
+        zarr_object=required_params['zarr_object'],
     )
 
     if resize_3d:
@@ -456,11 +457,7 @@ def pre_process(preprocess_config):
         # Create metadata from file names instead
         meta_utils.frames_meta_generator(
             input_dir=required_params['input_dir'],
-<<<<<<< HEAD
             zarr_object=required_params['zarr_object'],
-=======
-            zarr_file=required_params['zarr_file'],
->>>>>>> b0eb02da8bc4143225274054dd92dd3344bc9927
             order=order,
             name_parser=name_parser,
         )
@@ -521,6 +518,7 @@ def pre_process(preprocess_config):
             block_size=block_size,
             flat_field_dir=flat_field_dir,
             channel_ids=required_params['channel_ids'],
+            zarr_object=required_params['zarr_object'],
         )
 
     # -------------------------Resize images--------------------------
