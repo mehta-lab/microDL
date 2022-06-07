@@ -9,6 +9,7 @@ import pandas as pd
 import sys
 from scipy.ndimage.interpolation import zoom
 from skimage.transform import resize
+import zarr
 
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.io_utils as io_utils
@@ -288,7 +289,7 @@ def read_image(file_path):
     return im
 
 
-def read_image_from_row(meta_row):
+def read_image_from_row(meta_row, zarr_object=None):
     """
     Read 2D grayscale image from file.
     Checks file extension for npy and load array if true. Otherwise

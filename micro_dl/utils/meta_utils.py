@@ -1,10 +1,8 @@
 import glob
 import itertools
-import numpy as np
 import os
 import pandas as pd
 import sys
-import zarr
 
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.image_utils as im_utils
@@ -115,7 +113,7 @@ def frames_meta_from_zarr(input_dir, file_names):
                     meta_row['channel_idx'] = channel_idx
                     meta_row['slice_idx'] = slice_idx
                     meta_row['time_idx'] = time_idx
-                    meta_row['channel_name'] = channel_names[channel_idx]
+                    meta_row['channel_name'] = zarr_object.get_channel_names[channel_idx]
                     frames_meta.loc[idx] = meta_row
                     idx += 1
     return frames_meta
