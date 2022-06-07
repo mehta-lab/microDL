@@ -184,6 +184,7 @@ def resize_images(required_params,
         int2str_len=required_params['int2strlen'],
         num_workers=required_params['num_workers'],
         flat_field_dir=flat_field_dir,
+        zarr_object=required_params['zarr_object'],
     )
 
     if resize_3d:
