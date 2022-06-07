@@ -2,6 +2,7 @@ import itertools
 import os
 import pandas as pd
 import sys
+import zarr
 
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.mp_utils as mp_utils

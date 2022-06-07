@@ -456,7 +456,11 @@ def pre_process(preprocess_config):
         # Create metadata from file names instead
         meta_utils.frames_meta_generator(
             input_dir=required_params['input_dir'],
+<<<<<<< HEAD
             zarr_object=required_params['zarr_object'],
+=======
+            zarr_file=required_params['zarr_file'],
+>>>>>>> b0eb02da8bc4143225274054dd92dd3344bc9927
             order=order,
             name_parser=name_parser,
         )
