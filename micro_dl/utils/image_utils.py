@@ -260,7 +260,28 @@ def read_image(file_path):
     return im
 
 
-def read_image_from_row(meta_row):
+def get_flat_field_path(flat_field_dir, channel_idx, channel_ids):
+    """
+    Given channel and flatfield dir, check that corresponding flatfield
+    is present and returns its path.
+
+    :param str flat_field_dir: Flatfield directory
+    :param int channel_idx: Channel index for flatfield
+    :param list channel_ids: All channel indices being processed
+    """
+    ff_path = None
+    if flat_field_dir is not None:
+        if isinstance(channel_idx, (int, float)) and channel_idx in channel_ids:
+            ff_name = 'flat-field_channel-{}.npy'.format(channel_idx)
+            if ff_name in os.listdir(flat_field_dir):
+                ff_path = os.path.join(
+                    flat_field_dir,
+                    ff_name,
+                )
+    return ff_path
+
+
+def read_image_from_row(meta_row, zarr_object=None):
     """
     Read 2D grayscale image from file.
     Checks file extension for npy and load array if true. Otherwise
@@ -268,6 +289,7 @@ def read_image_from_row(meta_row):
     files) of any bit depth.
 
     :param pd.DataFrame meta_row: Row in metadata
+    :param None/class zarr_object: ZarrReader class instance if zarr data
     :return array im: 2D image
     :raise IOError if image can't be opened
     """
@@ -277,7 +299,7 @@ def read_image_from_row(meta_row):
         im = np.load(file_path)
     elif 'zarr' in file_path[-5:]:
         assert zarr_object is not None, "No zarr class instance present."
-
+        im = zarr_object.image_from_row(meta_row)
     else:
         # Assumes files are tiff or png
         im = cv2.imread(file_path, cv2.IMREAD_ANYDEPTH)
