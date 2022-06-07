@@ -8,6 +8,7 @@ import os
 import sys
 from scipy.ndimage.interpolation import zoom
 from skimage.transform import resize
+import zarr
 
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.normalize as normalize
@@ -259,7 +260,7 @@ def read_image(file_path):
     return im
 
 
-def read_image_from_row(meta_row):
+def read_image_from_row(meta_row, zarr_object=None):
     """
     Read 2D grayscale image from file.
     Checks file extension for npy and load array if true. Otherwise
@@ -270,10 +271,15 @@ def read_image_from_row(meta_row):
     :return array im: 2D image
     :raise IOError if image can't be opened
     """
+    file_path = os.path.join(meta_row['dir_name'], meta_row['file_name'])
 
     if file_path[-3:] == 'npy':
         im = np.load(file_path)
+    elif 'zarr' in file_path[-5:]:
+        assert zarr_object is not None, "No zarr class instance present."
+
     else:
+        # Assumes files are tiff or png
         im = cv2.imread(file_path, cv2.IMREAD_ANYDEPTH)
         if im is None:
             raise IOError('Image "{}" cannot be found.'.format(file_path))
@@ -462,3 +468,66 @@ def grid_sample_pixel_values(im, grid_spacing):
     return row_ids, col_ids, sample_values
 
 
+class ZarrData:
+
+    def __init__(self, input_dir, zarr_name):
+        """
+        Finds metadata for zarr file
+
+        :param str input_dir: Input directory
+        :param str zarr_name: Name of zarr file in input_dir
+        """
+        self.zarr_name = zarr_name
+        self.zarr_data = zarr.open(os.path.join(input_dir, zarr_name), mode='r')
+        plate_info = self.zarr_data.attrs.get('plate')
+
+        self.well_pos = []
+        # Assumes that the positions are indexed in the order of Row-->Well-->FOV
+        for well in plate_info['wells']:
+            for pos in self.zarr_data[well['path']].attrs.get('well').get('images'):
+                self.well_pos.append(
+                    {'well': well['path'], 'pos': pos['path']}
+                )
+
+        # Get channel names
+        first_pos = self.zarr_data[self.well_pos[0]['well']][self.well_pos[0]['pos']]
+        omero_meta = first_pos.attrs.asdict()['omero']
+        self.channel_names = []
+        for chan in omero_meta['channels']:
+            self.channel_names.append(chan['label'])
+
+        self.array_name = list(first_pos.array_keys())[0]
+        array_shape = first_pos[self.array_name].shape
+
+        self.nbr_pos = len(self.well_pos)
+        self.nbr_times = array_shape[0]
+        self.nbr_channels = array_shape[1]
+        self.nbr_slices = array_shape[2]
+
+        # If there isn't a channel name for each channel, set to nan
+        if len(self.channel_names) != self.nbr_channels:
+            self.channel_names = self.nbr_channels * [np.nan]
+
+    def get_pos(self):
+        return self.nbr_pos
+
+    def get_times(self):
+        return self.nbr_times
+
+    def get_channels(self):
+        return self.nbr_channels
+
+    def get_slices(self):
+        return self.nbr_slices
+
+    def get_channel_names(self):
+        return self.channel_names
+
+    def get_zarr_name(self):
+        return self.zarr_name
+
+    def image_from_row(self, meta_row):
+        well_pos_idx = self.well_pos[meta_row['pos_idx']]
+        array = self.zarr_data[well_pos_idx['well']][well_pos_idx['pos']][self.array_name]
+        im = array[meta_row['time_idx'], meta_row['channel_idx'], meta_row['slice_idx']]
+        return im
