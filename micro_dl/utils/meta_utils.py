@@ -8,12 +8,15 @@ import numpy as np
 >>>>>>> b0eb02d... sketching zarr support
 import os
 import pandas as pd
+import pickle
 import sys
-import zarr
 
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.image_utils as im_utils
+<<<<<<< HEAD
 import micro_dl.utils.io_utils as io_utils
+=======
+>>>>>>> 2a79c8c... updated flatfield for zarr
 import micro_dl.utils.mp_utils as mp_utils
 
 
@@ -205,7 +208,13 @@ def ints_meta_generator(
         num_workers=4,
         block_size=256,
         flat_field_dir=None,
+<<<<<<< HEAD
         channel_ids=-1):
+=======
+        channel_ids=-1,
+        zarr_object=None,
+        ):
+>>>>>>> 2a79c8c... updated flatfield for zarr
     """
     Generate pixel intensity metadata for estimating image normalization
     parameters during preprocessing step. Pixels are sub-sampled from the image
@@ -240,6 +249,10 @@ def ints_meta_generator(
     if not isinstance(channel_ids, list):
         # Use all channels
         channel_ids = frames_metadata['channel_idx'].unique()
+    # Pickle zarr object if passing it to multiprocessing
+    zarr_pickle = None
+    if zarr_object is not None:
+        zarr_pickle = pickle.dumps(zarr_object)
     mp_fn_args = []
     # Fill dataframe with rows from image names
     for i, meta_row in frames_metadata.iterrows():
@@ -249,7 +262,11 @@ def ints_meta_generator(
             channel_idx,
             channel_ids,
         )
+<<<<<<< HEAD
         mp_fn_args.append((meta_row, ff_path, block_size))
+=======
+        mp_fn_args.append((meta_row, ff_path, block_size, zarr_pickle))
+>>>>>>> 2a79c8c... updated flatfield for zarr
 
     im_ints_list = mp_utils.mp_sample_im_pixels(mp_fn_args, num_workers)
     im_ints_list = list(itertools.chain.from_iterable(im_ints_list))

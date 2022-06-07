@@ -23,7 +23,8 @@ class ImageResizer:
                  int2str_len=3,
                  num_workers=4,
                  flat_field_dir=None,
-                 flat_field_channels=[]):
+                 flat_field_channels=[],
+                 zarr_object=None):
         """
         :param str input_dir: Directory with image frames
         :param str output_dir: Base output directory
@@ -40,6 +41,7 @@ class ImageResizer:
         """
         self.input_dir = input_dir
         self.output_dir = output_dir
+        self.zarr_object = zarr_object
         if isinstance(scale_factor, list):
             scale_factor = np.array(scale_factor)
         assert np.all(scale_factor > 0), \

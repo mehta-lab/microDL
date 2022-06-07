@@ -2,6 +2,7 @@ import cv2
 from concurrent.futures import ProcessPoolExecutor
 import numpy as np
 import os
+import pickle
 import sys
 
 import micro_dl.utils.aux_utils as aux_utils
