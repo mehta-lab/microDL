@@ -15,7 +15,8 @@ class FlatFieldEstimator2D:
                  output_dir,
                  channel_ids,
                  slice_ids,
-                 block_size=32):
+                 block_size=32,
+                 zarr_object=None):
         """
         Flatfield images are estimated once per channel for 2D data
 
@@ -27,6 +28,7 @@ class FlatFieldEstimator2D:
         """
         self.input_dir = input_dir
         self.output_dir = output_dir
+        self.zarr_object = zarr_object
         # Create flat_field_dir as a subdirectory of output_dir
         self.flat_field_dir = os.path.join(self.output_dir,
                                            'flat_field_images')
@@ -69,7 +71,7 @@ class FlatFieldEstimator2D:
             summed_image = None
             # Average over all positions
             for idx, row in channel_metadata.iterrows():
-                im = im_utils.read_image_from_row(row)
+                im = im_utils.read_image_from_row(row, zarr_object)
                 if len(im.shape) == 3:
                     im = np.mean(im, axis=2)
                 if summed_image is None:

@@ -14,6 +14,7 @@ from micro_dl.preprocessing.tile_uniform_images import ImageTilerUniform
 from micro_dl.preprocessing.tile_nonuniform_images import \
     ImageTilerNonUniform
 import micro_dl.utils.aux_utils as aux_utils
+import micro_dl.utils.image_utils as im_utils
 import micro_dl.utils.meta_utils as meta_utils
 
 
@@ -98,11 +99,12 @@ def get_required_params(preprocess_config):
                         normalize_channels,
                     )
 
-    zarr_file = None
+    zarr_object = None
     if 'zarr_file' in preprocess_config:
         zarr_file = preprocess_config['zarr_file']
         assert 'zarr' in zarr_file.split('.')[-1], \
             "Zarr file {} doesn't have zarr extension".format(zarr_file)
+        zarr_object = im_utils.ZarrData(input_dir, zarr_file)
 
     required_params = {
         'input_dir': input_dir,
@@ -116,7 +118,7 @@ def get_required_params(preprocess_config):
         'normalize_channels': normalize_channels,
         'num_workers': num_workers,
         'normalize_im': normalize_im,
-        'zarr_file': zarr_file,
+        'zarr_object': zarr_object,
     }
     return required_params
 
@@ -138,6 +140,7 @@ def flat_field_correct(required_params, block_size, flat_field_channels):
         channel_ids=flat_field_channels,
         slice_ids=required_params['slice_ids'],
         block_size=block_size,
+        zarr_object=required_params['zarr_object'],
     )
     flat_field_inst.estimate_flat_field()
     flat_field_dir = flat_field_inst.get_flat_field_dir()
@@ -453,7 +456,7 @@ def pre_process(preprocess_config):
         # Create metadata from file names instead
         meta_utils.frames_meta_generator(
             input_dir=required_params['input_dir'],
-            zarr_file=required_params['zarr_file'],
+            zarr_object=required_params['zarr_object'],
             order=order,
             name_parser=name_parser,
         )

@@ -9,7 +9,6 @@ import micro_dl.utils.image_utils as image_utils
 import micro_dl.utils.masks as mask_utils
 import micro_dl.utils.tile_utils as tile_utils
 from micro_dl.utils.normalize import hist_clipping
-from micro_dl.utils.image_utils import im_adjust
 
 
 def mp_wrapper(fn, fn_args, workers):
@@ -74,7 +73,7 @@ def create_save_mask(input_fnames,
      to uint8.
     :param list channel_thrs: list of threshold for each channel to generate
     binary masks. Only used when mask_type is 'dataset_otsu'
-    :return dict cur_meta for each mask. fg_frac is added to metadata
+    :return dict cur_meta: One for each mask. fg_frac is added to metadata
             - how is it used?
     """
     if mask_type == 'dataset otsu':
@@ -142,7 +141,7 @@ def create_save_mask(input_fnames,
             # Note: Border weight map mask should only be generated from one binary image
         else:
             mask = image_utils.im_bit_convert(mask, bit=8, norm=True)
-            mask = im_adjust(mask)
+            mask = image_utils.im_adjust(mask)
             im_mean = np.mean(im_stack, axis=-1)
             im_mean = hist_clipping(im_mean, 1, 99)
             im_alpha = 255 / (np.max(im_mean) - np.min(im_mean) + sys.float_info.epsilon)
