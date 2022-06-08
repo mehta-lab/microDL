@@ -448,6 +448,27 @@ def read_imstack_from_meta(frames_meta_sub,
     return input_image
 
 
+def get_flat_field_path(flat_field_dir, channel_idx, channel_ids):
+    """
+    Given channel and flatfield dir, check that corresponding flatfield
+    is present and returns its path.
+
+    :param str flat_field_dir: Flatfield directory
+    :param int channel_idx: Channel index for flatfield
+    :param list channel_ids: All channel indices being processed
+    """
+    ff_path = None
+    if flat_field_dir is not None:
+        if isinstance(channel_idx, (int, float)) and channel_idx in channel_ids:
+            ff_name = 'flat-field_channel-{}.npy'.format(channel_idx)
+            if ff_name in os.listdir(flat_field_dir):
+                ff_path = os.path.join(
+                    flat_field_dir,
+                    ff_name,
+                )
+    return ff_path
+
+
 def read_imstack(input_fnames,
                  flat_field_fnames=None,
                  hist_clip_limits=None,

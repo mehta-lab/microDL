@@ -353,11 +353,10 @@ def mp_resize_save(mp_args, workers):
     :param int workers: max number of workers
     """
     with ProcessPoolExecutor(workers) as ex:
-        res = ex.map(resize_and_save, *zip(*mp_args))
-    return list(res)
+        {ex.submit(resize_and_save, **kwargs): kwargs for kwargs in mp_args}
 
 
-def resize_and_save(meta_row, output_dir, scale_factor, ff_path, zarr_bytes):
+def resize_and_save(**kwargs):
     """
     Resizing images and saving them.
 
@@ -377,7 +376,7 @@ def resize_and_save(meta_row, output_dir, scale_factor, ff_path, zarr_bytes):
         )
     im_resized = image_utils.rescale_image(
         im=im,
-        scale_factor=scale_factor,
+        scale_factor=kwargs['scale_factor'],
     )
     # Write image
     # TODO: will we keep this functionality and thus write to zarr?
@@ -428,6 +427,7 @@ def rescale_vol_and_save(time_idx,
     :param str output_fname: output_fname
     :param float/list scale_factor: scale factor for resizing
     :param str/None ff_path: path to flat field image
+    :param bytes zarr_bytes: Serialized zarr object
     """
     input_stack = []
     for slice_idx in range(slice_start_idx, slice_end_idx):
