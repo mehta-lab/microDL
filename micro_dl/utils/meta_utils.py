@@ -148,6 +148,7 @@ def ints_meta_generator(
         well for 2048 X 2048 images.
     :param str flat_field_dir: Directory containing flatfield images
     :param list/int channel_ids: Channel indices to process
+    :param class zarr_object: Class for handling ome-zarr data
     """
     if block_size is None:
         block_size = 256
@@ -155,10 +156,8 @@ def ints_meta_generator(
     if not isinstance(channel_ids, list):
         # Use all channels
         channel_ids = frames_metadata['channel_idx'].unique()
-    # Pickle zarr object if passing it to multiprocessing
-    zarr_pickle = None
-    if zarr_object is not None:
-        zarr_pickle = pickle.dumps(zarr_object)
+    # Pickle zarr object for passing it to multiprocessing
+    zarr_bytes = pickle.dumps(zarr_object)
     mp_fn_args = []
     # Fill dataframe with rows from image names
     for i, meta_row in frames_metadata.iterrows():
@@ -168,7 +167,7 @@ def ints_meta_generator(
             channel_idx,
             channel_ids,
         )
-        mp_fn_args.append((meta_row, ff_path, block_size, zarr_pickle))
+        mp_fn_args.append((meta_row, ff_path, block_size, zarr_bytes))
 
     im_ints_list = mp_utils.mp_sample_im_pixels(mp_fn_args, num_workers)
     im_ints_list = list(itertools.chain.from_iterable(im_ints_list))

@@ -39,7 +39,7 @@ def mp_create_save_mask(fn_args, workers):
 
 
 def create_save_mask(input_fnames,
-                     flat_field_fname,
+                     flat_field_fnames,
                      str_elem_radius,
                      mask_dir,
                      mask_channel_idx,
@@ -56,8 +56,8 @@ def create_save_mask(input_fnames,
     When >1 channel are used to generate the mask, mask of each channel is
     generated then added together.
 
-    :param tuple input_fnames: tuple of input fnames with full path
-    :param str/None flat_field_fname: fname of flat field image
+    :param list input_fnames: Input file names with full path
+    :param list flat_field_fnames: Paths to corresponding flat field images
     :param int str_elem_radius: size of structuring element used for binary
      opening. str_elem: disk or ball
     :param str mask_dir: dir to save masks
@@ -82,7 +82,7 @@ def create_save_mask(input_fnames,
             'channel threshold is required for mask_type="dataset otsu"'
     im_stack = image_utils.read_imstack(
         input_fnames,
-        flat_field_fname,
+        flat_field_fnames,
         normalize_im=None,
     )
     masks = []
@@ -226,7 +226,7 @@ def tile_and_save(input_fnames,
               .format(time_idx, pos_idx, slice_idx, channel_idx))
         input_image = image_utils.read_imstack(
             input_fnames=input_fnames,
-            flat_field_fname=flat_field_fname,
+            flat_field_fnames=flat_field_fname,
             hist_clip_limits=hist_clip_limits,
             is_mask=is_mask,
             normalize_im=normalize_im,
@@ -313,7 +313,7 @@ def crop_at_indices_save(input_fnames,
               .format(time_idx, pos_idx, slice_idx, channel_idx))
         input_image = image_utils.read_imstack(
             input_fnames=input_fnames,
-            flat_field_fname=flat_field_fname,
+            flat_field_fnames=flat_field_fname,
             hist_clip_limits=hist_clip_limits,
             is_mask=is_mask,
             normalize_im=normalize_im,
@@ -354,31 +354,35 @@ def mp_resize_save(mp_args, workers):
     :param int workers: max number of workers
     """
     with ProcessPoolExecutor(workers) as ex:
-        {ex.submit(resize_and_save, **kwargs): kwargs for kwargs in mp_args}
+        res = ex.map(resize_and_save, *zip(*mp_args))
+    return list(res)
 
 
-def resize_and_save(**kwargs):
+def resize_and_save(meta_row, output_dir, scale_factor, ff_path, zarr_bytes):
     """
     Resizing images and saving them
-    :param kwargs: Keyword arguments:
-    str file_path: Path to input image
-    str write_path: Path to image to be written
-    float scale_factor: Scale factor for resizing
-    str ff_path: path to flat field correction image
-    """
 
-    im = image_utils.read_image(kwargs['file_path'])
-    if kwargs['ff_path'] is not None:
+    :param pd.DataFrame meta_row: Row of metadata
+    :param str output_dir: Path to output directory
+    :param float scale_factor: Scale factor for resizing
+    :param str ff_path: Path to flatfield image
+    :param bytes zarr_bytes: Pickled zarr object
+    """
+    zarr_object = pickle.loads(zarr_bytes)
+    im = image_utils.read_image_from_row(meta_row, zarr_object)
+
+    if ff_path is not None:
         im = image_utils.apply_flat_field_correction(
             im,
-            flat_field_patjh=kwargs['ff_path'],
+            flat_field_path=ff_path,
         )
     im_resized = image_utils.rescale_image(
         im=im,
-        scale_factor=kwargs['scale_factor'],
+        scale_factor=scale_factor,
     )
     # Write image
-    cv2.imwrite(kwargs['write_path'], im_resized)
+    write_path = os.path.join(output_dir, meta_row["file_name"])
+    cv2.imwrite(write_path, im_resized)
 
 
 def mp_rescale_vol(fn_args, workers):
@@ -491,7 +495,7 @@ def mp_sample_im_pixels(fn_args, workers):
     return list(res)
 
 
-def sample_im_pixels(meta_row, ff_path, grid_spacing, zarr_pickle):
+def sample_im_pixels(meta_row, ff_path, grid_spacing, zarr_bytes):
     """
     Read and computes statistics of images for each point in a grid.
     Grid spacing determines distance in pixels between grid points
@@ -502,12 +506,10 @@ def sample_im_pixels(meta_row, ff_path, grid_spacing, zarr_pickle):
     :param dict meta_row: Metadata row for image
     :param str ff_path: Full path to flatfield image corresponding to image
     :param int grid_spacing: Distance in pixels between sampling points
-    :param bytes/None zarr_pickle: Pickled zarr object
+    :param bytes zarr_bytes: Pickled zarr object
     :return list meta_rows: Dicts with intensity data for each grid point
     """
-    zarr_object = None
-    if zarr_pickle is not None:
-        zarr_object = pickle.loads(zarr_pickle)
+    zarr_object = pickle.loads(zarr_bytes)
     im = image_utils.read_image_from_row(meta_row, zarr_object)
     if ff_path is not None:
         im = image_utils.apply_flat_field_correction(

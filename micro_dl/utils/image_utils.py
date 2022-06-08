@@ -309,7 +309,7 @@ def read_image_from_row(meta_row, zarr_object=None):
 
 
 def read_imstack(input_fnames,
-                 flat_field_fname=None,
+                 flat_field_fnames=None,
                  hist_clip_limits=None,
                  is_mask=False,
                  normalize_im=None,
@@ -319,8 +319,8 @@ def read_imstack(input_fnames,
     Read the images in the fnames and assembles a stack.
     If images are masks, make sure they're boolean by setting >0 to True
 
-    :param tuple/list input_fnames: tuple of input fnames with full path
-    :param str flat_field_fname: fname of flat field image
+    :param tuple/list input_fnames: Paths to input files
+    :param str/list flat_field_fnames: Path(s) to flat field image(s)
     :param tuple hist_clip_limits: limits for histogram clipping
     :param bool is_mask: Indicator for if files contain masks
     :param bool/None normalize_im: Whether to zscore normalize im stack
@@ -330,23 +330,21 @@ def read_imstack(input_fnames,
         images, booleans if they're masks
     """
     im_stack = []
+    if isinstance(flat_field_fnames, list):
+        assert len(flat_field_fnames) == len(input_fnames), \
+            "Number of flatfields don't match number of input images"
+    else:
+        flat_field_fnames = len(input_fnames) * [flat_field_fnames]
+
     for idx, fname in enumerate(input_fnames):
         im = read_image(fname)
+        flat_field_fname = flat_field_fnames[idx]
         if flat_field_fname is not None:
-            # multiple flat field images are passed in case of mask generation
-            try:
-                if isinstance(flat_field_fname, (list, tuple)):
-                    if flat_field_fname is not None:
-                        flat_field_image = np.load(flat_field_fname[idx])
-                else:
-                    flat_field_image = np.load(flat_field_fname)
-                if not is_mask and not normalize_im:
-                    im = apply_flat_field_correction(
-                        im,
-                        flat_field_image=flat_field_image,
-                    )
-            except FileNotFoundError:
-                print("Flatfield image not found, correction not applied.")
+            if not is_mask and not normalize_im:
+                im = apply_flat_field_correction(
+                    im,
+                    flat_field_path=flat_field_fname,
+                )
         im_stack.append(im)
 
     input_image = np.stack(im_stack, axis=-1)
@@ -491,6 +489,13 @@ def grid_sample_pixel_values(im, grid_spacing):
 
 
 class ZarrData:
+    """
+    Handles zarr data in a class that is serializable, thus suitable
+    for multiprocessing.
+    Note: There is an ome-zarr-py package in PyPI but I can't currently
+    make it work with the version 1 ome-zarr dataset I'm prototyping with.
+    https://ome-zarr.readthedocs.io/en/stable/index.html
+    """
 
     def __init__(self, input_dir, zarr_name):
         """
