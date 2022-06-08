@@ -88,9 +88,15 @@ class ImageResizer:
         assert isinstance(self.scale_factor, (float, int)), \
             'different scale factors provided for x and y'
         mp_args = []
-        resized_metadata = aux_utils.make_dataframe()
-        # Loop through all the indices and resize images
-        for i, meta_row in self.frames_metadata.iterrows():
+        # Loop through all the given indices and resize images
+        resized_metadata = aux_utils.get_sub_meta(
+            self.frames_metadata,
+            self.time_ids,
+            self.channel_ids,
+            self.slice_ids,
+            self.pos_ids,
+        )
+        for i, meta_row in resized_metadata.iterrows():
             ff_path = im_utils.get_flat_field_path(
                 self.flat_field_dir,
                 meta_row['channel_idx'],
@@ -106,7 +112,6 @@ class ImageResizer:
             mp_args.append(kwargs)
         # Multiprocessing of kwargs
         mp_utils.mp_resize_save(mp_args, self.num_workers)
-        resized_metadata = self.frames_metadata.copy()
         resized_metadata['dir_name'] = self.resize_dir
         resized_metadata = resized_metadata.sort_values(by=['file_name'])
         resized_metadata.to_csv(
@@ -147,15 +152,15 @@ class ImageResizer:
                     for block_idx in range(num_blocks):
                         idx = self.slice_ids[0] + \
                               block_idx * (num_slices_subvolume - 1)
-                        start_idx = np.maximum(self.slice_ids[0], idx)
-                        end_idx = start_idx + num_slices_subvolume
-                        if end_idx > self.slice_ids[-1]:
-                            end_idx = self.slice_ids[-1] + 1
-                            start_idx = end_idx - num_slices_subvolume
+                        slice_start_idx = np.maximum(self.slice_ids[0], idx)
+                        slice_end_idx = slice_start_idx + num_slices_subvolume
+                        if slice_end_idx > self.slice_ids[-1]:
+                            slice_end_idx = self.slice_ids[-1] + 1
+                            slice_start_idx = slice_end_idx - num_slices_subvolume
                         op_fname = aux_utils.get_im_name(
                             time_idx,
                             channel_idx,
-                            start_idx,
+                            slice_start_idx,
                             pos_idx,
                             extra_field=sc_str,
                             ext='.npy',
@@ -164,17 +169,18 @@ class ImageResizer:
                         mp_args.append((time_idx,
                                         pos_idx,
                                         channel_idx,
-                                        start_idx,
-                                        end_idx,
+                                        slice_start_idx,
+                                        slice_end_idx,
                                         self.frames_metadata,
                                         write_fpath,
                                         self.scale_factor,
-                                        self.input_dir,
-                                        ff_path))
+                                        ff_path,
+                                        self.zarr_bytes))
 
         # Multiprocessing of kwargs
         resized_metadata_list = mp_utils.mp_rescale_vol(mp_args, self.num_workers)
         resized_metadata_df = pd.DataFrame.from_dict(resized_metadata_list)
+        resized_metadata_df['dir_name'] = self.resize_dir
         resized_metadata_df.to_csv(
             os.path.join(self.resize_dir, 'frames_meta.csv'),
             sep=',',
