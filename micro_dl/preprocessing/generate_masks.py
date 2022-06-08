@@ -3,6 +3,7 @@ import os
 import pandas as pd
 
 import micro_dl.utils.aux_utils as aux_utils
+import micro_dl.utils.image_utils as im_utils
 from micro_dl.utils.mp_utils import mp_create_save_mask
 from skimage.filters import threshold_otsu
 
@@ -153,47 +154,35 @@ class MaskProcessor:
         :param list channel_ids: channel ids to use for generating mask
         :param int slice_idx: Slice index
         :param int pos_idx: Position index
-        :return np.array im: image corresponding to the given channel indices
-            and flatfield corrected
+        :return list input_fnames: Paths to image(s) corresponding to the
+            given channel indices.
+        :return list flat_field_fnames: Paths to flatfields
         """
-
         input_fnames = []
+        flat_field_fnames = []
         for channel_idx in channel_ids:
-            frame_idx = aux_utils.get_meta_idx(self.frames_metadata,
-                                               time_idx,
-                                               channel_idx,
-                                               slice_idx,
-                                               pos_idx)
+            frame_idx = aux_utils.get_meta_idx(
+                self.frames_metadata,
+                time_idx,
+                channel_idx,
+                slice_idx,
+                pos_idx,
+            )
             file_path = os.path.join(
                 self.input_dir,
                 self.frames_metadata.loc[frame_idx, 'file_name'],
             )
             input_fnames.append(file_path)
 
-        flat_field_fname = None
-        if self.flat_field_dir is not None:
-            if isinstance(channel_idx, (int, float)):
-                ff_name = 'flat-field_channel-{}.npy'.format(channel_idx)
-                if ff_name in os.listdir(self.flat_field_dir):
-                    flat_field_fname = os.path.join(
-                        self.flat_field_dir,
-                        ff_name,
-                    )
-            elif isinstance(channel_idx, (tuple, list)):
-                flat_field_fname = []
-                for ch_idx in channel_idx:
-                    ff_name = 'flat-field_channel-{}.npy'.format(ch_idx)
-                    if ff_name in os.listdir(self.flat_field_dir):
-                        flat_field_fname.append(os.path.join(
-                            self.flat_field_dir,
-                            ff_name,
-                        ))
-                    else:
-                        flat_field_fname.append(None)
-        return tuple(input_fnames), flat_field_fname
+            ff_path = im_utils.get_flat_field_path(
+                self.flat_field_dir,
+                channel_idx,
+                channel_ids,
+            )
+            flat_field_fnames.append(ff_path)
+        return input_fnames, flat_field_fnames
 
-    def generate_masks(self,
-                       str_elem_radius=5):
+    def generate_masks(self, str_elem_radius=5):
         """
         Generate masks from flat-field corrected flurophore images.
         The sum of flurophore channels is thresholded to generate a foreground
@@ -212,7 +201,7 @@ class MaskProcessor:
         if self.uniform_struct:
             for id_row in id_df.to_numpy():
                 dir_name, time_idx, pos_idx, slice_idx = id_row
-                input_fnames, ff_fname = self._get_args_read_image(
+                input_fnames, ff_fnames = self._get_args_read_image(
                     time_idx=time_idx,
                     channel_ids=self.channel_ids,
                     slice_idx=slice_idx,
@@ -222,7 +211,7 @@ class MaskProcessor:
                     channel_thrs = self.channel_thr_df.loc[
                         self.channel_thr_df['dir_name'] == dir_name, 'intensity'].to_numpy()
                 cur_args = (input_fnames,
-                            ff_fname,
+                            ff_fnames,
                             str_elem_radius,
                             self.mask_dir,
                             self.mask_channel,
@@ -239,14 +228,14 @@ class MaskProcessor:
                 mask_channel_dict = tp_dict[self.channel_ids[0]]
                 for pos_idx, sl_idx_list in mask_channel_dict.items():
                     for sl_idx in sl_idx_list:
-                        input_fnames, ff_fname = self._get_args_read_image(
+                        input_fnames, ff_fnames = self._get_args_read_image(
                             time_idx=tp_idx,
                             channel_ids=self.channel_ids,
                             slice_idx=sl_idx,
                             pos_idx=pos_idx,
                         )
                         cur_args = (input_fnames,
-                                    ff_fname,
+                                    ff_fnames,
                                     str_elem_radius,
                                     self.mask_dir,
                                     self.mask_channel,
