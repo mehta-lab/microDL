@@ -260,27 +260,6 @@ def read_image(file_path):
     return im
 
 
-def get_flat_field_path(flat_field_dir, channel_idx, channel_ids):
-    """
-    Given channel and flatfield dir, check that corresponding flatfield
-    is present and returns its path.
-
-    :param str flat_field_dir: Flatfield directory
-    :param int channel_idx: Channel index for flatfield
-    :param list channel_ids: All channel indices being processed
-    """
-    ff_path = None
-    if flat_field_dir is not None:
-        if isinstance(channel_idx, (int, float)) and channel_idx in channel_ids:
-            ff_name = 'flat-field_channel-{}.npy'.format(channel_idx)
-            if ff_name in os.listdir(flat_field_dir):
-                ff_path = os.path.join(
-                    flat_field_dir,
-                    ff_name,
-                )
-    return ff_path
-
-
 def read_image_from_row(meta_row, zarr_object=None):
     """
     Read 2D grayscale image from file.
@@ -306,6 +285,27 @@ def read_image_from_row(meta_row, zarr_object=None):
         if im is None:
             raise IOError('Image "{}" cannot be found.'.format(file_path))
     return im
+
+
+def get_flat_field_path(flat_field_dir, channel_idx, channel_ids):
+    """
+    Given channel and flatfield dir, check that corresponding flatfield
+    is present and returns its path.
+
+    :param str flat_field_dir: Flatfield directory
+    :param int channel_idx: Channel index for flatfield
+    :param list channel_ids: All channel indices being processed
+    """
+    ff_path = None
+    if flat_field_dir is not None:
+        if isinstance(channel_idx, (int, float)) and channel_idx in channel_ids:
+            ff_name = 'flat-field_channel-{}.npy'.format(channel_idx)
+            if ff_name in os.listdir(flat_field_dir):
+                ff_path = os.path.join(
+                    flat_field_dir,
+                    ff_name,
+                )
+    return ff_path
 
 
 def read_imstack(input_fnames,
@@ -554,6 +554,9 @@ class ZarrData:
         return self.zarr_name
 
     def image_from_row(self, meta_row):
+        """
+        Fetches an image given indices of position, time, channel and slice.
+        """
         well_pos_idx = self.well_pos[meta_row['pos_idx']]
         array = self.zarr_data[well_pos_idx['well']][well_pos_idx['pos']][self.array_name]
         im = array[meta_row['time_idx'], meta_row['channel_idx'], meta_row['slice_idx']]

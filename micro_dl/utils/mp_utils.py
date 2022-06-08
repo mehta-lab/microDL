@@ -350,38 +350,39 @@ def mp_resize_save(mp_args, workers):
     """
     Resize and save images with multiprocessing
 
-    :param dict mp_args: Function keyword arguments
+    :param list mp_args: Function keyword arguments
     :param int workers: max number of workers
     """
     with ProcessPoolExecutor(workers) as ex:
-        res = ex.map(resize_and_save, *zip(*mp_args))
-    return list(res)
+        {ex.submit(resize_and_save, **kwargs): kwargs for kwargs in mp_args}
 
 
-def resize_and_save(meta_row, output_dir, scale_factor, ff_path, zarr_bytes):
+def resize_and_save(**kwargs):
     """
-    Resizing images and saving them
+    Resizing images and saving them.
 
+    Keyword arguments:
     :param pd.DataFrame meta_row: Row of metadata
     :param str output_dir: Path to output directory
     :param float scale_factor: Scale factor for resizing
     :param str ff_path: Path to flatfield image
     :param bytes zarr_bytes: Pickled zarr object
     """
-    zarr_object = pickle.loads(zarr_bytes)
+    zarr_object = pickle.loads(kwargs['zarr_bytes'])
+    meta_row = kwargs['meta_row']
     im = image_utils.read_image_from_row(meta_row, zarr_object)
 
-    if ff_path is not None:
+    if kwargs['ff_path'] is not None:
         im = image_utils.apply_flat_field_correction(
             im,
-            flat_field_path=ff_path,
+            flat_field_path=kwargs['ff_path'],
         )
     im_resized = image_utils.rescale_image(
         im=im,
-        scale_factor=scale_factor,
+        scale_factor=kwargs['scale_factor'],
     )
     # Write image
-    write_path = os.path.join(output_dir, meta_row["file_name"])
+    write_path = os.path.join(kwargs['output_dir'], meta_row["file_name"])
     cv2.imwrite(write_path, im_resized)
 
 
@@ -401,36 +402,38 @@ def mp_rescale_vol(fn_args, workers):
 def rescale_vol_and_save(time_idx,
                          pos_idx,
                          channel_idx,
-                         sl_start_idx,
-                         sl_end_idx,
+                         slice_start_idx,
+                         slice_end_idx,
                          frames_metadata,
                          output_fname,
                          scale_factor,
-                         input_dir,
-                         ff_path):
+                         ff_path,
+                         zarr_bytes):
     """Rescale volumes and save
 
     :param int time_idx: time point of input image
     :param int pos_idx: sample idx of input image
     :param int channel_idx: channel idx of input image
-    :param int sl_start_idx: start slice idx for the vol to be saved
-    :param int sl_end_idx: end slice idx for the vol to be saved
+    :param int slice_start_idx: start slice idx for the vol to be saved
+    :param int slice_end_idx: end slice idx for the vol to be saved
     :param pd.Dataframe frames_metadata: metadata for the input slices
     :param str output_fname: output_fname
     :param float/list scale_factor: scale factor for resizing
-    :param str input_dir: input dir for 2D images
     :param str/None ff_path: path to flat field image
+    :param bytes zarr_bytes: Serialized zarr object
     """
-
+    zarr_object = pickle.loads(zarr_bytes)
     input_stack = []
-    for sl_idx in range(sl_start_idx, sl_end_idx):
-        meta_idx = aux_utils.get_meta_idx(frames_metadata,
-                                          time_idx,
-                                          channel_idx,
-                                          sl_idx,
-                                          pos_idx)
-        cur_fname = frames_metadata.loc[meta_idx, 'file_name']
-        cur_img = image_utils.read_image(os.path.join(input_dir, cur_fname))
+    for slice_idx in range(slice_start_idx, slice_end_idx):
+        meta_idx = aux_utils.get_meta_idx(
+            frames_metadata,
+            time_idx,
+            channel_idx,
+            slice_idx,
+            pos_idx,
+        )
+        meta_row = frames_metadata.loc[meta_idx]
+        cur_img = image_utils.read_image_from_row(meta_row, zarr_object)
         if ff_path is not None:
             cur_img = image_utils.apply_flat_field_correction(
                 cur_img,
@@ -443,7 +446,7 @@ def rescale_vol_and_save(time_idx,
     cur_metadata = {'time_idx': time_idx,
                     'pos_idx': pos_idx,
                     'channel_idx': channel_idx,
-                    'slice_idx': sl_start_idx,
+                    'slice_idx': slice_start_idx,
                     'file_name': os.path.basename(output_fname),
                     'mean': np.mean(resc_vol),
                     'std': np.std(resc_vol)}

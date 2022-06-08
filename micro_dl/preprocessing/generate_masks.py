@@ -25,7 +25,7 @@ class MaskProcessor:
                  mask_type='otsu',
                  mask_channel=None,
                  mask_ext='.npy',
-                 ):
+                 zarr_object=None):
         """
         :param str input_dir: Directory with image frames
         :param str output_dir: Base output directory
@@ -50,12 +50,13 @@ class MaskProcessor:
             dir, which could lead to wrong mask channel being assigned.
         :param str mask_ext: '.npy' or 'png'. Save the mask as uint8 PNG or
             NPY files
-        :param bool normalize_im: indicator to normalize image based on z-score or not
+        :param class zarr_object: class ZarrReader instance for zarr data
         """
 
         self.input_dir = input_dir
         self.output_dir = output_dir
         self.flat_field_dir = flat_field_dir
+        self.zarr_object = zarr_object
         self.num_workers = num_workers
 
         self.frames_metadata = aux_utils.read_meta(self.input_dir)
@@ -191,7 +192,6 @@ class MaskProcessor:
         :param int str_elem_radius: Radius of structuring element for
          morphological operations
         """
-
         # Loop through all the indices and create masks
         fn_args = []
         id_df = self.frames_meta_sub[

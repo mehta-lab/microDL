@@ -249,6 +249,7 @@ def generate_masks(required_params,
         mask_type=mask_type,
         mask_channel=mask_channel,
         mask_ext=mask_ext,
+        zarr_object=required_params['zarr_object'],
     )
 
     mask_processor_inst.generate_masks(
