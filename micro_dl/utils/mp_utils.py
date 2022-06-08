@@ -353,10 +353,11 @@ def mp_resize_save(mp_args, workers):
     :param int workers: max number of workers
     """
     with ProcessPoolExecutor(workers) as ex:
-        {ex.submit(resize_and_save, **kwargs): kwargs for kwargs in mp_args}
+        res = ex.map(resize_and_save, *zip(*mp_args))
+    return list(res)
 
 
-def resize_and_save(**kwargs):
+def resize_and_save(meta_row, output_dir, scale_factor, ff_path, zarr_bytes):
     """
     Resizing images and saving them.
 
@@ -376,7 +377,7 @@ def resize_and_save(**kwargs):
         )
     im_resized = image_utils.rescale_image(
         im=im,
-        scale_factor=kwargs['scale_factor'],
+        scale_factor=scale_factor,
     )
     # Write image
     # TODO: will we keep this functionality and thus write to zarr?

@@ -143,6 +143,7 @@ class MaskProcessor:
         Get flatfield paths for channels.
 
         :param list channel_ids: channel ids to use for generating mask
+<<<<<<< HEAD
         :return list flat_field_fnames: Paths to flatfields
         """
         flat_field_fnames = []
@@ -156,6 +157,37 @@ class MaskProcessor:
             )
             flat_field_fnames.append(ff_path)
         return flat_field_fnames
+=======
+        :param int slice_idx: Slice index
+        :param int pos_idx: Position index
+        :return list input_fnames: Paths to image(s) corresponding to the
+            given channel indices.
+        :return list flat_field_fnames: Paths to flatfields
+        """
+        input_fnames = []
+        flat_field_fnames = []
+        for channel_idx in channel_ids:
+            frame_idx = aux_utils.get_meta_idx(
+                self.frames_metadata,
+                time_idx,
+                channel_idx,
+                slice_idx,
+                pos_idx,
+            )
+            file_path = os.path.join(
+                self.input_dir,
+                self.frames_metadata.loc[frame_idx, 'file_name'],
+            )
+            input_fnames.append(file_path)
+
+            ff_path = im_utils.get_flat_field_path(
+                self.flat_field_dir,
+                channel_idx,
+                channel_ids,
+            )
+            flat_field_fnames.append(ff_path)
+        return input_fnames, flat_field_fnames
+>>>>>>> 58e1c60... adding zarr to resize
 
     def generate_masks(self, str_elem_radius=5):
         """
@@ -175,6 +207,7 @@ class MaskProcessor:
         if self.uniform_struct:
             for id_row in id_df.to_numpy():
                 dir_name, time_idx, pos_idx, slice_idx = id_row
+<<<<<<< HEAD
                 channels_meta_sub = aux_utils.get_sub_meta(
                     frames_metadata=self.frames_metadata,
                     time_ids=time_idx,
@@ -183,12 +216,20 @@ class MaskProcessor:
                     pos_ids=pos_idx,
                 )
                 ff_fnames = self._get_ff_paths(
+=======
+                input_fnames, ff_fnames = self._get_args_read_image(
+                    time_idx=time_idx,
+>>>>>>> 58e1c60... adding zarr to resize
                     channel_ids=self.channel_ids,
                 )
                 if self.mask_type == 'dataset otsu':
                     channel_thrs = self.channel_thr_df.loc[
                         self.channel_thr_df['dir_name'] == dir_name, 'intensity'].to_numpy()
+<<<<<<< HEAD
                 cur_args = (channels_meta_sub,
+=======
+                cur_args = (input_fnames,
+>>>>>>> 58e1c60... adding zarr to resize
                             ff_fnames,
                             str_elem_radius,
                             self.mask_dir,
@@ -203,6 +244,7 @@ class MaskProcessor:
                 mask_channel_dict = tp_dict[self.channel_ids[0]]
                 for pos_idx, sl_idx_list in mask_channel_dict.items():
                     for sl_idx in sl_idx_list:
+<<<<<<< HEAD
                         channels_meta_sub = aux_utils.get_sub_meta(
                             frames_metadata=self.frames_metadata,
                             time_ids=tp_idx,
@@ -211,9 +253,17 @@ class MaskProcessor:
                             pos_ids=pos_idx,
                         )
                         ff_fnames = self._get_ff_paths(
+=======
+                        input_fnames, ff_fnames = self._get_args_read_image(
+                            time_idx=tp_idx,
+>>>>>>> 58e1c60... adding zarr to resize
                             channel_ids=self.channel_ids,
                         )
+<<<<<<< HEAD
                         cur_args = (channels_meta_sub,
+=======
+                        cur_args = (input_fnames,
+>>>>>>> 58e1c60... adding zarr to resize
                                     ff_fnames,
                                     str_elem_radius,
                                     self.mask_dir,

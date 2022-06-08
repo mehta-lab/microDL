@@ -3,6 +3,7 @@
 import numpy as np
 import os
 import pandas as pd
+import pickle
 
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.image_utils as im_utils
@@ -41,7 +42,7 @@ class ImageResizer:
         """
         self.input_dir = input_dir
         self.output_dir = output_dir
-        self.zarr_object = zarr_object
+        self.zarr_bytes = pickle.dumps(zarr_object)
         if isinstance(scale_factor, list):
             scale_factor = np.array(scale_factor)
         assert np.all(scale_factor > 0), \
@@ -106,6 +107,7 @@ class ImageResizer:
                 'output_dir': self.resize_dir,
                 'scale_factor': self.scale_factor,
                 'ff_path': ff_path,
+                'zarr_bytes': self.zarr_bytes,
             }
             mp_args.append(kwargs)
         # Multiprocessing of kwargs
