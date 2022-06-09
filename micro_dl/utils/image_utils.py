@@ -153,12 +153,20 @@ def apply_flat_field_correction(input_image, **kwargs):
     if 'flat_field_image' in kwargs:
         flat_field_im = kwargs['flat_field_image']
         if flat_field_im is not None:
+<<<<<<< HEAD
             corrected_image = input_image.astype('float') / flat_field_im
+=======
+            corrected_image = input_image / flat_field_im
+>>>>>>> d3bde57... adding zarr to tiling
     elif 'flat_field_path' in kwargs:
         flat_field_path = kwargs['flat_field_path']
         if flat_field_path is not None:
             flat_field_image = np.load(flat_field_path)
+<<<<<<< HEAD
             corrected_image = input_image.astype('float') / flat_field_image
+=======
+            corrected_image = input_image / flat_field_image
+>>>>>>> d3bde57... adding zarr to tiling
     else:
         print("Incorrect kwargs: {}, returning input image".format(kwargs))
     return corrected_image
@@ -343,6 +351,7 @@ def get_flat_field_path(flat_field_dir, channel_idx, channel_ids):
     return ff_path
 
 
+<<<<<<< HEAD
 def preprocess_image(im,
                      hist_clip_limits=None,
                      is_mask=False,
@@ -382,6 +391,10 @@ def preprocess_image(im,
 
 
 def read_imstack_from_meta(frames_meta_sub,
+=======
+def read_imstack_from_meta(frames_meta_sub,
+                           zarr_object=None,
+>>>>>>> d3bde57... adding zarr to tiling
                            flat_field_fnames=None,
                            hist_clip_limits=None,
                            is_mask=False,
@@ -389,12 +402,22 @@ def read_imstack_from_meta(frames_meta_sub,
                            zscore_mean=None,
                            zscore_std=None):
     """
+<<<<<<< HEAD
     Read images (>1) from metadata rows and assembles a stack.
     If images are masks, make sure they're boolean by setting >0 to True
 
     :param pd.DataFrame frames_meta_sub: Selected subvolume to be read
     :param str/list flat_field_fnames: Path(s) to flat field image(s)
     :param tuple hist_clip_limits: Percentile limits for histogram clipping
+=======
+    Read the images in the fnames and assembles a stack.
+    If images are masks, make sure they're boolean by setting >0 to True
+
+    :param pd.DataFrame frames_meta_sub: Selected subvolume to be read
+    :param class/None zarr_object: ZarrReader class instance
+    :param str/list flat_field_fnames: Path(s) to flat field image(s)
+    :param tuple hist_clip_limits: limits for histogram clipping
+>>>>>>> d3bde57... adding zarr to tiling
     :param bool is_mask: Indicator for if files contain masks
     :param bool/None normalize_im: Whether to zscore normalize im stack
     :param float zscore_mean: mean for z-scoring the image
@@ -403,14 +426,19 @@ def read_imstack_from_meta(frames_meta_sub,
         images, booleans if they're masks
     """
     im_stack = []
+<<<<<<< HEAD
     meta_shape = frames_meta_sub.shape
     nbr_images = meta_shape[0] if len(meta_shape) > 1 else 1
+=======
+    nbr_images = frames_meta_sub.shape[0]
+>>>>>>> d3bde57... adding zarr to tiling
     if isinstance(flat_field_fnames, list):
         assert len(flat_field_fnames) == nbr_images, \
             "Number of flatfields don't match number of input images"
     else:
         flat_field_fnames = nbr_images * [flat_field_fnames]
 
+<<<<<<< HEAD
     if nbr_images > 1:
         for idx in range(meta_shape[0]):
             meta_row = frames_meta_sub.iloc[idx]
@@ -427,12 +455,18 @@ def read_imstack_from_meta(frames_meta_sub,
         # In case of series
         im = read_image_from_row(frames_meta_sub)
         flat_field_fname = flat_field_fnames[0]
+=======
+    for idx, meta_row in enumerate(frames_meta_sub.iterrows()):
+        im = read_image_from_row(meta_row, zarr_object)
+        flat_field_fname = flat_field_fnames[idx]
+>>>>>>> d3bde57... adding zarr to tiling
         if flat_field_fname is not None:
             if not is_mask and not normalize_im:
                 im = apply_flat_field_correction(
                     im,
                     flat_field_path=flat_field_fname,
                 )
+<<<<<<< HEAD
         im_stack = [im]
 
     input_image = np.stack(im_stack, axis=-1)
@@ -469,6 +503,33 @@ def get_flat_field_path(flat_field_dir, channel_idx, channel_ids):
     return ff_path
 
 
+=======
+        im_stack.append(im)
+
+    input_image = np.stack(im_stack, axis=-1)
+    # remove singular dimension for 3D images
+    if len(input_image.shape) > 3:
+        input_image = np.squeeze(input_image)
+    if not is_mask:
+        if hist_clip_limits is not None:
+            input_image = normalize.hist_clipping(
+                input_image,
+                hist_clip_limits[0],
+                hist_clip_limits[1]
+            )
+        if normalize_im is not None:
+            input_image = normalize.zscore(
+                input_image,
+                im_mean=zscore_mean,
+                im_std=zscore_std,
+            )
+    else:
+        if input_image.dtype != bool:
+            input_image = input_image > 0
+    return input_image
+
+
+>>>>>>> d3bde57... adding zarr to tiling
 def read_imstack(input_fnames,
                  flat_field_fnames=None,
                  hist_clip_limits=None,
@@ -527,6 +588,10 @@ def preprocess_imstack(frames_metadata,
                        channel_idx,
                        slice_idx,
                        pos_idx,
+<<<<<<< HEAD
+=======
+                       zarr_object=None,
+>>>>>>> d3bde57... adding zarr to tiling
                        flat_field_path=None,
                        hist_clip_limits=None,
                        normalize_im='stack',
@@ -541,6 +606,10 @@ def preprocess_imstack(frames_metadata,
     :param int channel_idx: Channel index
     :param int slice_idx: Slice (z) index
     :param int pos_idx: Position (FOV) index
+<<<<<<< HEAD
+=======
+    :param class/None zarr_object: ZarrReader class instance if zarr data
+>>>>>>> d3bde57... adding zarr to tiling
     :param np.array flat_field_path: Path to flat field image for channel
     :param list hist_clip_limits: Limits for histogram clipping (size 2)
     :param str or None normalize_im: options to z-score the image
@@ -565,7 +634,11 @@ def preprocess_imstack(frames_metadata,
             pos_idx,
         )
         meta_row = frames_metadata.loc[meta_idx]
+<<<<<<< HEAD
         im = read_image_from_row(meta_row)
+=======
+        im = read_image_from_row(meta_row, zarr_object)
+>>>>>>> d3bde57... adding zarr to tiling
         # Only flatfield correct images that won't be normalized
         if flat_field_path is not None:
             assert normalize_im in [None, 'stack'], \
