@@ -1,5 +1,6 @@
 model_dir: '/CompMicro/projects/virtualstaining/kidneyslice/2019_02_15_kidney_slice/MBL_DL_image_translation//model25d/'
-image_dir: '/CompMicro/projects/virtualstaining/kidneyslice/2019_02_15_kidney_slice/MBL_DL_image_translation/data'
+# image_dir: '/CompMicro/projects/virtualstaining/kidneyslice/2019_02_15_kidney_slice/MBL_DL_image_translation/data'
+zarr_paths: ['path_to_first_zarr', 'path_to_second_zarr', 'etc']
 preprocess_dir: '/CompMicro/projects/virtualstaining/kidneyslice/2019_02_15_kidney_slice/MBL_DL_image_translation/temp/tile_small_25D'
 dataset:
   input_channels: [3]
