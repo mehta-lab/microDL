@@ -149,10 +149,14 @@ def apply_flat_field_correction(input_image, **kwargs):
     """
     input_image = input_image.astype('float')
     if 'flat_field_image' in kwargs:
-        corrected_image = input_image / kwargs['flat_field_image']
+        flat_field_im = kwargs['flat_field_image']
+        if flat_field_im is not None:
+            corrected_image = input_image / flat_field_im
     elif 'flat_field_path' in kwargs:
-        flat_field_image = np.load(kwargs['flat_field_path'])
-        corrected_image = input_image / flat_field_image
+        flat_field_path = kwargs['flat_field_path']
+        if flat_field_path is not None:
+            flat_field_image = np.load(flat_field_path)
+            corrected_image = input_image / flat_field_image
     else:
         print("Incorrect kwargs: {}, returning input image".format(kwargs))
         corrected_image = input_image.copy()
@@ -308,6 +312,71 @@ def get_flat_field_path(flat_field_dir, channel_idx, channel_ids):
     return ff_path
 
 
+def read_imstack_from_meta(frames_meta_sub,
+                           zarr_object=None,
+                           flat_field_fnames=None,
+                           hist_clip_limits=None,
+                           is_mask=False,
+                           normalize_im=None,
+                           zscore_mean=None,
+                           zscore_std=None):
+    """
+    Read the images in the fnames and assembles a stack.
+    If images are masks, make sure they're boolean by setting >0 to True
+
+    :param pd.DataFrame frames_meta_sub: Selected subvolume to be read
+    :param class/None zarr_object: ZarrReader class instance
+    :param str/list flat_field_fnames: Path(s) to flat field image(s)
+    :param tuple hist_clip_limits: limits for histogram clipping
+    :param bool is_mask: Indicator for if files contain masks
+    :param bool/None normalize_im: Whether to zscore normalize im stack
+    :param float zscore_mean: mean for z-scoring the image
+    :param float zscore_std: std for z-scoring the image
+    :return np.array: input stack flat_field correct and z-scored if regular
+        images, booleans if they're masks
+    """
+    im_stack = []
+    nbr_images = frames_meta_sub.shape[0]
+    if isinstance(flat_field_fnames, list):
+        assert len(flat_field_fnames) == nbr_images, \
+            "Number of flatfields don't match number of input images"
+    else:
+        flat_field_fnames = nbr_images * [flat_field_fnames]
+
+    for idx, meta_row in enumerate(frames_meta_sub.iterrows()):
+        im = read_image_from_row(meta_row, zarr_object)
+        flat_field_fname = flat_field_fnames[idx]
+        if flat_field_fname is not None:
+            if not is_mask and not normalize_im:
+                im = apply_flat_field_correction(
+                    im,
+                    flat_field_path=flat_field_fname,
+                )
+        im_stack.append(im)
+
+    input_image = np.stack(im_stack, axis=-1)
+    # remove singular dimension for 3D images
+    if len(input_image.shape) > 3:
+        input_image = np.squeeze(input_image)
+    if not is_mask:
+        if hist_clip_limits is not None:
+            input_image = normalize.hist_clipping(
+                input_image,
+                hist_clip_limits[0],
+                hist_clip_limits[1]
+            )
+        if normalize_im is not None:
+            input_image = normalize.zscore(
+                input_image,
+                im_mean=zscore_mean,
+                im_std=zscore_std,
+            )
+    else:
+        if input_image.dtype != bool:
+            input_image = input_image > 0
+    return input_image
+
+
 def read_imstack(input_fnames,
                  flat_field_fnames=None,
                  hist_clip_limits=None,
@@ -371,13 +440,13 @@ def read_imstack(input_fnames,
 
 
 def preprocess_imstack(frames_metadata,
-                       input_dir,
                        depth,
                        time_idx,
                        channel_idx,
                        slice_idx,
                        pos_idx,
-                       flat_field_im=None,
+                       zarr_object=None,
+                       flat_field_path=None,
                        hist_clip_limits=None,
                        normalize_im='stack',
                        ):
@@ -386,18 +455,17 @@ def preprocess_imstack(frames_metadata,
     clipping and z-score normalization is performed.
 
     :param pd.DataFrame frames_metadata: DF with meta info for all images
-    :param str input_dir: dir containing input images
     :param int depth: num of slices in stack if 2.5D or depth for 3D
     :param int time_idx: Time index
     :param int channel_idx: Channel index
     :param int slice_idx: Slice (z) index
     :param int pos_idx: Position (FOV) index
-    :param np.array flat_field_im: Flat field image for channel
+    :param class/None zarr_object: ZarrReader class instance if zarr data
+    :param np.array flat_field_path: Path to flat field image for channel
     :param list hist_clip_limits: Limits for histogram clipping (size 2)
     :param str or None normalize_im: options to z-score the image
     :return np.array im: 3D preprocessed image
     """
-
     assert normalize_im in ['stack', 'dataset', 'volume', 'slice', None], \
         "'normalize_im' can only be 'stack', 'dataset', 'volume', 'slice', or None"
 
@@ -416,19 +484,16 @@ def preprocess_imstack(frames_metadata,
             z,
             pos_idx,
         )
-        file_path = os.path.join(
-            input_dir,
-            frames_metadata.loc[meta_idx, "file_name"],
-        )
-        im = read_image(file_path)
+        meta_row = frames_metadata.loc[meta_idx]
+        im = read_image_from_row(meta_row, zarr_object)
         # Only flatfield correct images that won't be normalized
-        if flat_field_im is not None:
+        if flat_field_path is not None:
             assert normalize_im in [None, 'stack'], \
                 "flat field correction currently only supports " \
                 "None or 'stack' option for 'normalize_im'"
             im = apply_flat_field_correction(
                 im,
-                flat_field_image=flat_field_im,
+                flat_field_path=flat_field_path,
             )
 
         zscore_median = None
