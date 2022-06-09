@@ -176,7 +176,6 @@ class InferenceDataSet(keras.utils.Sequence):
         return self.num_samples
 
     def _get_image(self,
-                   input_dir,
                    cur_row,
                    channel_ids,
                    depth,
@@ -253,14 +252,12 @@ class InferenceDataSet(keras.utils.Sequence):
         #     is_mask = True
         # Get input and target stacks for inference
         input_stack = self._get_image(
-            input_dir=self.image_dir,
             cur_row=cur_row,
             channel_ids=self.input_channels,
             depth=self.depth,
             normalize_im=self.normalize_im,
         )
         target_stack = self._get_image(
-            input_dir=self.target_dir,
             cur_row=cur_row,
             channel_ids=self.target_channels,
             depth=self.target_depth,

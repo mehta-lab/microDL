@@ -88,6 +88,7 @@ class ImageTilerUniform:
         self.num_workers = num_workers
         self.int2str_len = int2str_len
         self.tile_3d = tile_3d
+        self.mask_depth = None
 
         self.str_tile_step = 'tiles_{}_step_{}'.format(
             '-'.join([str(val) for val in tile_size]),
@@ -293,13 +294,12 @@ class ImageTilerUniform:
         :return: list of input fnames
         """
         temp_meta = self.frames_metadata
-        temp_dir = self.input_dir
         if mask_dir is None:
             depth = self.channel_depth[channel_idx]
         else:
             depth = self.mask_depth
             temp_meta = aux_utils.read_meta(mask_dir)
-            temp_dir = mask_dir
+
         margin = 0 if depth == 1 else depth // 2
         meta_sub = aux_utils.make_dataframe()
         for z in range(slice_idx - margin, slice_idx + margin + 1):
@@ -494,6 +494,7 @@ class ImageTilerUniform:
             )
         # Finally, save all the metadata
         tiled_metadata = tiled_metadata.sort_values(by=['file_name'])
+        tiled_metadata['dir_name'] = self.tile_dir
         tiled_metadata.to_csv(
             os.path.join(self.tile_dir, "frames_meta.csv"),
             sep=",",
@@ -587,6 +588,7 @@ class ImageTilerUniform:
             workers=self.num_workers,
         )
         tiled_metadata = pd.concat(tiled_meta_df_list, ignore_index=True)
+        tiled_metadata['dir_name'] = self.tile_dir
         # If there's been tiling done already, add to existing metadata
         prev_tiled_metadata = aux_utils.read_meta(self.tile_dir)
         tiled_metadata = pd.concat(
