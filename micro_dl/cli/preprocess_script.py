@@ -333,6 +333,7 @@ def tile_images(required_params,
     # setup tiling keyword arguments
     kwargs = {'input_dir': required_params['input_dir'],
               'output_dir': required_params['output_dir'],
+              'zarr_object': required_params['zarr_object'],
               'normalize_channels': required_params["normalize_channels"],
               'tile_size': tile_dict['tile_size'],
               'step_size': tile_dict['step_size'],

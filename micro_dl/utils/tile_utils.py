@@ -184,7 +184,7 @@ def crop_at_indices(input_image,
     """Crop image into tiles at given indices
 
     :param np.array input_image: input image for cropping
-    :param list crop_indices: list of indices for cropping
+    :param list/tuple crop_indices: list of indices for cropping
     :param dict/None save_dict: dict with keys: time_idx, channel_idx, slice_idx,
      pos_idx, image_format and save_dir for generation output fname
     :param bool tile_3d: boolean flag for adding slice_start_idx to meta
