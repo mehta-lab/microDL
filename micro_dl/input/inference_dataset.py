@@ -194,26 +194,25 @@ class InferenceDataSet(keras.utils.Sequence):
         """
         im_stack = []
         for channel_idx in channel_ids:
-            flat_field_im = None
+            flat_field_path = None
             if self.flat_field_dir is not None:
                 assert normalize_im in [None, 'stack'],\
                     "flat field correction currently only supports " \
                     "None or 'stack' option for 'normalize_im'"
-                flat_field_fname = os.path.join(
+                flat_field_path = image_utils.get_flat_field_path(
                     self.flat_field_dir,
-                    'flat-field_channel-{}.npy'.format(channel_idx)
+                    channel_idx,
+                    channel_ids,
                 )
-                flat_field_im = np.load(flat_field_fname)
             # Load image with given indices
             im = image_utils.preprocess_imstack(
                 frames_metadata=self.frames_meta,
-                input_dir=input_dir,
                 depth=depth,
                 time_idx=cur_row['time_idx'],
                 channel_idx=channel_idx,
                 slice_idx=cur_row['slice_idx'],
                 pos_idx=cur_row['pos_idx'],
-                flat_field_im=flat_field_im,
+                flat_field_path=flat_field_path,
                 normalize_im=normalize_im,
             )
             # Crop image to nearest factor of two in xy

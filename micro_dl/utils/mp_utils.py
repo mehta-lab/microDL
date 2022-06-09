@@ -38,17 +38,15 @@ def mp_create_save_mask(fn_args, workers):
     return list(res)
 
 
-def create_save_mask(input_fnames,
+def create_save_mask(channels_meta_sub,
                      flat_field_fnames,
                      str_elem_radius,
                      mask_dir,
                      mask_channel_idx,
-                     time_idx,
-                     pos_idx,
-                     slice_idx,
                      int2str_len,
                      mask_type,
                      mask_ext,
+                     zarr_bytes,
                      channel_thrs=None):
 
     """
@@ -77,6 +75,7 @@ def create_save_mask(input_fnames,
     :return dict cur_meta: One for each mask. fg_frac is added to metadata
             - how is it used?
     """
+    zarr_object = pickle.loads(zarr_bytes)
     if mask_type == 'dataset otsu':
         assert channel_thrs is not None, \
             'channel threshold is required for mask_type="dataset otsu"'
@@ -273,12 +272,10 @@ def mp_crop_save(fn_args, workers):
     return list(res)
 
 
-def crop_at_indices_save(input_fnames,
+def crop_at_indices_save(meta_sub,
+                         zarr_bytes,
                          flat_field_fname,
                          hist_clip_limits,
-                         time_idx,
-                         channel_idx,
-                         pos_idx,
                          slice_idx,
                          crop_indices,
                          image_format,
@@ -307,12 +304,16 @@ def crop_at_indices_save(input_fnames,
     :param bool tile_3d: indicator for tiling in 3D
     :return: pd.DataFrame from a list of dicts with metadata
     """
-
+    zarr_object = pickle.loads(zarr_bytes)
+    time_idx = meta_sub.loc[0, 'time_idx']
+    channel_idx = meta_sub.loc[0, 'channel_idx']
+    pos_idx = meta_sub.loc[0, 'pos_idx']
     try:
         print('tile image t{:03d} p{:03d} z{:03d} c{:03d}...'
               .format(time_idx, pos_idx, slice_idx, channel_idx))
-        input_image = image_utils.read_imstack(
-            input_fnames=input_fnames,
+        input_image = image_utils.read_imstack_from_meta(
+            frames_meta_sub=meta_sub,
+            zarr_object=zarr_object,
             flat_field_fnames=flat_field_fname,
             hist_clip_limits=hist_clip_limits,
             is_mask=is_mask,
