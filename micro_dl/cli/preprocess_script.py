@@ -104,7 +104,7 @@ def get_required_params(preprocess_config):
         zarr_file = preprocess_config['zarr_file']
         assert 'zarr' in zarr_file.split('.')[-1], \
             "Zarr file {} doesn't have zarr extension".format(zarr_file)
-        zarr_object = im_utils.ZarrData(input_dir, zarr_file)
+        zarr_object = im_utils.ZarrReader(input_dir, zarr_file)
 
     required_params = {
         'input_dir': input_dir,
