@@ -99,7 +99,7 @@ def run_inference(config_fname,
             assert 'zarr' in zarr_file.split('.')[-1], \
                 "Zarr file {} doesn't have zarr extension".format(zarr_file)
             image_dir = os.path.abspath(zarr_file)
-            zarr_object = im_utils.ZarrData(
+            zarr_object = im_utils.ZarrReader(
                 image_dir,
                 zarr_file,
             )
