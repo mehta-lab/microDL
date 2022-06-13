@@ -85,16 +85,34 @@ def run_inference(config_fname,
                 preprocess_config=preprocess_config,
                 gpu_id=gpu_ids,
                 gpu_mem_frac=gpu_mem_frac,
+                zarr_object=zarr_object,
             )
             inference_inst.run_prediction()
     elif 'zarr_path' in inference_config:
-        zarr_file = inference_config['zarr_path']
-        assert 'zarr' in zarr_file.split('.')[-1], \
-            "Zarr file {} doesn't have zarr extension".format(zarr_file)
-        zarr_object = im_utils.ZarrData(
-            os.path.abspath(zarr_file),
-            zarr_file,
-        )
+        # TODO: Assumes there's one frames_meta.csv in the directory w zarr
+        zarr_files = inference_config['zarr_path']
+        if isinstance(zarr_files, str):
+            zarr_files = [zarr_files]
+        assert isinstance(zarr_files, list),\
+            "zarr_path must be string (path to .zarr) or list of strings"
+        for zarr_file in zarr_files:
+            assert 'zarr' in zarr_file.split('.')[-1], \
+                "Zarr file {} doesn't have zarr extension".format(zarr_file)
+            image_dir = os.path.abspath(zarr_file)
+            zarr_object = im_utils.ZarrData(
+                image_dir,
+                zarr_file,
+            )
+            inference_config['image_dir'] = image_dir
+            inference_inst = image_inf.ImagePredictor(
+                train_config=train_config,
+                inference_config=inference_config,
+                preprocess_config=preprocess_config,
+                gpu_id=gpu_ids,
+                gpu_mem_frac=gpu_mem_frac,
+                zarr_object=zarr_object,
+            )
+            inference_inst.run_prediction()
 
 
 if __name__ == '__main__':
