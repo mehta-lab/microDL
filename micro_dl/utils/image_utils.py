@@ -553,10 +553,15 @@ def grid_sample_pixel_values(im, grid_spacing):
     return row_ids, col_ids, sample_values
 
 
-class ZarrData:
+class ZarrReader:
     """
-    Handles zarr data in a class that is serializable, thus suitable
-    for multiprocessing.
+    Handles zarr data from input .zarr file in a class that is serializable,
+    thus suitable for multiprocessing.
+    Assumes ome-zarr data, next generation file format defined here:
+    https://ngff.openmicroscopy.org/0.1/
+    Reading and writing zarr data is modeled based on WaveOrder:
+    https://github.com/mehta-lab/waveorder/tree/master/waveorder/io
+
     Note: There is an ome-zarr-py package in PyPI but I can't currently
     make it work with the version 1 ome-zarr dataset I'm prototyping with.
     https://ome-zarr.readthedocs.io/en/stable/index.html
@@ -626,3 +631,47 @@ class ZarrData:
         array = self.zarr_data[well_pos_idx['well']][well_pos_idx['pos']][self.array_name]
         im = array[meta_row['time_idx'], meta_row['channel_idx'], meta_row['slice_idx']]
         return im
+
+
+class ZarrWriter:
+    """
+    Writes data into a .zarr file..
+    Assumes ome-zarr data, next generation file format defined here:
+    https://ngff.openmicroscopy.org/0.1/
+    Reading and writing zarr data is modeled based on WaveOrder:
+    https://github.com/mehta-lab/waveorder/tree/master/waveorder/io
+    """
+
+    def __init__(self, write_dir, zarr_name):
+        """
+        Sets up zarr store
+
+        :param str write_dir: Input directory
+        :param str zarr_name: Name of zarr file in input_dir, ending with .zarr
+        """
+        self.zarr_name = zarr_name
+        self.zarr_path = os.path.join(write_dir, self.zarr_name)
+        if os.path.exists(self.zarr_path):
+            raise FileExistsError('Zarr data path: {} already exists'.format(self.zarr_path))
+
+        self.store = zarr.open(self.zarr_path)
+        self.plate_meta = None
+        self.well_meta = None
+        self.init_hierarchy()
+
+    def init_hierarchy(self):
+        self.plate_meta['plate'] = {'acquisitions': [{'id': 1,
+                                                      'maximumfieldcount': 1,
+                                                      'name': 'Dataset',
+                                                      'starttime': 0}],
+                                    'columns': [],
+                                    'field_count': 1,
+                                    'name': self.zarr_name.strip('.zarr'),
+                                    'rows': [],
+                                    'version': '0.1',
+                                    'wells': []}
+
+        self.plate_meta['plate']['rows'].append({'name': self.rows[0]})
+
+        self.well_meta['well'] = {'images': [], 'version': '0.1'}
+        self.well_meta = dict(self.well_meta)
