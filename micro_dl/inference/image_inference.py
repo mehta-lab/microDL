@@ -47,7 +47,8 @@ class ImagePredictor:
                  inference_config,
                  preprocess_config=None,
                  gpu_id=-1,
-                 gpu_mem_frac=None):
+                 gpu_mem_frac=None,
+                 zarr_object=None):
         """Init
         :param dict train_config: Training config dict with params related
             to dataset, trainer and network
@@ -92,6 +93,7 @@ class ImagePredictor:
         :param int gpu_id: GPU number to use. -1 for debugging (no GPU)
         :param float/None gpu_mem_frac: Memory fractions to use corresponding
             to gpu_ids
+        :param class/None zarr_object: ZarrReader object
         """
         # Use model_dir from inference config if present, otherwise use train
         if 'model_dir' in inference_config:
@@ -118,6 +120,27 @@ class ImagePredictor:
         self.config = train_config
         self.model_dir = model_dir
         self.image_dir = inference_config['image_dir']
+        self.zarr_object = zarr_object
+
+        try:
+            # Check if metadata is present
+            self.frames_meta = aux_utils.read_meta(self.image_dir)
+        except AssertionError as e:
+            print(e, "Generating metadata.")
+            order = 'cztp'
+            name_parser = 'parse_sms_name'
+            if 'metadata' in preprocess_config:
+                if 'order' in preprocess_config['metadata']:
+                    order = preprocess_config['metadata']['order']
+                if 'name_parser' in preprocess_config['metadata']:
+                    name_parser = preprocess_config['metadata']['name_parser']
+            # Create metadata from file names instead
+            self.frames_meta = meta_utils.frames_meta_generator(
+                input_dir=self.image_dir,
+                zarr_object=self.zarr_object,
+                order=order,
+                name_parser=name_parser,
+            )
 
         try:
             # Check if metadata is present
@@ -257,6 +280,7 @@ class ImagePredictor:
             mask_dir=mask_dir,
             flat_field_dir=flat_field_dir,
             crop2base=crop2base,
+            zarr_object=self.zarr_object,
         )
         
         # create an instance of MetricsEstimator
