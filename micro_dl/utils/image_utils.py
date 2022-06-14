@@ -559,7 +559,7 @@ class ZarrReader:
     thus suitable for multiprocessing.
     Assumes ome-zarr data, next generation file format defined here:
     https://ngff.openmicroscopy.org/0.1/
-    Reading and writing zarr data is modeled based on WaveOrder:
+    Reading and writing zarr data is based on WaveOrder:
     https://github.com/mehta-lab/waveorder/tree/master/waveorder/io
 
     Note: There is an ome-zarr-py package in PyPI but I can't currently
@@ -638,7 +638,7 @@ class ZarrWriter:
     Writes data into a .zarr file..
     Assumes ome-zarr data, next generation file format defined here:
     https://ngff.openmicroscopy.org/0.1/
-    Reading and writing zarr data is modeled based on WaveOrder:
+    Reading and writing zarr data is based on WaveOrder:
     https://github.com/mehta-lab/waveorder/tree/master/waveorder/io
     """
 
@@ -649,15 +649,36 @@ class ZarrWriter:
         :param str write_dir: Input directory
         :param str zarr_name: Name of zarr file in input_dir, ending with .zarr
         """
+        self.write_dir = write_dir
         self.zarr_name = zarr_name
         self.zarr_path = os.path.join(write_dir, self.zarr_name)
         if os.path.exists(self.zarr_path):
             raise FileExistsError('Zarr data path: {} already exists'.format(self.zarr_path))
 
         self.store = zarr.open(self.zarr_path)
-        self.plate_meta = None
-        self.well_meta = None
+        # Initialize hierarchy and metadata
+        self.plate_meta = dict()
+        self.well_meta = dict()
+        self.rows = dict()
+        self.columns = dict()
+        self.positions = dict()
         self.init_hierarchy()
+
+    def create_row(self, idx, name=None):
+        """
+        Creates a row in the hierarchy (first level below zarr store). Option to name
+        this row.  Default is Row_{idx}.  Keeps track of the row name + row index for later
+        metadata creation.
+        """
+        row_name = f'Row_{idx}' if not name else name
+        row_path = os.path.join(self.write_dir, row_name)
+
+        # check if the user is trying to create a row that already exsits
+        if os.path.exists(row_path):
+            raise FileExistsError('A row with the name {} already exists'.format(row_name))
+        else:
+            self.store.create_group(row_name)
+            self.rows[idx] = row_name
 
     def init_hierarchy(self):
         self.plate_meta['plate'] = {'acquisitions': [{'id': 1,
@@ -671,7 +692,8 @@ class ZarrWriter:
                                     'version': '0.1',
                                     'wells': []}
 
+        self.create_row(0)
         self.plate_meta['plate']['rows'].append({'name': self.rows[0]})
 
         self.well_meta['well'] = {'images': [], 'version': '0.1'}
-        self.well_meta = dict(self.well_meta)
+
