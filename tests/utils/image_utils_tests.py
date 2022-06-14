@@ -122,13 +122,7 @@ class TestImageUtils(unittest.TestCase):
         self.tempdir = TempDirectory()
         self.temp_path = self.tempdir.path
         meta_fname = 'frames_meta.csv'
-        self.df_columns = ['channel_idx',
-                           'slice_idx',
-                           'time_idx',
-                           'channel_name',
-                           'file_name',
-                           'pos_idx']
-        self.frames_meta = pd.DataFrame(columns=self.df_columns)
+        self.frames_meta = aux_utils.make_dataframe()
 
         x = np.linspace(-4, 4, 32)
         y = x.copy()
@@ -153,14 +147,14 @@ class TestImageUtils(unittest.TestCase):
                 pos_idx=self.pos_idx,
             )
             cv2.imwrite(os.path.join(self.temp_path, im_name), sph[:, :, z])
-            meta_row = aux_utils.parse_idx_from_name(
-                im_name, self.df_columns)
+            meta_row = aux_utils.parse_idx_from_name(im_name)
             meta_row['zscore_median'] = np.nanmean(sph[:, :, z])
             meta_row['zscore_iqr'] = np.nanstd(sph[:, :, z])
             self.frames_meta = self.frames_meta.append(
                 meta_row,
                 ignore_index=True
             )
+        self.frames_meta['dir_name'] = self.temp_path
         self.dataset_mean = self.frames_meta['zscore_median'].mean()
         self.dataset_std = self.frames_meta['zscore_iqr'].mean()
         # Write metadata
@@ -236,7 +230,6 @@ class TestImageUtils(unittest.TestCase):
         """Test preprocess_imstack"""
         im_stack = image_utils.preprocess_imstack(
             frames_metadata=self.frames_meta,
-            input_dir=self.temp_path,
             depth=3,
             time_idx=self.time_idx,
             channel_idx=self.channel_idx,
@@ -256,7 +249,6 @@ class TestImageUtils(unittest.TestCase):
         # preprocess a 3D image
         im_stack = image_utils.preprocess_imstack(
             frames_metadata=self.meta_3d,
-            input_dir=self.temp_path,
             depth=1,
             time_idx=0,
             channel_idx=1,

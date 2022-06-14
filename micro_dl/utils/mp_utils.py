@@ -79,9 +79,10 @@ def create_save_mask(channels_meta_sub,
     if mask_type == 'dataset otsu':
         assert channel_thrs is not None, \
             'channel threshold is required for mask_type="dataset otsu"'
-    im_stack = image_utils.read_imstack(
-        input_fnames,
-        flat_field_fnames,
+    im_stack = image_utils.read_imstack_from_meta(
+        frames_meta_sub=channels_meta_sub,
+        zarr_object=zarr_object,
+        flat_field_fnames=flat_field_fnames,
         normalize_im=None,
     )
     masks = []
