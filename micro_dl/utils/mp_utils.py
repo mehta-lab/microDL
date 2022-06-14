@@ -75,21 +75,18 @@ def create_save_mask(channels_meta_sub,
     :return dict cur_meta: One for each mask. fg_frac is added to metadata
             - how is it used?
     """
-<<<<<<< HEAD
     im_stack = image_utils.read_imstack_from_meta(
         frames_meta_sub=channels_meta_sub,
         flat_field_fnames=flat_field_fnames,
         normalize_im=None,
     )
-=======
-    zarr_object = pickle.loads(zarr_bytes)
->>>>>>> d3bde57... adding zarr to tiling
     if mask_type == 'dataset otsu':
         assert channel_thrs is not None, \
             'channel threshold is required for mask_type="dataset otsu"'
         assert len(channel_thrs) == range(im_stack.shape[-1]), \
             "Mismatch between channel thrs {} and im_stack {}".format(
                 len(channel_thrs), im_stack.shape[-1])
+
     masks = []
     for idx in range(im_stack.shape[-1]):
         im = im_stack[..., idx]
@@ -281,10 +278,6 @@ def mp_crop_save(fn_args, workers):
 
 
 def crop_at_indices_save(meta_sub,
-<<<<<<< HEAD
-=======
-                         zarr_bytes,
->>>>>>> d3bde57... adding zarr to tiling
                          flat_field_fname,
                          hist_clip_limits,
                          slice_idx,
@@ -315,24 +308,12 @@ def crop_at_indices_save(meta_sub,
     :param bool tile_3d: indicator for tiling in 3D
     :return: pd.DataFrame from a list of dicts with metadata
     """
-<<<<<<< HEAD
-=======
-    zarr_object = pickle.loads(zarr_bytes)
->>>>>>> d3bde57... adding zarr to tiling
     time_idx = meta_sub.loc[0, 'time_idx']
     channel_idx = meta_sub.loc[0, 'channel_idx']
     pos_idx = meta_sub.loc[0, 'pos_idx']
     try:
-<<<<<<< HEAD
         input_image = image_utils.read_imstack_from_meta(
             frames_meta_sub=meta_sub,
-=======
-        print('tile image t{:03d} p{:03d} z{:03d} c{:03d}...'
-              .format(time_idx, pos_idx, slice_idx, channel_idx))
-        input_image = image_utils.read_imstack_from_meta(
-            frames_meta_sub=meta_sub,
-            zarr_object=zarr_object,
->>>>>>> d3bde57... adding zarr to tiling
             flat_field_fnames=flat_field_fname,
             hist_clip_limits=hist_clip_limits,
             is_mask=is_mask,
