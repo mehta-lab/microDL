@@ -185,12 +185,10 @@ def mp_tile_save(fn_args, workers):
     return list(res)
 
 
-def tile_and_save(input_fnames,
+def tile_and_save(meta_sub,
+                  zarr_bytes,
                   flat_field_fname,
                   hist_clip_limits,
-                  time_idx,
-                  channel_idx,
-                  pos_idx,
                   slice_idx,
                   tile_size,
                   step_size,
@@ -203,15 +201,14 @@ def tile_and_save(input_fnames,
                   zscore_mean=None,
                   zscore_std=None
                   ):
-    """Crop image into tiles at given indices and save
+    """
+    Crop image into tiles at given indices and save
 
-    :param tuple input_fnames: tuple of input fnames with full path
+    :param pd.DataFrame meta_sub: Subset of metadata for images to be tiled
+    :param bytes zarr_bytes: Serialized ZarrReader object
     :param str flat_field_fname: fname of flat field image
     :param tuple hist_clip_limits: limits for histogram clipping
-    :param int time_idx: time point of input image
-    :param int channel_idx: channel idx of input image
     :param int slice_idx: slice idx of input image
-    :param int pos_idx: sample idx of input image
     :param list tile_size: size of tile along row, col (& slices)
     :param list step_size: step size along row, col (& slices)
     :param float min_fraction: min foreground volume fraction for keep tile
@@ -221,11 +218,16 @@ def tile_and_save(input_fnames,
     :param bool is_mask: Indicates if files are masks
     :return: pd.DataFrame from a list of dicts with metadata
     """
+    zarr_object = pickle.loads(zarr_bytes)
+    time_idx = meta_sub.loc[0, 'time_idx']
+    channel_idx = meta_sub.loc[0, 'channel_idx']
+    pos_idx = meta_sub.loc[0, 'pos_idx']
     try:
         print('tile image t{:03d} p{:03d} z{:03d} c{:03d}...'
               .format(time_idx, pos_idx, slice_idx, channel_idx))
-        input_image = image_utils.read_imstack(
-            input_fnames=input_fnames,
+        input_image = image_utils.read_imstack_from_meta(
+            frames_meta_sub=meta_sub,
+            zarr_object=zarr_object,
             flat_field_fnames=flat_field_fname,
             hist_clip_limits=hist_clip_limits,
             is_mask=is_mask,
@@ -290,8 +292,9 @@ def crop_at_indices_save(meta_sub,
                          ):
     """Crop image into tiles at given indices and save
 
-    :param tuple input_fnames: tuple of input fnames with full path
-    :param str flat_field_fname: fname of flat field image
+    :param pd.DataFrame meta_sub: Subset of metadata for images to be cropped
+    :param bytes zarr_bytes: Serialized ZarrReader object
+    :param str flat_field_fname: File nname of flat field image
     :param tuple hist_clip_limits: limits for histogram clipping
     :param int time_idx: time point of input image
     :param int channel_idx: channel idx of input image
