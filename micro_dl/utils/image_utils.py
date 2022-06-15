@@ -626,6 +626,8 @@ class ZarrReader:
     def image_from_row(self, meta_row):
         """
         Fetches an image given indices of position, time, channel and slice.
+
+        meta_row: Row of metadata
         """
         well_pos_idx = self.well_pos[meta_row['pos_idx']]
         array = self.zarr_data[well_pos_idx['well']][well_pos_idx['pos']][self.array_name]
@@ -642,7 +644,7 @@ class ZarrWriter:
     https://github.com/mehta-lab/waveorder/tree/master/waveorder/io
     """
 
-    def __init__(self, write_dir, zarr_name):
+    def __init__(self, write_dir, zarr_name, channel_names):
         """
         Sets up zarr store
 
@@ -662,15 +664,20 @@ class ZarrWriter:
         self.rows = dict()
         self.columns = dict()
         self.positions = dict()
-        self.init_hierarchy()
+        self.current_pos_group = None
+        self.current_position = None
+        self.current_well_group = None
+        self.create_row(0)
+        self.create_position(0)
+        self.create_meta(channel_names)
 
-    def create_row(self, idx, name=None):
+    def create_row(self, row_idx):
         """
         Creates a row in the hierarchy (first level below zarr store). Option to name
         this row.  Default is Row_{idx}.  Keeps track of the row name + row index for later
         metadata creation.
         """
-        row_name = f'Row_{idx}' if not name else name
+        row_name = 'Row_{}'.format(row_idx)
         row_path = os.path.join(self.write_dir, row_name)
 
         # check if the user is trying to create a row that already exsits
@@ -678,9 +685,29 @@ class ZarrWriter:
             raise FileExistsError('A row with the name {} already exists'.format(row_name))
         else:
             self.store.create_group(row_name)
-            self.rows[idx] = row_name
+            self.rows[row_idx] = row_name
 
-    def init_hierarchy(self):
+    def create_column(self, row_idx, col_idx):
+        """
+        Creates a column in the hierarchy (second level below zarr store, one below row). Option to name
+        this column.  Default is Col_{idx}.  Keeps track of the column name + column index for later
+        metadata creation
+
+        :param int row_idx: Index of the row to place the column underneath
+        :param int idx: Index of the column (order in which it is placed)
+        """
+        col_name = 'Col_{}'.format(col_idx)
+        row_name = self.rows[row_idx]
+        col_path = os.path.join(os.path.join(self.write_dir, row_name), col_name)
+
+        # check to see if the user is trying to create a row that already exists
+        if os.path.exists(col_path):
+            raise FileExistsError(f'A column subgroup with the name {col_name} already exists')
+        else:
+            self.store[self.rows[row_idx]].create_group(col_name)
+            self.columns[col_idx] = col_name
+
+    def create_meta(self, channel_names):
         self.plate_meta['plate'] = {'acquisitions': [{'id': 1,
                                                       'maximumfieldcount': 1,
                                                       'name': 'Dataset',
@@ -692,8 +719,110 @@ class ZarrWriter:
                                     'version': '0.1',
                                     'wells': []}
 
-        self.create_row(0)
         self.plate_meta['plate']['rows'].append({'name': self.rows[0]})
-
         self.well_meta['well'] = {'images': [], 'version': '0.1'}
+
+        rdefs = {'defaultT': 0,
+                 'model': 'color',
+                 'projection': 'normal',
+                 'defaultZ': 0}
+
+        multiscale_dict = [{'datasets': [{'path': "arr_0"}],
+                            'version': '0.1'}]
+        dict_list = []
+        for i, channel_name in enumerate(channel_names):
+            first_chan = True if i == 0 else False
+            # Hardcoding contrast limits for now to uint16
+            channel_dict = {
+                'active': first_chan,
+                'coefficient': 1.0,
+                'color': 'FFFFFF',
+                'family': 'linear',
+                'inverted': False,
+                'label': channel_name,
+                'window': {'end': 65535, 'max': 65535, 'min': 0, 'start': 0}
+            }
+            dict_list.append(channel_dict)
+
+        full_dict = {'multiscales': multiscale_dict,
+                     'omero': {
+                         'channels': dict_list,
+                         'rdefs': rdefs,
+                         'version': 0.1}
+                     }
+
+        pos_group = self.store[self.rows[0]][self.columns[0]][self.positions[0]]
+        pos_group.attrs.put(full_dict)
+
+    def create_position(self, pos_idx):
+        """
+        Creates a column and position subgroup given the index and name.  Name is
+        provided by the main writer class.
+
+        :param int pos: Index of the position to create
+        """
+        pos_name = 'Pos_{:03d}'.format(pos_idx)
+        # get row name and create a column
+        row_name = self.rows[0]
+        self.create_column(0, pos_idx)
+        col_name = self.columns[pos_idx]
+
+        # create position subgroup
+        self.store[row_name][col_name].create_group(pos_name)
+
+        # update trackers
+        self.current_pos_group = self.store[row_name][col_name][pos_name]
+        self.current_well_group = self.store[row_name][col_name]
+        self.current_position = pos_idx
+
+        # update ome-metadata
+        self.positions[pos_idx] = {'name': pos_name, 'row': row_name, 'col': col_name}
+        self._update_plate_meta(pos_idx)
+        self._update_well_meta(pos_idx)
+
+    def _update_plate_meta(self, pos):
+        """
+        Updates the plate metadata which lives at the highest level (top store).
+        This metadata carries information on the rows/columns and their paths.
+
+        :param int pos: Position index to update the metadata
+        """
+        self.plate_meta['plate']['columns'].append({'name': self.columns[pos]})
+        self.plate_meta['plate']['wells'].append({'path': f'{self.rows[0]}/{self.columns[pos]}'})
+        self.store.attrs.put(self.plate_meta)
+
+    def _update_well_meta(self, pos):
+        """
+        Updates the well metadata which lives at the column level.
+        This metadata carries information about the positions underneath.
+        Assumes only one position will ever be underneath this level.
+
+        :param int pos: Index of the position to update
+        """
+        self.well_meta['well']['images'] = [{'path': self.positions[pos]['name']}]
+        self.store[self.rows[0]][self.columns[pos]].attrs.put(self.well_meta)
+
+    def write_position(self, pos_idx, data_array):
+        """
+        Data has to have format (P, T, C, Z, Y, X)
+
+        writer.init_array(position, data_shape, chunk_size, chan_names, dtype, clims, position_name=None, overwrite=False)
+        chunk_size determines how zarr will chunk your data. This means that when you later try to load the data, it will load one chunk at a time with this specified size. To have the chunk be one z-slice, you would set chunk_size = (1,1,1,Y,X)
+
+        chan_names describe the names of the channels of your data in the order in which they will be written.
+
+        clims corresponds to the the display contrast limits in the metadata for every channel, if none, default values will be used
+        """
+        data_shape = data_array.shape()
+        chunk_size = (1, 1, 1, data_shape[3], data_shape[4])
+        dtype = data_array.dtype
+
+        current_pos_group = self.store[row_name][col_name][pos_name]
+
+        self.current_pos_group.zeros(
+            'arr_0',
+            shape=data_shape,
+            chunks=chunk_size,
+            dtype=dtype,
+        )
 
