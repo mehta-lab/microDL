@@ -661,15 +661,16 @@ class ZarrWriter:
         # Initialize hierarchy and metadata
         self.plate_meta = dict()
         self.well_meta = dict()
-        self.rows = dict()
-        self.columns = dict()
-        self.positions = dict()
-        self.current_pos_group = None
-        self.current_position = None
-        self.current_well_group = None
-        self.create_row(0)
-        self.create_position(0)
+        self.row_name = None
+        self.positions = []
+        self.create_position(pos_idx=0)
         self.create_meta(channel_names)
+
+    def get_col_name(self, pos_idx):
+        return 'Col_{}'.format(pos_idx)
+
+    def get_pos_name(self, pos_idx):
+        return 'Pos_{:03d}'.format(pos_idx)
 
     def create_row(self, row_idx):
         """
@@ -677,35 +678,32 @@ class ZarrWriter:
         this row.  Default is Row_{idx}.  Keeps track of the row name + row index for later
         metadata creation.
         """
-        row_name = 'Row_{}'.format(row_idx)
-        row_path = os.path.join(self.write_dir, row_name)
-
+        self.row_name = 'Row_{}'.format(row_idx)
+        row_path = os.path.join(self.write_dir, self.row_name)
         # check if the user is trying to create a row that already exsits
         if os.path.exists(row_path):
-            raise FileExistsError('A row with the name {} already exists'.format(row_name))
+            raise FileExistsError('A row with the name {} already exists'.format(self.row_name))
         else:
-            self.store.create_group(row_name)
-            self.rows[row_idx] = row_name
+            self.store.create_group(self.row_name)
 
-    def create_column(self, row_idx, col_idx):
+    def create_column(self, pos_idx):
         """
         Creates a column in the hierarchy (second level below zarr store, one below row). Option to name
         this column.  Default is Col_{idx}.  Keeps track of the column name + column index for later
         metadata creation
 
-        :param int row_idx: Index of the row to place the column underneath
-        :param int idx: Index of the column (order in which it is placed)
+        :param int pos_idx: Index of the column (order in which it is placed)
         """
-        col_name = 'Col_{}'.format(col_idx)
-        row_name = self.rows[row_idx]
-        col_path = os.path.join(os.path.join(self.write_dir, row_name), col_name)
-
+        col_name = self.get_col_name(pos_idx)
+        col_path = os.path.join(
+            os.path.join(self.write_dir, self.row_name),
+            col_name,
+        )
         # check to see if the user is trying to create a row that already exists
         if os.path.exists(col_path):
             raise FileExistsError(f'A column subgroup with the name {col_name} already exists')
         else:
-            self.store[self.rows[row_idx]].create_group(col_name)
-            self.columns[col_idx] = col_name
+            self.store[self.row_name].create_group(col_name)
 
     def create_meta(self, channel_names):
         self.plate_meta['plate'] = {'acquisitions': [{'id': 1,
@@ -719,16 +717,17 @@ class ZarrWriter:
                                     'version': '0.1',
                                     'wells': []}
 
-        self.plate_meta['plate']['rows'].append({'name': self.rows[0]})
+        self.plate_meta['plate']['rows'].append({'name': self.row_name})
         self.well_meta['well'] = {'images': [], 'version': '0.1'}
+
+        multiscale_dict = [{'datasets': [{'path': "arr_0"}],
+                            'version': '0.1'}]
 
         rdefs = {'defaultT': 0,
                  'model': 'color',
                  'projection': 'normal',
                  'defaultZ': 0}
 
-        multiscale_dict = [{'datasets': [{'path': "arr_0"}],
-                            'version': '0.1'}]
         dict_list = []
         for i, channel_name in enumerate(channel_names):
             first_chan = True if i == 0 else False
@@ -751,7 +750,7 @@ class ZarrWriter:
                          'version': 0.1}
                      }
 
-        pos_group = self.store[self.rows[0]][self.columns[0]][self.positions[0]]
+        pos_group = self.store[self.row_name][self.get_col_name(0)][self.positions[0]]
         pos_group.attrs.put(full_dict)
 
     def create_position(self, pos_idx):
@@ -759,52 +758,31 @@ class ZarrWriter:
         Creates a column and position subgroup given the index and name.  Name is
         provided by the main writer class.
 
-        :param int pos: Index of the position to create
+        :param int pos_idx: Index of the position to create
         """
-        pos_name = 'Pos_{:03d}'.format(pos_idx)
-        # get row name and create a column
-        row_name = self.rows[0]
-        self.create_column(0, pos_idx)
-        col_name = self.columns[pos_idx]
+        if pos_idx == 0:
+            self.create_row(row_idx=0)
+        self.create_column(pos_idx=pos_idx)
+        pos_name = self.get_pos_name(pos_idx=pos_idx)
+        col_name = self.get_col_name(pos_idx=pos_idx)
 
         # create position subgroup
-        self.store[row_name][col_name].create_group(pos_name)
+        self.store[self.row_name][col_name].create_group(pos_name)
 
-        # update trackers
-        self.current_pos_group = self.store[row_name][col_name][pos_name]
-        self.current_well_group = self.store[row_name][col_name]
-        self.current_position = pos_idx
-
-        # update ome-metadata
-        self.positions[pos_idx] = {'name': pos_name, 'row': row_name, 'col': col_name}
-        self._update_plate_meta(pos_idx)
-        self._update_well_meta(pos_idx)
-
-    def _update_plate_meta(self, pos):
-        """
-        Updates the plate metadata which lives at the highest level (top store).
-        This metadata carries information on the rows/columns and their paths.
-
-        :param int pos: Position index to update the metadata
-        """
-        self.plate_meta['plate']['columns'].append({'name': self.columns[pos]})
-        self.plate_meta['plate']['wells'].append({'path': f'{self.rows[0]}/{self.columns[pos]}'})
+        self.positions[pos_idx] = {'name': pos_name, 'row': self.row_name, 'col': col_name}
+        # Update plate meta
+        self.plate_meta['plate']['columns'].append({'name': col_name})
+        self.plate_meta['plate']['wells'].append({'path': f'{self.row_name}/{col_name}'})
         self.store.attrs.put(self.plate_meta)
+        # Update well meta
+        self.well_meta['well']['images'] = [{'path': pos_name}]
+        self.store[self.row_name][col_name].attrs.put(self.well_meta)
 
-    def _update_well_meta(self, pos):
+    def write_position(self, data_array, pos_idx):
         """
-        Updates the well metadata which lives at the column level.
-        This metadata carries information about the positions underneath.
-        Assumes only one position will ever be underneath this level.
-
-        :param int pos: Index of the position to update
-        """
-        self.well_meta['well']['images'] = [{'path': self.positions[pos]['name']}]
-        self.store[self.rows[0]][self.columns[pos]].attrs.put(self.well_meta)
-
-    def write_position(self, pos_idx, data_array):
-        """
+        This particular function will write entire (small) 5D data.
         Data has to have format (P, T, C, Z, Y, X)
+        This function does not check if it's overwriting.
 
         writer.init_array(position, data_shape, chunk_size, chan_names, dtype, clims, position_name=None, overwrite=False)
         chunk_size determines how zarr will chunk your data. This means that when you later try to load the data, it will load one chunk at a time with this specified size. To have the chunk be one z-slice, you would set chunk_size = (1,1,1,Y,X)
@@ -816,13 +794,56 @@ class ZarrWriter:
         data_shape = data_array.shape()
         chunk_size = (1, 1, 1, data_shape[3], data_shape[4])
         dtype = data_array.dtype
+        col_name = self.get_col_name(pos_idx)
+        pos_name = self.get_pos_name(pos_idx)
+        if pos_idx > 0:
+            self.create_position(pos_idx)
 
-        current_pos_group = self.store[row_name][col_name][pos_name]
+        current_pos_group = self.store[self.row_name][col_name][pos_name]
 
-        self.current_pos_group.zeros(
-            'arr_0',
-            shape=data_shape,
-            chunks=chunk_size,
-            dtype=dtype,
-        )
+        if current_pos_group.__len__() == 0:
+            current_pos_group.zeros(
+                'array',
+                shape=data_shape,
+                chunks=chunk_size,
+                dtype=dtype,
+            )
 
+        current_pos_group['array'] = data_array
+
+    def write_frame(self,
+                    frame,
+                    data_shape,
+                    pos_idx,
+                    data_dtype=np.uint16,
+                    time_idx=None,
+                    channel_idx=None,
+                    slice_idx=None):
+        """
+        Data has to have format (P, T, C, Z, Y, X)
+        This function does not check if it's overwriting.
+
+        writer.init_array(position, data_shape, chunk_size, chan_names, dtype, clims, position_name=None, overwrite=False)
+        chunk_size determines how zarr will chunk your data. This means that when you later try to load the data, it will load one chunk at a time with this specified size. To have the chunk be one z-slice, you would set chunk_size = (1,1,1,Y,X)
+
+        chan_names describe the names of the channels of your data in the order in which they will be written.
+
+        clims corresponds to the the display contrast limits in the metadata for every channel, if none, default values will be used
+        """
+        chunk_size = (1, 1, 1, data_shape[3], data_shape[4])
+        col_name = self.get_col_name(pos_idx)
+        pos_name = self.get_pos_name(pos_idx)
+        if pos_idx > len(self.positions):
+            self.create_position(pos_idx)
+
+        current_pos_group = self.store[self.row_name][col_name][pos_name]
+
+        if current_pos_group.__len__() == 0:
+            current_pos_group.zeros(
+                'array',
+                shape=data_shape,
+                chunks=chunk_size,
+                dtype=data_dtype,
+            )
+
+        current_pos_group['array'][time_idx, channel_idx, slice_idx, ...] = frame
