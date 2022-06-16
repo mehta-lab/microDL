@@ -94,6 +94,7 @@ def test_get_im_name():
     )
     nose.tools.assert_equal(im_name, 'im_c2_z3_t1_p4_hej.png')
 
+
 def test_get_sms_im_name():
     im_name = aux_utils.get_sms_im_name(
         time_idx=0,
@@ -115,6 +116,7 @@ def test_get_sms_im_name():
         int2str_len=2,
     )
     nose.tools.assert_equal(im_name, 'img_t00_p10.jpg')
+
 
 def test_get_im_name_default():
     im_name = aux_utils.get_im_name()
