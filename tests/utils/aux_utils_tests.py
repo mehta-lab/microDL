@@ -106,6 +106,9 @@ def test_get_sms_im_name():
         int2str_len=3,
     )
     nose.tools.assert_equal(im_name, 'img_phase_t000_p100_z010_blub.png')
+
+
+def test_get_sms_im_name_nones():
     im_name = aux_utils.get_sms_im_name(
         time_idx=0,
         channel_name=None,
