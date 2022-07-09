@@ -105,7 +105,7 @@ def save_predicted_images(input_imgs,
     axis_count += 1
 
     # add overlay input-target
-    for input_img_idx, input_img in enumerate(1, input_imgs):
+    for input_img_idx, input_img in enumerate(input_imgs, 1):
         ax[axis_count].imshow(input_img, 'gray')
         cmap_pink = LinearSegmentedColormap.from_list("cmap_pink", [(1, 1, 1, 0), 'm'])
         ax[axis_count].imshow(cur_target_chan, cmap_pink, alpha=1)
@@ -116,7 +116,7 @@ def save_predicted_images(input_imgs,
         axis_count += 1
 
     # add overlay input-prediction
-    for input_img_idx, input_img in enumerate(1, input_imgs):
+    for input_img_idx, input_img in enumerate(input_imgs, 1):
         cmap_green = LinearSegmentedColormap.from_list("cmap_green", [(1, 1, 1, 0), 'g'])
         ax[axis_count].imshow(input_img, 'gray')
         ax[axis_count].imshow(cur_pred_chan, cmap_green, alpha=1)
