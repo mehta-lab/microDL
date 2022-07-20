@@ -159,7 +159,7 @@ def main(input_dir,
         im_name_dst = get_sms_im_name(
             time_idx=meta_row['time_idx'],
             channel_name=meta_row['channel_name'],
-            slice_idx=meta_row['slice_idx_new'],
+            slice_idx=meta_row['slice_idx_new'].astype('int64'),
             pos_idx=meta_row['pos_idx'],
             ext='.tif',
         )
