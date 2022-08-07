@@ -1,4 +1,4 @@
-name: micro_dl
+name: microdlTF113
 channels:
   - anaconda
   - conda-forge
