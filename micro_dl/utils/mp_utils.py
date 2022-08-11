@@ -115,18 +115,18 @@ def create_save_mask(channels_meta_sub,
     slice_idx = int(channels_meta_sub['slice_idx'].iloc[0])
     pos_idx = int(channels_meta_sub['pos_idx'].iloc[0])
     file_name = aux_utils.get_im_name(
-        time_idx=time_idx,
-        channel_idx=mask_channel_idx,
-        slice_idx=slice_idx,
-        pos_idx=pos_idx,
+        time_idx=channels_meta_sub['time_idx'],
+        channel_idx=channels_meta_sub['mask_channel_idx'],
+        slice_idx=channels_meta_sub['slice_idx'],
+        pos_idx=channels_meta_sub['pos_idx'],
         int2str_len=int2str_len,
         ext=mask_ext,
     )
     overlay_name = aux_utils.get_im_name(
-        time_idx=time_idx,
+        time_idx=channels_meta_sub['time_idx'],
         channel_idx=mask_channel_idx,
-        slice_idx=slice_idx,
-        pos_idx=pos_idx,
+        slice_idx=channels_meta_sub['slice_idx'],
+        pos_idx=channels_meta_sub['pos_idx'],
         int2str_len=int2str_len,
         extra_field='overlay',
         ext=mask_ext,
@@ -161,9 +161,9 @@ def create_save_mask(channels_meta_sub,
     else:
         raise ValueError("mask_ext can be '.npy' or '.png', not {}".format(mask_ext))
     cur_meta = {'channel_idx': mask_channel_idx,
-                'slice_idx': slice_idx,
-                'time_idx': time_idx,
-                'pos_idx': pos_idx,
+                'slice_idx': channels_meta_sub['slice_idx'],
+                'time_idx': channels_meta_sub['time_idx'],
+                'pos_idx': channels_meta_sub['pos_idx'],
                 'file_name': file_name,
                 'fg_frac': fg_frac,
                 }
