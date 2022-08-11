@@ -54,7 +54,7 @@ def create_save_mask(channels_meta_sub,
     When >1 channel are used to generate the mask, mask of each channel is
     generated then added together.
 
-    :param list input_fnames: Input file names with full path
+    :param pd.DataFrame channels_meta_sub: Metadata for given PTCZ
     :param list flat_field_fnames: Paths to corresponding flat field images
     :param int str_elem_radius: size of structuring element used for binary
      opening. str_elem: disk or ball
@@ -110,19 +110,19 @@ def create_save_mask(channels_meta_sub,
 
     # Create mask name for given slice, time and position
     file_name = aux_utils.get_im_name(
-        time_idx=time_idx,
-        channel_idx=mask_channel_idx,
-        slice_idx=slice_idx,
-        pos_idx=pos_idx,
+        time_idx=channels_meta_sub['time_idx'],
+        channel_idx=channels_meta_sub['mask_channel_idx'],
+        slice_idx=channels_meta_sub['slice_idx'],
+        pos_idx=channels_meta_sub['pos_idx'],
         int2str_len=int2str_len,
         ext=mask_ext,
     )
 
     overlay_name = aux_utils.get_im_name(
-        time_idx=time_idx,
+        time_idx=channels_meta_sub['time_idx'],
         channel_idx=mask_channel_idx,
-        slice_idx=slice_idx,
-        pos_idx=pos_idx,
+        slice_idx=channels_meta_sub['slice_idx'],
+        pos_idx=channels_meta_sub['pos_idx'],
         int2str_len=int2str_len,
         extra_field='overlay',
         ext=mask_ext,
@@ -157,9 +157,9 @@ def create_save_mask(channels_meta_sub,
     else:
         raise ValueError("mask_ext can be '.npy' or '.png', not {}".format(mask_ext))
     cur_meta = {'channel_idx': mask_channel_idx,
-                'slice_idx': slice_idx,
-                'time_idx': time_idx,
-                'pos_idx': pos_idx,
+                'slice_idx': channels_meta_sub['slice_idx'],
+                'time_idx': channels_meta_sub['time_idx'],
+                'pos_idx': channels_meta_sub['pos_idx'],
                 'file_name': file_name,
                 'fg_frac': fg_frac,}
     return cur_meta

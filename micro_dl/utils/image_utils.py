@@ -147,19 +147,18 @@ def apply_flat_field_correction(input_image, **kwargs):
         flat_field_path (str): Full path to flatfield image
     :return: np.array (float) corrected image
     """
-    input_image = input_image.astype('float')
+    corrected_image = input_image.astype('float')
     if 'flat_field_image' in kwargs:
         flat_field_im = kwargs['flat_field_image']
         if flat_field_im is not None:
-            corrected_image = input_image / flat_field_im
+            corrected_image = input_image.astype('float') / flat_field_im
     elif 'flat_field_path' in kwargs:
         flat_field_path = kwargs['flat_field_path']
         if flat_field_path is not None:
             flat_field_image = np.load(flat_field_path)
-            corrected_image = input_image / flat_field_image
+            corrected_image = input_image.astype('float') / flat_field_image
     else:
         print("Incorrect kwargs: {}, returning input image".format(kwargs))
-        corrected_image = input_image.copy()
     return corrected_image
 
 
@@ -650,6 +649,7 @@ class ZarrWriter:
 
         :param str write_dir: Input directory
         :param str zarr_name: Name of zarr file in input_dir, ending with .zarr
+        :param list channel_names: List of channel names (strs)
         """
         self.write_dir = write_dir
         self.zarr_name = zarr_name
@@ -667,9 +667,15 @@ class ZarrWriter:
         self.create_meta(channel_names)
 
     def get_col_name(self, pos_idx):
+        """
+        :param int pos_idx: Positional index
+        """
         return 'Col_{}'.format(pos_idx)
 
     def get_pos_name(self, pos_idx):
+        """
+        :param int pos_idx: Positional index
+        """
         return 'Pos_{:03d}'.format(pos_idx)
 
     def create_row(self, row_idx):
@@ -677,6 +683,8 @@ class ZarrWriter:
         Creates a row in the hierarchy (first level below zarr store). Option to name
         this row.  Default is Row_{idx}.  Keeps track of the row name + row index for later
         metadata creation.
+
+        :param int row_idx: Row index
         """
         self.row_name = 'Row_{}'.format(row_idx)
         row_path = os.path.join(self.write_dir, self.row_name)
@@ -706,6 +714,12 @@ class ZarrWriter:
             self.store[self.row_name].create_group(col_name)
 
     def create_meta(self, channel_names):
+        """
+        Create metadata according to OME standards.
+
+        :param list channel_names: Channel names (assuming they're
+            the same throughout acquisition.
+        """
         self.plate_meta['plate'] = {'acquisitions': [{'id': 1,
                                                       'maximumfieldcount': 1,
                                                       'name': 'Dataset',
@@ -784,16 +798,19 @@ class ZarrWriter:
         Data has to have format (P, T, C, Z, Y, X)
         This function does not check if it's overwriting.
 
-        writer.init_array(position, data_shape, chunk_size, chan_names, dtype, clims, position_name=None, overwrite=False)
-        chunk_size determines how zarr will chunk your data. This means that when you later try to load the data, it will load one chunk at a time with this specified size. To have the chunk be one z-slice, you would set chunk_size = (1,1,1,Y,X)
+        chunk_size determines how zarr will chunk your data.
+        This means that when you later try to load the data, it will load
+        one chunk at a time with this specified size. To have the chunk be
+        one z-slice, you would set chunk_size = (1,1,1,Y,X)
 
-        chan_names describe the names of the channels of your data in the order in which they will be written.
+        chan_names describe the names of the channels of your data in the
+        order in which they will be written.
 
-        clims corresponds to the the display contrast limits in the metadata for every channel, if none, default values will be used
+        :param np.array data_array: Image for given position
+        :param int pos_idx: Position index
         """
         data_shape = data_array.shape()
         chunk_size = (1, 1, 1, data_shape[3], data_shape[4])
-        dtype = data_array.dtype
         col_name = self.get_col_name(pos_idx)
         pos_name = self.get_pos_name(pos_idx)
         if pos_idx > 0:
@@ -806,7 +823,7 @@ class ZarrWriter:
                 'array',
                 shape=data_shape,
                 chunks=chunk_size,
-                dtype=dtype,
+                dtype=data_array.dtype,
             )
 
         current_pos_group['array'] = data_array
@@ -820,15 +837,21 @@ class ZarrWriter:
                     channel_idx=None,
                     slice_idx=None):
         """
+        Writes image for given position, time, channel and slice
+
         Data has to have format (P, T, C, Z, Y, X)
         This function does not check if it's overwriting.
 
-        writer.init_array(position, data_shape, chunk_size, chan_names, dtype, clims, position_name=None, overwrite=False)
-        chunk_size determines how zarr will chunk your data. This means that when you later try to load the data, it will load one chunk at a time with this specified size. To have the chunk be one z-slice, you would set chunk_size = (1,1,1,Y,X)
+        clims corresponds to the the display contrast limits in the
+        metadata for every channel, if none, default values will be used
 
-        chan_names describe the names of the channels of your data in the order in which they will be written.
-
-        clims corresponds to the the display contrast limits in the metadata for every channel, if none, default values will be used
+        :param np.array frame: Image data
+        :param tuple data_shape: Shape of image data
+        :param int pos_idx: Position index
+        :param type data_dtype: Image dtype
+        :param int time_idx: Time index
+        :param int channel_idx: Channel index
+        :aram int slice_idx: Slice index
         """
         chunk_size = (1, 1, 1, data_shape[3], data_shape[4])
         col_name = self.get_col_name(pos_idx)
