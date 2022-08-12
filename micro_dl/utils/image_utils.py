@@ -636,7 +636,7 @@ class ZarrReader:
 
 class ZarrWriter:
     """
-    Writes data into a .zarr file..
+    Writes data into a .zarr file.
     Assumes ome-zarr data, next generation file format defined here:
     https://ngff.openmicroscopy.org/0.1/
     Reading and writing zarr data is based on WaveOrder:
@@ -648,7 +648,7 @@ class ZarrWriter:
         Sets up zarr store
 
         :param str write_dir: Input directory
-        :param str zarr_name: Name of zarr file in input_dir, ending with .zarr
+        :param str zarr_name: Name of zarr file, ending with .zarr
         :param list channel_names: List of channel names (strs)
         """
         self.write_dir = write_dir
@@ -665,6 +665,7 @@ class ZarrWriter:
         self.positions = []
         self.create_position(pos_idx=0)
         self.create_meta(channel_names)
+        self.update_meta(pos_idx=0)
 
     def get_col_name(self, pos_idx):
         """
@@ -776,15 +777,27 @@ class ZarrWriter:
         """
         if pos_idx == 0:
             self.create_row(row_idx=0)
+        else:
+            assert pos_idx == len(self.positions), \
+                "There are {} existing positions, but index is {}".format(
+                    len(self.positions), pos_idx,
+                )
         self.create_column(pos_idx=pos_idx)
         pos_name = self.get_pos_name(pos_idx=pos_idx)
         col_name = self.get_col_name(pos_idx=pos_idx)
 
         # create position subgroup
         self.store[self.row_name][col_name].create_group(pos_name)
+        self.positions.append({'name': pos_name, 'row': self.row_name, 'col': col_name})
 
-        self.positions[pos_idx] = {'name': pos_name, 'row': self.row_name, 'col': col_name}
-        # Update plate meta
+    def update_meta(self, pos_idx):
+        """
+        Update metadata for given position.
+
+        :param int pos_idx: Position index
+        """
+        pos_name = self.get_pos_name(pos_idx=pos_idx)
+        col_name = self.get_col_name(pos_idx=pos_idx)
         self.plate_meta['plate']['columns'].append({'name': col_name})
         self.plate_meta['plate']['wells'].append({'path': f'{self.row_name}/{col_name}'})
         self.store.attrs.put(self.plate_meta)
@@ -794,7 +807,7 @@ class ZarrWriter:
 
     def write_position(self, data_array, pos_idx):
         """
-        This particular function will write entire (small) 5D data.
+        This function will write an entire (small) 5D data.
         Data has to have format (P, T, C, Z, Y, X)
         This function does not check if it's overwriting.
 
@@ -815,6 +828,7 @@ class ZarrWriter:
         pos_name = self.get_pos_name(pos_idx)
         if pos_idx > 0:
             self.create_position(pos_idx)
+            self.update_meta(pos_idx)
 
         current_pos_group = self.store[self.row_name][col_name][pos_name]
 
