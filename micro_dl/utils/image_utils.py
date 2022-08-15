@@ -765,8 +765,12 @@ class ZarrWriter:
                          'version': 0.1}
                      }
 
-        pos_group = self.store[self.row_name][self.get_col_name(0)][self.positions[0]]
+        print(self.positions)
+        print(self.store)
+        pos = self.positions[0]
+        pos_group = self.store[pos['row']][pos['col']][pos['name']]
         pos_group.attrs.put(full_dict)
+        print(pos_group.attrs)
 
     def create_position(self, pos_idx):
         """
@@ -805,10 +809,39 @@ class ZarrWriter:
         self.well_meta['well']['images'] = [{'path': pos_name}]
         self.store[self.row_name][col_name].attrs.put(self.well_meta)
 
+    def write_data_set(self, data_array):
+        """
+        This function will write an entire (small) 5D/6D data data set for
+        given position, or if P is in data array, loop over positions.
+        Data has to have format (P (optional), T, C, Z, Y, X)
+        This function does not check if it's overwriting.
+
+        chunk_size determines how zarr will chunk your data.
+        This means that when you later try to load the data, it will load
+        one chunk at a time with this specified size. To have the chunk be
+        one z-slice, you would set chunk_size = (1,1,1,Y,X)
+
+        chan_names describe the names of the channels of your data in the
+        order in which they will be written.
+
+        :param np.array data_array: Image for given position
+        """
+        data_shape = data_array.shape
+        # Check data shape and determine positions
+        if len(data_shape) == 6:
+            pos_ids = np.arange(data_shape[0])
+        else:
+            pos_ids = [0]
+            data_array = data_array[np.newaxis, ...]
+
+        for pos_idx in pos_ids:
+            self.write_position(data_array[pos_idx], pos_idx)
+
     def write_position(self, data_array, pos_idx):
         """
-        This function will write an entire (small) 5D data.
-        Data has to have format (P, T, C, Z, Y, X)
+        This function will write an entire (small) 5D data data set for
+        given position.
+        Data has to have format (T, C, Z, Y, X)
         This function does not check if it's overwriting.
 
         chunk_size determines how zarr will chunk your data.
@@ -822,7 +855,10 @@ class ZarrWriter:
         :param np.array data_array: Image for given position
         :param int pos_idx: Position index
         """
-        data_shape = data_array.shape()
+        data_shape = data_array.shape
+        assert len(data_shape) == 5, \
+            "Data shape has to be 5, not {}".format(len(data_shape))
+
         chunk_size = (1, 1, 1, data_shape[3], data_shape[4])
         col_name = self.get_col_name(pos_idx)
         pos_name = self.get_pos_name(pos_idx)
@@ -839,19 +875,19 @@ class ZarrWriter:
                 chunks=chunk_size,
                 dtype=data_array.dtype,
             )
-
         current_pos_group['array'] = data_array
 
     def write_frame(self,
                     frame,
                     data_shape,
                     pos_idx,
-                    data_dtype=np.uint16,
-                    time_idx=None,
-                    channel_idx=None,
-                    slice_idx=None):
+                    time_idx,
+                    channel_idx,
+                    slice_idx=None,
+                    data_dtype=np.uint16):
         """
-        Writes image for given position, time, channel and slice
+        Writes image (2D/3D) frame for given position, time, channel and slice.
+        Positions have to be written in consecutive order.
 
         Data has to have format (P, T, C, Z, Y, X)
         This function does not check if it's overwriting.
@@ -859,15 +895,18 @@ class ZarrWriter:
         clims corresponds to the the display contrast limits in the
         metadata for every channel, if none, default values will be used
 
-        :param np.array frame: Image data
+        :param np.array frame: Image data (Z (optional), Y, X)
         :param tuple data_shape: Shape of image data
         :param int pos_idx: Position index
         :param type data_dtype: Image dtype
         :param int time_idx: Time index
         :param int channel_idx: Channel index
-        :aram int slice_idx: Slice index
+        :param int/None slice_idx: Slice index
         """
-        chunk_size = (1, 1, 1, data_shape[3], data_shape[4])
+        frame_shape = frame.shape
+        assert frame_shape[-2] == data_shape[-2], "Y Frame shape must match data"
+        assert frame_shape[-1] == data_shape[-1], "X Frame shape must match data"
+        chunk_size = (1, 1, 1, data_shape[-2], data_shape[-1])
         col_name = self.get_col_name(pos_idx)
         pos_name = self.get_pos_name(pos_idx)
         if pos_idx > len(self.positions):
@@ -882,5 +921,11 @@ class ZarrWriter:
                 chunks=chunk_size,
                 dtype=data_dtype,
             )
-
-        current_pos_group['array'][time_idx, channel_idx, slice_idx, ...] = frame
+        if slice_idx is None:
+            assert len(frame_shape) == 3, \
+                "If slice isn't specified, shape needs to be 3D, it's {}D".format(len(frame_shape))
+            current_pos_group['array'][time_idx, channel_idx, ...] = frame
+        else:
+            assert len(frame_shape) == 2, \
+                "If slice is specified, shape needs to be 2D, it's {}D".format(len(frame_shape))
+            current_pos_group['array'][time_idx, channel_idx, slice_idx, ...] = frame
