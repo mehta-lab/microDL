@@ -5,6 +5,7 @@ import os
 import pandas as pd
 from testfixtures import TempDirectory
 import unittest
+import zarr
 
 # Create a test image and its corresponding coordinates and values
 # Create a test image with a bright block to the right
@@ -114,155 +115,199 @@ def test_center_crop_to_shape_2d_too_big():
     image_utils.center_crop_to_shape(im, output_shape)
 
 
-class TestImageUtils(unittest.TestCase):
+# class TestImageUtils(unittest.TestCase):
+#
+#     def setUp(self):
+#         """Set up a dictionary with images"""
+#
+#         self.tempdir = TempDirectory()
+#         self.temp_path = self.tempdir.path
+#         meta_fname = 'frames_meta.csv'
+#         self.frames_meta = aux_utils.make_dataframe()
+#
+#         x = np.linspace(-4, 4, 32)
+#         y = x.copy()
+#         z = np.linspace(-3, 3, 8)
+#         xx, yy, zz = np.meshgrid(x, y, z)
+#         sph = (xx ** 2 + yy ** 2 + zz ** 2)
+#         sph = (sph <= 8) * (8 - sph)
+#         sph = (sph / sph.max()) * 255
+#         sph = sph.astype('uint8')
+#         self.sph = sph
+#
+#         self.channel_idx = 1
+#         self.time_idx = 0
+#         self.pos_idx = 1
+#         self.int2str_len = 3
+#
+#         for z in range(sph.shape[2]):
+#             im_name = aux_utils.get_im_name(
+#                 channel_idx=1,
+#                 slice_idx=z,
+#                 time_idx=self.time_idx,
+#                 pos_idx=self.pos_idx,
+#             )
+#             cv2.imwrite(os.path.join(self.temp_path, im_name), sph[:, :, z])
+#             meta_row = aux_utils.parse_idx_from_name(im_name)
+#             meta_row['zscore_median'] = np.nanmean(sph[:, :, z])
+#             meta_row['zscore_iqr'] = np.nanstd(sph[:, :, z])
+#             self.frames_meta = self.frames_meta.append(
+#                 meta_row,
+#                 ignore_index=True
+#             )
+#         self.frames_meta['dir_name'] = self.temp_path
+#         self.dataset_mean = self.frames_meta['zscore_median'].mean()
+#         self.dataset_std = self.frames_meta['zscore_iqr'].mean()
+#         # Write metadata
+#         self.frames_meta.to_csv(os.path.join(self.temp_path, meta_fname), sep=',')
+#         # Write 3D sphere data
+#         self.sph_fname = os.path.join(
+#             self.temp_path,
+#             'im_c001_z000_t000_p001_3d.npy',
+#         )
+#         np.save(self.sph_fname, self.sph, allow_pickle=True, fix_imports=True)
+#         meta_3d = pd.DataFrame.from_dict([{
+#             'channel_idx': 1,
+#             'slice_idx': 0,
+#             'time_idx': 0,
+#             'channel_name': '3d_test',
+#             'file_name': 'im_c001_z000_t000_p001_3d.npy',
+#             'pos_idx': 1,
+#             'zscore_median': np.nanmean(sph),
+#             'zscore_iqr': np.nanstd(sph)
+#         }])
+#         self.meta_3d = meta_3d
+#
+#     def tearDown(self):
+#         """
+#         Tear down temporary folder and file structure
+#         """
+#         TempDirectory.cleanup_all()
+#         nose.tools.assert_equal(os.path.isdir(self.temp_path), False)
+#
+#     def test_read_image(self):
+#         file_path = os.path.join(
+#             self.temp_path,
+#             self.frames_meta['file_name'][0],
+#         )
+#         im = image_utils.read_image(file_path)
+#         np.testing.assert_array_equal(im, self.sph[..., 0])
+#
+#     def test_read_image_npy(self):
+#         im = image_utils.read_image(self.sph_fname)
+#         np.testing.assert_array_equal(im, self.sph)
+#
+#     def test_read_imstack(self):
+#         """Test read_imstack"""
+#
+#         fnames = self.frames_meta['file_name'][:3]
+#         fnames = [os.path.join(self.temp_path, fname) for fname in fnames]
+#         # non-boolean
+#         im_stack = image_utils.read_imstack(
+#             input_fnames=fnames,
+#             normalize_im=True,
+#             zscore_mean=self.dataset_mean,
+#             zscore_std=self.dataset_std,
+#         )
+#         exp_stack = normalize.zscore(
+#             self.sph[:, :, :3],
+#             im_mean=self.dataset_mean,
+#             im_std=self.dataset_std,
+#         )
+#         np.testing.assert_equal(im_stack.shape, (32, 32, 3))
+#         np.testing.assert_array_equal(
+#             exp_stack[:, :, :3],
+#             im_stack,
+#         )
+#         # read a 3D image
+#         im_stack = image_utils.read_imstack([self.sph_fname])
+#         np.testing.assert_equal(im_stack.shape, (32, 32, 8))
+#
+#         # read multiple 3D images
+#         im_stack = image_utils.read_imstack((self.sph_fname, self.sph_fname))
+#         np.testing.assert_equal(im_stack.shape, (32, 32, 8, 2))
+#
+#     def test_preprocess_imstack(self):
+#         """Test preprocess_imstack"""
+#         im_stack = image_utils.preprocess_imstack(
+#             frames_metadata=self.frames_meta,
+#             depth=3,
+#             time_idx=self.time_idx,
+#             channel_idx=self.channel_idx,
+#             slice_idx=2,
+#             pos_idx=self.pos_idx,
+#             normalize_im='dataset',
+#         )
+#         np.testing.assert_equal(im_stack.shape, (32, 32, 3))
+#         exp_stack = np.zeros((32, 32, 3))
+#         # Right now the code normalizes on a z slice basis for all
+#         # normalization schemes
+#         for z in range(exp_stack.shape[2]):
+#             exp_stack[..., z] = normalize.zscore(self.sph[..., z + 1])
+#         np.testing.assert_array_equal(im_stack, exp_stack)
+#
+#     def test_preprocess_imstack_3d(self):
+#         # preprocess a 3D image
+#         im_stack = image_utils.preprocess_imstack(
+#             frames_metadata=self.meta_3d,
+#             depth=1,
+#             time_idx=0,
+#             channel_idx=1,
+#             slice_idx=0,
+#             pos_idx=1,
+#             normalize_im='dataset',
+#         )
+#         np.testing.assert_equal(im_stack.shape, (32, 32, 8))
+#         # Normalization for 3D image is done on the entire volume
+#         exp_stack = normalize.zscore(
+#             self.sph,
+#             im_mean=np.nanmean(self.sph),
+#             im_std=np.nanstd(self.sph),
+#         )
+#         np.testing.assert_array_equal(im_stack, exp_stack)
+
+
+class TestZarrWriter(unittest.TestCase):
 
     def setUp(self):
-        """Set up a dictionary with images"""
+        """Create data set"""
 
         self.tempdir = TempDirectory()
-        self.temp_path = self.tempdir.path
-        meta_fname = 'frames_meta.csv'
-        self.frames_meta = aux_utils.make_dataframe()
+        self.write_dir = self.tempdir.path
+        self.zarr_name = 'test_data.zarr'
+        self.channel_names = ['test_ch1', 'test_ch2']
 
-        x = np.linspace(-4, 4, 32)
-        y = x.copy()
-        z = np.linspace(-3, 3, 8)
-        xx, yy, zz = np.meshgrid(x, y, z)
-        sph = (xx ** 2 + yy ** 2 + zz ** 2)
-        sph = (sph <= 8) * (8 - sph)
-        sph = (sph / sph.max()) * 255
-        sph = sph.astype('uint8')
-        self.sph = sph
-
-        self.channel_idx = 1
-        self.time_idx = 0
-        self.pos_idx = 1
-        self.int2str_len = 3
-
-        for z in range(sph.shape[2]):
-            im_name = aux_utils.get_im_name(
-                channel_idx=1,
-                slice_idx=z,
-                time_idx=self.time_idx,
-                pos_idx=self.pos_idx,
-            )
-            cv2.imwrite(os.path.join(self.temp_path, im_name), sph[:, :, z])
-            meta_row = aux_utils.parse_idx_from_name(im_name)
-            meta_row['zscore_median'] = np.nanmean(sph[:, :, z])
-            meta_row['zscore_iqr'] = np.nanstd(sph[:, :, z])
-            self.frames_meta = self.frames_meta.append(
-                meta_row,
-                ignore_index=True
-            )
-        self.frames_meta['dir_name'] = self.temp_path
-        self.dataset_mean = self.frames_meta['zscore_median'].mean()
-        self.dataset_std = self.frames_meta['zscore_iqr'].mean()
-        # Write metadata
-        self.frames_meta.to_csv(os.path.join(self.temp_path, meta_fname), sep=',')
-        # Write 3D sphere data
-        self.sph_fname = os.path.join(
-            self.temp_path,
-            'im_c001_z000_t000_p001_3d.npy',
+        self.P = 10
+        self.T = 3
+        self.C = 2
+        self.Z = 15
+        self.Y = 25
+        self.X = 35
+        self.data_set = np.random.rand(self.P, self.T, self.C, self.Z, self.Y, self.X)
+        self.zarr_writer = image_utils.ZarrWriter(
+            write_dir=self.temp_path,
+            zarr_name=self.zarr_name,
+            channel_names=self.channel_names,
         )
-        np.save(self.sph_fname, self.sph, allow_pickle=True, fix_imports=True)
-        meta_3d = pd.DataFrame.from_dict([{
-            'channel_idx': 1,
-            'slice_idx': 0,
-            'time_idx': 0,
-            'channel_name': '3d_test',
-            'file_name': 'im_c001_z000_t000_p001_3d.npy',
-            'pos_idx': 1,
-            'zscore_median': np.nanmean(sph),
-            'zscore_iqr': np.nanstd(sph)
-        }])
-        self.meta_3d = meta_3d
 
     def tearDown(self):
         """
         Tear down temporary folder and file structure
         """
         TempDirectory.cleanup_all()
-        nose.tools.assert_equal(os.path.isdir(self.temp_path), False)
+        nose.tools.assert_equal(os.path.isdir(self.write_dir), False)
 
-    def test_read_image(self):
-        file_path = os.path.join(
-            self.temp_path,
-            self.frames_meta['file_name'][0],
-        )
-        im = image_utils.read_image(file_path)
-        np.testing.assert_array_equal(im, self.sph[..., 0])
-
-    def test_read_image_npy(self):
-        im = image_utils.read_image(self.sph_fname)
-        np.testing.assert_array_equal(im, self.sph)
-
-    def test_read_imstack(self):
-        """Test read_imstack"""
-
-        fnames = self.frames_meta['file_name'][:3]
-        fnames = [os.path.join(self.temp_path, fname) for fname in fnames]
-        # non-boolean
-        im_stack = image_utils.read_imstack(
-            input_fnames=fnames,
-            normalize_im=True,
-            zscore_mean=self.dataset_mean,
-            zscore_std=self.dataset_std,
-        )
-        exp_stack = normalize.zscore(
-            self.sph[:, :, :3],
-            im_mean=self.dataset_mean,
-            im_std=self.dataset_std,
-        )
-        np.testing.assert_equal(im_stack.shape, (32, 32, 3))
-        np.testing.assert_array_equal(
-            exp_stack[:, :, :3],
-            im_stack,
-        )
-        # read a 3D image
-        im_stack = image_utils.read_imstack([self.sph_fname])
-        np.testing.assert_equal(im_stack.shape, (32, 32, 8))
-
-        # read multiple 3D images
-        im_stack = image_utils.read_imstack((self.sph_fname, self.sph_fname))
-        np.testing.assert_equal(im_stack.shape, (32, 32, 8, 2))
-
-    def test_preprocess_imstack(self):
-        """Test preprocess_imstack"""
-        im_stack = image_utils.preprocess_imstack(
-            frames_metadata=self.frames_meta,
-            depth=3,
-            time_idx=self.time_idx,
-            channel_idx=self.channel_idx,
-            slice_idx=2,
-            pos_idx=self.pos_idx,
-            normalize_im='dataset',
-        )
-        np.testing.assert_equal(im_stack.shape, (32, 32, 3))
-        exp_stack = np.zeros((32, 32, 3))
-        # Right now the code normalizes on a z slice basis for all
-        # normalization schemes
-        for z in range(exp_stack.shape[2]):
-            exp_stack[..., z] = normalize.zscore(self.sph[..., z + 1])
-        np.testing.assert_array_equal(im_stack, exp_stack)
-
-    def test_preprocess_imstack_3d(self):
-        # preprocess a 3D image
-        im_stack = image_utils.preprocess_imstack(
-            frames_metadata=self.meta_3d,
-            depth=1,
-            time_idx=0,
-            channel_idx=1,
-            slice_idx=0,
-            pos_idx=1,
-            normalize_im='dataset',
-        )
-        np.testing.assert_equal(im_stack.shape, (32, 32, 8))
-        # Normalization for 3D image is done on the entire volume
-        exp_stack = normalize.zscore(
-            self.sph,
-            im_mean=np.nanmean(self.sph),
-            im_std=np.nanstd(self.sph),
-        )
-        np.testing.assert_array_equal(im_stack, exp_stack)
-
-
+    def test_init(self):
+        self.assertEqual(self.zarr_writer.write_dir, self.write_dir)
+        self.assertEqual(self.zarr_writer.zarr_name, self.zarr_name)
+        zarr_path = os.path.join(self.write_dir, self.zarr_name)
+        self.assertEqual(self.zarr_writer.zarr_path, zarr_path)
+        zarr_data = zarr.open(zarr_path, mode='r')
+        plate_info = zarr_data.attrs.get('plate')
+        well = plate_info['wells'][0]
+        pos = zarr_data[well['path']].attrs.get('well').get('images')[0]
+        first_pos = zarr_data[well['path']][pos['path']]
+        omero_meta = first_pos.attrs.asdict()['omero']
+        print(omero_meta['channels'])
+        for i, chan in enumerate(omero_meta['channels']):
+            self.assertEqual(chan['label'], self.channel_names[i])
