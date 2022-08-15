@@ -5,6 +5,7 @@ import os
 import pandas as pd
 from testfixtures import TempDirectory
 import unittest
+import zarr
 
 # Create a test image and its corresponding coordinates and values
 # Create a test image with a bright block to the right
@@ -129,7 +130,7 @@ def test_grid_sample_pixel_values():
 class TestImageUtils(unittest.TestCase):
 
     def setUp(self):
-        """Set up a dictionary with images"""
+        """Create data set"""
 
         self.tempdir = TempDirectory()
         self.temp_path = self.tempdir.path
