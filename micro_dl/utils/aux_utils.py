@@ -103,7 +103,7 @@ def get_meta_idx(frames_metadata,
     :param dataframe frames_metadata: Dataframe with column names given below
     :param int time_idx: Timepoint index
     :param int channel_idx: Channel index
-    :param int slice_idx: Slize (z) index
+    :param int slice_idx: Slice (z) index
     :param int pos_idx: Position (FOV) index
     :return: int pos_idx: Row position matching indices above
     """

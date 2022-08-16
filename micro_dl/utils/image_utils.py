@@ -877,8 +877,8 @@ class ZarrWriter:
             )
         current_pos_group['array'] = data_array
 
-    def write_frame(self,
-                    frame,
+    def write_image(self,
+                    im,
                     data_shape,
                     pos_idx,
                     time_idx,
@@ -894,16 +894,16 @@ class ZarrWriter:
         clims corresponds to the the display contrast limits in the
         metadata for every channel, if none, default values will be used
 
-        :param np.array frame: Image data (Z (optional), Y, X)
+        :param np.array im: Image data (Z (optional), Y, X)
         :param tuple data_shape: Shape of image data (P, T, C, Z, Y, X)
         :param int pos_idx: Position index
         :param int time_idx: Time index
         :param int channel_idx: Channel index
         :param int/None slice_idx: Slice index
         """
-        frame_shape = frame.shape
-        assert frame_shape[-2] == data_shape[-2], "Y Frame shape must match data"
-        assert frame_shape[-1] == data_shape[-1], "X Frame shape must match data"
+        im_shape = im.shape
+        assert im_shape[-2] == data_shape[-2], "Image Y must match data shape"
+        assert im_shape[-1] == data_shape[-1], "Image X must match data shape"
         # Once data shape is established, it's fixed for the whole data set
         if self.data_shape is not None:
             assert self.data_shape == data_shape, \
@@ -914,7 +914,7 @@ class ZarrWriter:
             # Fix data shape for whole data set
             self.data_shape = data_shape
             self.chunk_size = (1, 1, 1, data_shape[-2], data_shape[-1])
-            self.data_dtype = frame.dtype
+            self.data_dtype = im.dtype
 
         col_name = self.get_col_name(pos_idx)
         pos_name = self.get_pos_name(pos_idx)
@@ -930,10 +930,10 @@ class ZarrWriter:
                 dtype=self.data_dtype,
             )
         if slice_idx is None:
-            assert len(frame_shape) == 3, \
-                "If slice isn't specified, shape needs to be 3D, it's {}D".format(len(frame_shape))
-            current_pos_group['array'][time_idx, channel_idx, ...] = frame
+            assert len(im_shape) == 3, \
+                "If slice isn't specified, shape needs to be 3D, it's {}D".format(len(im_shape))
+            current_pos_group['array'][time_idx, channel_idx, ...] = im
         else:
-            assert len(frame_shape) == 2, \
-                "If slice is specified, shape needs to be 2D, it's {}D".format(len(frame_shape))
-            current_pos_group['array'][time_idx, channel_idx, slice_idx, ...] = frame
+            assert len(im_shape) == 2, \
+                "If slice is specified, shape needs to be 2D, it's {}D".format(len(im_shape))
+            current_pos_group['array'][time_idx, channel_idx, slice_idx, ...] = im
