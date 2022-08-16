@@ -285,7 +285,7 @@ class TestZarrWriter(unittest.TestCase):
         self.X = 35
         self.data_set = np.random.rand(self.P, self.T, self.C, self.Z, self.Y, self.X)
         self.zarr_writer = image_utils.ZarrWriter(
-            write_dir=self.temp_path,
+            write_dir=self.write_dir,
             zarr_name=self.zarr_name,
             channel_names=self.channel_names,
         )
@@ -295,7 +295,7 @@ class TestZarrWriter(unittest.TestCase):
         Tear down temporary folder and file structure
         """
         TempDirectory.cleanup_all()
-        nose.tools.assert_equal(os.path.isdir(self.write_dir), False)
+        self.assertFalse(os.path.isdir(self.write_dir))
 
     def test_init(self):
         self.assertEqual(self.zarr_writer.write_dir, self.write_dir)
@@ -308,6 +308,131 @@ class TestZarrWriter(unittest.TestCase):
         pos = zarr_data[well['path']].attrs.get('well').get('images')[0]
         first_pos = zarr_data[well['path']][pos['path']]
         omero_meta = first_pos.attrs.asdict()['omero']
-        print(omero_meta['channels'])
         for i, chan in enumerate(omero_meta['channels']):
             self.assertEqual(chan['label'], self.channel_names[i])
+
+    def test_get_col_name(self):
+        col_name = self.zarr_writer.get_col_name(15)
+        self.assertEqual(col_name, 'Col_15')
+
+    def test_get_pos_name(self):
+        pos_name = self.zarr_writer.get_pos_name(666)
+        self.assertEqual(pos_name, 'Pos_666')
+
+    def test_create_row(self):
+        self.zarr_writer.create_row(10)
+        self.assertEqual(self.zarr_writer.row_name, 'Row_10')
+
+    @nose.tools.raises(FileExistsError)
+    def test_create_existing_row(self):
+        self.zarr_writer.create_row(0)
+
+    def test_create_column(self):
+        self.zarr_writer.create_column(55)
+        self.assertTrue('Col_55' in self.zarr_writer.store[self.zarr_writer.row_name])
+
+    @nose.tools.raises(FileExistsError)
+    def test_create_existing_column(self):
+        self.zarr_writer.create_column(0)
+
+    def test_create_meta(self):
+        self.zarr_writer.create_meta()
+        meta = self.zarr_writer.store['Row_0']['Col_0']['Pos_000'].attrs.asdict()
+        for i, chan in enumerate(meta['omero']['channels']):
+            self.assertEqual(chan['label'], self.channel_names[i])
+
+    def test_create_position(self):
+        self.zarr_writer.create_position(1)
+        self.assertTrue('Pos_001' in self.zarr_writer.store['Row_0']['Col_1'])
+
+    @nose.tools.raises(AssertionError)
+    def test_create_not_consecutive_position(self):
+        self.zarr_writer.create_position(9)
+
+    @nose.tools.raises(FileExistsError)
+    def test_create_existing_position(self):
+        self.zarr_writer.create_position(0)
+
+    def test_update_meta(self):
+        self.zarr_writer.update_meta(0)
+        self.assertEqual(
+            self.zarr_writer.plate_meta['plate']['columns'][0]['name'],
+            'Col_0',
+        )
+        plate_meta = self.zarr_writer.plate_meta['plate']['wells'][0]
+        self.assertEqual(
+            plate_meta['path'],
+            'Row_0/Col_0',
+        )
+        self.assertEqual(
+            self.zarr_writer.well_meta['well']['images'][0]['path'],
+            'Pos_000',
+        )
+
+    def test_write_data_set(self):
+        # Data has to have format (P (optional), T, C, Z, Y, X)
+        P = 5
+        data_set = np.zeros((P, 3, 2, 10, 15, 20))
+        for pos_idx in range(P):
+            data_set[pos_idx, ...] = pos_idx + 1
+        self.zarr_writer.write_data_set(data_set)
+
+        zarr_data = zarr.open(os.path.join(self.write_dir, self.zarr_name), mode='r')
+        for pos_idx in range(P):
+            col_name = 'Col_{}'.format(pos_idx)
+            pos_name = 'Pos_{:03d}'.format(pos_idx)
+            array = zarr_data['Row_0'][col_name][pos_name]['array']
+            self.assertTupleEqual(array.shape, (3, 2, 10, 15, 20))
+            self.assertEqual(np.mean(array), pos_idx + 1)
+
+    def test_write_data_set_position(self):
+        # Data has to have format (P (optional), T, C, Z, Y, X)
+        data_set = np.ones((3, 2, 10, 15, 20))
+        self.zarr_writer.write_data_set(data_set)
+
+        zarr_data = zarr.open(os.path.join(self.write_dir, self.zarr_name), mode='r')
+        array = zarr_data['Row_0']['Col_0']['Pos_000']['array']
+        self.assertTupleEqual(array.shape, (3, 2, 10, 15, 20))
+        self.assertEqual(np.mean(array), 1)
+
+    @nose.tools.raises(AssertionError)
+    def test_write_wrong_data_set(self):
+        data_set = np.zeros((10, 15, 20))
+        self.zarr_writer.write_data_set(data_set)
+
+    def test_write_position(self):
+        # Data has to have format (P (optional), T, C, Z, Y, X)
+        data_set = np.ones((3, 2, 10, 15, 20))
+        self.zarr_writer.write_position(data_set, 1)
+
+        zarr_data = zarr.open(os.path.join(self.write_dir, self.zarr_name), mode='r')
+        array = zarr_data['Row_0']['Col_1']['Pos_001']['array']
+        self.assertTupleEqual(array.shape, (3, 2, 10, 15, 20))
+        self.assertEqual(np.mean(array), 1)
+
+    @nose.tools.raises(AssertionError)
+    def test_write_wrong_position(self):
+        data_set = np.ones((10, 15, 20))
+        self.zarr_writer.write_position(data_set, 1)
+
+    @nose.tools.raises(AssertionError)
+    def test_write_position_wrong_channels(self):
+        data_set = np.ones((3, 7, 10, 15, 20))
+        self.zarr_writer.write_position(data_set, 1)
+
+    def test_write_frame(self):
+        frame = np.ones((10, 15, 20))
+        data_shape = (5, 3, 2, 10, 15, 20)
+        self.zarr_writer.write_frame(
+            frame=frame,
+            data_shape=data_shape,
+            pos_idx=0,
+            time_idx=2,
+            channel_idx=1,
+        )
+        zarr_data = zarr.open(os.path.join(self.write_dir, self.zarr_name), mode='r')
+        array = zarr_data['Row_0']['Col_0']['Pos_000']['array']
+        self.assertTupleEqual(array.shape, (3, 2, 10, 15, 20))
+        # Get subsection containing ones
+        self.assertEqual(np.mean(array[2, 1, ...]), 1)
+        
