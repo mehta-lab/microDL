@@ -650,6 +650,7 @@ class ZarrWriter:
         :param str write_dir: Input directory
         :param str zarr_name: Name of zarr file, ending with .zarr
         :param list channel_names: List of channel names (strs)
+            Assuming they're the same throughout acquisition.
         """
         self.write_dir = write_dir
         self.zarr_name = zarr_name
@@ -662,9 +663,13 @@ class ZarrWriter:
         self.plate_meta = dict()
         self.well_meta = dict()
         self.row_name = None
+        self.channel_names = channel_names
+        self.data_shape = None
+        self.chunk_size = None
+        self.data_dtype = np.uint16
         self.positions = []
         self.create_position(pos_idx=0)
-        self.create_meta(channel_names)
+        self.create_meta()
         self.update_meta(pos_idx=0)
 
     def get_col_name(self, pos_idx):
@@ -681,46 +686,38 @@ class ZarrWriter:
 
     def create_row(self, row_idx):
         """
-        Creates a row in the hierarchy (first level below zarr store). Option to name
-        this row.  Default is Row_{idx}.  Keeps track of the row name + row index for later
-        metadata creation.
+        Creates a row in the hierarchy (first level below zarr store).
+        Keeps track of the row name (for now only created once per dataset).
 
         :param int row_idx: Row index
         """
         self.row_name = 'Row_{}'.format(row_idx)
-        row_path = os.path.join(self.write_dir, self.row_name)
-        # check if the user is trying to create a row that already exsits
-        if os.path.exists(row_path):
-            raise FileExistsError('A row with the name {} already exists'.format(self.row_name))
+        # check if row that already exists
+        if self.row_name in self.store:
+            raise FileExistsError('A row named {} already exists'.format(self.row_name))
         else:
             self.store.create_group(self.row_name)
 
     def create_column(self, pos_idx):
         """
-        Creates a column in the hierarchy (second level below zarr store, one below row). Option to name
-        this column.  Default is Col_{idx}.  Keeps track of the column name + column index for later
-        metadata creation
+        Creates a column in the hierarchy with same index as position.
 
-        :param int pos_idx: Index of the column (order in which it is placed)
+        :param int pos_idx: Position index (order in which it is placed)
         """
         col_name = self.get_col_name(pos_idx)
-        col_path = os.path.join(
-            os.path.join(self.write_dir, self.row_name),
-            col_name,
-        )
-        # check to see if the user is trying to create a row that already exists
-        if os.path.exists(col_path):
-            raise FileExistsError(f'A column subgroup with the name {col_name} already exists')
+        # check to see if col already exists
+        if col_name in self.store[self.row_name]:
+            raise FileExistsError(
+                'A column subgroup named {} already exists'.format(col_name),
+            )
         else:
             self.store[self.row_name].create_group(col_name)
 
-    def create_meta(self, channel_names):
+    def create_meta(self):
         """
-        Create metadata according to OME standards.
-
-        :param list channel_names: Channel names (assuming they're
-            the same throughout acquisition.
+        Create metadata according to OME standards. Version 0.1?
         """
+        ome_version = '0.1'  # Don't know specifics of different versions
         self.plate_meta['plate'] = {'acquisitions': [{'id': 1,
                                                       'maximumfieldcount': 1,
                                                       'name': 'Dataset',
@@ -729,11 +726,11 @@ class ZarrWriter:
                                     'field_count': 1,
                                     'name': self.zarr_name.strip('.zarr'),
                                     'rows': [],
-                                    'version': '0.1',
+                                    'version': ome_version,
                                     'wells': []}
 
         self.plate_meta['plate']['rows'].append({'name': self.row_name})
-        self.well_meta['well'] = {'images': [], 'version': '0.1'}
+        self.well_meta['well'] = {'images': [], 'version': ome_version}
 
         multiscale_dict = [{'datasets': [{'path': "arr_0"}],
                             'version': '0.1'}]
@@ -744,7 +741,7 @@ class ZarrWriter:
                  'defaultZ': 0}
 
         dict_list = []
-        for i, channel_name in enumerate(channel_names):
+        for i, channel_name in enumerate(self.channel_names):
             first_chan = True if i == 0 else False
             # Hardcoding contrast limits for now to uint16
             channel_dict = {
@@ -765,17 +762,13 @@ class ZarrWriter:
                          'version': 0.1}
                      }
 
-        print(self.positions)
-        print(self.store)
         pos = self.positions[0]
         pos_group = self.store[pos['row']][pos['col']][pos['name']]
         pos_group.attrs.put(full_dict)
-        print(pos_group.attrs)
 
     def create_position(self, pos_idx):
         """
-        Creates a column and position subgroup given the index and name.  Name is
-        provided by the main writer class.
+        Creates a column and position subgroup given the index.
 
         :param int pos_idx: Index of the position to create
         """
@@ -786,13 +779,21 @@ class ZarrWriter:
                 "There are {} existing positions, but index is {}".format(
                     len(self.positions), pos_idx,
                 )
+            # Positions are appended to list. Could add index and check for
+            # it to remove assertion above if positions are not created
+            # consecutively.
         self.create_column(pos_idx=pos_idx)
         pos_name = self.get_pos_name(pos_idx=pos_idx)
         col_name = self.get_col_name(pos_idx=pos_idx)
 
         # create position subgroup
-        self.store[self.row_name][col_name].create_group(pos_name)
-        self.positions.append({'name': pos_name, 'row': self.row_name, 'col': col_name})
+        if pos_name in self.store[self.row_name][col_name]:
+            raise FileExistsError(
+                'A pos named {} already exists'.format(pos_name),
+            )
+        else:
+            self.store[self.row_name][col_name].create_group(pos_name)
+            self.positions.append({'name': pos_name, 'row': self.row_name, 'col': col_name})
 
     def update_meta(self, pos_idx):
         """
@@ -816,10 +817,8 @@ class ZarrWriter:
         Data has to have format (P (optional), T, C, Z, Y, X)
         This function does not check if it's overwriting.
 
-        chunk_size determines how zarr will chunk your data.
-        This means that when you later try to load the data, it will load
-        one chunk at a time with this specified size. To have the chunk be
-        one z-slice, you would set chunk_size = (1,1,1,Y,X)
+        Chunk size is currently set to one z-slice = (1,1,1,Y,X)
+        Zarr will load one chunk at a time with this specified size.
 
         chan_names describe the names of the channels of your data in the
         order in which they will be written.
@@ -828,14 +827,13 @@ class ZarrWriter:
         """
         data_shape = data_array.shape
         # Check data shape and determine positions
-        if len(data_shape) == 6:
-            pos_ids = np.arange(data_shape[0])
+        if len(data_shape) == 5:
+            self.write_position(data_array, 0)
         else:
-            pos_ids = [0]
-            data_array = data_array[np.newaxis, ...]
-
-        for pos_idx in pos_ids:
-            self.write_position(data_array[pos_idx], pos_idx)
+            assert len(data_shape) == 6, \
+                "Data set must have format (P (optional), T, C, Z, Y, X)"
+            for pos_idx in range(data_shape[0]):
+                self.write_position(data_array[pos_idx], pos_idx)
 
     def write_position(self, data_array, pos_idx):
         """
@@ -844,10 +842,8 @@ class ZarrWriter:
         Data has to have format (T, C, Z, Y, X)
         This function does not check if it's overwriting.
 
-        chunk_size determines how zarr will chunk your data.
-        This means that when you later try to load the data, it will load
-        one chunk at a time with this specified size. To have the chunk be
-        one z-slice, you would set chunk_size = (1,1,1,Y,X)
+        Chunk size is currently set to one z-slice = (1,1,1,Y,X)
+        Zarr will load one chunk at a time with this specified size.
 
         chan_names describe the names of the channels of your data in the
         order in which they will be written.
@@ -858,6 +854,10 @@ class ZarrWriter:
         data_shape = data_array.shape
         assert len(data_shape) == 5, \
             "Data shape has to be 5, not {}".format(len(data_shape))
+        assert data_shape[1] == len(self.channel_names), \
+            "Data has {} channels, but class was instantiated with {} channels".format(
+                data_shape[1], len(self.channel_names),
+            )
 
         chunk_size = (1, 1, 1, data_shape[3], data_shape[4])
         col_name = self.get_col_name(pos_idx)
@@ -883,8 +883,7 @@ class ZarrWriter:
                     pos_idx,
                     time_idx,
                     channel_idx,
-                    slice_idx=None,
-                    data_dtype=np.uint16):
+                    slice_idx=None):
         """
         Writes image (2D/3D) frame for given position, time, channel and slice.
         Positions have to be written in consecutive order.
@@ -896,9 +895,8 @@ class ZarrWriter:
         metadata for every channel, if none, default values will be used
 
         :param np.array frame: Image data (Z (optional), Y, X)
-        :param tuple data_shape: Shape of image data
+        :param tuple data_shape: Shape of image data (P, T, C, Z, Y, X)
         :param int pos_idx: Position index
-        :param type data_dtype: Image dtype
         :param int time_idx: Time index
         :param int channel_idx: Channel index
         :param int/None slice_idx: Slice index
@@ -906,20 +904,30 @@ class ZarrWriter:
         frame_shape = frame.shape
         assert frame_shape[-2] == data_shape[-2], "Y Frame shape must match data"
         assert frame_shape[-1] == data_shape[-1], "X Frame shape must match data"
-        chunk_size = (1, 1, 1, data_shape[-2], data_shape[-1])
+        # Once data shape is established, it's fixed for the whole data set
+        if self.data_shape is not None:
+            assert self.data_shape == data_shape, \
+                "Data shape doesn't match previously established shape {}".format(
+                    self.data_shape,
+                )
+        else:
+            # Fix data shape for whole data set
+            self.data_shape = data_shape
+            self.chunk_size = (1, 1, 1, data_shape[-2], data_shape[-1])
+            self.data_dtype = frame.dtype
+
         col_name = self.get_col_name(pos_idx)
         pos_name = self.get_pos_name(pos_idx)
         if pos_idx > len(self.positions):
             self.create_position(pos_idx)
 
         current_pos_group = self.store[self.row_name][col_name][pos_name]
-
         if current_pos_group.__len__() == 0:
             current_pos_group.zeros(
                 'array',
-                shape=data_shape,
-                chunks=chunk_size,
-                dtype=data_dtype,
+                shape=self.data_shape[1:],
+                chunks=self.chunk_size,
+                dtype=self.data_dtype,
             )
         if slice_idx is None:
             assert len(frame_shape) == 3, \
