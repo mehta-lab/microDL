@@ -75,13 +75,13 @@ def create_save_mask(channels_meta_sub,
     :return dict cur_meta: One for each mask. fg_frac is added to metadata
             - how is it used?
     """
-    zarr_object = pickle.loads(zarr_bytes)
+    zarr_reader = pickle.loads(zarr_bytes)
     if mask_type == 'dataset otsu':
         assert channel_thrs is not None, \
             'channel threshold is required for mask_type="dataset otsu"'
     im_stack = image_utils.read_imstack_from_meta(
         frames_meta_sub=channels_meta_sub,
-        zarr_object=zarr_object,
+        zarr_reader=zarr_reader,
         flat_field_fnames=flat_field_fnames,
         normalize_im=None,
     )
@@ -218,7 +218,7 @@ def tile_and_save(meta_sub,
     :param bool is_mask: Indicates if files are masks
     :return: pd.DataFrame from a list of dicts with metadata
     """
-    zarr_object = pickle.loads(zarr_bytes)
+    zarr_reader = pickle.loads(zarr_bytes)
     time_idx = meta_sub.loc[0, 'time_idx']
     channel_idx = meta_sub.loc[0, 'channel_idx']
     pos_idx = meta_sub.loc[0, 'pos_idx']
@@ -227,7 +227,7 @@ def tile_and_save(meta_sub,
               .format(time_idx, pos_idx, slice_idx, channel_idx))
         input_image = image_utils.read_imstack_from_meta(
             frames_meta_sub=meta_sub,
-            zarr_object=zarr_object,
+            zarr_reader=zarr_reader,
             flat_field_fnames=flat_field_fname,
             hist_clip_limits=hist_clip_limits,
             is_mask=is_mask,
@@ -308,7 +308,7 @@ def crop_at_indices_save(meta_sub,
     :param bool tile_3d: indicator for tiling in 3D
     :return: pd.DataFrame from a list of dicts with metadata
     """
-    zarr_object = pickle.loads(zarr_bytes)
+    zarr_reader = pickle.loads(zarr_bytes)
     time_idx = meta_sub.loc[0, 'time_idx']
     channel_idx = meta_sub.loc[0, 'channel_idx']
     pos_idx = meta_sub.loc[0, 'pos_idx']
@@ -317,7 +317,7 @@ def crop_at_indices_save(meta_sub,
               .format(time_idx, pos_idx, slice_idx, channel_idx))
         input_image = image_utils.read_imstack_from_meta(
             frames_meta_sub=meta_sub,
-            zarr_object=zarr_object,
+            zarr_reader=zarr_reader,
             flat_field_fnames=flat_field_fname,
             hist_clip_limits=hist_clip_limits,
             is_mask=is_mask,
@@ -373,9 +373,9 @@ def resize_and_save(**kwargs):
     :param str ff_path: Path to flatfield image
     :param bytes zarr_bytes: Pickled zarr object
     """
-    zarr_object = pickle.loads(kwargs['zarr_bytes'])
+    zarr_reader = pickle.loads(kwargs['zarr_bytes'])
     meta_row = kwargs['meta_row']
-    im = image_utils.read_image_from_row(meta_row, zarr_object)
+    im = image_utils.read_image_from_row(meta_row, zarr_reader)
 
     if kwargs['ff_path'] is not None:
         im = image_utils.apply_flat_field_correction(
@@ -427,7 +427,7 @@ def rescale_vol_and_save(time_idx,
     :param str/None ff_path: path to flat field image
     :param bytes zarr_bytes: Serialized zarr object
     """
-    zarr_object = pickle.loads(zarr_bytes)
+    zarr_reader = pickle.loads(zarr_bytes)
     input_stack = []
     for slice_idx in range(slice_start_idx, slice_end_idx):
         meta_idx = aux_utils.get_meta_idx(
@@ -438,7 +438,7 @@ def rescale_vol_and_save(time_idx,
             pos_idx,
         )
         meta_row = frames_metadata.loc[meta_idx]
-        cur_img = image_utils.read_image_from_row(meta_row, zarr_object)
+        cur_img = image_utils.read_image_from_row(meta_row, zarr_reader)
         if ff_path is not None:
             cur_img = image_utils.apply_flat_field_correction(
                 cur_img,
@@ -517,8 +517,8 @@ def sample_im_pixels(meta_row, ff_path, grid_spacing, zarr_bytes):
     :param bytes zarr_bytes: Pickled zarr object
     :return list meta_rows: Dicts with intensity data for each grid point
     """
-    zarr_object = pickle.loads(zarr_bytes)
-    im = image_utils.read_image_from_row(meta_row, zarr_object)
+    zarr_reader = pickle.loads(zarr_bytes)
+    im = image_utils.read_image_from_row(meta_row, zarr_reader)
     if ff_path is not None:
         im = image_utils.apply_flat_field_correction(
             input_image=im,

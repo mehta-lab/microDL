@@ -65,7 +65,7 @@ def run_inference(config_fname,
     with open(train_config_fname[0], 'r') as f:
         train_config = yaml.safe_load(f)
     preprocess_config = None
-    zarr_object = None
+    zarr_reader = None
     if 'preprocess_dir' in inference_config:
         preprocess_config = preprocess_utils.get_preprocess_config(
             inference_config['preprocess_dir'],
@@ -85,7 +85,7 @@ def run_inference(config_fname,
                 preprocess_config=preprocess_config,
                 gpu_id=gpu_ids,
                 gpu_mem_frac=gpu_mem_frac,
-                zarr_object=zarr_object,
+                zarr_reader=zarr_reader,
             )
             inference_inst.run_prediction()
     elif 'zarr_path' in inference_config:
@@ -99,7 +99,7 @@ def run_inference(config_fname,
             assert 'zarr' in zarr_file.split('.')[-1], \
                 "Zarr file {} doesn't have zarr extension".format(zarr_file)
             image_dir = os.path.abspath(zarr_file)
-            zarr_object = im_utils.ZarrReader(
+            zarr_reader = im_utils.ZarrReader(
                 image_dir,
                 zarr_file,
             )
@@ -110,7 +110,7 @@ def run_inference(config_fname,
                 preprocess_config=preprocess_config,
                 gpu_id=gpu_ids,
                 gpu_mem_frac=gpu_mem_frac,
-                zarr_object=zarr_object,
+                zarr_reader=zarr_reader,
             )
             inference_inst.run_prediction()
 

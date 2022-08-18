@@ -1,10 +1,5 @@
 import itertools
-<<<<<<< HEAD
-=======
-import micro_dl.utils.aux_utils as aux_utils
-import micro_dl.utils.mp_utils as mp_utils
 import numpy as np
->>>>>>> b0eb02d... sketching zarr support
 import os
 import pandas as pd
 import pickle
@@ -17,7 +12,7 @@ import micro_dl.utils.mp_utils as mp_utils
 
 def frames_meta_generator(
         input_dir,
-        zarr_object=None,
+        zarr_reader=None,
         order='cztp',
         name_parser='parse_sms_name',
         ):
@@ -43,13 +38,13 @@ def frames_meta_generator(
     https://ngff.openmicroscopy.org/0.1/
 
     :param str input_dir:   path to input directory containing image data
-    :param str/None zarr_object: Zarr file class in case of zarr input data format.
+    :param str/None zarr_reader: Zarr file class in case of zarr input data format.
         None if using tiff/png/etc image files.
     :param str order: Order in which file name encodes cztp (for tiff/png)
     :param str name_parser: Function in aux_utils for parsing indices from tiff/png file name
     :return pd.DataFrame frames_meta: Metadata for all frames in dataset
     """
-    if zarr_object is None:
+    if zarr_reader is None:
         frames_meta = frames_meta_from_filenames(
             input_dir,
             name_parser,
@@ -57,7 +52,7 @@ def frames_meta_generator(
         )
     else:
         # Generate frames_meta from zarr metadata
-        frames_meta = frames_meta_from_zarr(input_dir, zarr_object)
+        frames_meta = frames_meta_from_zarr(input_dir, zarr_reader)
 
     # Write metadata
     frames_meta_filename = os.path.join(input_dir, 'frames_meta.csv')
@@ -89,7 +84,7 @@ def frames_meta_from_filenames(input_dir, name_parser, order):
     return frames_meta
 
 
-def frames_meta_from_zarr(input_dir, zarr_object):
+def frames_meta_from_zarr(input_dir, zarr_reader):
     """
     Reads ome-zarr file and creates frames_meta based on metadata and
     array information.
@@ -142,7 +137,7 @@ def frames_meta_from_zarr(input_dir, zarr_object):
                     meta_row['pos_idx'] = pos_idx
                     meta_row['slice_idx'] = slice_idx
                     meta_row['time_idx'] = time_idx
-                    meta_row['channel_name'] = zarr_object.get_channel_names[channel_idx]
+                    meta_row['channel_name'] = zarr_reader.get_channel_names[channel_idx]
                     frames_meta.loc[idx] = meta_row
                     idx += 1
 
@@ -155,7 +150,7 @@ def ints_meta_generator(
         block_size=256,
         flat_field_dir=None,
         channel_ids=-1,
-        zarr_object=None,
+        zarr_reader=None,
         ):
     """
     Generate pixel intensity metadata for estimating image normalization
@@ -184,7 +179,7 @@ def ints_meta_generator(
         well for 2048 X 2048 images.
     :param str flat_field_dir: Directory containing flatfield images
     :param list/int channel_ids: Channel indices to process
-    :param class zarr_object: Class for handling ome-zarr data
+    :param class zarr_reader: Class for handling ome-zarr data
     """
     if block_size is None:
         block_size = 256
@@ -193,7 +188,7 @@ def ints_meta_generator(
         # Use all channels
         channel_ids = frames_metadata['channel_idx'].unique()
     # Pickle zarr object for passing it to multiprocessing
-    zarr_bytes = pickle.dumps(zarr_object)
+    zarr_bytes = pickle.dumps(zarr_reader)
     mp_fn_args = []
     # Fill dataframe with rows from image names
     for i, meta_row in frames_metadata.iterrows():

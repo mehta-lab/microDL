@@ -25,7 +25,7 @@ class ImageResizer:
                  num_workers=4,
                  flat_field_dir=None,
                  flat_field_channels=[],
-                 zarr_object=None):
+                 zarr_reader=None):
         """
         :param str input_dir: Directory with image frames
         :param str output_dir: Base output directory
@@ -42,7 +42,7 @@ class ImageResizer:
         """
         self.input_dir = input_dir
         self.output_dir = output_dir
-        self.zarr_bytes = pickle.dumps(zarr_object)
+        self.zarr_bytes = pickle.dumps(zarr_reader)
         if isinstance(scale_factor, list):
             scale_factor = np.array(scale_factor)
         assert np.all(scale_factor > 0), \
