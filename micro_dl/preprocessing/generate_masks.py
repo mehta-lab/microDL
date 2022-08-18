@@ -26,7 +26,7 @@ class MaskProcessor:
                  mask_type='otsu',
                  mask_channel=None,
                  mask_ext='.npy',
-                 zarr_object=None):
+                 zarr_reader=None):
         """
         :param str input_dir: Directory with image frames
         :param str output_dir: Base output directory
@@ -51,13 +51,13 @@ class MaskProcessor:
             dir, which could lead to wrong mask channel being assigned.
         :param str mask_ext: '.npy' or 'png'. Save the mask as uint8 PNG or
             NPY files
-        :param class zarr_object: class ZarrReader instance for zarr data
+        :param class zarr_reader: class ZarrReader instance for zarr data
         """
 
         self.input_dir = input_dir
         self.output_dir = output_dir
         self.flat_field_dir = flat_field_dir
-        self.zarr_object = zarr_object
+        self.zarr_reader = zarr_reader
         self.num_workers = num_workers
 
         self.frames_metadata = aux_utils.read_meta(self.input_dir)
@@ -169,7 +169,7 @@ class MaskProcessor:
         :param int str_elem_radius: Radius of structuring element for
          morphological operations
         """
-        zarr_bytes = pickle.dumps(self.zarr_object)
+        zarr_bytes = pickle.dumps(self.zarr_reader)
         # Loop through all the indices and create masks
         fn_args = []
         id_df = self.frames_meta_sub[
