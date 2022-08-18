@@ -16,7 +16,7 @@ class FlatFieldEstimator2D:
                  channel_ids,
                  slice_ids,
                  block_size=32,
-                 zarr_object=None):
+                 zarr_reader=None):
         """
         Flatfield images are estimated once per channel for 2D data
 
@@ -28,7 +28,7 @@ class FlatFieldEstimator2D:
         """
         self.input_dir = input_dir
         self.output_dir = output_dir
-        self.zarr_object = zarr_object
+        self.zarr_reader = zarr_reader
         # Create flat_field_dir as a subdirectory of output_dir
         self.flat_field_dir = os.path.join(self.output_dir,
                                            'flat_field_images')
