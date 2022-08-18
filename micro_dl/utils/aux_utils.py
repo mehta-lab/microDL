@@ -124,12 +124,20 @@ def get_sub_meta(frames_metadata,
     Get sliced metadata dataframe given variable indices
 
     :param dataframe frames_metadata: Dataframe with column names given below
-    :param int time_ids: Timepoint indices
-    :param int channel_ids: Channel indices
-    :param int slice_ids: Slize (z) indices
-    :param int pos_ids: Position (FOV) indices
+    :param int/list time_ids: Timepoint indices
+    :param int/list channel_ids: Channel indices
+    :param int/list slice_ids: Slize (z) indices
+    :param int/list pos_ids: Position (FOV) indices
     :return: int pos_ids: Row positions matching indices above
     """
+    if isinstance(channel_ids, int):
+        channel_ids = [channel_ids]
+    if isinstance(time_ids, int):
+        time_ids = [time_ids]
+    if isinstance(slice_ids, int):
+        slice_ids = [slice_ids]
+    if isinstance(channel_ids, int):
+        pos_ids = [pos_ids]
     frames_meta_sub = frames_metadata[
         (frames_metadata['channel_idx'].isin(channel_ids)) &
         (frames_metadata['time_idx'].isin(time_ids)) &
