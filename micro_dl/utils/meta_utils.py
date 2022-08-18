@@ -115,7 +115,7 @@ def frames_meta_from_zarr(input_dir, file_names):
                     meta_row['channel_idx'] = channel_idx
                     meta_row['slice_idx'] = slice_idx
                     meta_row['time_idx'] = time_idx
-                    meta_row['channel_name'] = zarr_object.get_channel_names[channel_idx]
+                    meta_row['channel_name'] = zarr_reader.get_channel_names[channel_idx]
                     frames_meta.loc[idx] = meta_row
                     idx += 1
     return frames_meta
@@ -154,7 +154,7 @@ def ints_meta_generator(
         well for 2048 X 2048 images.
     :param str flat_field_dir: Directory containing flatfield images
     :param list/int channel_ids: Channel indices to process
-    :param class zarr_object: Class for handling ome-zarr data
+    :param class zarr_reader: Class for handling ome-zarr data
     """
     if block_size is None:
         block_size = 256
@@ -163,7 +163,7 @@ def ints_meta_generator(
         # Use all channels
         channel_ids = frames_metadata['channel_idx'].unique()
     # Pickle zarr object for passing it to multiprocessing
-    zarr_bytes = pickle.dumps(zarr_object)
+    zarr_bytes = pickle.dumps(zarr_reader)
     mp_fn_args = []
     # Fill dataframe with rows from image names
     for i, meta_row in frames_metadata.iterrows():

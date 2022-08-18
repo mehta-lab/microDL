@@ -48,7 +48,7 @@ class ImagePredictor:
                  preprocess_config=None,
                  gpu_id=-1,
                  gpu_mem_frac=None,
-                 zarr_object=None):
+                 zarr_reader=None):
         """Init
         :param dict train_config: Training config dict with params related
             to dataset, trainer and network
@@ -93,7 +93,7 @@ class ImagePredictor:
         :param int gpu_id: GPU number to use. -1 for debugging (no GPU)
         :param float/None gpu_mem_frac: Memory fractions to use corresponding
             to gpu_ids
-        :param class/None zarr_object: ZarrReader object
+        :param class/None zarr_reader: ZarrReader object
         """
         # Use model_dir from inference config if present, otherwise use train
         if 'model_dir' in inference_config:
@@ -120,7 +120,7 @@ class ImagePredictor:
         self.config = train_config
         self.model_dir = model_dir
         self.image_dir = inference_config['image_dir']
-        self.zarr_object = zarr_object
+        self.zarr_reader = zarr_reader
 
         try:
             # Check if metadata is present
@@ -137,7 +137,7 @@ class ImagePredictor:
             # Create metadata from file names instead
             self.frames_meta = meta_utils.frames_meta_generator(
                 input_dir=self.image_dir,
-                zarr_object=self.zarr_object,
+                zarr_reader=self.zarr_reader,
                 order=order,
                 name_parser=name_parser,
             )
@@ -280,7 +280,7 @@ class ImagePredictor:
             mask_dir=mask_dir,
             flat_field_dir=flat_field_dir,
             crop2base=crop2base,
-            zarr_object=self.zarr_object,
+            zarr_reader=self.zarr_reader,
         )
         
         # create an instance of MetricsEstimator
