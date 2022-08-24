@@ -170,10 +170,9 @@ class ImageTilerUniform:
                 )
 
             normalize_channels = [normalize_im if flag else None for flag in normalize_channels]
-
+            # If more than one depth is specified, length must match channel ids
             self.normalize_channels = \
                 dict(zip(self.channel_ids, normalize_channels))
-                # If more than one depth is specified, length must match channel ids
 
     def get_tile_dir(self):
         """
@@ -193,7 +192,7 @@ class ImageTilerUniform:
         This is one of the functions that will have to be adapted once tested on
         3D data.
 
-        :return dataframe tiled_metadata
+        :return pd.DataFrame tiled_metadata: Metadata for tiles
         """
         return pd.DataFrame(columns=[
             "channel_idx",
@@ -202,7 +201,9 @@ class ImageTilerUniform:
             "file_name",
             "pos_idx",
             "row_start",
-            "col_start"])
+            "col_start",
+            "dir_name",
+        ])
 
     def _get_tile_indices(self, tiled_meta,
                           time_idx,
@@ -251,9 +252,9 @@ class ImageTilerUniform:
         If tile directory already exists, check which channels have been
         processed and only tile new channels.
 
-        :return dataframe tiled_meta: Metadata with previously tiled channels
-        :return list of lists tile_indices: Nbr tiles x 4 indices with row
-        start + stop and column start + stop indices
+        :return pd.DataFrame tiled_meta: Metadata with previously tiled channels
+        :return list[lists] tile_indices: Nbr tiles x 4 indices with row
+            start + stop and column start + stop indices
         """
         if self.tiles_exist:
             tiled_meta = aux_utils.read_meta(self.tile_dir)

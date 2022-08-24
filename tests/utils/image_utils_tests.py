@@ -159,8 +159,7 @@ class TestImageUtils(unittest.TestCase):
                 pos_idx=self.pos_idx,
             )
             cv2.imwrite(os.path.join(self.temp_path, im_name), sph[:, :, z])
-            meta_row = aux_utils.parse_idx_from_name(im_name)
-            meta_row['dir_name'] = self.temp_path
+            meta_row = aux_utils.parse_idx_from_name(im_name=im_name, dir_name=self.temp_path)
             meta_row['zscore_median'] = np.nanmean(sph[:, :, z])
             meta_row['zscore_iqr'] = np.nanstd(sph[:, :, z])
             self.frames_meta = self.frames_meta.append(

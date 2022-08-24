@@ -37,7 +37,9 @@ class TestInferenceDataSet(unittest.TestCase):
                 )
                 cv2.imwrite(os.path.join(self.image_dir, im_name), im + c * 10)
                 meta_row = aux_utils.parse_idx_from_name(
-                    im_name)
+                    im_name=im_name,
+                    dir_name=self.image_dir,
+                )
                 meta_row['zscore_median'] = 10
                 meta_row['zscore_iqr'] = 2
                 self.frames_meta = self.frames_meta.append(
@@ -58,7 +60,7 @@ class TestInferenceDataSet(unittest.TestCase):
             )
             cv2.imwrite(os.path.join(self.mask_dir, im_name), im + 1)
             self.mask_meta = self.mask_meta.append(
-                aux_utils.parse_idx_from_name(im_name, aux_utils.DF_NAMES),
+                aux_utils.parse_idx_from_name(im_name=im_name, dir_name=self.mask_dir),
                 ignore_index=True,
             )
         # Write frames meta to image dir too
@@ -144,7 +146,7 @@ class TestInferenceDataSet(unittest.TestCase):
                 pos_idx=6,
             )
             temp_meta = temp_meta.append(
-                aux_utils.parse_idx_from_name(im_name, aux_utils.DF_NAMES),
+                aux_utils.parse_idx_from_name(im_name),
                 ignore_index=True,
             )
         self.data_inst.inf_frames_meta = temp_meta
@@ -261,7 +263,9 @@ class TestInferenceDataSet2p5D(unittest.TestCase):
                     )
                     cv2.imwrite(os.path.join(self.image_dir, im_name), im + c * 10)
                     meta_row = aux_utils.parse_idx_from_name(
-                        im_name)
+                        im_name=im_name,
+                        dir_name=self.image_dir,
+                    )
                     meta_row['zscore_median'] = 10
                     meta_row['zscore_iqr'] = 2
                     self.frames_meta = self.frames_meta.append(
@@ -283,7 +287,7 @@ class TestInferenceDataSet2p5D(unittest.TestCase):
                 )
                 cv2.imwrite(os.path.join(self.mask_dir, im_name), im + 1)
                 self.mask_meta = self.mask_meta.append(
-                    aux_utils.parse_idx_from_name(im_name, aux_utils.DF_NAMES),
+                    aux_utils.parse_idx_from_name(im_name=im_name, dir_name=self.mask_dir),
                     ignore_index=True,
             )
         # Write frames meta to image dir too

@@ -52,14 +52,7 @@ class TestMpUtilsBaseClass(unittest.TestCase):
         self.tempdir = TempDirectory()
         self.temp_path = self.tempdir.path
         self.meta_fname = 'frames_meta.csv'
-        self.df_columns = [
-            'channel_idx',
-            'slice_idx',
-            'time_idx',
-            'channel_name',
-            'file_name',
-            'pos_idx']
-        self.frames_meta = pd.DataFrame(columns=self.df_columns)
+        self.frames_meta = aux_utils.make_dataframe()
         self.channel_ids = [1, 2]
         self.time_ids = 0
         self.pos_ids = 1
@@ -75,7 +68,7 @@ class TestMpUtilsBaseClass(unittest.TestCase):
                     array[:, :, z].astype('uint8'),
                 )
             frames_meta = frames_meta.append(
-                aux_utils.parse_idx_from_name(im_name, self.df_columns),
+                aux_utils.parse_idx_from_name(im_name=im_name, dir_name=self.temp_path),
                 ignore_index=True
             )
         return frames_meta

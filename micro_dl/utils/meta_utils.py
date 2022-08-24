@@ -72,13 +72,12 @@ def frames_meta_from_filenames(input_dir, name_parser, order):
     channel_names = []
     # Fill dataframe with rows from image names
     for i in range(len(im_names)):
-        kwargs = {"im_name": im_names[i]}
+        kwargs = {"im_name": im_names[i], "dir_name": input_dir}
         if name_parser == 'parse_idx_from_name':
             kwargs["order"] = order
         elif name_parser == 'parse_sms_name':
             kwargs["channel_names"] = channel_names
         meta_row = parse_func(**kwargs)
-        meta_row['dir_name'] = input_dir
         frames_meta.loc[i] = meta_row
     return frames_meta
 
