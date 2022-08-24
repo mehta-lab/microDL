@@ -61,7 +61,7 @@ class TestMaskProcessor(unittest.TestCase):
                     object1[:, :, z].astype('uint8'),
                 )
             frames_meta = frames_meta.append(
-                aux_utils.parse_idx_from_name(im_name, aux_utils.DF_NAMES),
+                aux_utils.parse_idx_from_name(im_name=im_name, dir_name=self.temp_path),
                 ignore_index=True
             )
         for z in range(rec.shape[2]):
@@ -78,7 +78,7 @@ class TestMaskProcessor(unittest.TestCase):
                     rec[:, :, z].astype('uint8'),
                 )
             frames_meta = frames_meta.append(
-                aux_utils.parse_idx_from_name(im_name, aux_utils.DF_NAMES),
+                aux_utils.parse_idx_from_name(im_name=im_name, dir_name=self.temp_path),
                 ignore_index=True
             )
         # Write metadata
@@ -165,7 +165,7 @@ class TestMaskProcessor(unittest.TestCase):
             sk_im_io.imsave(os.path.join(self.temp_path, im_name),
                             self.sph_object[:, :, z].astype('uint8'))
             frames_meta = frames_meta.append(
-                aux_utils.parse_idx_from_name(im_name, aux_utils.DF_NAMES),
+                aux_utils.parse_idx_from_name(im_name=im_name, dir_name=self.temp_path),
                 ignore_index=True
             )
         for z in range(rec.shape[2]):
@@ -178,7 +178,7 @@ class TestMaskProcessor(unittest.TestCase):
             sk_im_io.imsave(os.path.join(self.temp_path, im_name),
                             rec[:, :, z].astype('uint8'))
             frames_meta = frames_meta.append(
-                aux_utils.parse_idx_from_name(im_name, aux_utils.DF_NAMES),
+                aux_utils.parse_idx_from_name(im_name=im_name, dir_name=self.temp_path),
                 ignore_index=True
             )
         # Write metadata

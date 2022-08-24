@@ -548,7 +548,7 @@ def get_sorted_names(dir_name):
     return natsort.natsorted(im_names)
 
 
-def parse_idx_from_name(im_name, df_names=DF_NAMES, order="cztp"):
+def parse_idx_from_name(im_name, df_names=DF_NAMES, dir_name=None, order="cztp"):
     """
     Assumes im_name is e.g. im_c***_z***_p***_t***.png,
     It doesn't care about the extension or the number of digits each index is
@@ -556,7 +556,8 @@ def parse_idx_from_name(im_name, df_names=DF_NAMES, order="cztp"):
     them by order. By default it assumes that the order is c, z, t, p.
 
     :param str im_name: Image name without path
-    :param list of strs df_names: Dataframe col names
+    :param list[strs] df_names: Dataframe col names
+    :param str dir_name: Directory path
     :param str order: Order in which c, z, t, p are given in the image (4 chars)
     :return dict meta_row: One row of metadata given image file name
     """
@@ -567,6 +568,8 @@ def parse_idx_from_name(im_name, df_names=DF_NAMES, order="cztp"):
     # Channel name can't be retrieved from image name
     meta_row["channel_name"] = np.nan
     meta_row["file_name"] = im_name
+    if dir_name is not None:
+        meta_row['dir_name'] = dir_name
     # Find all integers in name string
     ints = re.findall(r'\d+', im_name)
     assert len(ints) == 4, "Expected 4 integers, found {}".format(len(ints))
@@ -583,7 +586,7 @@ def parse_idx_from_name(im_name, df_names=DF_NAMES, order="cztp"):
     return meta_row
 
 
-def parse_sms_name(im_name, df_names=DF_NAMES, channel_names=[]):
+def parse_sms_name(im_name, df_names=DF_NAMES, dir_name=None, channel_names=[]):
     """
     Parse metadata from file name or file path.
     This function is custom for the computational microscopy (SMS)
@@ -594,6 +597,7 @@ def parse_sms_name(im_name, df_names=DF_NAMES, channel_names=[]):
 
     :param str im_name: File name or path
     :param list of strs df_names: Dataframe col names
+    :param str dir_name: Directory path
     :param list[str] channel_names: Expanding list of channel names
     :return dict meta_row: One row of metadata given image file name
     """
@@ -601,6 +605,8 @@ def parse_sms_name(im_name, df_names=DF_NAMES, channel_names=[]):
     # Get rid of path if present
     im_name = os.path.basename(im_name)
     meta_row["file_name"] = im_name
+    if dir_name is not None:
+        meta_row['dir_name'] = dir_name
     im_name = im_name[:-4]
     str_split = im_name.split("_")[1:]
 

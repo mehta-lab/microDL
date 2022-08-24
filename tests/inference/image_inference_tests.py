@@ -43,10 +43,11 @@ class TestImageInference(unittest.TestCase):
                 )
                 cv2.imwrite(os.path.join(self.image_dir, im_name), self.im + c * 10)
                 meta_row = aux_utils.parse_idx_from_name(
-                    im_name)
+                    im_name=im_name,
+                    dir_name=self.image_dir,
+                )
                 meta_row['zscore_median'] = 1500 + c * 10
                 meta_row['zscore_iqr'] = 1
-                meta_row['dir_name'] = self.image_dir
                 self.frames_meta = self.frames_meta.append(
                     meta_row,
                     ignore_index=True,
@@ -65,7 +66,7 @@ class TestImageInference(unittest.TestCase):
             cv2.imwrite(os.path.join(self.mask_dir, im_name),
                         self.im.astype(np.float32) / 1500)
             self.mask_meta = self.mask_meta.append(
-                aux_utils.parse_idx_from_name(im_name, aux_utils.DF_NAMES),
+                aux_utils.parse_idx_from_name(im_name=im_name, dir_name=self.mask_dir),
                 ignore_index=True,
             )
 
@@ -370,10 +371,11 @@ class TestImageInference2p5D(unittest.TestCase):
                     )
                     cv2.imwrite(os.path.join(self.image_dir, im_name), self.im + c * 10)
                     meta_row = aux_utils.parse_idx_from_name(
-                        im_name)
+                        im_name=im_name,
+                        dir_name=self.image_dir,
+                    )
                     meta_row['zscore_median'] = 1500 + c * 10
                     meta_row['zscore_iqr'] = 1
-                    meta_row['dir_name'] = self.image_dir
                     self.frames_meta = self.frames_meta.append(
                         meta_row,
                         ignore_index=True,
@@ -392,7 +394,7 @@ class TestImageInference2p5D(unittest.TestCase):
                 )
                 cv2.imwrite(os.path.join(self.mask_dir, im_name), self.im / 1500)
                 self.mask_meta = self.mask_meta.append(
-                    aux_utils.parse_idx_from_name(im_name, aux_utils.DF_NAMES),
+                    aux_utils.parse_idx_from_name(im_name=im_name, dir_name=self.mask_dir),
                     ignore_index=True,
                 )
 
@@ -558,7 +560,9 @@ class TestImageInference3D(unittest.TestCase):
                             allow_pickle=True,
                             fix_imports=True)
                     meta_row = aux_utils.parse_idx_from_name(
-                        im_name)
+                        im_name=im_name,
+                        dir_name=self.image_dir,
+                    )
                     meta_row['zscore_median'] = 15 + c * 10
                     meta_row['zscore_iqr'] = 1.
                     self.frames_meta = self.frames_meta.append(
@@ -583,7 +587,7 @@ class TestImageInference3D(unittest.TestCase):
             )
             np.save(os.path.join(self.mask_dir, im_name), mask)
             self.mask_meta = self.mask_meta.append(
-                aux_utils.parse_idx_from_name(im_name, aux_utils.DF_NAMES),
+                aux_utils.parse_idx_from_name(im_name=im_name, dir_name=self.mask_dir),
                 ignore_index=True,
             )
         # Write frames meta to mask dir too
