@@ -46,7 +46,7 @@ class TestImageTilerNonUniform(unittest.TestCase):
                             self.im,
                         )
                     frames_meta = frames_meta.append(
-                        aux_utils.parse_idx_from_name(im_name),
+                        aux_utils.parse_idx_from_name(im_name=im_name, dir_name=self.temp_path),
                         ignore_index=True,
                     )
         # write pos2 with 2 time points and 3 slices
@@ -66,7 +66,7 @@ class TestImageTilerNonUniform(unittest.TestCase):
                             self.im,
                         )
                     frames_meta = frames_meta.append(
-                        aux_utils.parse_idx_from_name(im_name),
+                        aux_utils.parse_idx_from_name(im_name=im_name, dir_name=self.temp_path),
                         ignore_index=True,
                     )
 

@@ -39,7 +39,7 @@ class TestResizeImages(unittest.TestCase):
                 cv2.imwrite(os.path.join(self.temp_path, im_name),
                             self.im + c * 100)
                 self.frames_meta = self.frames_meta.append(
-                    aux_utils.parse_idx_from_name(im_name),
+                    aux_utils.parse_idx_from_name(im_name=im_name, dir_name=self.temp_path),
                     ignore_index=True,
                 )
         # Write metadata
@@ -130,7 +130,7 @@ class TestResizeImages(unittest.TestCase):
                 cv2.imwrite(os.path.join(self.temp_path, im_name),
                             self.im + c * 100)
                 frames_meta = frames_meta.append(
-                    aux_utils.parse_idx_from_name(im_name),
+                    aux_utils.parse_idx_from_name(im_name=im_name, dir_name=self.temp_path),
                     ignore_index=True,
                 )
             op_fname = 'im_c00{}_z000_t005_p007_3.3-0.8-1.0.npy'.format(c)

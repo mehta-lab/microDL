@@ -44,10 +44,12 @@ class TestPreprocessScript(unittest.TestCase):
                     im = self.im + c * 100
                     cv2.imwrite(os.path.join(self.temp_path, im_name),
                                 im)
-                    meta_row = aux_utils.parse_idx_from_name(im_name)
+                    meta_row = aux_utils.parse_idx_from_name(
+                        im_name=im_name,
+                        dir_name=self.image_dir,
+                    )
                     meta_row['mean'] = np.nanmean(im)
                     meta_row['std'] = np.nanstd(im)
-                    meta_row['dir_name'] = self.image_dir
                     self.frames_meta = self.frames_meta.append(
                         meta_row,
                         ignore_index=True,
@@ -79,7 +81,10 @@ class TestPreprocessScript(unittest.TestCase):
                     mask,
                 )
                 mask_meta = mask_meta.append(
-                    aux_utils.parse_idx_from_name(im_name),
+                    aux_utils.parse_idx_from_name(
+                        im_name=im_name,
+                        dir_name=self.input_mask_dir,
+                    ),
                     ignore_index=True,
                 )
         mask_meta.to_csv(
