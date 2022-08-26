@@ -1,4 +1,4 @@
-name: microdl_care
+name: microdl2022
 channels:
   - conda-forge
   - anaconda
