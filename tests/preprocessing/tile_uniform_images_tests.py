@@ -325,7 +325,10 @@ class TestImageTilerUniform(unittest.TestCase):
             task_type='crop',
             tile_indices=self.exp_tile_indices,
         )
-        nose.tools.assert_list_equal(list(cur_args[0]['file_name']), self.exp_fnames)
+        nose.tools.assert_list_equal(
+            list(cur_args[0]['file_name']),
+            self.exp_fnames,
+        )
         # Arg 1 is zarr bytes
         nose.tools.assert_equal(cur_args[2], self.ff_name)
         nose.tools.assert_equal(cur_args[3], None)
@@ -361,16 +364,36 @@ class TestImageTilerUniform(unittest.TestCase):
             arg_df.loc[0, 'dir_name'],
             self.mask_dir,
         )
-        print(cur_args[1:])
         nose.tools.assert_list_equal(list(arg_df['file_name']), exp_fnames)
         # Zarr bytes is arg 1
         # flat field fname is None
         nose.tools.assert_equal(cur_args[2], None)
-        # hist clip limits is None
-        nose.tools.assert_equal(cur_args[3], None)
-        nose.tools.assert_equal(cur_args[4], 16)
+        # hist clip limits
+        self.assertIsNone(cur_args[3])
+        # slice idx
+        self.assertEqual(cur_args[4], 16)
+        # tile size
+        self.assertListEqual(cur_args[5], [5, 5])
+        # step size
+        self.assertListEqual(cur_args[6], [4, 4])
+        # min fraction
+        self.assertIsNone(cur_args[7])
+        # image format
+        self.assertEqual(cur_args[8], 'zyx')
+        # tile dir
+        self.assertEqual(cur_args[9], self.tile_inst.get_tile_dir())
+        # int2strlen
+        self.assertEqual(cur_args[10], 3)
+        # is_mask
+        self.assertTrue(cur_args[11])
+        # normalize_im
+        self.assertIsNone(cur_args[12])
+        # zscore median
+        self.assertIsNone(cur_args[13])
+        # zscore iqr
+        self.assertIsNone(cur_args[14])
 
-        # not a mask channel
+    def test_get_tile_args_not_mask(self):
         cur_args = self.tile_inst.get_crop_tile_args(
             channel_idx=self.channel_idx,
             time_idx=self.time_idx,
@@ -378,14 +401,39 @@ class TestImageTilerUniform(unittest.TestCase):
             pos_idx=7,
             task_type='tile',
         )
-        nose.tools.assert_list_equal(list(cur_args[0]), self.exp_fnames)
-
+        self.assertListEqual(
+            list(cur_args[0]['file_name']),
+            self.exp_fnames,
+        )
         exp_ff_fname = os.path.join(
             self.flat_field_dir,
             'flat-field_channel-{}.npy'.format(self.channel_idx),
         )
-        nose.tools.assert_equal(cur_args[1], exp_ff_fname)
-        # TODO: Test more args
+        self.assertEqual(cur_args[2], exp_ff_fname)
+        # hist clip limits
+        self.assertIsNone(cur_args[3])
+        # slice idx
+        self.assertEqual(cur_args[4], 16)
+        # tile size
+        self.assertListEqual(cur_args[5], [5, 5])
+        # step size
+        self.assertListEqual(cur_args[6], [4, 4])
+        # min fraction
+        self.assertIsNone(cur_args[7])
+        # image format
+        self.assertEqual(cur_args[8], 'zyx')
+        # tile dir
+        self.assertEqual(cur_args[9], self.tile_inst.get_tile_dir())
+        # int2strlen
+        self.assertEqual(cur_args[10], 3)
+        # is_mask
+        self.assertFalse(cur_args[11])
+        # normalize_im
+        self.assertIsNone(cur_args[12])
+        # zscore median
+        self.assertIsNone(cur_args[13])
+        # zscore iqr
+        self.assertIsNone(cur_args[14])
 
     def test_tile_stack(self):
         """Test tile_stack"""
