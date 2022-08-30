@@ -86,15 +86,16 @@ class TestMaskProcessor(unittest.TestCase):
                            sep=',')
 
         self.output_dir = os.path.join(self.temp_path, 'mask_dir')
-        self.mask_gen_inst = MaskProcessor(input_dir=self.temp_path,
-                                           output_dir=self.output_dir,
-                                           channel_ids=self.channel_ids)
+        self.mask_gen_inst = MaskProcessor(
+            input_dir=self.temp_path,
+            output_dir=self.output_dir,
+            channel_ids=self.channel_ids,
+        )
 
     def tearDown(self):
         """Tear down temporary folder and file structure"""
-
         TempDirectory.cleanup_all()
-        nose.tools.assert_equal(os.path.isdir(self.temp_path), False)
+        self.assertFalse(os.path.isdir(self.temp_path))
 
     def test_init(self):
         """Test init"""
@@ -118,20 +119,17 @@ class TestMaskProcessor(unittest.TestCase):
         """Test get_mask_channel"""
         nose.tools.assert_equal(self.mask_gen_inst.get_mask_channel(), 3)
 
-    def test_get_args_read_image(self):
-        """Test _get_args_read_image"""
-        ip_fnames, ff_fname = self.mask_gen_inst._get_args_read_image(
-            time_idx=self.time_ids,
-            channel_ids=self.channel_ids,
-            slice_idx=5,
-            pos_idx=self.pos_ids,
-        )
-        exp_fnames = ['im_c001_z005_t000_p001.png',
-                      'im_c002_z005_t000_p001.png']
-        for idx, fname in enumerate(exp_fnames):
-            nose.tools.assert_equal(ip_fnames[idx],
-                                    os.path.join(self.temp_path, fname))
-        nose.tools.assert_equal(ff_fname, None)
+    def test_get_ff_paths(self):
+        ff_dir = os.path.join(self.temp_path, 'ff_dir')
+        self.tempdir.makedir(ff_dir)
+        ff_name = os.path.join(ff_dir, 'flat-field_channel-25.npy')
+        print(ff_name)
+        print(os.listdir(self.temp_path))
+        np.save(ff_name, self.rec_object[..., 0], allow_pickle=True, fix_imports=True)
+        print(os.listdir(ff_dir))
+        self.mask_gen_inst.flat_field_dir = ff_dir
+        flat_field_fnames = self.mask_gen_inst._get_ff_paths(25)
+        self.assertListEqual(flat_field_fnames, [ff_name])
 
     def test_generate_masks_uni(self):
         """Test generate masks"""
@@ -140,10 +138,11 @@ class TestMaskProcessor(unittest.TestCase):
             os.path.join(self.mask_gen_inst.get_mask_dir(), 'frames_meta.csv'),
             index_col=0,
         )
+        print(frames_meta)
         # 8 slices and 3 channels
         exp_len = 8
         nose.tools.assert_equal(len(frames_meta), exp_len)
-        for idx in range(8):
+        for idx in range(exp_len):
             nose.tools.assert_equal('im_c003_z00{}_t000_p001.npy'.format(idx),
                                     frames_meta.iloc[idx]['file_name'])
 
