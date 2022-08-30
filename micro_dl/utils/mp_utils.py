@@ -70,6 +70,7 @@ def create_save_mask(channels_meta_sub,
      NPY files for otsu, unimodal masks, recommended to save as npy
      float64 for borders_weight_loss_map masks to avoid loss due to scaling it
      to uint8.
+    :param bytes zarr_bytes: Pickled zarr reader instance or None
     :param list channel_thrs: list of threshold for each channel to generate
     binary masks. Only used when mask_type is 'dataset_otsu'
     :return dict cur_meta: One for each mask. fg_frac is added to metadata
@@ -115,18 +116,18 @@ def create_save_mask(channels_meta_sub,
     slice_idx = int(channels_meta_sub['slice_idx'].iloc[0])
     pos_idx = int(channels_meta_sub['pos_idx'].iloc[0])
     file_name = aux_utils.get_im_name(
-        time_idx=channels_meta_sub['time_idx'],
-        channel_idx=channels_meta_sub['mask_channel_idx'],
-        slice_idx=channels_meta_sub['slice_idx'],
-        pos_idx=channels_meta_sub['pos_idx'],
+        time_idx=time_idx,
+        channel_idx=mask_channel_idx,
+        slice_idx=slice_idx,
+        pos_idx=pos_idx,
         int2str_len=int2str_len,
         ext=mask_ext,
     )
     overlay_name = aux_utils.get_im_name(
-        time_idx=channels_meta_sub['time_idx'],
+        time_idx=time_idx,
         channel_idx=mask_channel_idx,
-        slice_idx=channels_meta_sub['slice_idx'],
-        pos_idx=channels_meta_sub['pos_idx'],
+        slice_idx=slice_idx,
+        pos_idx=pos_idx,
         int2str_len=int2str_len,
         extra_field='overlay',
         ext=mask_ext,
@@ -161,9 +162,9 @@ def create_save_mask(channels_meta_sub,
     else:
         raise ValueError("mask_ext can be '.npy' or '.png', not {}".format(mask_ext))
     cur_meta = {'channel_idx': mask_channel_idx,
-                'slice_idx': channels_meta_sub['slice_idx'],
-                'time_idx': channels_meta_sub['time_idx'],
-                'pos_idx': channels_meta_sub['pos_idx'],
+                'slice_idx': slice_idx,
+                'time_idx': time_idx,
+                'pos_idx': pos_idx,
                 'file_name': file_name,
                 'fg_frac': fg_frac,
                 }
@@ -429,7 +430,7 @@ def rescale_vol_and_save(time_idx,
     :param str output_fname: output_fname
     :param float/list scale_factor: scale factor for resizing
     :param str/None ff_path: path to flat field image
-    :param bytes zarr_bytes: Serialized zarr object
+    :param bytes/None zarr_bytes: Serialized zarr object
     """
     input_stack = []
     for slice_idx in range(slice_start_idx, slice_end_idx):

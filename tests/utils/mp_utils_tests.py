@@ -4,6 +4,7 @@ import numpy as np
 import numpy.testing
 import os
 import pandas as pd
+import pickle
 import skimage.io as sk_im_io
 from skimage import draw
 from testfixtures import TempDirectory
@@ -99,6 +100,7 @@ class TestMpUtilsOtsu(TestMpUtilsBaseClass):
     def test_create_save_mask_otsu(self):
         """test create_save_mask otsu"""
         self.write_mask_data()
+        zarr_bytes = pickle.dumps(None)
         for sl_idx in range(8):
             channels_meta_sub = aux_utils.get_sub_meta(
                 frames_metadata=self.frames_meta,
@@ -200,6 +202,7 @@ class TestMpUtilsBorderWeightMap(TestMpUtilsBaseClass):
     def test_create_save_mask_border_map(self):
         """test create_save_mask border weight map"""
         self.write_mask_data()
+        zarr_bytes = pickle.dumps(None)
         for sl_idx in range(1):
             channels_meta_sub = aux_utils.get_sub_meta(
                 frames_metadata=self.frames_meta,
