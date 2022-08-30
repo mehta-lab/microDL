@@ -53,7 +53,6 @@ class MaskProcessor:
             NPY files
         :param class zarr_reader: class ZarrReader instance for zarr data
         """
-
         self.input_dir = input_dir
         self.output_dir = output_dir
         self.flat_field_dir = flat_field_dir
@@ -151,6 +150,8 @@ class MaskProcessor:
         :return list flat_field_fnames: Paths to flatfields
         """
         flat_field_fnames = []
+        if not isinstance(channel_ids, list):
+            channel_ids = [channel_ids]
         for channel_idx in channel_ids:
             ff_path = im_utils.get_flat_field_path(
                 self.flat_field_dir,
@@ -229,6 +230,14 @@ class MaskProcessor:
                                     zarr_bytes)
                         fn_args.append(cur_args)
 
+        print(channels_meta_sub['time_idx'])
+        print(channels_meta_sub['slice_idx'])
+        print(channels_meta_sub['channel_idx'])
+        print(channels_meta_sub['pos_idx'])
+        print(channels_meta_sub['dir_name'])
+        print(channels_meta_sub['file_name'])
+        print('---------------')
+        print(fn_args[1:])
         mask_meta_list = mp_create_save_mask(fn_args, self.num_workers)
         mask_meta_df = pd.DataFrame.from_dict(mask_meta_list)
         mask_meta_df = mask_meta_df.sort_values(by=['file_name'])

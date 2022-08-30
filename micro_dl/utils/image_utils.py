@@ -300,11 +300,9 @@ def read_image_from_row(meta_row, zarr_reader=None):
     :return array im: 2D image
     :raise IOError if image can't be opened
     """
-    print('-------in read from row-------')
-    print(meta_row)
-    print(meta_row.dir_name)
-    file_path = os.path.join(meta_row.dir_name, meta_row.file_name)
-
+    if isinstance(meta_row, (pd.DataFrame, pd.Series)):
+        meta_row = meta_row.squeeze()
+    file_path = os.path.join(meta_row['dir_name'], meta_row['file_name'])
     if file_path[-3:] == 'npy':
         im = np.load(file_path)
     elif 'zarr' in file_path[-5:]:
@@ -410,7 +408,8 @@ def read_imstack_from_meta(frames_meta_sub,
         flat_field_fnames = nbr_images * [flat_field_fnames]
 
     if nbr_images > 1:
-        for idx, meta_row in enumerate(frames_meta_sub.itertuples()):
+        for idx in range(meta_shape[0]):
+            meta_row = frames_meta_sub.iloc[idx]
             im = read_image_from_row(meta_row, zarr_reader)
             flat_field_fname = flat_field_fnames[idx]
             if flat_field_fname is not None:
@@ -421,7 +420,7 @@ def read_imstack_from_meta(frames_meta_sub,
                     )
             im_stack.append(im)
     else:
-        # iterrows doesn't work on dataframe with one row
+        # In case of series
         im = read_image_from_row(frames_meta_sub, zarr_reader)
         flat_field_fname = flat_field_fnames[0]
         if flat_field_fname is not None:

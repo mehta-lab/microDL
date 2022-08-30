@@ -130,13 +130,13 @@ def get_sub_meta(frames_metadata,
     :param int/list pos_ids: Position (FOV) indices
     :return: int pos_ids: Row positions matching indices above
     """
-    if isinstance(channel_ids, int):
+    if isinstance(channel_ids, (int, np.integer)):
         channel_ids = [channel_ids]
-    if isinstance(time_ids, int):
+    if isinstance(time_ids, (int, np.integer)):
         time_ids = [time_ids]
-    if isinstance(slice_ids, int):
+    if isinstance(slice_ids, (int, np.integer)):
         slice_ids = [slice_ids]
-    if isinstance(channel_ids, int):
+    if isinstance(pos_ids, (int, np.integer)):
         pos_ids = [pos_ids]
     frames_meta_sub = frames_metadata[
         (frames_metadata['channel_idx'].isin(channel_ids)) &
