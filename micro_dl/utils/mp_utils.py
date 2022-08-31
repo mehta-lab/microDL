@@ -208,7 +208,7 @@ def tile_and_save(meta_sub,
                   is_mask=False,
                   normalize_im=None,
                   zscore_mean=None,
-                  zscore_std=None
+                  zscore_std=None,
                   ):
     """
     Crop image into tiles at given indices and save
@@ -225,6 +225,9 @@ def tile_and_save(meta_sub,
     :param str save_dir: output dir to save tiles
     :param int int2str_len: len of indices for creating file names
     :param bool is_mask: Indicates if files are masks
+    :param str/None normalize_im: Normalization method
+    :param float/None zscore_mean: Mean for normalization
+    :param float/None zscore_std: Std for normalization
     :return: pd.DataFrame from a list of dicts with metadata
     """
     zarr_reader = None

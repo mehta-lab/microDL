@@ -123,10 +123,7 @@ class TestMaskProcessor(unittest.TestCase):
         ff_dir = os.path.join(self.temp_path, 'ff_dir')
         self.tempdir.makedir(ff_dir)
         ff_name = os.path.join(ff_dir, 'flat-field_channel-25.npy')
-        print(ff_name)
-        print(os.listdir(self.temp_path))
         np.save(ff_name, self.rec_object[..., 0], allow_pickle=True, fix_imports=True)
-        print(os.listdir(ff_dir))
         self.mask_gen_inst.flat_field_dir = ff_dir
         flat_field_fnames = self.mask_gen_inst._get_ff_paths(25)
         self.assertListEqual(flat_field_fnames, [ff_name])
@@ -138,7 +135,6 @@ class TestMaskProcessor(unittest.TestCase):
             os.path.join(self.mask_gen_inst.get_mask_dir(), 'frames_meta.csv'),
             index_col=0,
         )
-        print(frames_meta)
         # 8 slices and 3 channels
         exp_len = 8
         nose.tools.assert_equal(len(frames_meta), exp_len)
