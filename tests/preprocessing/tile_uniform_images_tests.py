@@ -42,7 +42,6 @@ class TestImageTilerUniform(unittest.TestCase):
                 time_idx=self.time_idx,
                 pos_idx=self.pos_idx1,
             )
-
             meta_row = aux_utils.parse_idx_from_name(
                 im_name=im_name,
                 dir_name=self.temp_path,
@@ -55,7 +54,7 @@ class TestImageTilerUniform(unittest.TestCase):
             )
             frames_meta = frames_meta.append(
                 meta_row,
-                ignore_index=True
+                ignore_index=True,
             )
 
         for z in range(15, 20):
@@ -78,7 +77,7 @@ class TestImageTilerUniform(unittest.TestCase):
             )
             frames_meta = frames_meta.append(
                 meta_row,
-                ignore_index=True
+                ignore_index=True,
             )
 
         # Write metadata
