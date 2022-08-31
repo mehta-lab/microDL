@@ -231,7 +231,8 @@ class TestPreprocessScript(unittest.TestCase):
              'file_name',
              'pos_idx',
              'row_start',
-             'col_start']
+             'col_start',
+             'dir_name']
         )
         self.assertListEqual(
             tile_meta.row_start.unique().tolist(),
@@ -502,7 +503,6 @@ class TestPreprocessScript(unittest.TestCase):
         im = np.load(im_path)
         # shape should be 30, 20*1.5, z=6)
         self.assertTupleEqual(im.shape, (30, 30, 6))
-        self.assertTrue(im.dtype == np.float64)
 
         self.assertEqual(
             out_config['masks']['mask_dir'],
