@@ -387,10 +387,11 @@ def resize_and_save(**kwargs):
     :param bytes/None zarr_bytes: Pickled zarr reader
     """
     zarr_reader = None
+    meta_row = kwargs['meta_row']
     if kwargs['zarr_bytes'] is not None:
         zarr_reader = pickle.loads(kwargs['zarr_bytes'])
 
-    im = image_utils.read_image_from_row(kwargs['meta_row'], zarr_reader)
+    im = image_utils.read_image_from_row(meta_row, zarr_reader)
 
     if kwargs['ff_path'] is not None:
         im = image_utils.apply_flat_field_correction(
@@ -402,7 +403,7 @@ def resize_and_save(**kwargs):
         scale_factor=kwargs['scale_factor'],
     )
     # Write image
-    write_path = os.path.join(kwargs['output_dir'], meta_row["file_name"])
+    write_path = os.path.join(kwargs['output_dir'], meta_row['file_name'])
     cv2.imwrite(write_path, im_resized)
 
 
@@ -412,7 +413,6 @@ def mp_rescale_vol(fn_args, workers):
     :param list of tuple fn_args: list with tuples of function arguments
     :param int workers: max number of workers
     """
-
     with ProcessPoolExecutor(workers) as ex:
         # can't use map directly as it works only with single arg functions
         res = ex.map(rescale_vol_and_save, *zip(*fn_args))
@@ -482,7 +482,6 @@ def mp_get_im_stats(fn_args, workers):
     :param int workers: max number of workers
     :return: list of returned df from get_im_stats
     """
-
     with ProcessPoolExecutor(workers) as ex:
         # can't use map directly as it works only with single arg functions
         res = ex.map(get_im_stats, fn_args)
