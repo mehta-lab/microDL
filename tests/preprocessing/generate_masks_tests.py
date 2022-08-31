@@ -135,7 +135,6 @@ class TestMaskProcessor(unittest.TestCase):
             os.path.join(self.mask_gen_inst.get_mask_dir(), 'frames_meta.csv'),
             index_col=0,
         )
-        print(frames_meta)
         # 8 slices and 3 channels
         exp_len = 8
         nose.tools.assert_equal(len(frames_meta), exp_len)
