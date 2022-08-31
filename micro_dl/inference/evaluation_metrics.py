@@ -330,8 +330,6 @@ class MetricsEstimator:
             metrics_row,
             ignore_index=True,
         )
-        print('metrics xyz')
-        print(self.metrics_xyz)
 
     def estimate_xy_metrics(self,
                             target,
