@@ -71,8 +71,7 @@ class TestImageTilerNonUniform(unittest.TestCase):
                     )
 
         # Write metadata
-        frames_meta.to_csv(os.path.join(self.temp_path, self.meta_name),
-                           sep=',',)
+        frames_meta.to_csv(os.path.join(self.temp_path, self.meta_name), sep=',')
         # Instantiate tiler class
         self.output_dir = os.path.join(self.temp_path, 'tile_dir')
 
@@ -284,7 +283,7 @@ class TestImageTilerNonUniform(unittest.TestCase):
         mask_images[4:12, 4:9, 2:4] = 1
 
         # timepoints for testing
-        mask_meta = []
+        mask_meta = aux_utils.make_dataframe()
         for z in range(5):
             for t in range(3):
                 cur_im = mask_images[:, :, z]
@@ -296,14 +295,11 @@ class TestImageTilerNonUniform(unittest.TestCase):
                     ext='.npy',
                 )
                 np.save(os.path.join(mask_dir, im_name), cur_im)
-                cur_meta = {'channel_idx': 3,
-                            'slice_idx': z,
-                            'time_idx': t,
-                            'pos_idx': self.pos_idx1,
-                            'file_name': im_name}
-                mask_meta.append(cur_meta)
-        mask_meta_df = pd.DataFrame.from_dict(mask_meta)
-        mask_meta_df.to_csv(os.path.join(mask_dir, 'frames_meta.csv'), sep=',')
+                mask_meta = mask_meta.append(
+                    aux_utils.parse_idx_from_name(im_name=im_name, dir_name=mask_dir),
+                    ignore_index=True,
+                )
+        mask_meta.to_csv(os.path.join(mask_dir, 'frames_meta.csv'), sep=',')
 
         self.tile_inst.pos_ids = [7]
         self.tile_inst.normalize_channels = [None, None, None, False]
