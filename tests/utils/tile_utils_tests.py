@@ -183,7 +183,8 @@ class TestTileUtils(unittest.TestCase):
                             'file_name': cur_fname,
                             'pos_idx': self.pos_idx,
                             'row_start': row,
-                            'col_start': col}
+                            'col_start': col,
+                            'dir_name': tile_dir}
                 tile_meta.append(cur_meta)
         exp_tile_meta_df = pd.DataFrame.from_dict(tile_meta)
         exp_tile_meta_df = exp_tile_meta_df.sort_values(by=['file_name'])
@@ -306,7 +307,8 @@ class TestTileUtils(unittest.TestCase):
                         'file_name': cur_fname,
                         'pos_idx': self.pos_idx,
                         'row_start': cur_idx[0],
-                        'col_start': cur_idx[2]}
+                        'col_start': cur_idx[2],
+                        'dir_name': tile_dir}
             exp_tile_meta.append(cur_meta)
         exp_tile_meta_df = pd.DataFrame.from_dict(exp_tile_meta)
         exp_tile_meta_df = exp_tile_meta_df.sort_values(by=['file_name'])
