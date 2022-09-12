@@ -161,8 +161,8 @@ class TestImageUtils(unittest.TestCase):
                 meta_row,
                 ignore_index=True
             )
-        self.dataset_mean = self.frames_meta['zscore_median'].mean()
-        self.dataset_std = self.frames_meta['zscore_iqr'].mean()
+        self.dataset_mean = self.frames_meta.loc[0, 'zscore_median']
+        self.dataset_std = self.frames_meta.loc[0, 'zscore_iqr']
         # Write metadata
         self.frames_meta.to_csv(os.path.join(self.temp_path, meta_fname), sep=',')
         # Write 3D sphere data

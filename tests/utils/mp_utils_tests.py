@@ -4,8 +4,7 @@ import numpy as np
 import numpy.testing
 import os
 import pandas as pd
-import skimage.io as sk_im_io
-from skimage import draw
+import skimage
 from testfixtures import TempDirectory
 import unittest
 import warnings
@@ -70,7 +69,7 @@ class TestMpUtilsBaseClass(unittest.TestCase):
             im_name = self.get_name(ch_idx, z, self.time_ids, self.pos_ids)
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                sk_im_io.imsave(
+                cv2.imwrite(
                     os.path.join(self.temp_path, im_name),
                     array[:, :, z].astype('uint8'),
                 )
@@ -190,11 +189,17 @@ class TestMpUtilsBorderWeightMap(TestMpUtilsBaseClass):
 
     def get_touching_circles(self, shape=(64, 64)):
         # Creating a test image with 3 circles, 2 close to each other and one far away
+        sk_version = skimage.__version__
+        sk_version = int(sk_version.split('.')[1])
         self.radius = 10
         self.params = [(20, 16, self.radius), (44, 16, self.radius), (47, 47, self.radius)]
         mask = np.zeros(shape, dtype=np.uint8)
         for i, (cx, cy, radius) in enumerate(self.params):
-            rr, cc = draw.disk((cx, cy), radius)
+            if sk_version > 16:
+                rr, cc = skimage.draw.disk((cx, cy), radius)
+            else:
+                # skimage changed from circle to disk in version 0.17
+                rr, cc = skimage.draw.circle(cx, cy, radius)
             mask[rr, cc] = i + 1
         mask = mask[:, :, np.newaxis]
         return mask

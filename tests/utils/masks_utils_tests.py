@@ -1,7 +1,6 @@
 import nose.tools
 import numpy as np
-from skimage import draw
-from skimage.filters import gaussian
+import skimage
 
 import micro_dl.utils.masks as masks_utils
 
@@ -12,17 +11,18 @@ uni_thr_tst_image[11:21, 2:12] = 97
 uni_thr_tst_image[8:12, 3:7] = 31
 uni_thr_tst_image[17:29, 17:29] = 61
 uni_thr_tst_image[3:14, 17:29] = 47
+sk_version = skimage.__version__
+sk_version = int(sk_version.split('.')[1])
 
 
 def test_get_unimodal_threshold():
-    input_image = gaussian(uni_thr_tst_image, 1)
+    input_image = skimage.filters.gaussian(uni_thr_tst_image, 1)
     best_thr = masks_utils.get_unimodal_threshold(input_image)
     nose.tools.assert_equal(np.floor(best_thr), 3.0)
 
 
 def test_unimodal_thresholding():
-    input_image = gaussian(uni_thr_tst_image, 1)
-    print(input_image[10:20, 10:20])
+    input_image = skimage.filters.gaussian(uni_thr_tst_image, 1)
     mask = masks_utils.create_unimodal_mask(
         input_image,
         str_elem_size=0)
@@ -42,7 +42,11 @@ def test_get_unet_border_weight_map():
     params = [(20, 16, radius), (44, 16, radius), (47, 47, radius)]
     mask = np.zeros((64, 64), dtype=np.uint8)
     for i, (cx, cy, radius) in enumerate(params):
-        rr, cc = draw.disk((cx, cy), radius)
+        if sk_version > 16:
+            # skimage changed from circle to draw in versions 0.17
+            rr, cc = skimage.draw.disk((cx, cy), radius)
+        else:
+            rr, cc = skimage.draw.circle(cx, cy, radius)
         mask[rr, cc] = i + 1
 
     weight_map = masks_utils.get_unet_border_weight_map(mask)
