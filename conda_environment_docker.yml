@@ -1,0 +1,14 @@
+dependencies:
+  - ipython
+  - Cython
+  - jupyter
+  - jupyterlab
+  - natsort
+  - nose
+  - numpy
+  - pandas=1.1.5
+  - pydot
+  - PyYAML
+  - testfixtures
+  - tqdm
+  - keras=2.1.6

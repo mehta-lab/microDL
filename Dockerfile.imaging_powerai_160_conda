@@ -4,18 +4,7 @@ ENV USER_NAME pwrai
 #ENV CONDA_DIR /home/pwrai/anaconda3
 #ENV PATH ${CONDA_DIR}/bin:${PATH}
 ENV WORK_DIR /home/${USER_NAME}/microDL
-#ENV PATH /usr/local/bin/python3.6:${PATH}
 
-#RUN echo 1 | sudo /opt/DL/license/bin/accept-powerai-license.sh
-#RUN sudo /bin/ln -sf /bin/bash /bin/sh
-#RUN sudo /bin/sed -i -e "/ddl-tensorflow/a\
-#\ \ \ \ scripts['tensorboard']=\'/opt/DL/tensorboard/bin/tensorboard-activate\'" /var/local/powerai/default_framework.sh
-
-#FROM ibmcom/powerai:1.6.0-all-ubuntu18.04-py3
-#ENV USER_NAME root
-#ENV CONDA_DIR /root/anaconda3
-#ENV PATH ${CONDA_DIR}/bin:${PATH}
-#ENV WORK_DIR /${USER_NAME}/microDL
 
 RUN ["/bin/bash", "-c", "cd /opt/anaconda3/bin && source activate base && IBM_POWERAI_LICENSE_ACCEPT=yes ./accept-powerai-license.sh" ]
 
@@ -44,46 +33,18 @@ RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selectio
          graphviz \
          vim 
 
-
-#         liblapack-dev \
-#         libblas-dev \
-#         python3-dev \     
-#         python3-distutils \
-#         python3-setuptools
-
-#RUN wget https://bootstrap.pypa.io/pip/3.6/get-pip.py && \
-#python3.6 get-pip.py
-# RUN easy_install-3.6 pip
-
-#RUN wget https://bootstrap.pypa.io/pip/3.6/get-pip.py && \
-#    python3.6 get-pip.py --target $(python3.6 -c 'import sys; print(sys.path[-1])') && \
-#    rm get-pip.py
-# keras
-#RUN python3.6 -m pip install --upgrade pip setuptools wheel && \
-
-#python3.6 -m pip install --upgrade --no-cache-dir keras==2.1.6 && \
-
-# Jupyter
-#python3.6 -m pip install --user --upgrade --no-cache-dir jupyter
-
 # Cleanup
 RUN sudo apt-get clean && \
 sudo apt-get autoremove && \
 sudo rm -rf /var/lib/apt/lists/*
 
-# Install pip packages from requirements text file
-
-#ADD requirements_docker.txt /tmp/requirements.txt
-#RUN python3.6 -m pip install -r /tmp/requirements.txt
-
-#SHELL ["/bin/bash", "--login", "-
-# sudo ln -s /opt/anaconda3/etc/profile.d/conda.sh /etc/profile.d/conda.sh
-ADD conda_environment_docker.yml /tmp/conda.yml
 ENV PATH /opt/anaconda3/bin:${PATH}
+RUN sudo ln -s /opt/anaconda3/etc/profile.d/conda.sh /etc/profile.d/conda.sh
+ADD conda_environment_docker.yml /tmp/conda.yml
 RUN conda update -n base -c defaults --override-channels conda && \
 conda env create --file=/tmp/conda.yml && \
-conda env update --name base --prune --file=/tmp/conda.yml && \
-conda install tensorflow-gpu==1.13.1 && \
+#conda env update --name base --prune --file=/tmp/conda.yml && \
+#conda install tensorflow-gpu==1.13.1 && \
 conda activate micro_dl
 
 
