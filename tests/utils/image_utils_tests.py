@@ -413,7 +413,6 @@ class TestZarrReader(unittest.TestCase):
         self.assertFalse(os.path.isdir(self.input_dir))
 
     def test_init(self):
-        self.assertEqual(self.zarr_reader.zarr_name, self.zarr_name)
         self.assertEqual(len(self.zarr_reader.well_pos), self.nbr_pos)
         self.assertListEqual(self.zarr_reader.channel_names, self.channel_names)
         self.assertEqual(self.zarr_reader.array_name, 'array')
@@ -430,9 +429,6 @@ class TestZarrReader(unittest.TestCase):
 
     def test_get_channel_names(self):
         self.assertEqual(self.zarr_reader.get_channel_names(), self.channel_names)
-
-    def test_get_zarr_name(self):
-        self.assertEqual(self.zarr_reader.get_zarr_name(), self.zarr_name)
 
     def test_image_from_row(self):
         meta_row = {

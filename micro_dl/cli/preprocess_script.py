@@ -100,6 +100,7 @@ def get_required_params(preprocess_config):
                     )
 
     zarr_reader = None
+
     if 'zarr_file' in preprocess_config:
         zarr_file = preprocess_config['zarr_file']
         assert 'zarr' in zarr_file.split('.')[-1], \
