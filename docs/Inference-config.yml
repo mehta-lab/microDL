@@ -1,0 +1,36 @@
+# Configuration detailing the staining prediction on label-free images
+
+# define the dataset you want to use the trained model for virtual staining,
+# the output formats required and predicted image quality metrics
+
+# point to directory where your trained model is saved
+model_dir: '/home/Translation_temp_2/'
+
+# directory with images on which you want to perform the prediction, the inference dataset
+image_dir: '/home/InferenceData/'
+
+# directory with all preprocessed data
+preprocess_dir: '/home/Processed_temp_1'
+
+# define inference dataset channels
+dataset:
+  input_channels: [2]   # label-free channel used for prediction by model
+  target_channels: [1]  # target image channel (fluorescence image) to compare how well the prediction worked
+#  slice_ids: [0]
+  pos_ids: [0, 1, 3, 4, 6, 8, 10]  # may not effect the positions where prediction is performed if data split is defined
+
+# define the output image format
+images:
+    image_format: 'zyx'     # output predicted image order of dimension
+    image_ext: '.tif'       # output images are stored as single page tiff files
+    name_format: sms        # naming format is defined
+    pred_chan_name: 'pred'  # prefix of saved output image name
+save_to_image_dir: False    # specifies if the output images are to be saved inside the image directory or separately
+data_split: train           # define which image set in train/val/test split are to be used for the prediction
+save_figs: True             # do you want to save figures to comapre the predicted and target images
+
+# metrics to be computed to define prediction quality
+metrics:
+    metrics: [ssim, corr, r2, mae, mse]  # ssim: structural similarity index, corr: pearson correlation, r2: r-squared,
+    # mae: mean absolute error, mse: mean squared error
+    metrics_orientations: ['xy']

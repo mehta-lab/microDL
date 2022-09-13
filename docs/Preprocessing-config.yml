@@ -1,0 +1,95 @@
+## Preprocessing images before microDL model training
+
+# Preprocessing config file contains all information required to be input to the preprocessing code in microDL.
+# The preprocessing code performs normalization of the images from different channels and craetes segmneted mask for each channel as defined.
+# The masks are used to vaguely define the pixels belonging to foreground and background of the channel to be virtually stained.
+# The masks can be created either using an Otsu or Unimodal threshold, more details on the notebook demonstrating microDL.
+# In order to perform efficient training, the images and corresponding masks are cropped into tiles of defined size which is stored as preprocessed data.
+
+#Preprocessed tiles and corresponding masks are stored in the following directory after preprocessing.
+
+output_dir: '/home/Processed_temp_dir/'
+
+verbose: 10
+
+# This is the folder the data used for training is stored. The image stacks compose of label-free images, corresponding fluorescence images at different positions and z slices useful for training the virtual staining model.
+# The stacks must be processed to get the focus slice in the same positon in all z stack from different positions. If your images are not well aligned you can use the following [code](https://github.com/mehta-lab/microDL/blob/master/scripts/align_z_focus.py).
+
+input_dir: '/home/TrainingData_dir'
+
+# Specify all channels where basic normalization preprocessing is performed including label-free and fluorescence channels available in the image stacks.
+
+channel_ids: [0, 1, 2, 3]
+
+# Specify the slices which should be used for training. Some slices might be too out-of-focus' and thus may not yield any useful information for training or can even confuse the training process.
+# Pick the slices to be in good focus range, but diverse enough to get enough 3D information.
+
+slice_ids: [10, 11, 12, 13, 14, 15]
+
+# Chose the image positions which would be used for training.
+
+pos_ids: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+
+# Number of gpu workers used for the training compuation. This will depend on the computer specifications you use and the GPU.
+num_workers: 12
+
+# Normalize the images using the following parameters:
+normalize:
+
+# Specifies to normalize the dataset you are providing as input
+  normalize_im: 'dataset'
+
+# The fraction of pixels in your images which can be considered as foreground. min_fraction of 0.25 means 1/4th of the pixels in the image are foreground
+# if you are staining nucleus, image will be 25% covered by nuclear regions.
+  min_fraction: 0.25
+
+# Which channels are to be normalized : same length as length of channel id vector, specify if required or not using True or False
+  normalize_channels: [True, True, True, True]
+
+# Specify if the structures are uniform
+  uniform_struct: True
+
+# Mask parameters: defines segmnetion for foreground and background regions for staining
+
+masks:
+
+# which is your target channel, to be segmented for use in training the model? If you are virtually staining the nuclei, the DAPI channel will be defined
+  channels: [1]
+
+# The stride size for unimodal thresholding, or otsu thresholding
+  str_elem_radius: 3
+
+# method used for segmentation, can be unimodal if intensities are not uniform, otsu if signal is uniform
+  mask_type: 'unimodal'
+
+# Save format of the processed mask images (for visualization as well!)
+  mask_ext: '.png'
+
+
+# Tile parameters : Defines parameters for tile creation for training, from the different input channels and mask channel images
+tile:
+    
+# The parameter 'tile_size' defines the size of tiles to be created from input images useful for training the microDL models.
+
+  tile_size: [256, 256]
+
+# 'step_size' is the overlap between tiles
+
+  step_size: [128, 128]
+
+# 'depths' defines weightage of each channel input to preprocessing. The length of the 'depths' parameter should be same as length of 'channel_ids' variable.
+
+  depths: [1, 1, 1, 1]
+    
+# 'image_format' defines the order of 3D array dimensions, z slices (1st dimension), x and y (image x-y dimension).
+  image_format: 'zyx'
+
+# metadata : defines the data format used based on which specific functions are chosen for processing
+metadata:
+
+# the images produced by processing are named by the format 'channel_zslice_time_position', for example, 'c001_z046_t000_p023'
+  order: 'cztp'
+
+# this deals with metadata parsing
+  name_parser: 'parse_sms_name'
+
