@@ -5,7 +5,6 @@ import os
 import pandas as pd
 from testfixtures import TempDirectory
 import unittest
-import zarr
 
 # Create a test image and its corresponding coordinates and values
 # Create a test image with a bright block to the right
