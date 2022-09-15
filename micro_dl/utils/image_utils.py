@@ -600,28 +600,31 @@ class ZarrReader:
     https://ome-zarr.readthedocs.io/en/stable/index.html
     """
 
-    def __init__(self, input_dir, zarr_name, single_pos=True):
+    def __init__(self, input_dir, zarr_name):
         """
         Finds metadata for zarr file
 
         :param str input_dir: Input directory
         :param str zarr_name: Name of zarr file in input_dir
-        :param bool single_pos: If each zarr file contains a single position
         """
+        self.input_dir = input_dir
         zarr_store = zarr.open(os.path.join(input_dir, zarr_name), mode='r')
-        self.zarr_store = None
-        if not single_pos:
-            self.zarr_store = zarr_store
-        self.single_pos = single_pos
         plate_info = zarr_store.attrs.get('plate')
 
         self.well_pos = []
-        # Assumes that the positions are indexed in the order of Row-->Well-->FOV
+        # Assumes that the positions are indexed 0, ..., nbr pos - 1
+        # For acquisitions with each pos saved in separate zarr store, pos idx = 0
         for well in plate_info['wells']:
             for pos in zarr_store[well['path']].attrs.get('well').get('images'):
                 self.well_pos.append(
                     {'well': well['path'], 'pos': pos['path']}
                 )
+
+        self.zarr_store = None
+        self.nbr_pos = len(self.well_pos)
+        if self.nbr_pos > 1:
+            # If all positions are in same store, reuse it
+            self.zarr_store = zarr_store
 
         # Get channel names
         first_pos = zarr_store[self.well_pos[0]['well']][self.well_pos[0]['pos']]
@@ -633,16 +636,18 @@ class ZarrReader:
         self.array_name = list(first_pos.array_keys())[0]
         array_shape = first_pos[self.array_name].shape
 
-        self.nbr_pos = len(self.well_pos)
         self.nbr_times = array_shape[0]
         self.nbr_channels = array_shape[1]
         self.nbr_slices = array_shape[2]
 
-        # If there isn't a channel name for each channel, set to nan
-        if len(self.channel_names) != self.nbr_channels:
-            self.channel_names = self.nbr_channels * [np.nan]
+        # There should be a channel name for each channel
+        assert len(self.channel_names) == self.nbr_channels, \
+            "Channel names ({}) don't match nbr of channels ({})".format(
+                self.channel_names,
+                self.nbr_channels,
+            )
 
-    def get_pos(self):
+    def get_positions(self):
         return self.nbr_pos
 
     def get_times(self):
@@ -664,8 +669,13 @@ class ZarrReader:
         :param tuple meta_row: Row of metadata
         """
         pos_idx = 0
-        if not self.single_pos:
+        if self.nbr_pos > 1:
             pos_idx = meta_row['pos_idx']
+            assert pos_idx < self.nbr_pos, \
+                "Pos idx in meta row: {} > number of pos in store: {}".format(
+                    pos_idx,
+                    self.nbr_pos,
+                )
         if self.zarr_store is None:
             zarr_store = zarr.open(
                 os.path.join(meta_row['dir_name'], meta_row['file_name']),
@@ -678,7 +688,12 @@ class ZarrReader:
         im = array[meta_row['time_idx'], meta_row['channel_idx'], meta_row['slice_idx']]
         return im
 
-    def image_from_indices(self, pos_idx, time_idx, channel_idx, slice_idx):
+    def image_from_indices(self,
+                           pos_idx,
+                           time_idx,
+                           channel_idx,
+                           slice_idx,
+                           zarr_name=None):
         """
         Fetches an image given indices of position, time, channel and slice.
 
@@ -687,8 +702,25 @@ class ZarrReader:
         :param int channel_idx: Channel index
         :param int slice_idx: Slice index
         """
-        well_pos_idx = self.well_pos[pos_idx]
-        array = self.zarr_store[well_pos_idx['well']][well_pos_idx['pos']][self.array_name]
+        meta_pos_idx = 0
+        if self.nbr_pos > 1:
+            meta_pos_idx = pos_idx
+            assert pos_idx < self.nbr_pos, \
+                "Pos idx in meta row: {} > number of pos in store: {}".format(
+                    pos_idx,
+                    self.nbr_pos,
+                )
+        if self.zarr_store is None:
+            assert zarr_name is not None,\
+                "If using single-position zarrs, you must specify zarr file name."
+            zarr_store = zarr.open(
+                os.path.join(self.input_dir, zarr_name),
+                mode='r',
+            )
+        else:
+            zarr_store = self.zarr_store
+        well_pos_idx = self.well_pos[meta_pos_idx]
+        array = zarr_store[well_pos_idx['well']][well_pos_idx['pos']][self.array_name]
         im = array[time_idx, channel_idx, slice_idx]
         return im
 
@@ -702,7 +734,13 @@ class ZarrWriter:
     https://github.com/mehta-lab/waveorder/tree/master/waveorder/io
     """
 
-    def __init__(self, write_dir, zarr_name, channel_names, pos_idx):
+    def __init__(self,
+                 write_dir,
+                 channel_names,
+                 pos_idx,
+                 data_dtype=np.uint16,
+                 zarr_name=None,
+                 single_pos=True):
         """
         Sets up zarr store
 
@@ -712,11 +750,8 @@ class ZarrWriter:
             Assuming they're the same throughout acquisition.
         """
         self.write_dir = write_dir
-        self.zarr_path = os.path.join(self.write_dir, zarr_name)
-        if os.path.exists(self.zarr_path):
-            raise FileExistsError('Zarr data path: {} already exists'.format(self.zarr_path))
-
-        store = zarr.open(self.zarr_path)
+        self.single_pos = single_pos
+        self.zarr_store = None
         # Initialize hierarchy and metadata
         self.plate_meta = dict()
         self.well_meta = dict()
@@ -724,11 +759,25 @@ class ZarrWriter:
         self.channel_names = channel_names
         self.data_shape = None
         self.chunk_size = None
-        self.data_dtype = np.uint16
+        self.data_dtype = data_dtype
+        self.array_name = 'arr_0'
         self.positions = []
-        self.create_position(store, pos_idx=pos_idx)
-        self.create_meta()
-        self.update_meta(pos_idx=pos_idx)
+        self.meta_dict = self.create_meta()
+        if not self.single_pos:
+            # Write all positions in same store. Must give zarr name
+            assert zarr_name is not None, \
+                "Zarr name must be specified if writing all positions in same store"
+            zarr_path = os.path.join(self.write_dir, zarr_name)
+            if os.path.exists(zarr_path):
+                raise FileExistsError('Zarr data path: {} already exists'.format(zarr_path))
+            # Create one zarr store for all positions
+            self.zarr_store = zarr.open(zarr_path)
+            self.create_position(self.zarr_store, pos_idx=0)
+            self.plate_meta['plate']['name'] = zarr_name.strip('.zarr')
+            self.update_meta(pos_idx=0)
+
+        # Gotta update plate_meta with zarr name
+        # self.plate_meta['plate']['name'] = zarr_name.strip('.zarr')
 
     def get_col_name(self, pos_idx):
         """
@@ -742,7 +791,7 @@ class ZarrWriter:
         """
         return 'Pos_{:03d}'.format(pos_idx)
 
-    def create_row(self, store, row_idx):
+    def create_row(self, zarr_store, row_idx):
         """
         Creates a row in the hierarchy (first level below zarr store).
         Keeps track of the row name (for now only created once per dataset).
@@ -751,12 +800,12 @@ class ZarrWriter:
         """
         self.row_name = 'Row_{}'.format(row_idx)
         # check if row that already exists
-        if self.row_name in store:
+        if self.row_name in zarr_store:
             raise FileExistsError('A row named {} already exists'.format(self.row_name))
         else:
-            store.create_group(self.row_name)
+            zarr_store.create_group(self.row_name)
 
-    def create_column(self, store, pos_idx):
+    def create_column(self, zarr_store, pos_idx):
         """
         Creates a column in the hierarchy with same index as position.
 
@@ -764,14 +813,14 @@ class ZarrWriter:
         """
         col_name = self.get_col_name(pos_idx)
         # check to see if col already exists
-        if col_name in store[self.row_name]:
+        if col_name in zarr_store[self.row_name]:
             raise FileExistsError(
                 'A column subgroup named {} already exists'.format(col_name),
             )
         else:
-            store[self.row_name].create_group(col_name)
+            zarr_store[self.row_name].create_group(col_name)
 
-    def create_meta(self, store):
+    def create_meta(self):
         """
         Create metadata according to OME standards. Version 0.1?
         """
@@ -782,7 +831,7 @@ class ZarrWriter:
                                                       'starttime': 0}],
                                     'columns': [],
                                     'field_count': 1,
-                                    'name': self.zarr_name.strip('.zarr'),
+                                    'name': "Temp",
                                     'rows': [],
                                     'version': ome_version,
                                     'wells': []}
@@ -813,24 +862,26 @@ class ZarrWriter:
             }
             dict_list.append(channel_dict)
 
-        full_dict = {'multiscales': multiscale_dict,
+        meta_dict = {'multiscales': multiscale_dict,
                      'omero': {
                          'channels': dict_list,
                          'rdefs': rdefs,
                          'version': 0.1}
                      }
-
-        pos = self.positions[0]
-        pos_group = store[pos['row']][pos['col']][pos['name']]
-        pos_group.attrs.put(full_dict)
+        return meta_dict
 
     def create_position(self, zarr_name, pos_idx, single_pos=True):
         """
         Creates a column and position subgroup given the index.
 
+        :param str zarr_name: Name of zarr store
         :param int pos_idx: Index of the position to create
         """
-        self.store
+        zarr_path = os.path.join(self.write_dir, zarr_name)
+        if os.path.exists(zarr_path):
+            raise FileExistsError('Zarr data path: {} already exists'.format(zarr_path))
+
+        store = zarr.open(zarr_path)
         if single_pos:
             self.create_row(row_idx=0)
         else:
@@ -854,7 +905,7 @@ class ZarrWriter:
             self.store[self.row_name][col_name].create_group(pos_name)
             self.positions.append({'name': pos_name, 'row': self.row_name, 'col': col_name})
 
-    def update_meta(self, pos_idx):
+    def update_meta(self, zarr_store, pos_idx):
         """
         Update metadata for given position.
 
@@ -864,10 +915,10 @@ class ZarrWriter:
         col_name = self.get_col_name(pos_idx=pos_idx)
         self.plate_meta['plate']['columns'].append({'name': col_name})
         self.plate_meta['plate']['wells'].append({'path': f'{self.row_name}/{col_name}'})
-        self.store.attrs.put(self.plate_meta)
+        zarr_store.attrs.put(self.plate_meta)
         # Update well meta
         self.well_meta['well']['images'] = [{'path': pos_name}]
-        self.store[self.row_name][col_name].attrs.put(self.well_meta)
+        zarr_store[self.row_name][col_name].attrs.put(self.well_meta)
 
     def write_data_set(self, data_array):
         """
@@ -929,12 +980,12 @@ class ZarrWriter:
 
         if current_pos_group.__len__() == 0:
             current_pos_group.zeros(
-                'array',
+                self.array_name,
                 shape=data_shape,
                 chunks=chunk_size,
                 dtype=data_array.dtype,
             )
-        current_pos_group['array'] = data_array
+        current_pos_group[self.array_name] = data_array
 
     def write_image(self,
                     im,
@@ -983,7 +1034,7 @@ class ZarrWriter:
         current_pos_group = self.store[self.row_name][col_name][pos_name]
         if current_pos_group.__len__() == 0:
             current_pos_group.zeros(
-                'array',
+                self.array_name,
                 shape=self.data_shape[1:],
                 chunks=self.chunk_size,
                 dtype=self.data_dtype,
