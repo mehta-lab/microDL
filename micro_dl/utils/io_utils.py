@@ -385,6 +385,9 @@ class WriterBase:
 
 class ZarrReader(ReaderBase):
     """
+    I/O classes for zarr data are directly copied from:
+    https://github.com/mehta-lab/waveorder/tree/master/waveorder/io
+
     Reader for HCS ome-zarr arrays.  OME-zarr structure can be found here: https://ngff.openmicroscopy.org/0.1/
     Also collects the HCS metadata so it can be later copied.
     """
@@ -395,13 +398,10 @@ class ZarrReader(ReaderBase):
         # zarr files (.zarr) are directories
         if not os.path.isdir(zarrfile):
             raise ValueError("file does not exist")
-
-        self.zf = zarrfile
-
         try:
-            self.store = zarr.open(self.zf, 'r')
+            self.store = zarr.open(zarrfile, 'r')
         except:
-            raise FileNotFoundError('Supplies path is not a valid zarr store')
+            raise FileNotFoundError('Path: {} is not a valid zarr store'.format(zarrfile))
 
         try:
             row = self.store[list(self.store.group_keys())[0]]
@@ -415,8 +415,7 @@ class ZarrReader(ReaderBase):
         self._get_rows()
         self._get_columns()
         self._get_wells()
-        self.position_map = dict()
-        self._get_positions()
+        self.position_map = self._get_positions()
 
         # structure of zarr array
         (self.frames,
@@ -446,8 +445,6 @@ class ZarrReader(ReaderBase):
     def _get_rows(self):
         """
         Function to get the rows of the zarr hierarchy from HCS metadata
-        Returns
-        -------
         """
         rows = []
         for row in self.plate_meta['rows']:
@@ -457,8 +454,6 @@ class ZarrReader(ReaderBase):
     def _get_columns(self):
         """
         Function to get the columns of the zarr hierarchy from HCS metadata
-        Returns
-        -------
         """
         columns = []
         for column in self.plate_meta['columns']:
@@ -468,8 +463,6 @@ class ZarrReader(ReaderBase):
     def _get_wells(self):
         """
         Function to get the wells (Row/Col) of the zarr hierarchy from HCS metadata
-        Returns
-        -------
         """
         wells = []
         for well in self.plate_meta['wells']:
@@ -479,24 +472,21 @@ class ZarrReader(ReaderBase):
     def _get_positions(self):
         """
         Gets the position names and paths from HCS metadata
-        Returns
-        -------
         """
-
+        position_map = dict()
         idx = 0
         # Assumes that the positions are indexed in the order of Row-->Well-->FOV
         for well in self.wells:
             for pos in self.store[well].attrs.get('well').get('images'):
                 name = pos['path']
-                self.position_map[idx] = {'name': name, 'well': well}
+                position_map[idx] = {'name': name, 'well': well}
                 idx += 1
+        return position_map
 
     def _generate_hcs_meta(self):
         """
         Pulls the HCS metadata and organizes it into a dictionary structure
         that can be easily read by the WaveorderWriter.
-        Returns
-        -------
         """
         self.hcs_meta = dict()
         self.hcs_meta['plate'] = self.plate_meta
@@ -511,8 +501,6 @@ class ZarrReader(ReaderBase):
     def _set_mm_meta(self):
         """
         Sets the micromanager summary metadata based on MM version
-        Returns
-        -------
         """
         self.mm_meta = self.store.attrs.get('Summary')
         mm_version = self.mm_meta['MicroManagerVersion']
@@ -526,9 +514,6 @@ class ZarrReader(ReaderBase):
                         pos = self._simplify_stage_position_beta(self.mm_meta['StagePositions'][p])
                         self.stage_positions.append(pos)
 
-            # elif mm_version == '1.4.22':
-            #     for ch in self.mm_meta['ChNames']:
-            #         self.channel_names.append(ch)
             else:
                 if self.mm_meta['Positions'] > 1:
                     self.stage_positions = []
@@ -536,9 +521,6 @@ class ZarrReader(ReaderBase):
                     for p in range(self.mm_meta['Positions']):
                         pos = self._simplify_stage_position(self.mm_meta['StagePositions'][p])
                         self.stage_positions.append(pos)
-
-                # for ch in self.mm_meta['ChNames']:
-                #     self.channel_names.append(ch)
 
         self.z_step_size = self.mm_meta['z-step_um']
 
@@ -555,14 +537,10 @@ class ZarrReader(ReaderBase):
     def _simplify_stage_position(self, stage_pos: dict):
         """
         flattens the nested dictionary structure of stage_pos and removes superfluous keys
-        Parameters
-        ----------
-        stage_pos:      (dict) dictionary containing a single position's device info
-        Returns
-        -------
-        out:            (dict) flattened dictionary
-        """
 
+        :param dict stage_pos: Dictionary containing a single position's device info
+        :return dict out: Flattened dictionary
+        """
         out = copy(stage_pos)
         out.pop('DevicePositions')
         for dev_pos in stage_pos['DevicePositions']:
@@ -573,14 +551,10 @@ class ZarrReader(ReaderBase):
         """
         flattens the nested dictionary structure of stage_pos and removes superfluous keys
         for MM2.0 Beta versions
-        Parameters
-        ----------
-        stage_pos:      (dict) dictionary containing a single position's device info
-        Returns
-        -------
-        new_dict:       (dict) flattened dictionary
-        """
 
+        :param dict stage_pos: Dictionary containing a single position's device info
+        :return dict new_dict: Flattened dictionary
+        """
         new_dict = {}
         new_dict['Label'] = stage_pos['label']
         new_dict['GridRow'] = stage_pos['gridRow']
@@ -600,17 +574,14 @@ class ZarrReader(ReaderBase):
 
     def get_image_plane_metadata(self, p, c, z):
         """
-        For the sake of not keeping an enormous amount of metadta, only the microscope conditions
+        For the sake of not keeping an enormous amount of metadata, only the microscope conditions
         for the first timepoint are kept in the zarr metadata during write.  User can only query image
          plane metadata at p, c, z
-        Parameters
-        ----------
-        p:          (int) Position index
-        c:          (int) Channel index
-        z:          (int) Z-slice index
-        Returns
-        -------
-        (dict) Image Plane Metadata at given coordinate w/ T = 0
+
+        :param int p: Position index
+        :param int c: Channel index
+        :param int z: Z-slice index
+        :return dict metadata: Image Plane Metadata at given coordinate w/ T = 0
         """
         coord_str = f'({p}, 0, {c}, {z})'
         return self.store.attrs.get('ImagePlaneMetadata').get(coord_str)
@@ -618,12 +589,9 @@ class ZarrReader(ReaderBase):
     def get_zarr(self, position):
         """
         Returns the position-level zarr group array (not in memory)
-        Parameters
-        ----------
-        position:       (int) position index
-        Returns
-        -------
-        (ZarrArray) Zarr array containing the (T, C, Z, Y, X) array at given position
+
+        :param int position: Position index
+        :return ZarrArray Zarr array containing the (T, C, Z, Y, X) array at given position
         """
         pos_info = self.position_map[position]
         well = pos_info['well']
@@ -633,12 +601,9 @@ class ZarrReader(ReaderBase):
     def get_array(self, position):
         """
         Gets the (T, C, Z, Y, X) array at given position
-        Parameters
-        ----------
-        position:       (int) position index
-        Returns
-        -------
-        (nd-Array) numpy array of size (T, C, Z, Y, X) at specified position
+
+        :param int position: Position index
+        :return np.array pos: Array of size (T, C, Z, Y, X) at specified position
         """
         pos = self.get_zarr(position)
         return pos[:]
@@ -646,23 +611,196 @@ class ZarrReader(ReaderBase):
     def get_image(self, p, t, c, z):
         """
         Returns the image at dimension P, T, C, Z
-        Parameters
-        ----------
-        p:          (int) index of the position dimension
-        t:          (int) index of the time dimension
-        c:          (int) index of the channel dimension
-        z:          (int) index of the z dimension
-        Returns
-        -------
-        image:      (nd-array) image at the given dimension of shape (Y, X)
+
+        :param int p: Index of the position dimension
+        :param int t: Index of the time dimension
+        :param int c: Index of the channel dimension
+        :param int z: Index of the z dimension
+        :return np.array image: Image at the given dimension of shape (Y, X)
         """
-
         pos = self.get_zarr(p)
-
         return pos[t, c, z]
+
+    def get_image_from_path(self, p, t, c, z, zarr_path=None):
+        """
+        Returns the image at dimension P, T, C, Z
+        Added hack to read from new zarr path. This only works if we assume
+        data structures are the same across a whole training data set, so could
+        be a bit risky if data somehow is irregular. On the flip side we don't have
+        to read and process all the metadata for each single image access.
+        Note: Overwrites positions and wells each time it's called.
+
+        :param int p: Index of the position dimension
+        :param int t: Index of the time dimension
+        :param int c: Index of the channel dimension
+        :param int z: Index of the z dimension
+        :param str/None zarr_path: If path to zarr store, open and read from that instead of init
+        :return np.array image: Image at the given dimension of shape (Y, X)
+        """
+        if zarr_path is not None:
+            # TODO: could make temp store to not overwrite
+            self.store = zarr.open(zarr_path, 'r')
+            self.plate_meta = self.store.attrs.get('plate')
+            self._get_rows()
+            self._get_columns()
+            self._get_wells()
+            self.position_map = self._get_positions()
+
+        # Index of position will be 0 even if position is >0
+        pos = self.get_zarr(0)
+        return pos[t, c, z, ...]
 
     def get_num_positions(self) -> int:
         return self.positions
+
+
+class ZarrWriter:
+    """
+    I/O classes for zarr data are directly copied from:
+    https://github.com/mehta-lab/waveorder/tree/master/waveorder/io
+
+    given stokes or physical data, construct a standard hierarchy in zarr for output
+        should conform to the ome-zarr standard as much as possible
+    """
+    __builder = None
+    __save_dir = None
+    __root_store_path = None
+    __builder_name = None
+    __current_zarr_group = None
+    store = None
+
+    current_group_name = None
+    current_position = None
+
+    def __init__(self,
+                 save_dir: str = None,
+                 hcs_meta: dict = None,
+                 verbose: bool = False):
+
+        self.verbose = verbose
+        self.hcs_meta = hcs_meta
+
+        if os.path.exists(save_dir) and save_dir.endswith('.zarr'):
+            print(f'Opening existing store at {save_dir}')
+            self._open_zarr_root(save_dir)
+        else:
+            self._check_is_dir(save_dir)
+
+        # initialize Default writer
+        self.sub_writer = DefaultZarr(self.store, self.__root_store_path)
+
+        if self.verbose:
+            self.sub_writer.set_verbosity(self.verbose)
+
+    def _check_is_dir(self, path):
+        """
+        directory verification
+        assigns self.__save_dir
+
+        :param str path: Directory path
+        """
+        if os.path.isdir(path) and os.path.exists(path):
+            self.__save_dir = path
+        else:
+            print(f'No existing directory found. Creating new directory at {path}')
+            os.mkdir(path)
+            self.__save_dir = path
+
+    def _open_zarr_root(self, path):
+        #TODO: Use case where user opens an already HCS-store?
+        """
+        Change current zarr to an existing store
+        if zarr doesn't exist, raise error
+
+        :param str path: Path to store. Must end in .zarr
+        """
+        if os.path.exists(path):
+            assert path.endswith('.zarr'), \
+                "Path must en in .zarr. Current path: {}".format(path)
+            try:
+                self.store = zarr.open(path)
+                self.__root_store_path = path
+            except:
+                raise FileNotFoundError('Path: {} is not a valid zarr store'.format(path))
+        else:
+            raise FileNotFoundError(f'No store found at {path}, check spelling or create new store with create_zarr')
+
+    def create_zarr_root(self, name):
+        """
+        Method for creating the root zarr store.
+        If the store already exists, it will raise an error.
+        Name corresponds to the root directory name (highest level) zarr store.
+
+        :param str name: Name of the zarr store.
+        """
+        if not name.endswith('.zarr'):
+            name = name + '.zarr'
+
+        zarr_path = os.path.join(self.__save_dir, name)
+        if os.path.exists(zarr_path):
+            raise FileExistsError('A zarr store with this name already exists')
+
+        # Creating new zarr store
+        self.store = zarr.open(zarr_path)
+        self.__root_store_path = zarr_path
+        self.sub_writer.set_store(self.store)
+        self.sub_writer.set_root(self.__root_store_path)
+        self.sub_writer.init_hierarchy()
+
+    def init_array(self,
+                   position,
+                   data_shape,
+                   chunk_size,
+                   chan_names,
+                   dtype='float32',
+                   clims=None,
+                   position_name=None,
+                   overwrite=False):
+        """
+        Creates a subgroup structure based on position index.  Then initializes the zarr array under the
+        current position subgroup.  Array level is called 'array' in the hierarchy.
+
+        :param int position: Position index upon which to initialize array
+        :param tuple data_shape: Desired Shape of your data (T, C, Z, Y, X).  Must match data
+        :param tuple chunk_size: Desired Chunk Size (T, C, Z, Y, X).  Chunking each image would be (1, 1, 1, Y, X)
+        :param str dtype: Data Type, i.e. 'uint16'
+        :parm list chan_names: List of strings corresponding to your channel names.  Used for OME-zarr metadata
+        :param list clims: List of tuples corresponding to contrast limtis for channel.  OME-Zarr metadata
+        :param bool overwrite: Whether or not to overwrite the existing data that may be present.
+        """
+        pos_name = position_name if position_name else f'Pos_{position:03d}'
+
+        # Make sure data matches OME zarr structure
+        if len(data_shape) != 5:
+            raise ValueError('Data shape must be (T, C, Z, Y, X), not {}'.format(data_shape))
+
+        self.sub_writer.create_position(position, pos_name)
+        self.sub_writer.init_array(data_shape, chunk_size, dtype, chan_names, clims, overwrite)
+
+    def write(self, data, p, t=None, c=None, z=None):
+        """
+        Wrapper that calls the builder's write function.
+        Will write to existing array of zeros and place
+        data over the specified indicies.
+
+        :param np.array data: Data to be saved. Must be the shape that matches indices (T, C, Z, Y, X)
+        :param int p: Position index in which to write the data into
+        :param int/slice t: Time index or index range of the time dimension
+        :param int/slice c: Channel index or index range of the channel dimension
+        :param int/slice z: Slice index or index range of the Z-slice dimension
+        """
+        self.sub_writer.open_position(p)
+
+        if t is None:
+            t = slice(0, data.shape[0])
+
+        if c is None:
+            c = slice(0, data.shape[1])
+
+        if z is None:
+            z = slice(0, data.shape[2])
+
+        self.sub_writer.write(data, t, c, z)
 
 
 class DefaultZarr(WriterBase):
@@ -679,7 +817,6 @@ class DefaultZarr(WriterBase):
                 ---> Pos_N
     We assume this structure in the metadata updating/position creation
     """
-
     def __init__(self, store, root_path):
 
         super().__init__(store, root_path)
@@ -692,8 +829,6 @@ class DefaultZarr(WriterBase):
         """
         method to init the default hierarchy.
         Will create the first row and initialize metadata fields
-        Returns
-        -------
         """
         self.create_row(0)
         self.dataset_name = os.path.basename(self.root_path).strip('.zarr')
@@ -718,12 +853,9 @@ class DefaultZarr(WriterBase):
         """
         Creates a column and position subgroup given the index and name.  Name is
         provided by the main writer class
-        Parameters
-        ----------
-        position:           (int) Index of the position to create
-        name:               (str) name of the position subgroup
-        Returns
-        -------
+
+        :param int position: Index of the position to create
+        :param str name: Name of the position subgroup
         """
         # get row name and create a column
         row_name = self.rows[0]
@@ -750,13 +882,9 @@ class DefaultZarr(WriterBase):
         """
         Updates the plate metadata which lives at the highest level (top store).
         This metadata carries information on the rows/columns and their paths.
-        Parameters
-        ----------
-        pos:            (int) Position index to update the metadata
-        Returns
-        -------
-        """
 
+        :param int pos: Position index to update the metadata
+        """
         self.plate_meta['plate']['columns'].append({'name': self.columns[pos]})
         self.plate_meta['plate']['wells'].append({'path': f'{self.rows[0]}/{self.columns[pos]}'})
         self.store.attrs.put(self.plate_meta)
@@ -766,12 +894,8 @@ class DefaultZarr(WriterBase):
         Updates the well metadata which lives at the column level.
         This metadata carries information about the positions underneath.
         Assumes only one position will ever be underneath this level.
-        Parameters
-        ----------
-        pos:            (int) Index of the position to update
-        Returns
-        -------
-        """
 
+        :param intpos: Index of the position to update
+        """
         self.well_meta['well']['images'] = [{'path': self.positions[pos]['name']}]
         self.store[self.rows[0]][self.columns[pos]].attrs.put(self.well_meta)
