@@ -623,6 +623,35 @@ class ZarrReader(ReaderBase):
         pos = self.get_zarr(pos_idx)
         return pos[t, c, z]
 
+    def get_image_from_path(self, p, t, c, z, zarr_path=None):
+        """
+        Returns the image at dimension P, T, C, Z
+        Added hack to read from new zarr path. This only works if we assume
+        data structures are the same across a whole training data set, so could
+        be a bit risky if data somehow is irregular. On the flip side we don't have
+        to read and process all the metadata for each single image access.
+        Note: Overwrites positions and wells each time it's called.
+
+        :param int p: Index of the position dimension
+        :param int t: Index of the time dimension
+        :param int c: Index of the channel dimension
+        :param int z: Index of the z dimension
+        :param str/None zarr_path: If path to zarr store, open and read from that instead of init
+        :return np.array image: Image at the given dimension of shape (Y, X)
+        """
+        if zarr_path is not None:
+            # TODO: could make temp store to not overwrite
+            self.store = zarr.open(zarr_path, 'r')
+            self.plate_meta = self.store.attrs.get('plate')
+            self._get_rows()
+            self._get_columns()
+            self._get_wells()
+            self.position_map = self._get_positions()
+
+        # Index of position will be 0 even if position is >0
+        pos = self.get_zarr(0)
+        return pos[t, c, z, ...]
+
     def get_num_positions(self) -> int:
         return self.positions
 
