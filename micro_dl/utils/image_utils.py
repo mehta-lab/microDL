@@ -9,7 +9,6 @@ import pandas as pd
 import sys
 from scipy.ndimage.interpolation import zoom
 from skimage.transform import resize
-import zarr
 
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.io_utils as io_utils

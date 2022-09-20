@@ -193,7 +193,6 @@ class TestImageUtils(unittest.TestCase):
                 dtype=zarr_data.dtype,
             )
             zarr_writer.write(zarr_data[pos_idx, ...], p=pos_idx)
-
         # Write 3D sphere data as npy file
         self.sph_fname = os.path.join(
             self.temp_path,
