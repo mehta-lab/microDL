@@ -9,7 +9,6 @@ import pandas as pd
 import sys
 from scipy.ndimage.interpolation import zoom
 from skimage.transform import resize
-import zarr
 
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.normalize as normalize
@@ -307,7 +306,13 @@ def read_image_from_row(meta_row, zarr_reader=None):
         im = np.load(file_path)
     elif 'zarr' in file_path[-5:]:
         assert zarr_reader is not None, "No zarr class instance present."
-        im = zarr_reader.image_from_row(meta_row)
+        im = zarr_reader.get_image_from_path(
+            p=meta_row['pos_idx'],
+            t=meta_row['time_idx'],
+            c=meta_row['channel_idx'],
+            z=meta_row['slice_idx'],
+            zarr_path=file_path,
+        )
     else:
         # Assumes files are tiff or png
         im = cv2.imread(file_path, cv2.IMREAD_ANYDEPTH)
