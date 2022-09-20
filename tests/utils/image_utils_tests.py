@@ -10,6 +10,7 @@ import unittest
 # Create a test image with a bright block to the right
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.image_utils as image_utils
+import micro_dl.utils.io_utils as io_utils
 import micro_dl.utils.normalize as normalize
 from tests.utils.masks_utils_tests import uni_thr_tst_image
 
@@ -165,8 +166,8 @@ class TestImageUtils(unittest.TestCase):
                 meta_row,
                 ignore_index=True
             )
-        self.dataset_mean = self.frames_meta['zscore_median'].mean()
-        self.dataset_std = self.frames_meta['zscore_iqr'].mean()
+        self.dataset_mean = self.frames_meta['zscore_median'].median()
+        self.dataset_std = self.frames_meta['zscore_iqr'].median()
         # Write metadata
         self.frames_meta.to_csv(os.path.join(self.temp_path, meta_fname), sep=',')
         # Get a meta row for testing
@@ -178,21 +179,25 @@ class TestImageUtils(unittest.TestCase):
             pos_idx=self.pos_idx)
         self.meta_row = self.frames_meta.loc[meta_idx]
         # Write sph data as zarr
-        self.zarr_name = 'test_sphere.zarr'
-        zarr_writer = image_utils.ZarrWriter(
-            write_dir=self.temp_path,
-            zarr_name=self.zarr_name,
-            channel_names=['channel_zero', 'channel_one'],
-        )
+        zarr_writer = io_utils.ZarrWriter(save_dir=self.temp_path)
         zarr_data = np.zeros((2, 1, 2, 8, 32, 32))
+        # Fix dimensions to match to zarr format PTCZYX
         zarr_data[1, 0, 1, ...] = np.moveaxis(self.sph, -1, 0)
-        zarr_writer.write_data_set(zarr_data)
+        for pos_idx in range(2):
+            zarr_writer.create_zarr_root('test_sphere_pos{}'.format(pos_idx))
+            zarr_writer.init_array(
+                position=pos_idx,
+                data_shape=(1, 2, 8, 32, 32),
+                chunk_size=(1, 1, 1, 32, 32),
+                chan_names=['channel1', 'channel2'],
+                dtype=zarr_data.dtype,
+            )
+            zarr_writer.write(zarr_data[pos_idx, ...], p=pos_idx)
         # Create zarr reader instance
-        self.zarr_reader = image_utils.ZarrReader(
-            input_dir=self.temp_path,
-            zarr_name=self.zarr_name,
+        self.zarr_reader = io_utils.ZarrReader(
+            os.path.join(self.temp_path, 'test_sphere_pos0.zarr'),
         )
-        # Write 3D sphere data
+        # Write 3D sphere data as npy file
         self.sph_fname = os.path.join(
             self.temp_path,
             'im_c001_z000_t000_p001_3d.npy',
