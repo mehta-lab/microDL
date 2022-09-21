@@ -1,5 +1,6 @@
 """Script for preprocessing stack"""
 import argparse
+import glob
 import numpy as np
 import os
 import pandas as pd
@@ -14,7 +15,7 @@ from micro_dl.preprocessing.tile_uniform_images import ImageTilerUniform
 from micro_dl.preprocessing.tile_nonuniform_images import \
     ImageTilerNonUniform
 import micro_dl.utils.aux_utils as aux_utils
-import micro_dl.utils.image_utils as im_utils
+import micro_dl.utils.io_utils as io_utils
 import micro_dl.utils.meta_utils as meta_utils
 
 
@@ -100,12 +101,17 @@ def get_required_params(preprocess_config):
                     )
 
     zarr_reader = None
-
-    if 'zarr_file' in preprocess_config:
-        zarr_file = preprocess_config['zarr_file']
-        assert 'zarr' in zarr_file.split('.')[-1], \
-            "Zarr file {} doesn't have zarr extension".format(zarr_file)
-        zarr_reader = im_utils.ZarrReader(input_dir, zarr_file)
+    # Zarr is the preferred file format, so search for it first
+    # It is assumed that no directory stores both zarrs and tiffs
+    file_names = glob.glob(os.path.join(input_dir, '*.zarr'))
+    print(os.listdir(input_dir))
+    print(file_names)
+    if len(file_names) > 0:
+        # Global initialization of ZarrReader assumes consistent data structures
+        # across all zarr stores.
+        # This will need to be updated if preprocessing changes the data shape
+        zarr_path = os.path.join(input_dir, file_names[0])
+        zarr_reader = io_utils.ZarrReader(zarr_path)
 
     required_params = {
         'input_dir': input_dir,
