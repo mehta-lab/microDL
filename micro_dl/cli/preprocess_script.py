@@ -100,19 +100,6 @@ def get_required_params(preprocess_config):
                         normalize_channels,
                     )
 
-    zarr_reader = None
-    # Zarr is the preferred file format, so search for it first
-    # It is assumed that no directory stores both zarrs and tiffs
-    file_names = glob.glob(os.path.join(input_dir, '*.zarr'))
-    print(os.listdir(input_dir))
-    print(file_names)
-    if len(file_names) > 0:
-        # Global initialization of ZarrReader assumes consistent data structures
-        # across all zarr stores.
-        # This will need to be updated if preprocessing changes the data shape
-        zarr_path = os.path.join(input_dir, file_names[0])
-        zarr_reader = io_utils.ZarrReader(zarr_path)
-
     required_params = {
         'input_dir': input_dir,
         'output_dir': output_dir,
@@ -125,7 +112,6 @@ def get_required_params(preprocess_config):
         'normalize_channels': normalize_channels,
         'num_workers': num_workers,
         'normalize_im': normalize_im,
-        'zarr_reader': zarr_reader,
     }
     return required_params
 
@@ -147,7 +133,6 @@ def flat_field_correct(required_params, block_size, flat_field_channels):
         channel_ids=flat_field_channels,
         slice_ids=required_params['slice_ids'],
         block_size=block_size,
-        zarr_reader=required_params['zarr_reader'],
     )
     flat_field_inst.estimate_flat_field()
     flat_field_dir = flat_field_inst.get_flat_field_dir()
@@ -191,7 +176,6 @@ def resize_images(required_params,
         int2str_len=required_params['int2strlen'],
         num_workers=required_params['num_workers'],
         flat_field_dir=flat_field_dir,
-        zarr_reader=required_params['zarr_reader'],
     )
 
     if resize_3d:
@@ -256,7 +240,6 @@ def generate_masks(required_params,
         mask_type=mask_type,
         mask_channel=mask_channel,
         mask_ext=mask_ext,
-        zarr_reader=required_params['zarr_reader'],
     )
 
     mask_processor_inst.generate_masks(
@@ -340,7 +323,6 @@ def tile_images(required_params,
     # setup tiling keyword arguments
     kwargs = {'input_dir': required_params['input_dir'],
               'output_dir': required_params['output_dir'],
-              'zarr_reader': required_params['zarr_reader'],
               'normalize_channels': required_params["normalize_channels"],
               'tile_size': tile_dict['tile_size'],
               'step_size': tile_dict['step_size'],
@@ -466,7 +448,6 @@ def pre_process(preprocess_config):
         # Create metadata from file names instead
         meta_utils.frames_meta_generator(
             input_dir=required_params['input_dir'],
-            zarr_reader=required_params['zarr_reader'],
             order=order,
             name_parser=name_parser,
         )
@@ -510,7 +491,6 @@ def pre_process(preprocess_config):
             for ff_name in os.listdir(flat_field_dir):
                 # Naming convention is: flat-field-channel_c.npy
                 if ff_name[:10] == 'flat-field':
-                    print('channel', int(ff_name[-5]))
                     existing_channels.append(int(ff_name[-5]))
             assert set(existing_channels) == set(flat_field_channels), \
                 "Expected flatfield channels {}, and saved channels {} " \
@@ -527,7 +507,6 @@ def pre_process(preprocess_config):
             block_size=block_size,
             flat_field_dir=flat_field_dir,
             channel_ids=required_params['channel_ids'],
-            zarr_reader=required_params['zarr_reader'],
         )
 
     # -------------------------Resize images--------------------------
@@ -594,12 +573,6 @@ def pre_process(preprocess_config):
             # Write metadata
             mask_meta_fname = os.path.join(mask_dir, 'frames_meta.csv')
             mask_meta.to_csv(mask_meta_fname, sep=",")
-            # mask_channel = preprocess_utils.validate_mask_meta(
-            #     mask_dir=mask_dir,
-            #     input_dir=required_params['input_dir'],
-            #     csv_name=mask_meta_fname,
-            #     mask_channel=mask_channel,
-            # )
         else:
             raise ValueError("If using masks, specify either mask_channel",
                              "or mask_dir.")

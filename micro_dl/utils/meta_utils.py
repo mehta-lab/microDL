@@ -13,7 +13,6 @@ import micro_dl.utils.mp_utils as mp_utils
 
 def frames_meta_generator(
         input_dir,
-        zarr_reader=None,
         order='cztp',
         name_parser='parse_sms_name',
         ):
@@ -39,14 +38,12 @@ def frames_meta_generator(
     https://ngff.openmicroscopy.org/0.1/
 
     :param str input_dir:   path to input directory containing image data
-    :param str/None zarr_reader: Zarr file class in case of zarr input data format.
-        None if using tiff/png/etc image files.
     :param str order: Order in which file name encodes cztp (for tiff/png)
     :param str name_parser: Function in aux_utils for parsing indices from tiff/png file name
     :return pd.DataFrame frames_meta: Metadata for all frames in dataset
     """
-    print('in meta generator', zarr_reader)
-    if zarr_reader is None:
+    zarr_files = glob.glob(os.path.join(input_dir, '*.zarr'))
+    if len(zarr_files) == 0:
         frames_meta = frames_meta_from_filenames(
             input_dir,
             name_parser,
@@ -54,7 +51,7 @@ def frames_meta_generator(
         )
     else:
         # Generate frames_meta from zarr metadata
-        frames_meta = frames_meta_from_zarr(input_dir)
+        frames_meta = frames_meta_from_zarr(input_dir, zarr_files)
 
     # Write metadata
     frames_meta_filename = os.path.join(input_dir, 'frames_meta.csv')
@@ -85,22 +82,21 @@ def frames_meta_from_filenames(input_dir, name_parser, order):
     return frames_meta
 
 
-def frames_meta_from_zarr(input_dir):
+def frames_meta_from_zarr(input_dir, file_names):
     """
     Reads ome-zarr file and creates frames_meta based on metadata and
     array information.
     Assumes one zarr store per position according to OME guidelines.
 
     :param str input_dir: Input directory
-    :param class zarr_reader: ZarrReader class instance
+    :param list Zarr_files: List of full paths to all zarr files in dir
     :return pd.DataFrame frames_meta: Metadata for all frames in zarr
     """
-    file_names = glob.glob(os.path.join(input_dir, '*.zarr'))
-    temp_reader = io_utils.ZarrReader(file_names[0])
-    nbr_channels = temp_reader.channels
-    nbr_slices = temp_reader.slices
-    nbr_times = temp_reader.frames
-    channel_names = temp_reader.channel_names
+    zarr_reader = io_utils.ZarrReader(file_names[0])
+    nbr_channels = zarr_reader.channels
+    nbr_slices = zarr_reader.slices
+    nbr_times = zarr_reader.frames
+    channel_names = zarr_reader.channel_names
 
     nbr_rows = len(file_names) * nbr_channels * nbr_slices * nbr_times
     frames_meta = aux_utils.make_dataframe(nbr_rows=nbr_rows)
@@ -108,10 +104,10 @@ def frames_meta_from_zarr(input_dir):
     meta_row['dir_name'] = input_dir
     idx = 0
     for pos_idx in range(len(file_names)):
-        temp_reader = io_utils.ZarrReader(file_names[pos_idx])
+        zarr_reader = io_utils.ZarrReader(file_names[pos_idx])
         meta_row['file_name'] = os.path.basename(file_names[pos_idx])
         # Get position index from name
-        meta_row['pos_idx'] = int(temp_reader.columns[0].split('_')[-1])
+        meta_row['pos_idx'] = int(zarr_reader.columns[0].split('_')[-1])
         for channel_idx in range(nbr_channels):
             for slice_idx in range(nbr_slices):
                 for time_idx in range(nbr_times):
@@ -129,9 +125,7 @@ def ints_meta_generator(
         num_workers=4,
         block_size=256,
         flat_field_dir=None,
-        channel_ids=-1,
-        zarr_reader=None,
-        ):
+        channel_ids=-1):
     """
     Generate pixel intensity metadata for estimating image normalization
     parameters during preprocessing step. Pixels are sub-sampled from the image
@@ -159,7 +153,6 @@ def ints_meta_generator(
         well for 2048 X 2048 images.
     :param str flat_field_dir: Directory containing flatfield images
     :param list/int channel_ids: Channel indices to process
-    :param class zarr_reader: Class for reading ome-zarr data
     """
     if block_size is None:
         block_size = 256
@@ -167,8 +160,6 @@ def ints_meta_generator(
     if not isinstance(channel_ids, list):
         # Use all channels
         channel_ids = frames_metadata['channel_idx'].unique()
-    # Pickle zarr object for passing it to multiprocessing
-    zarr_bytes = pickle.dumps(zarr_reader)
     mp_fn_args = []
     # Fill dataframe with rows from image names
     for i, meta_row in frames_metadata.iterrows():
@@ -178,7 +169,7 @@ def ints_meta_generator(
             channel_idx,
             channel_ids,
         )
-        mp_fn_args.append((meta_row, ff_path, block_size, zarr_bytes))
+        mp_fn_args.append((meta_row, ff_path, block_size))
 
     im_ints_list = mp_utils.mp_sample_im_pixels(mp_fn_args, num_workers)
     im_ints_list = list(itertools.chain.from_iterable(im_ints_list))

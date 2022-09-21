@@ -193,10 +193,7 @@ class TestImageUtils(unittest.TestCase):
                 dtype=zarr_data.dtype,
             )
             zarr_writer.write(zarr_data[pos_idx, ...], p=pos_idx)
-        # Create zarr reader instance
-        self.zarr_reader = io_utils.ZarrReader(
-            os.path.join(self.temp_path, 'test_sphere_pos0.zarr'),
-        )
+
         # Write 3D sphere data as npy file
         self.sph_fname = os.path.join(
             self.temp_path,
@@ -246,9 +243,10 @@ class TestImageUtils(unittest.TestCase):
         np.testing.assert_array_equal(im, self.sph[..., 7])
 
     def test_read_image_from_row_zarr(self):
+        meta_row = self.meta_row.copy()
+        meta_row['file_name'] = 'test_sphere_pos{}.zarr'.format(self.pos_idx)
         im = image_utils.read_image_from_row(
-            meta_row=self.meta_row,
-            zarr_reader=self.zarr_reader,
+            meta_row=meta_row,
         )
         np.testing.assert_array_equal(im, self.sph[..., 7])
 
