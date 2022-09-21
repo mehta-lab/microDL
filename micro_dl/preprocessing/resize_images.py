@@ -24,8 +24,7 @@ class ImageResizer:
                  int2str_len=3,
                  num_workers=4,
                  flat_field_dir=None,
-                 flat_field_channels=[],
-                 zarr_reader=None):
+                 flat_field_channels=[]):
         """
         :param str input_dir: Directory with image frames
         :param str output_dir: Base output directory
@@ -42,7 +41,6 @@ class ImageResizer:
         """
         self.input_dir = input_dir
         self.output_dir = output_dir
-        self.zarr_bytes = pickle.dumps(zarr_reader)
         if isinstance(scale_factor, list):
             scale_factor = np.array(scale_factor)
         assert np.all(scale_factor > 0), \
@@ -107,7 +105,6 @@ class ImageResizer:
                 'output_dir': self.resize_dir,
                 'scale_factor': self.scale_factor,
                 'ff_path': ff_path,
-                'zarr_bytes': self.zarr_bytes,
             }
             mp_args.append(kwargs)
         # Multiprocessing of kwargs
@@ -174,8 +171,7 @@ class ImageResizer:
                                         self.frames_metadata,
                                         write_fpath,
                                         self.scale_factor,
-                                        ff_path,
-                                        self.zarr_bytes))
+                                        ff_path))
 
         # Multiprocessing of kwargs
         resized_metadata_list = mp_utils.mp_rescale_vol(mp_args, self.num_workers)

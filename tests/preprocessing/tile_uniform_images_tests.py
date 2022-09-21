@@ -328,19 +328,18 @@ class TestImageTilerUniform(unittest.TestCase):
             list(cur_args[0]['file_name']),
             self.exp_fnames,
         )
-        # Arg 1 is zarr bytes
-        nose.tools.assert_equal(cur_args[2], self.ff_name)
-        nose.tools.assert_equal(cur_args[3], None)
-        nose.tools.assert_equal(cur_args[4], 16)
+        nose.tools.assert_equal(cur_args[1], self.ff_name)
+        nose.tools.assert_equal(cur_args[2], None)
+        nose.tools.assert_equal(cur_args[3], 16)
         # nose.tools.assert_equal(cur_args[5], self.exp_tile_indices)
-        nose.tools.assert_equal(cur_args[6], 'zyx')
-        nose.tools.assert_equal(cur_args[7], self.tile_inst.get_tile_dir())
-        nose.tools.assert_equal(cur_args[8], 3)
+        nose.tools.assert_equal(cur_args[5], 'zyx')
+        nose.tools.assert_equal(cur_args[6], self.tile_inst.get_tile_dir())
+        nose.tools.assert_equal(cur_args[7], 3)
+        self.assertFalse(cur_args[8])
         self.assertFalse(cur_args[9])
-        self.assertFalse(cur_args[10])
+        self.assertIsNone(cur_args[10])
         self.assertIsNone(cur_args[11])
         self.assertIsNone(cur_args[12])
-        self.assertIsNone(cur_args[13])
 
     def test_get_tile_args(self):
         """Test get_crop_tile_args with task_type=tile"""
@@ -364,33 +363,32 @@ class TestImageTilerUniform(unittest.TestCase):
             self.mask_dir,
         )
         nose.tools.assert_list_equal(list(arg_df['file_name']), exp_fnames)
-        # Zarr bytes is arg 1
         # flat field fname is None
-        nose.tools.assert_equal(cur_args[2], None)
+        nose.tools.assert_equal(cur_args[1], None)
         # hist clip limits
-        self.assertIsNone(cur_args[3])
+        self.assertIsNone(cur_args[2])
         # slice idx
-        self.assertEqual(cur_args[4], 16)
+        self.assertEqual(cur_args[3], 16)
         # tile size
-        self.assertListEqual(cur_args[5], [5, 5])
+        self.assertListEqual(cur_args[4], [5, 5])
         # step size
-        self.assertListEqual(cur_args[6], [4, 4])
+        self.assertListEqual(cur_args[5], [4, 4])
         # min fraction
-        self.assertIsNone(cur_args[7])
+        self.assertIsNone(cur_args[6])
         # image format
-        self.assertEqual(cur_args[8], 'zyx')
+        self.assertEqual(cur_args[7], 'zyx')
         # tile dir
-        self.assertEqual(cur_args[9], self.tile_inst.get_tile_dir())
+        self.assertEqual(cur_args[8], self.tile_inst.get_tile_dir())
         # int2strlen
-        self.assertEqual(cur_args[10], 3)
+        self.assertEqual(cur_args[9], 3)
         # is_mask
-        self.assertTrue(cur_args[11])
+        self.assertTrue(cur_args[10])
         # normalize_im
-        self.assertIsNone(cur_args[12])
+        self.assertIsNone(cur_args[11])
         # zscore median
-        self.assertIsNone(cur_args[13])
+        self.assertIsNone(cur_args[12])
         # zscore iqr
-        self.assertIsNone(cur_args[14])
+        self.assertIsNone(cur_args[13])
 
     def test_get_tile_args_not_mask(self):
         cur_args = self.tile_inst.get_crop_tile_args(
