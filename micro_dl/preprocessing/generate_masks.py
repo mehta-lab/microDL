@@ -5,7 +5,6 @@ import pandas as pd
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.image_utils as im_utils
 from micro_dl.utils.mp_utils import mp_create_save_mask
-import pickle
 from skimage.filters import threshold_otsu
 
 
