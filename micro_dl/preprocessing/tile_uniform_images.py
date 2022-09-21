@@ -1,7 +1,6 @@
 import numpy as np
 import os
 import pandas as pd
-import pickle
 import shutil
 
 import micro_dl.utils.tile_utils as tile_utils

@@ -2,7 +2,6 @@ import cv2
 from concurrent.futures import ProcessPoolExecutor
 import numpy as np
 import os
-import pickle
 import sys
 
 import micro_dl.utils.aux_utils as aux_utils
@@ -383,7 +382,18 @@ def resize_and_save(**kwargs):
         scale_factor=kwargs['scale_factor'],
     )
     # Write image
-    write_path = os.path.join(kwargs['output_dir'], meta_row['file_name'])
+    # TODO: will we keep this functionality and thus write to zarr?
+    # If so, I guess I should create a zarr root and init array before mp
+    if 'zarr' in meta_row['file_name'][-5:]:
+        im_name = aux_utils.get_im_name(
+                        channel_idx=meta_row['channel_idx'],
+                        slice_idx=meta_row['slice_idx'],
+                        time_idx=meta_row['time_idx'],
+                        pos_idx=meta_row['pos_idx'],
+                    )
+        write_path = os.path.join(kwargs['output_dir'], im_name)
+    else:
+        write_path = os.path.join(kwargs['output_dir'], meta_row['file_name'])
     cv2.imwrite(write_path, im_resized)
 
 
