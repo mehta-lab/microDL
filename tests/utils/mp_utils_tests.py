@@ -4,7 +4,6 @@ import numpy as np
 import numpy.testing
 import os
 import pandas as pd
-import pickle
 import skimage.io as sk_im_io
 from skimage import draw
 from testfixtures import TempDirectory
