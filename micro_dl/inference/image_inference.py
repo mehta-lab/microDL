@@ -19,7 +19,28 @@ import micro_dl.plotting.plot_utils as plot_utils
 
 
 class ImagePredictor:
-    """Infer on larger images"""
+    """
+    Inference on larger images.
+    Methods in this class provide functionality for performing inference on 
+    large (x,y > 256,256) images through direct inference in 2 and 3 dimensions,
+    or by tiling in 2 or 3 dimensions along xy and z axes. 
+    
+    Inference is performed by first initalizing an InferenceDataset object which 
+    loads samples and performs normalization according to the tile-specific 
+    normalization values acquired during preprocessing. 
+    
+    Actual inference is performed by either a tensorflow '.hdf5' model specified 
+    in config files, or a trained '.pt' pytorch model loaded into a TorchPredictor
+    object provided through torch_predictor.
+    
+    After inference is performed on samples acquired from InferenceDataset object,
+    dynamic range is return by denormalizing the outputs if the model task is reg-
+    ression.
+    
+    Metrics are calculated by use of a MetricEstimator object, which calculates, 
+    and indexes metrics for successive images.
+    
+    """
 
     def __init__(self,
                  train_config,
@@ -28,7 +49,6 @@ class ImagePredictor:
                  gpu_id=-1,
                  gpu_mem_frac=None):
         """Init
-
         :param dict train_config: Training config dict with params related
             to dataset, trainer and network
         :param dict inference_config: Read yaml file with following parameters:
@@ -72,6 +92,11 @@ class ImagePredictor:
         :param int gpu_id: GPU number to use. -1 for debugging (no GPU)
         :param float/None gpu_mem_frac: Memory fractions to use corresponding
             to gpu_ids
+        :param str framework: framework is either 'tf' or 'torch'. This governs
+            the backend model type that performs the inference. If framework is
+            'torch', torch_predictor object must be provided
+        :param TorchPredictor torch_predictor: predictor object which handles
+            transporting data to a PyTorch model for inference.
         """
         # Use model_dir from inference config if present, otherwise use train
         if 'model_dir' in inference_config:
@@ -83,7 +108,8 @@ class ImagePredictor:
             self.save_folder_name = inference_config['save_folder_name']
         else:
             self.save_folder_name = 'predictions'
-
+            
+        #assert that model weights are specified
         if 'model_fname' in inference_config:
             model_fname = inference_config['model_fname']
         else:
@@ -133,6 +159,7 @@ class ImagePredictor:
         self.name_format = 'ctzp'
         if 'name_format' in images_dict:
             self.name_format = images_dict['name_format']
+        
         # Create image subdirectory to write predicted images
         self.pred_dir = os.path.join(self.model_dir, self.save_folder_name)
         if 'save_to_image_dir' in inference_config:
@@ -186,6 +213,7 @@ class ImagePredictor:
                 normalize_im = preprocess_config['tile']['normalize_im']
 
         self.normalize_im = normalize_im
+        
         # Handle 3D volume inference settings
         self.num_overlap = 0
         self.stitch_inst = None
@@ -201,7 +229,8 @@ class ImagePredictor:
             self._assign_3d_inference()
             if self.config['network']['class'] != 'UNet3D':
                 crop2base = False
-            # Make image ext npy default for 3D
+            # TODO Make image ext npy default for 3D
+            
         # Create dataset instance
         self.dataset_inst = InferenceDataSet(
             image_dir=self.image_dir,
@@ -215,6 +244,7 @@ class ImagePredictor:
             flat_field_dir=flat_field_dir,
             crop2base=crop2base,
         )
+        
         # create an instance of MetricsEstimator
         self.inf_frames_meta = self.dataset_inst.get_iteration_meta()
         self.target_channels = self.dataset_inst.target_channels
@@ -224,6 +254,7 @@ class ImagePredictor:
         else:
             self.pred_chan_names = [None] * len(self.target_channels)
         assert not self.inf_frames_meta.empty, 'inference metadata is empty.'
+        
         # Handle metrics config settings
         self.metrics_inst = None
         self.metrics_dict = None
@@ -264,8 +295,11 @@ class ImagePredictor:
 
     def _get_split_ids(self, data_split='test'):
         """
-        Get the indices for data_split
-
+        Get the indices for data_split. Used to determine which images to run
+        inference on to avoid validating on training data.
+        
+        Indices returned refer to full-image sample FoV slices, rather than
+        spatial indices of image tiles.
         :param str data_split: in [train, val, test]
         :return list inference_ids: Indices for inference given data split
         :return str split_col: Dataframe column name, which was split in training
@@ -288,7 +322,9 @@ class ImagePredictor:
 
     def _assign_3d_inference(self):
         """
-        Assign inference options for 3D volumes
+        Assign inference options for 3D volumes. Prediction on 3d volumes is 
+        performed in parts, by generating then stitching sub-block predictions.
+        Order and orientation of sub-blocks can be configured as follows:
 
         tile_z - 2d/3d predictions on full xy extent, stitch predictions along
             z axis
@@ -358,7 +394,8 @@ class ImagePredictor:
                          input_image,
                          start_z_idx,
                          end_z_idx):
-        """Get the sub block along z given start and end slice indices
+        """
+        Get the sub block along z given start and end slice indices
 
         :param np.array input_image: 5D tensor with the entire 3D volume
         :param int start_z_idx: start slice for the current block
@@ -381,7 +418,8 @@ class ImagePredictor:
         return cur_block
 
     def _predict_sub_block_z(self, input_image):
-        """Predict sub blocks along z
+        """
+        Predict sub blocks along z, given some image's entire xy plane.
 
         :param np.array input_image: 5D tensor with the entire 3D volume
         :return list pred_ims - list of predicted sub blocks
@@ -420,8 +458,10 @@ class ImagePredictor:
     def _predict_sub_block_xy(self,
                               input_image,
                               crop_indices):
-        """Predict sub blocks along xyz
-
+        """
+        Predict sub blocks along xy, specifically when generating a 2d
+        prediction by spatial tiling and stitching.
+        
         :param np.array input_image: 5D tensor with the entire 3D volume
         :param list crop_indices: list of crop indices: min/max xyz
         :return list pred_ims - list of predicted sub blocks
@@ -469,8 +509,11 @@ class ImagePredictor:
     def _predict_sub_block_xyz(self,
                                input_image,
                                crop_indices):
-        """Predict sub blocks along xyz
-
+        """
+        Predict sub blocks along xyz, particularly when predicting a 3d
+        volume along three dimensions. Sub blocks are cubic chunks out 
+        of entire 3D volume of specified xyz shape.
+        
         :param np.array input_image: 5D tensor with the entire 3D volume
         :param list crop_indices: list of crop indices: min/max xyz
         :return list pred_ims - list of predicted sub blocks
@@ -500,8 +543,13 @@ class ImagePredictor:
                  meta_row):
         """
         Revert z-score normalization applied during preprocessing. Necessary
-        before computing SSIM
-
+        before computing SSIM. Values for normalization may be tile-specific.
+        Values are stored in the metadata produced by preprocessing (in the
+        tile directory).
+        
+        Used for models tasked with regression to reintroduce dynamic range
+        into the model predictions.
+        
         :param im_pred: Prediction image, normalized image for un-zscore
         :param im_target: Target image to compute stats from
         :param pd.DataFrame meta_row: Metadata row for image
@@ -528,8 +576,13 @@ class ImagePredictor:
                         pred_chan_name=np.nan,
                         ):
         """
-        Save predicted images with image extension given in init.
-
+        Save predicted images with image extension given in init. 
+        
+        Note: images and predictions stored as float values are 
+        compressed into uint16 before figure generation. Some loss
+        of information may occur during compression for extremely
+        low-abs-value images and predictions.
+        
         :param np.array im_input: Input image
         :param np.array im_target: Target image
         :param np.array im_pred: 2D / 3D predicted image
@@ -604,8 +657,9 @@ class ImagePredictor:
                          mask):
         """
         Estimate evaluation metrics
-        The row of metrics gets added to metrics_est.df_metrics
-
+        The row of metrics gets added to metrics_est.df_metrics, and stored
+        in class instance of MetricsEstimator.
+        
         :param np.array target: ground truth
         :param np.array prediction: model prediction
         :param list pred_fnames: File names (str) for saving model predictions
@@ -659,7 +713,7 @@ class ImagePredictor:
 
     def get_mask(self, cur_row, transpose=False):
         """
-        Get mask, either from image or mask dir
+        Get mask, read either from image or mask dir.
 
         :param pd.Series/dict cur_row: row containing indices
         :param bool transpose: Changes image format from xyz to zxy
@@ -694,7 +748,16 @@ class ImagePredictor:
     def predict_2d(self, chan_slice_meta):
         """
         Run prediction on 2D or 2.5D on indices given by metadata row.
-
+        
+        Reads in images from the inference dataset object, which performs normalization on
+        the images based on values calculated in preprocessing and stored in frames_mets.csv.
+        
+        Prediction is done over an entire image or over each tile and stitched together,
+        as specified by data/model structure.
+        
+        For regression models, post-processes images by reversing the z-score normalization
+        to reintroduce dynamic range removed in normalization.
+        
         :param pd.DataFrame chan_slice_meta: Inference meta rows
         :return np.array pred_stack: Prediction
         :return np.array target_stack: Target
@@ -801,6 +864,15 @@ class ImagePredictor:
     def predict_3d(self, iteration_rows):
         """
         Run prediction in 3D on images with 3D shape.
+        
+        Reads in images from the inference dataset object, which performs normalization on
+        the images based on values calculated in preprocessing and stored in frames_mets.csv.
+        
+        Prediction in 3d is done over block-by-block, as specified in object instantiation, 
+        and prediction sub-blocks are stitched together.
+        
+        For regression models, post-processes images by reversing the z-score normalization
+        to reintroduce dynamic range removed in normalization.
 
         :param list iteration_rows: Inference meta rows
         :return np.array pred_stack: Prediction
@@ -895,7 +967,16 @@ class ImagePredictor:
         return pred_image, target_image, mask_image, input_image
 
     def run_prediction(self):
-        """Run prediction for entire 2D image or a 3D stack"""
+        """
+        Run prediction for entire set of 2D images or a 3D image stacks
+        
+        Prediction procedure depends on format of input and desired prediction (2D or 3D).
+        Generates metrics, if specified in parent object initiation, for each prediction
+        channel, channel-wise.
+        
+        Saves image predictions by individual channel and prediction metrics in separate
+        files. z*** position specified in saved prediction name represents prediction channel.
+        """
         id_df = self.inf_frames_meta[['time_idx', 'pos_idx']].drop_duplicates()
         pbar = tqdm(id_df.to_numpy())
         for id_row_idx, id_row in enumerate(id_df.to_numpy()):
