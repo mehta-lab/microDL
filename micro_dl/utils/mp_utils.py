@@ -383,7 +383,8 @@ def resize_and_save(**kwargs):
     )
     # Write image
     # TODO: will we keep this functionality and thus write to zarr?
-    # If so, I guess I should create a zarr root and init array before mp
+    # If so, should I create a zarr roots before mp?
+    # Where to do init_array for each position?
     if 'zarr' in meta_row['file_name'][-5:]:
         im_name = aux_utils.get_im_name(
                         channel_idx=meta_row['channel_idx'],
