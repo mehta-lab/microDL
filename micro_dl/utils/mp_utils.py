@@ -46,7 +46,6 @@ def create_save_mask(channels_meta_sub,
                      int2str_len,
                      mask_type,
                      mask_ext,
-                     zarr_bytes,
                      channel_thrs=None):
 
     """
@@ -70,7 +69,6 @@ def create_save_mask(channels_meta_sub,
      NPY files for otsu, unimodal masks, recommended to save as npy
      float64 for borders_weight_loss_map masks to avoid loss due to scaling it
      to uint8.
-    :param bytes zarr_bytes: Pickled zarr reader instance or None
     :param list channel_thrs: list of threshold for each channel to generate
     binary masks. Only used when mask_type is 'dataset_otsu'
     :return dict cur_meta: One for each mask. fg_frac is added to metadata
@@ -430,7 +428,6 @@ def rescale_vol_and_save(time_idx,
     :param str output_fname: output_fname
     :param float/list scale_factor: scale factor for resizing
     :param str/None ff_path: path to flat field image
-    :param bytes/None zarr_bytes: Serialized zarr object
     """
     input_stack = []
     for slice_idx in range(slice_start_idx, slice_end_idx):

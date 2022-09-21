@@ -65,7 +65,6 @@ def run_inference(config_fname,
     with open(train_config_fname[0], 'r') as f:
         train_config = yaml.safe_load(f)
     preprocess_config = None
-    zarr_reader = None
     if 'preprocess_dir' in inference_config:
         preprocess_config = preprocess_utils.get_preprocess_config(
             inference_config['preprocess_dir'],
@@ -87,6 +86,7 @@ def run_inference(config_fname,
             gpu_id=gpu_ids,
             gpu_mem_frac=gpu_mem_frac,
         )
+        inference_inst.run_prediction()
 
 
 if __name__ == '__main__':

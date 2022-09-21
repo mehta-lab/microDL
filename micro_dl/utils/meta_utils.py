@@ -13,7 +13,6 @@ import micro_dl.utils.mp_utils as mp_utils
 
 def frames_meta_generator(
         input_dir,
-        zarr_file=None,
         order='cztp',
         name_parser='parse_sms_name',
         ):
@@ -154,7 +153,6 @@ def ints_meta_generator(
         well for 2048 X 2048 images.
     :param str flat_field_dir: Directory containing flatfield images
     :param list/int channel_ids: Channel indices to process
-    :param class zarr_reader: Class for reading ome-zarr data
     """
     if block_size is None:
         block_size = 256
@@ -162,8 +160,6 @@ def ints_meta_generator(
     if not isinstance(channel_ids, list):
         # Use all channels
         channel_ids = frames_metadata['channel_idx'].unique()
-    # Pickle zarr object for passing it to multiprocessing
-    zarr_bytes = pickle.dumps(zarr_reader)
     mp_fn_args = []
     # Fill dataframe with rows from image names
     for i, meta_row in frames_metadata.iterrows():

@@ -16,7 +16,6 @@ class ImageTilerUniform:
     def __init__(self,
                  input_dir,
                  output_dir,
-                 zarr_reader=None,
                  tile_size=[256, 256],
                  step_size=[64, 64],
                  depths=1,
@@ -42,7 +41,6 @@ class ImageTilerUniform:
 
         :param str input_dir: Directory with frames to be tiled
         :param str output_dir: Base output directory
-        :param class/None zarr_reader: ZarrReader class instance
         :param list tile_size: size of the blocks to be cropped
             from the image
         :param list step_size: size of the window shift. In case
@@ -76,8 +74,6 @@ class ImageTilerUniform:
         """
         self.input_dir = input_dir
         self.output_dir = output_dir
-        self.zarr_reader = zarr_reader
-        self.zarr_bytes = pickle.dumps(zarr_reader)
         self.depths = depths
         self.tile_size = tile_size
         self.step_size = step_size

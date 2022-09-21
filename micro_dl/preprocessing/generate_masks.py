@@ -54,7 +54,6 @@ class MaskProcessor:
         self.input_dir = input_dir
         self.output_dir = output_dir
         self.flat_field_dir = flat_field_dir
-        self.zarr_reader = zarr_reader
         self.num_workers = num_workers
 
         self.frames_metadata = aux_utils.read_meta(self.input_dir)
@@ -169,7 +168,6 @@ class MaskProcessor:
         :param int str_elem_radius: Radius of structuring element for
          morphological operations
         """
-        zarr_bytes = pickle.dumps(self.zarr_reader)
         # Loop through all the indices and create masks
         fn_args = []
         id_df = self.frames_meta_sub[
@@ -200,7 +198,6 @@ class MaskProcessor:
                             self.int2str_len,
                             self.mask_type,
                             self.mask_ext,
-                            zarr_bytes,
                             channel_thrs)
                 fn_args.append(cur_args)
         else:
@@ -225,8 +222,7 @@ class MaskProcessor:
                                     self.mask_channel,
                                     self.int2str_len,
                                     self.mask_type,
-                                    self.mask_ext,
-                                    zarr_bytes)
+                                    self.mask_ext)
                         fn_args.append(cur_args)
 
         mask_meta_list = mp_create_save_mask(fn_args, self.num_workers)

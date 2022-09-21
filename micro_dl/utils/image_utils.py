@@ -296,7 +296,6 @@ def read_image_from_row(meta_row):
     files) of any bit depth.
 
     :param pd.DataFrame meta_row: Row in metadata
-    :param None/class zarr_reader: ZarrReader class instance if zarr data
     :return array im: 2D image
     :raise IOError if image can't be opened
     """
