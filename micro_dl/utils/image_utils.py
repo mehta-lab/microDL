@@ -11,6 +11,7 @@ from scipy.ndimage.interpolation import zoom
 from skimage.transform import resize
 
 import micro_dl.utils.aux_utils as aux_utils
+import micro_dl.utils.io_utils as io_utils
 import micro_dl.utils.normalize as normalize
 
 
@@ -287,7 +288,7 @@ def read_image(file_path):
     return im
 
 
-def read_image_from_row(meta_row, zarr_reader=None):
+def read_image_from_row(meta_row):
     """
     Read 2D grayscale image from file.
     Checks file extension for npy and load array if true. Otherwise
@@ -295,7 +296,6 @@ def read_image_from_row(meta_row, zarr_reader=None):
     files) of any bit depth.
 
     :param pd.DataFrame meta_row: Row in metadata
-    :param None/class zarr_reader: ZarrReader class instance if zarr data
     :return array im: 2D image
     :raise IOError if image can't be opened
     """
@@ -305,13 +305,12 @@ def read_image_from_row(meta_row, zarr_reader=None):
     if file_path[-3:] == 'npy':
         im = np.load(file_path)
     elif 'zarr' in file_path[-5:]:
-        assert zarr_reader is not None, "No zarr class instance present."
-        im = zarr_reader.get_image_from_path(
+        zarr_reader = io_utils.ZarrReader(file_path)
+        im = zarr_reader.get_image(
             p=meta_row['pos_idx'],
             t=meta_row['time_idx'],
             c=meta_row['channel_idx'],
             z=meta_row['slice_idx'],
-            zarr_path=file_path,
         )
     else:
         # Assumes files are tiff or png
@@ -381,7 +380,6 @@ def preprocess_image(im,
 
 
 def read_imstack_from_meta(frames_meta_sub,
-                           zarr_reader=None,
                            flat_field_fnames=None,
                            hist_clip_limits=None,
                            is_mask=False,
@@ -393,7 +391,6 @@ def read_imstack_from_meta(frames_meta_sub,
     If images are masks, make sure they're boolean by setting >0 to True
 
     :param pd.DataFrame frames_meta_sub: Selected subvolume to be read
-    :param class/None zarr_reader: ZarrReader class instance
     :param str/list flat_field_fnames: Path(s) to flat field image(s)
     :param tuple hist_clip_limits: Percentile limits for histogram clipping
     :param bool is_mask: Indicator for if files contain masks
@@ -415,7 +412,7 @@ def read_imstack_from_meta(frames_meta_sub,
     if nbr_images > 1:
         for idx in range(meta_shape[0]):
             meta_row = frames_meta_sub.iloc[idx]
-            im = read_image_from_row(meta_row, zarr_reader)
+            im = read_image_from_row(meta_row)
             flat_field_fname = flat_field_fnames[idx]
             if flat_field_fname is not None:
                 if not is_mask and not normalize_im:
@@ -426,7 +423,7 @@ def read_imstack_from_meta(frames_meta_sub,
             im_stack.append(im)
     else:
         # In case of series
-        im = read_image_from_row(frames_meta_sub, zarr_reader)
+        im = read_image_from_row(frames_meta_sub)
         flat_field_fname = flat_field_fnames[0]
         if flat_field_fname is not None:
             if not is_mask and not normalize_im:
@@ -507,7 +504,6 @@ def preprocess_imstack(frames_metadata,
                        channel_idx,
                        slice_idx,
                        pos_idx,
-                       zarr_reader=None,
                        flat_field_path=None,
                        hist_clip_limits=None,
                        normalize_im='stack',
@@ -522,7 +518,6 @@ def preprocess_imstack(frames_metadata,
     :param int channel_idx: Channel index
     :param int slice_idx: Slice (z) index
     :param int pos_idx: Position (FOV) index
-    :param class/None zarr_reader: ZarrReader class instance if zarr data
     :param np.array flat_field_path: Path to flat field image for channel
     :param list hist_clip_limits: Limits for histogram clipping (size 2)
     :param str or None normalize_im: options to z-score the image
@@ -547,7 +542,7 @@ def preprocess_imstack(frames_metadata,
             pos_idx,
         )
         meta_row = frames_metadata.loc[meta_idx]
-        im = read_image_from_row(meta_row, zarr_reader)
+        im = read_image_from_row(meta_row)
         # Only flatfield correct images that won't be normalized
         if flat_field_path is not None:
             assert normalize_im in [None, 'stack'], \

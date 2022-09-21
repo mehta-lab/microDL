@@ -2,8 +2,6 @@
 
 import keras
 import numpy as np
-import os
-import pandas as pd
 
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.image_utils as image_utils
@@ -22,8 +20,7 @@ class InferenceDataSet(keras.utils.Sequence):
                  image_format='zyx',
                  mask_dir=None,
                  flat_field_dir=None,
-                 crop2base=True,
-                 zarr_reader=None):
+                 crop2base=True):
         """Init
 
         :param str image_dir: dir containing images AND NOT TILES!
@@ -38,13 +35,11 @@ class InferenceDataSet(keras.utils.Sequence):
           in the inference config) z, t, p indices matching the ones in image_dir
         :param str flat_field_dir: Directory with flat field images
         :param bool crop2base: Crop option (not for 3D)
-        :param class/None zarr_ojbect: ZarrReader instance
         """
         self.image_dir = image_dir
         self.target_dir = image_dir
         self.frames_meta = aux_utils.read_meta(self.image_dir)
         self.flat_field_dir = flat_field_dir
-        self.zarr_ojbect = zarr_reader
         if mask_dir is not None:
             self.target_dir = mask_dir
             # Append mask meta to frames meta
@@ -214,7 +209,6 @@ class InferenceDataSet(keras.utils.Sequence):
                 channel_idx=channel_idx,
                 slice_idx=cur_row['slice_idx'],
                 pos_idx=cur_row['pos_idx'],
-                zarr_reader=self.zarr_ojbect,
                 flat_field_path=flat_field_path,
                 normalize_im=normalize_im,
             )

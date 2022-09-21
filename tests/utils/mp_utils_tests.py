@@ -100,7 +100,6 @@ class TestMpUtilsOtsu(TestMpUtilsBaseClass):
     def test_create_save_mask_otsu(self):
         """test create_save_mask otsu"""
         self.write_mask_data()
-        zarr_bytes = pickle.dumps(None)
         for sl_idx in range(8):
             channels_meta_sub = aux_utils.get_sub_meta(
                 frames_metadata=self.frames_meta,
@@ -118,7 +117,6 @@ class TestMpUtilsOtsu(TestMpUtilsBaseClass):
                 int2str_len=3,
                 mask_type='otsu',
                 mask_ext='.png',
-                zarr_bytes=zarr_bytes,
             )
             fname = aux_utils.get_im_name(
                 time_idx=self.time_ids,
@@ -203,7 +201,6 @@ class TestMpUtilsBorderWeightMap(TestMpUtilsBaseClass):
     def test_create_save_mask_border_map(self):
         """test create_save_mask border weight map"""
         self.write_mask_data()
-        zarr_bytes = pickle.dumps(None)
         for sl_idx in range(1):
             channels_meta_sub = aux_utils.get_sub_meta(
                 frames_metadata=self.frames_meta,
@@ -221,7 +218,6 @@ class TestMpUtilsBorderWeightMap(TestMpUtilsBaseClass):
                 int2str_len=3,
                 mask_type='borders_weight_loss_map',
                 mask_ext='.png',
-                zarr_bytes=zarr_bytes,
             )
             fname = aux_utils.get_im_name(
                 time_idx=self.time_ids,
@@ -266,10 +262,9 @@ def test_mp_sample_im_pixels():
         meta_row['file_name'] = 'im1.tif'
         meta_row2 = meta_row.copy()
         meta_row2['file_name'] = 'im2.tif'
-        zarr_bytes = pickle.dumps(None)
         fn_args = [
-            (meta_row, ff_path, 10, zarr_bytes),
-            (meta_row2, ff_path, 10, None),
+            (meta_row, ff_path, 10),
+            (meta_row2, ff_path, 10),
         ]
         res = mp_utils.mp_sample_im_pixels(fn_args, 1)
         nose.tools.assert_equal(len(res), 2)
