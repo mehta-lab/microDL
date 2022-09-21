@@ -11,6 +11,7 @@ dependencies:
   - matplotlib
   - natsort
   - nose
+  - numcodecs
   - numpy
   - opencv
   - pandas
