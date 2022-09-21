@@ -1,6 +1,5 @@
 """Script for preprocessing stack"""
 import argparse
-import glob
 import numpy as np
 import os
 import pandas as pd
@@ -15,7 +14,6 @@ from micro_dl.preprocessing.tile_uniform_images import ImageTilerUniform
 from micro_dl.preprocessing.tile_nonuniform_images import \
     ImageTilerNonUniform
 import micro_dl.utils.aux_utils as aux_utils
-import micro_dl.utils.io_utils as io_utils
 import micro_dl.utils.meta_utils as meta_utils
 
 
