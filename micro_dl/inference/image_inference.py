@@ -29,9 +29,8 @@ class ImagePredictor:
     loads samples and performs normalization according to the tile-specific 
     normalization values acquired during preprocessing. 
     
-    Actual inference is performed by either a tensorflow '.hdf5' model specified 
-    in config files, or a trained '.pt' pytorch model loaded into a TorchPredictor
-    object provided through torch_predictor.
+    Actual inference is performed by a trained tensorflow '.hdf5' model specified 
+    in config files, which is loaded and instantiated.
     
     After inference is performed on samples acquired from InferenceDataset object,
     dynamic range is return by denormalizing the outputs if the model task is reg-
@@ -92,11 +91,6 @@ class ImagePredictor:
         :param int gpu_id: GPU number to use. -1 for debugging (no GPU)
         :param float/None gpu_mem_frac: Memory fractions to use corresponding
             to gpu_ids
-        :param str framework: framework is either 'tf' or 'torch'. This governs
-            the backend model type that performs the inference. If framework is
-            'torch', torch_predictor object must be provided
-        :param TorchPredictor torch_predictor: predictor object which handles
-            transporting data to a PyTorch model for inference.
         """
         # Use model_dir from inference config if present, otherwise use train
         if 'model_dir' in inference_config:
