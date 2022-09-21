@@ -173,8 +173,6 @@ class TestZarrWriter(unittest.TestCase):
             dtype=self.dtype,
         )
         # Write single index for each channel
-        a = self.data_array[0, 0, 0, ...]
-        print(a.shape)
         self.zarr_writer.write(self.data_array[0, 0, 0, ...], p=0, t=0, c=0, z=0)
         self.assertTrue(np.array_equal(
             self.zarr_writer.sub_writer.store['Row_0']['Col_0']['Pos_000']['arr_0'][0, 0, 0],

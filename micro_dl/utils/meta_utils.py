@@ -1,3 +1,4 @@
+import glob
 import itertools
 import numpy as np
 import os
@@ -7,6 +8,7 @@ import sys
 
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.image_utils as im_utils
+import micro_dl.utils.io_utils as io_utils
 import micro_dl.utils.mp_utils as mp_utils
 
 
@@ -44,6 +46,7 @@ def frames_meta_generator(
     :param str name_parser: Function in aux_utils for parsing indices from tiff/png file name
     :return pd.DataFrame frames_meta: Metadata for all frames in dataset
     """
+    print('in meta generator', zarr_reader)
     if zarr_reader is None:
         frames_meta = frames_meta_from_filenames(
             input_dir,
@@ -52,7 +55,7 @@ def frames_meta_generator(
         )
     else:
         # Generate frames_meta from zarr metadata
-        frames_meta = frames_meta_from_zarr(input_dir, zarr_reader)
+        frames_meta = frames_meta_from_zarr(input_dir)
 
     # Write metadata
     frames_meta_filename = os.path.join(input_dir, 'frames_meta.csv')
@@ -83,10 +86,11 @@ def frames_meta_from_filenames(input_dir, name_parser, order):
     return frames_meta
 
 
-def frames_meta_from_zarr(input_dir, zarr_reader):
+def frames_meta_from_zarr(input_dir):
     """
     Reads ome-zarr file and creates frames_meta based on metadata and
     array information.
+    Assumes one zarr store per position according to OME guidelines.
 
     :param str input_dir: Input directory containing zarr file
     :param str zarr_name: Name of zarr file including extension
@@ -133,13 +137,11 @@ def frames_meta_from_zarr(input_dir, zarr_reader):
             for slice_idx in range(nbr_slices):
                 for time_idx in range(nbr_times):
                     meta_row['channel_idx'] = channel_idx
-                    meta_row['pos_idx'] = pos_idx
                     meta_row['slice_idx'] = slice_idx
                     meta_row['time_idx'] = time_idx
-                    meta_row['channel_name'] = zarr_reader.get_channel_names[channel_idx]
+                    meta_row['channel_name'] = channel_names[channel_idx]
                     frames_meta.loc[idx] = meta_row
                     idx += 1
-
     return frames_meta
 
 
@@ -178,7 +180,7 @@ def ints_meta_generator(
         well for 2048 X 2048 images.
     :param str flat_field_dir: Directory containing flatfield images
     :param list/int channel_ids: Channel indices to process
-    :param class zarr_reader: Class for handling ome-zarr data
+    :param class zarr_reader: Class for reading ome-zarr data
     """
     if block_size is None:
         block_size = 256
