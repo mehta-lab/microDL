@@ -2,7 +2,6 @@ import glob
 import itertools
 import os
 import pandas as pd
-import pickle
 import sys
 
 import micro_dl.utils.aux_utils as aux_utils
