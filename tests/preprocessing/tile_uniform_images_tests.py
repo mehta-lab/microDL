@@ -406,31 +406,31 @@ class TestImageTilerUniform(unittest.TestCase):
             self.flat_field_dir,
             'flat-field_channel-{}.npy'.format(self.channel_idx),
         )
-        self.assertEqual(cur_args[2], exp_ff_fname)
+        self.assertEqual(cur_args[1], exp_ff_fname)
         # hist clip limits
-        self.assertIsNone(cur_args[3])
+        self.assertIsNone(cur_args[2])
         # slice idx
-        self.assertEqual(cur_args[4], 16)
+        self.assertEqual(cur_args[3], 16)
         # tile size
-        self.assertListEqual(cur_args[5], [5, 5])
+        self.assertListEqual(cur_args[4], [5, 5])
         # step size
-        self.assertListEqual(cur_args[6], [4, 4])
+        self.assertListEqual(cur_args[5], [4, 4])
         # min fraction
-        self.assertIsNone(cur_args[7])
+        self.assertIsNone(cur_args[6])
         # image format
-        self.assertEqual(cur_args[8], 'zyx')
+        self.assertEqual(cur_args[7], 'zyx')
         # tile dir
-        self.assertEqual(cur_args[9], self.tile_inst.get_tile_dir())
+        self.assertEqual(cur_args[8], self.tile_inst.get_tile_dir())
         # int2strlen
-        self.assertEqual(cur_args[10], 3)
+        self.assertEqual(cur_args[9], 3)
         # is_mask
-        self.assertFalse(cur_args[11])
+        self.assertFalse(cur_args[10])
         # normalize_im
-        self.assertIsNone(cur_args[12])
+        self.assertIsNone(cur_args[11])
         # zscore median
-        self.assertIsNone(cur_args[13])
+        self.assertIsNone(cur_args[12])
         # zscore iqr
-        self.assertIsNone(cur_args[14])
+        self.assertIsNone(cur_args[13])
 
     def test_tile_stack(self):
         """Test tile_stack"""
