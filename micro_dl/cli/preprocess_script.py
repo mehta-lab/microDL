@@ -497,7 +497,6 @@ def pre_process(preprocess_config):
     # -------Compute intensities for flatfield corrected images-------
     if required_params['normalize_im'] in ['dataset', 'volume', 'slice']:
         block_size = None
-<<<<<<< HEAD
         if 'metadata' in preprocess_config:
             if 'block_size' in preprocess_config['metadata']:
                 block_size = preprocess_config['metadata']['block_size']
@@ -508,17 +507,6 @@ def pre_process(preprocess_config):
                 flat_field_dir=flat_field_dir,
                 channel_ids=required_params['channel_ids'],
             )
-=======
-        if 'block_size' in preprocess_config['metadata']:
-            block_size = preprocess_config['metadata']['block_size']
-        meta_utils.ints_meta_generator(
-            input_dir=required_params['input_dir'],
-            num_workers=required_params['num_workers'],
-            block_size=block_size,
-            flat_field_dir=flat_field_dir,
-            channel_ids=required_params['channel_ids'],
-        )
->>>>>>> 0c28ef6... removed passing around zarr object, updated zarr reader pos
 
     # -------------------------Resize images--------------------------
     if 'resize' in preprocess_config:
