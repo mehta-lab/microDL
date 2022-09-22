@@ -225,8 +225,6 @@ def tile_and_save(meta_sub,
     channel_idx = meta_sub.loc[0, 'channel_idx']
     pos_idx = meta_sub.loc[0, 'pos_idx']
     try:
-        print('tile image t{:03d} p{:03d} z{:03d} c{:03d}...'
-              .format(time_idx, pos_idx, slice_idx, channel_idx))
         input_image = image_utils.read_imstack_from_meta(
             frames_meta_sub=meta_sub,
             flat_field_fnames=flat_field_fname,
@@ -311,8 +309,6 @@ def crop_at_indices_save(meta_sub,
     channel_idx = meta_sub.loc[0, 'channel_idx']
     pos_idx = meta_sub.loc[0, 'pos_idx']
     try:
-        print('tile image t{:03d} p{:03d} z{:03d} c{:03d}...'
-              .format(time_idx, pos_idx, slice_idx, channel_idx))
         input_image = image_utils.read_imstack_from_meta(
             frames_meta_sub=meta_sub,
             flat_field_fnames=flat_field_fname,

@@ -607,7 +607,8 @@ def parse_sms_name(im_name, df_names=DF_NAMES, dir_name=None, channel_names=[]):
     meta_row["file_name"] = im_name
     if dir_name is not None:
         meta_row['dir_name'] = dir_name
-    im_name = im_name[:-4]
+    # Remove extension
+    im_name = im_name.split('.')[0]
     str_split = im_name.split("_")[1:]
 
     if len(str_split) > 4:
