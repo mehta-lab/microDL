@@ -1,4 +1,4 @@
-## Inference
+## Run inference
 
 The main command for inference is:
 ```buildoutcfg
@@ -14,6 +14,7 @@ If there's not enough memory available on the GPU, and AssertionError will be ra
 If memory fraction is unspecified, all memory currently available on the GPU will automatically
 be allocated for you.
 
+## Inference config settings
 The following settings can be adjusted in inference using a config file 
 (see example in config_inference.yml and config_inference_2d.yml). The config file consists of 
 three main parts, *images*, *metrics* and *inference_3d*, where the latter only needs to be specified
@@ -28,6 +29,15 @@ If left out, latest weights file will be selected.
 * image_dir (str): Directory containing full size input images (not tiles)
 * data_split (str): Which data (train/test/val) to run inference on.
  (default = test)
+* save_figs (str): 'True' or 'False', if figures generated should be saved
+* # define inference dataset channels
+* dataset:
+  * input_channels (list/None): label-free channel used for prediction by model
+  * target_channels (list/None): target image channel (fluorescence image) to compare how 
+  well the prediction worked
+  * slice_ids (list/None): image slices
+  * pos_ids (list/None): may not effect the positions where prediction is performed if data 
+  split is defined
 * images:
     * image_format (str): 'zyx' or 'xyz' for depth dimension first or last
     * flat_field_dir (str/None): Directory containing flatfield images
@@ -42,6 +52,8 @@ If left out, latest weights file will be selected.
         * 'r2' - coefficient of determination
         * 'mse' - mean squared error
         * 'mae' - mean absolute error
+        * 'dice' - dice similarity coefficient (for binary data, no masks)
+        * 'acc' - accuracy of binary target & prediction (for binary data, no masks)
     * metrics_orientations (list): Assuming images are of shape xyz you can evaluate metrics
     along any number of given planes 'xy', 'xz', 'yz' as well as generating global 3D metrics
     using 'xyz'.
@@ -61,7 +73,7 @@ If left out, latest weights file will be selected.
     * num_overlap (int/list): int for tile_z, list for tile_xyz
     * overlap_operation (str): e.g. 'mean'
     
-## Metrics
+## Prediction metrics
 
 If you have already generated your predictions and would like to generate evaluation metrics
 you can use the metrics script:

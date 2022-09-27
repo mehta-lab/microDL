@@ -1,5 +1,5 @@
 
-# Parameters for microDL virtual staining model training
+# Parameters for microDL regression/segmentation model training
 
 # The following configuration file defines the parameters to go from data processing to optimizing the microDL model.
 # Inorder to optimize the microDL model, which includes building the network and optimizing the weights, the input data provided is utilized.
@@ -12,77 +12,90 @@
 # and image processing used for diversifying the data conditions, used for training the model and thus optimizing the weights.
 dataset:
 
-# Specify the directory in which your preprocessed tiles are stored
+  # Specify the directory in which your preprocessed tiles are stored
   data_dir: '/home/Processed_temp_dir/tiles_256-256_step_128-128'
 
-# specify the model task, if it is regression model
+  # specify the model task, if it is regression model
   model_task: regression
 
-# Defines the tile height
+  # Defines the tile height
   height: 256
 
-# specify the label-free channel to be used for predicting the stained image
+  # specify the label-free channel to be used for predicting the stained image
   input_channels: [2]
 
-# This is the extra channel which has been added to store the mask produced by segmenting the fluorescence stained image channel.
+  # This is the extra channel which has been added to store the mask produced by segmenting the fluorescence stained image channel.
   mask_channels: [3]    # This will be last input channel id + 1
 
-# define if preprocessing is performed?
+  # specify the fluorescence channel to be predicted
+  target_channels: [1]
+
+  # define if preprocessing is performed?
   preprocess: False
 
-# Define on what basis you want to split the input data folder for creating training image set, validation set and test set
+  # Define on what basis you want to split the input data folder for creating training image set, validation set and test set
   split_by_column: pos_idx  # here 'pos_idx' indicates the data set was divided based on position list
 
-# Define the split ratio of data set
+  # Define the split ratio of data set
   split_ratio:
-
-# here test:0.1 , train : 0.8, val:0.1, indicates 80% of images from the position list were used for training the model,
-# 10% were used for validation and 10% for testing
+  # here test:0.1 , train : 0.8, val:0.1, indicates 80% of images from the position list were used for training the model,
+  # 10% were used for validation and 10% for testing, train+test+val=0.8+0.1+0.1 = 1
     test: 0.1
     train: 0.8
     val: 0.1
+
   squeeze: True
-  target_channels:
-  - 1
-  width: 256
+  width: 256               # width of the tiles for model trsining
   random_seed: 0
 
-# there parameters defines the scales used for different augmentations used on input tiles for training the model
+  # there parameters defines the scales used for different augmentations used on input tiles for training the model
   augmentations:
     zoom_range: [0.6, 1.6]           # different magnification ranges the data can be in
     rotate_range: 180                # 180 indicates all rotation degrees from 0 to 180 degrees
-    intensity_jitter: [0.5, 0.5]     # Jitter in image intensity to accomodate the varying intensities seen in images
-    noise_std: 0.5                   # Adds noise to images with standard deviation of 0.5
-    blur_range: [0, 10]              # Blurs the image from nil to range 10, accommodating conditions like images blurring at low magnification
-    shear_range: 10                  # Shear images to range of 10, accommodates cells stretching and deformation
+    intensity_jitter: [0.5, 0.5]     # first entry of intensity_jitter is the mean offset, second entry is the standard deviation scale
+    noise_std: 0.5                   # Add noise to images with standard deviation of 0.5
+    blur_range: [0, 10]              # Blurs the image from 0 to 10, accommodating conditions like images blurring at low magnification
+    shear_range: 10                  # Shear images from -10 to 10, accommodates cells stretching and deformation
     
 
 # The upcoming parameters defines the microDL model used for training and required to set off training
 network:
 
-# Activation type shows activation layer type in the learning model, which helps process weighted inputs to deliver the output
+  # Activation type shows activation layer type in the learning model, which helps process weighted inputs to deliver the output
   activation:
     type: relu    # relu is rectified linear unit, the activation function
 
-# specify if the input is batch normalized
+  # specify if the input is batch normalized
   batch_norm: True
   block_sequence: conv-activation-bn
 
-# Specify if the model class is UNet2D or UNet2.5D or UNet3D. 3DUNet is heavy to run compared to 2.5D, thus making 2.5D more
-# efficient for use with 3D input data. 2DUNet is useful if using 2D data
+  # Specify if the model class is UNet2D or UNet2.5D or UNet3D. 3DUNet is heavy to run compared to 2.5D, thus making 2.5D more
+  # efficient for use with 3D input data. 2DUNet is useful if using 2D data
   class: UNet2D
 
-#
+  # specifies dimension order of input tensor: channels_first is only supported format currently
   data_format: channels_first
+  # likelihood of dropout on network neurons: within [0, 1]
   dropout: 0.2
+  # likelihood of dropout on dense neurons: within [0, 1]
   dropout_dense: 0.4
+  # spatial dimensions of convolutional filters
   filter_size: 3
+  # activation function for output layer
   final_activation: linear
   temperature: 1
+  # height of tiles in spatial dimension
   height: 256
+  pooling_type: average
+  residual: True
+  skip_merge_type: concat
+  upsampling: bilinear
+  # width of tiles in spatial dimension
+  width: 256
+  # number of convolutional layers per Unet block
   num_convs_per_block: 2
 
-# defines the number of filters used in each layer of the model, optimizing the weights as training progresses
+  # defines the number of filters used in each layer of the model, optimizing the weights as training progresses
   num_filters_per_block:
   - 16
   - 32
@@ -90,24 +103,18 @@ network:
   - 128
   - 256
 
-# Number of input channels, can be 1 if only phase images are input, can be 2 if both phase and retardance are used
+  # Number of input channels, can be 1 if only phase images are input, can be 2 if both phase and retardance are used
   num_input_channels: 1
 
-# Number of target channels defines the number of fluorescence channels to be predicted.
+  # Number of target channels defines the number of fluorescence channels to be predicted.
   num_target_channels: 1     # 1 as only nuclear channels is to be predicted
 
-#
-  pooling_type: average
-  residual: True
-  skip_merge_type: concat
-  upsampling: bilinear
-  width: 256
-
-# Specify the parameters to define the sensitivity and speed with which to train the model.
-# You want to make sure the model trains enough to minimize the loss function. This improves the prediction.
-# But you also want to avoid overfitting. This is taken care of by terminating the training when the training loss is low
-# and the validation loss gets low, but is terminated as soon as it starts to increase. If the validation loss becomes too
-# low compared to training loss it indicates the model is overfitting.
+  # Specify the parameters to define the sensitivity and speed with which to train the model.
+  # You want to make sure the model trains enough to minimize the loss function. This improves the prediction.
+  # But you also want to avoid overfitting. This is taken care of by terminating the training when the training loss is low
+  # and the validation loss gets low, but is terminated as soon as it starts to increase. If the validation loss becomes too
+  # low compared to training loss it indicates the model is overfitting.
+  # Set training parameters such as batch size, loss, and optimizer, as well as Keras callbacks
 
 trainer:  
   batch_size: 64   # number depends on compute resource available. Reduce or increase to accommodate to your system.

@@ -3,17 +3,43 @@
 
 # microDL
 
+microDL is a tool which can perform virtual staining (prediction of fluorescence images from label-free images) using regression, and segmentation. 
+Reference : https://elifesciences.org/articles/55502
+
+You can train a microDL model using label-free images and corresponding fluorescence channels you want to predict or segment. 
+Once the model is trained using the dataset provided you can use the model to predict the same fluorescence channels or segmneted masks in other datasets using the label-free images.
+
+In the example below, phase images and corresponding nuclear and membrane stained images are used to train a 2.5D Unet model.
+The model can be used to predict the nuclear and membrane channels using label-free phase images.
+
+<p align="center">
+    <img width="500" src="./figures/Picture5.png">
+<p/>
+
+<p align="center">
+    <img width="200" src="./figures/Picture3.png">
+<p/>
+
 microDL allows you to design, train and evaluate U-Net models using just a few YAML config files. It supports 2D, 2.5D (3D encoder, 2D decoder) and 3D U-Nets, as well as 3D networks with anistropic filters. It also supports networks with an encoder plus dense layers for image to vector or image to scalar models. Our hope is that microDL will provide easy to use CLIs for segmentation, regression and classification tasks of microscopy images. 
 
 microDL consists of three modules:
 
-* Preprocessing: normalization, flatfield correction, masking, tiling
-* Training: model creation, loss functions (w/wo masks), metrics, learning rates
-* Inference: on full images or on tiles that can be stitched to full images
+* [Preprocessing](https://github.com/mehta-lab/microDL/blob/microDL-documentation/micro_dl/preprocessing/readme.md): normalization, flatfield correction, masking, tiling
+* [Training](https://github.com/mehta-lab/microDL/blob/microDL-documentation/micro_dl/train/readme.md): model creation, loss functions (w/wo masks), metrics, learning rates
+* [Inference](https://github.com/mehta-lab/microDL/blob/microDL-documentation/micro_dl/inference/readme.md): on full images or on tiles that can be stitched to full images
+
+*Click the corresponding links to learn more about each step and determine the right parameters to use the configuration files.
 
 ## Getting Started
 
-Assuming your data is already formatted in a way that microDL understands (see Data Format below), you can run preprocessing, training and inference in three command lines.
+### Set up the environment
+Refer to the [requirements](#Requirements) section to set up the microDL environment.
+
+Build a [docker](#Docker) to set up your microDL environment if the dependencies are not compatible with the hardware environment on your computational facility.
+
+Format your input data to match the microDL [data format](#Data-Format) requirements.
+
+Once your data is already formatted in a way that microDL understands, you can run preprocessing, training and inference in three command lines.
 For config settings, see module specific readme's in micro_dl/preprocessing, micro_dl/training and micro_dl/inference.
 
 ```buildoutcfg

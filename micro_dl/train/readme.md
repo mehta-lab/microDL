@@ -59,6 +59,7 @@ Below is a more detailed list of possible config settings. You can see some exam
 
 * dataset:
     * data_dir (str): Full path to where your preprocessed or tiled dataset is located
+    * model task (str): 'regression' for virtual staining, or 'segmentation' for label-free image segmentation
     * input_channels (list): List of integers indicating which channel indices to be used as inputs
     * target_channels (list): List of integers indicating which channel indices to be used as targets
     * train_fraction (float): What fraction of total data will be used in each epoch (0, 1]

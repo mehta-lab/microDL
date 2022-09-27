@@ -1,6 +1,6 @@
 # Configuration detailing the staining prediction on label-free images
 
-# define the dataset you want to use the trained model for virtual staining,
+# define the dataset you want to use the trained model for virtual staining/segmentation,
 # the output formats required and predicted image quality metrics
 
 # point to directory where your trained model is saved
@@ -9,7 +9,7 @@ model_dir: '/home/Translation_temp_2/'
 # directory with images on which you want to perform the prediction, the inference dataset
 image_dir: '/home/InferenceData/'
 
-# directory with all preprocessed data
+# preprocess_dir contains the preprocessing_info.json file, to extract information about normalization step
 preprocess_dir: '/home/Processed_temp_1'
 
 # define inference dataset channels
@@ -23,14 +23,13 @@ dataset:
 images:
     image_format: 'zyx'     # output predicted image order of dimension
     image_ext: '.tif'       # output images are stored as single page tiff files
-    name_format: sms        # naming format is defined
+    name_format: sms        # 'sms' corresonds to image naming format 'img_channelname_t***_p***_z***_extrafield', default naming convention is 'im_c***_z***_t***_p***'
     pred_chan_name: 'pred'  # prefix of saved output image name
-save_to_image_dir: False    # specifies if the output images are to be saved inside the image directory or separately
-data_split: train           # define which image set in train/val/test split are to be used for the prediction
-save_figs: True             # do you want to save figures to comapre the predicted and target images
+save_to_image_dir: False    # 'False' saves output in model directory, 'True' in input image directory
+data_split: val             # define which image set in train/val/test split are to be used for the prediction
+save_figs: True             # do you want to save a figure panel to compare the predicted and target images
 
-# metrics to be computed to define prediction quality
+# metrics to be computed to define prediction quality, the values will be printed on output figure panel
 metrics:
-    metrics: [ssim, corr, r2, mae, mse]  # ssim: structural similarity index, corr: pearson correlation, r2: r-squared,
-    # mae: mean absolute error, mse: mean squared error
-    metrics_orientations: ['xy']
+    metrics: [ssim, corr, r2, mae, mse]  # metrics for output image quality check: refer to readme for details
+    metrics_orientations: ['xy']   # for 'xy' slice, 'xz' slice or 'yz' slice, where xz and yz for 3D predictions
