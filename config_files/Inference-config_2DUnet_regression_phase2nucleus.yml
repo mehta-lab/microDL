@@ -9,27 +9,29 @@ model_dir: '/home/Translation_temp_2/'
 # directory with images on which you want to perform the prediction, the inference dataset
 image_dir: '/home/InferenceData/'
 
-# preprocess_dir contains the preprocessing_info.json file, to extract information about normalization step
+# preprocess_dir contains the preprocessing_info.json file, used to extract information about normalization step
 preprocess_dir: '/home/Processed_temp_1'
 
 # define inference dataset channels
 dataset:
   input_channels: [2]   # label-free channel used for prediction by model
   target_channels: [1]  # target image channel (fluorescence image) to compare how well the prediction worked
-#  slice_ids: [0]
-  pos_ids: [0, 1, 3, 4, 6, 8, 10]  # may not effect the positions where prediction is performed if data split is defined
+  pos_ids: [0, 1, 3, 4, 6, 8, 10]  # may not effect the positions where interference is performed if data split is defined
+  slice_ids: [0] # slices where inference is performed, condition same as above
 
 # define the output image format
 images:
     image_format: 'zyx'     # output predicted image order of dimension
     image_ext: '.tif'       # output images are stored as single page tiff files
-    name_format: sms        # 'sms' corresonds to image naming format 'img_channelname_t***_p***_z***_extrafield', default naming convention is 'im_c***_z***_t***_p***'
+    suffix: '2DUnet_nucl'   # saved output image name suffix
+    name_format: sms        # 'sms' corresponds to image naming format 'img_channelname_t***_p***_z***_customfield', default naming convention is 'im_c***_z***_t***_p***'
     pred_chan_name: 'pred'  # prefix of saved output image name
 save_to_image_dir: False    # 'False' saves output in model directory, 'True' in input image directory
-data_split: val             # define which image set in train/val/test split are to be used for the prediction
+save_folder_name: predictions # specify the name of directory to be created inside model dir to save output images
+data_split: val             # define which image set in train/val/test/all split are to be used for the prediction
 save_figs: True             # do you want to save a figure panel to compare the predicted and target images
 
-# metrics to be computed to define prediction quality, the values will be printed on output figure panel
+# metrics to be computed to define prediction quality, the values will be printed on output figure panel and saved as text files
 metrics:
     metrics: [ssim, corr, r2, mae, mse]  # metrics for output image quality check: refer to readme for details
     metrics_orientations: ['xy']   # for 'xy' slice, 'xz' slice or 'yz' slice, where xz and yz for 3D predictions

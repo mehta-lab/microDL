@@ -25,13 +25,10 @@ dataset:
   input_channels: [2]
 
   # This is the extra channel which has been added to store the mask produced by segmenting the fluorescence stained image channel.
-  mask_channels: [3]    # This will be last input channel id + 1
+  mask_channels: [3]    # The mask id is the number of input channels + 1.
 
   # specify the fluorescence channel to be predicted
   target_channels: [1]
-
-  # define if preprocessing is performed?
-  preprocess: False
 
   # Define on what basis you want to split the input data folder for creating training image set, validation set and test set
   split_by_column: pos_idx  # here 'pos_idx' indicates the data set was divided based on position list
@@ -69,8 +66,8 @@ network:
   batch_norm: True
   block_sequence: conv-activation-bn
 
-  # Specify if the model class is UNet2D or UNet2.5D or UNet3D. 3DUNet is heavy to run compared to 2.5D, thus making 2.5D more
-  # efficient for use with 3D input data. 2DUNet is useful if using 2D data
+  # Specify if the model class is 2D U-Net or 2.5D U-Net or 3D U-Net. 3D U-Net is heavy to run compared to 2.5D U-Net, thus making 2.5D U-Net more
+  # efficient for use with 3D input data. 2D U-Net is useful if using 2D data
   class: UNet2D
 
   # specifies dimension order of input tensor: channels_first is only supported format currently
@@ -92,10 +89,11 @@ network:
   upsampling: bilinear
   # width of tiles in spatial dimension
   width: 256
-  # number of convolutional layers per Unet block
+  # number of convolutional layers per U-Net block,
   num_convs_per_block: 2
 
   # defines the number of filters used in each layer of the model, optimizing the weights as training progresses
+  # typically the number of filters is doubled per layer
   num_filters_per_block:
   - 16
   - 32

@@ -4,12 +4,12 @@
 # microDL
 
 microDL is a tool which can perform virtual staining (prediction of fluorescence images from label-free images) using regression, and segmentation. 
-Reference : https://elifesciences.org/articles/55502
+Reference : https://doi.org/10.7554/eLife.55502
 
 You can train a microDL model using label-free images and corresponding fluorescence channels you want to predict or segment. 
 Once the model is trained using the dataset provided you can use the model to predict the same fluorescence channels or segmneted masks in other datasets using the label-free images.
 
-In the example below, phase images and corresponding nuclear and membrane stained images are used to train a 2.5D Unet model.
+In the example below, phase images and corresponding nuclear and membrane stained images are used to train a 2.5D U-Net model.
 The model can be used to predict the nuclear and membrane channels using label-free phase images.
 
 <p align="center">
@@ -24,9 +24,9 @@ microDL allows you to design, train and evaluate U-Net models using just a few Y
 
 microDL consists of three modules:
 
-* [Preprocessing](https://github.com/mehta-lab/microDL/blob/microDL-documentation/micro_dl/preprocessing/readme.md): normalization, flatfield correction, masking, tiling
-* [Training](https://github.com/mehta-lab/microDL/blob/microDL-documentation/micro_dl/train/readme.md): model creation, loss functions (w/wo masks), metrics, learning rates
-* [Inference](https://github.com/mehta-lab/microDL/blob/microDL-documentation/micro_dl/inference/readme.md): on full images or on tiles that can be stitched to full images
+* [Preprocessing](https://github.com/mehta-lab/microDL/blob/master/micro_dl/preprocessing/readme.md): normalization, flatfield correction, masking, tiling
+* [Training](https://github.com/mehta-lab/microDL/blob/master/micro_dl/train/readme.md): model creation, loss functions (w/wo masks), metrics, learning rates
+* [Inference](https://github.com/mehta-lab/microDL/blob/master/micro_dl/inference/readme.md): on full images or on tiles that can be stitched to full images
 
 *Click the corresponding links to learn more about each step and determine the right parameters to use the configuration files.
 
@@ -40,7 +40,9 @@ Build a [docker](#Docker) to set up your microDL environment if the dependencies
 Format your input data to match the microDL [data format](#Data-Format) requirements.
 
 Once your data is already formatted in a way that microDL understands, you can run preprocessing, training and inference in three command lines.
-For config settings, see module specific readme's in micro_dl/preprocessing, micro_dl/training and micro_dl/inference.
+For config settings, see module specific readme's in [micro_dl/preprocessing](https://github.com/mehta-lab/microDL/blob/master/micro_dl/preprocessing/readme.md), 
+[micro_dl/training](https://github.com/mehta-lab/microDL/blob/master/micro_dl/train/readme.md) and 
+[micro_dl/inference](https://github.com/mehta-lab/microDL/blob/master/micro_dl/inference/readme.md).
 
 ```buildoutcfg
 python micro_dl/cli/preprocessing_script.py --config <preprocessing yaml config file>
@@ -81,6 +83,9 @@ You will need to copy/paste the token generated in your Docker container.
 
 ### Data Format
 
+Input data should be in the format of single page tiff files. If you use zarr files, you can convert 
+them to single page tiff files using the [zarr to single page tiff conversion script](https://github.com/mehta-lab/microDL/blob/master/scripts/hcszarr2single_tif_mp.py).
+
 To train directly on datasets that have already been split into 2D frames, the dataset
 should have the following structure:
 
@@ -108,6 +113,8 @@ python micro_dl/cli/generate_meta.py --input <directory name>
 ```
 That will generate the frames_meta.csv file you will need for data preprocessing.
 
+Before preprocessing make sure the z stacked images are aligned to be centered at the focal plane at all positions. If the focal plane in image stacks imaged 
+at different positions in a plate are at different z levels, align them using the [z alignment script](https://github.com/mehta-lab/microDL/blob/master/scripts/align_z_focus.py).
 
 ## Requirements
 
