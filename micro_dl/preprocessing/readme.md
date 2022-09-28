@@ -73,7 +73,9 @@ and store them as tiles based on input tile size, step size, and depth.
   * order (str): If 'cztp', the images produced by processing are named by the format 'channel_zslice_time_position', for example, 'c001_z046_t000_p023'
   * name_parser (str): 'parse_sms_name' corresponds to 'sms' image naming format 'img_channelname_t***_p***_z***_customfield', default naming convention is 'im_c***_z***_t***_p***'
 
-All data will be stored in the specified output dir, with a 'preprocessing_info.json' file. The json file contains 
+All data will be stored in the specified output dir, with a 'preprocessing_info.json' file. 
+The preprocessing_info.json contains all of the parameters associated with preprocessing, in addition to 
+metadata about the preprocessing runtime and config directory.
 
 During preprocessing, a csv file named frames_meta.csv will be generated, which
 will be used for further processing. The csv contains the following fields for each image tile:
