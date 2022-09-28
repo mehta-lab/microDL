@@ -39,57 +39,57 @@ num_workers: 12
 # Normalize the images using the following parameters:
 normalize:
 
-  # Specifies subset over which to normalize data: dataset, stack, slice, volume
+# Specifies subset over which to normalize data: dataset, stack, slice, volume
   normalize_im: 'dataset'
 
-  # The fraction of pixels in your tiles which can be considered as foreground. min_fraction of 0.25 means 1/4th of the pixels in the tiles are foreground
-  # if you are staining nucleus, tiles will be around 25% covered by nuclear regions
+# The fraction of pixels in your tiles which can be considered as foreground. min_fraction of 0.25 means 1/4th of the pixels in the tiles are foreground
+# if you are staining nucleus, tiles will be around 25% covered by nuclear regions
   min_fraction: 0.25
 
-  # Which channels are to be normalized : same length as length of channel id vector, specify if required or not using True or False
+# Which channels are to be normalized : same length as length of channel id vector, specify if required or not using True or False
   normalize_channels: [True, True, True, True]
 
-  # If the data set has a uniform structure over times, channels, slices, positions, and image sizes. Non-uniform structures are currently not supported.
+# If the data set has a uniform structure over times, channels, slices, positions, and image sizes. Non-uniform structures are currently not supported.
   uniform_struct: True
 
 # Mask parameters: defines segmnetion for foreground and background regions for staining
 masks:
 
-  # which is your target channel, to be segmented for use in training the model? The number can be determined from input image metadata generated.
+# which is your target channel, to be segmented for use in training the model? The number can be determined from input image metadata generated.
   channels: [1]
 
-  # Structuring element radius for morphological operations in unimodal or otsu thresholding for mask generation.
+# Structuring element radius for morphological operations in unimodal or otsu thresholding for mask generation.
   str_elem_radius: 3
 
-  # method used for segmentation, can be unimodal if intensities are not uniform, otsu if signal is uniform
+# method used for segmentation, can be unimodal if intensities are not uniform, otsu if signal is uniform
   mask_type: 'unimodal'
 
-  # Save format of the processed mask images (for visualization as well!)
+# Save format of the processed mask images (for visualization as well!)
   mask_ext: '.png'
 
 
 # Tile parameters : Defines parameters for tile creation for training, from the different input channels and mask channel images
 tile:
     
-  # The parameter 'tile_size' defines the size of tiles in [x-width,y-length] format to be created from input images useful for training the microDL models.
+# The parameter 'tile_size' defines the size of tiles in [x-width,y-length] format to be created from input images useful for training the microDL models.
   tile_size: [256, 256]
 
-  # step size is the stride between centers of tiles
+# step size is the stride between centers of tiles
   step_size: [128, 128]
 
-  # Tile depths in z for each channel to be preprocessed. E.g. if tiling for a stack to 2.5D model, input channels would
-  # have a depth > 1 (5 is common), and output channel(s) would have a depth of 1.
+# Tile depths in z for each channel to be preprocessed. E.g. if tiling for a stack to 2.5D model, input channels would
+# have a depth > 1 (5 is common), and output channel(s) would have a depth of 1.
   depths: [1, 1, 1, 1]
     
-  # 'image_format' defines the order of 3D array dimensions, z slices (1st dimension), x and y (image x-y dimension).
+# 'image_format' defines the order of 3D array dimensions, z slices (1st dimension), x and y (image x-y dimension).
   image_format: 'zyx'
 
 # Metadata helps read files with specific naming conventions and extract metadata from their file names.
 metadata:
 
-  # the images produced by processing are named by the format 'channel_zslice_time_position', for example, 'c001_z046_t000_p023'
+# the images produced by processing are named by the format 'channel_zslice_time_position', for example, 'c001_z046_t000_p023'
   order: 'cztp'
 
-  # this deals with metadata parsing with specific naming convention for files
+# this deals with metadata parsing with specific naming convention for files
   name_parser: 'parse_sms_name'
 
