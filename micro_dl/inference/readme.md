@@ -18,7 +18,7 @@ be allocated for you.
 The following settings can be adjusted in inference using a config file 
 (see example in config_inference.yml and config_inference_2d.yml). The config file consists of 
 three main parts, *images*, *metrics* and *inference_3d*, where the latter only needs to be specified
-if running prediction on 3D images.
+if running prediction on 3D images. <br>
 The images part is focused around running predictions, whereas metrics parameters are specified
 if you also would like to generate evaluation metrics. If you've already run inference and generated
 your prediction images you can also evaluate metrics independently using the metrics_script.

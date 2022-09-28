@@ -1,0 +1,25 @@
+name: microdlTF113
+channels:
+  - anaconda
+  - conda-forge
+  - defaults
+dependencies:
+  - python<3.7
+  - Cython
+  - jupyter
+  - jupyterlab
+  - matplotlib
+  - natsort
+  - nose
+  - numpy
+  - opencv
+  - pandas
+  - pydot
+  - PyYAML
+  - tensorflow-gpu==1.13.1
+  - testfixtures
+  - tqdm
+  - scikit-image
+  - scikit-learn
+  - scipy
+  - keras==2.1.6
