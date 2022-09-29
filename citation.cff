@@ -1,7 +1,6 @@
 cff-version: 1.2.0
 title: >-
-  microDL: DL pipeline for robust virtusl staining of
-  label-free microscopy data
+  microDL: robust and efficient virtual staining of label-free microscopy data
 message: >-
   Please use citation information in this file if you publish results using this pipeline. If you use the pipeine for virtual staining, please also cite our paper:
   https://elifesciences.org/articles/55502
@@ -18,6 +17,7 @@ authors:
     orcid: "https://orcid.org/0000-0003-0193-2494"
   - given-names: Christian
     family-names: Foley
+    orcid: "https://orcid.org/0000-0002-5964-5060"
   - given-names: Soorya
     family-names: Pradeep
     orcid: "https://orcid.org/0000-0002-0926-1480"

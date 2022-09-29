@@ -1,29 +1,31 @@
-## Preprocessing
+# Preprocessing
 
-### Format input data for preprocessing
+## Format input data for preprocessing
 
-Single page tiff files are used as input data for preprocessing. If you use zarr files, you can convert 
+Single page tiff files are used as input data for preprocessing. If you use zarr files, you can convert
 them to single page tiff files using the [zarr to single page tiff conversion script](https://github.com/mehta-lab/microDL/blob/microDL-documentation/scripts/hcszarr2single_tif_mp.py).
 
-Before preprocessing make sure the z stacked images are aligned to be centered at the focal plane at all positions. If the focal plane in image stacks imaged 
+Before preprocessing make sure the z stacked images are aligned to be centered at the focal plane at all positions. If the focal plane in image stacks imaged
 at different positions in a plate are at different z levels, align them using the [z alignment script](https://github.com/mehta-lab/microDL/blob/master/scripts/align_z_focus.py).
 
-### Run preprocessing
+## Run preprocessing
 
 The main command for preprocessing is:
+
 ```buildoutcfg
 python micro_dl/cli/preprocess_script.py --config <config path (.yml)>
 ```
 
-### Preprocessing config parameters
+## Preprocessing config parameters
 
-#### Specify input data to be used for training the model
+### Specify input data to be used for training the model
 
 The following settings can be adjusted in preprocessing using a config file (see example in preprocess_config.yml):
+
 * output_dir: (str) folder name where all processed data will be written
 * verbose: (int) Logging verbosity levels: NOTSET:0, DEBUG:10, INFO:20, WARNING:30, ERROR:40, CRITICAL:50
 * input_dir: (str) Directory where data to be preprocessed is located
-* channel_ids: (list of ints) specify channel numbers (default is -1 for all indices), find the numbers in input data metadata. 
+* channel_ids: (list of ints) specify channel numbers (default is -1 for all indices), find the numbers in input data metadata.
 The id numbers can be found in metadata generated for input data. The ids are allocated based on channel names on image name, accounting
 them in the order :  numbers --> uppercase alphabets --> lower case alphabets in alphabetical order.
 * slice_ids: (int/list) Value(s) of z-indices to be processed (default is -1 for all indices)
@@ -31,50 +33,52 @@ them in the order :  numbers --> uppercase alphabets --> lower case alphabets in
 * time_ids: (int/list) Value(s) of timepoints to be processed (default is -1 for all indices)
 * num_workers: (int) Number of workers for multiprocessing
 * resize:
-    * scale_factor(float/list): Scale factor for resizing 2D frames, e.g. to match resolution in z or resizing volumes
-    * num_slices_subvolume (int): number of slices to be included in each subvolume, default=-1, includes all slices in           slice_ids
+  * scale_factor(float/list): Scale factor for resizing 2D frames, e.g. to match resolution in z or resizing volumes
+  * num_slices_subvolume (int): number of slices to be included in each subvolume, default=-1, includes all slices in           slice_ids
 * correct_flat_field: (bool) perform flatfield correction (2D data only)
 
 #### Specify parameters for input fluorescence image mask generation
-* masks:
-    * channels: (list of ints) which channels should be used to generate masks from
-    * str_elem_radius: (int) structuring element radius for morphological operations on masks
-    * normalize_im (bool): Whether to normalize image before generating masks
-    * mask_dir (str): As an alternative to channels/str_element_radius, you can specify a directory
-    containing already generated masks (e.g. manual annotations). Masks must match input images in 
-    terms of shape and indices.
-    * csv_name (str): If specifying mask_dir, the directory must contain a csv file matching mask names
-    with image names. If left out, the script will look for first a frames_meta.csv,
-    second one csv file containing mask names in one column and matched image names in a 
-    second column.
-    * mask_type (str): commonly used 'unimodal' or 'otsu', method used for segmentation, can be unimodal 
-    if intensities are not uniform, otsu if signal is uniform.
-    * mask_ext (str): Save format of the processed mask images (for visualization as well!), eg. is '.png'.
 
-#### Tile generation of label-free images & fluorescent images used for training
+* masks:
+  * channels: (list of ints) which channels should be used to generate masks from
+  * str_elem_radius: (int) structuring element radius for morphological operations on masks
+  * normalize_im (bool): Whether to normalize image before generating masks
+  * mask_dir (str): As an alternative to channels/str_element_radius, you can specify a directory
+    containing already generated masks (e.g. manual annotations). Masks must match input images in
+    terms of shape and indices.
+  * csv_name (str): If specifying mask_dir, the directory must contain a csv file matching mask names
+    with image names. If left out, the script will look for first a frames_meta.csv,
+    second one csv file containing mask names in one column and matched image names in a
+    second column.
+  * mask_type (str): commonly used 'unimodal' or 'otsu', method used for segmentation, can be unimodal
+    if intensities are not uniform, otsu if signal is uniform.
+  * mask_ext (str): Save format of the processed mask images (for visualization as well!), eg. is '.png'.
+
+### Tile generation of label-free images & fluorescent images used for training
+
 * do_tiling: (bool) do tiling (recommended)
 * tile:
-    * tile_size: (list of ints) tile width and height in pixels
-    * step_size: (list of ints) step size in pixels for each dimension
-    * depths: (list of ints) tile z depth for all the channels specified
-    * mask_depth: (int) z depth of mask
-    * image_format (str): 'zyx' (default) or 'xyz'. Order of tile dimensions
-    * train_fraction (float): If specified in range (0, 1), will randomly select that fraction
+  * tile_size: (list of ints) tile width and height in pixels
+  * step_size: (list of ints) step size in pixels for each dimension
+  * depths: (list of ints) tile z depth for all the channels specified
+  * mask_depth: (int) z depth of mask
+  * image_format (str): 'zyx' (default) or 'xyz'. Order of tile dimensions
+  * train_fraction (float): If specified in range (0, 1), will randomly select that fraction
     of training data in each epoch. It will update steps_per_epoch in fit_generator accordingly.
-    * min_fraction: (float) minimum fraction of image occupied by foreground in masks
-    * hist_clip_limits: (list of ints) lower and upper intensity percentiles for histogram clipping
+  * min_fraction: (float) minimum fraction of image occupied by foreground in masks
+  * hist_clip_limits: (list of ints) lower and upper intensity percentiles for histogram clipping
 
 The tiling class will take the 2D image files, assemble them to stacks in case 3D tiles are required,
 and store them as tiles based on input tile size, step size, and depth.
 
-#### Specifications of metadata to be generated
+### Specifications of metadata to be generated
 
 * metadata
   * order (str): If 'cztp', the images produced by processing are named by the format 'channel_zslice_time_position', for example, 'c001_z046_t000_p023'
   * name_parser (str): 'parse_sms_name' corresponds to 'sms' image naming format 'img_channelname_t***_p***_z***_customfield', default naming convention is 'im_c***_z***_t***_p***'
 
-All data will be stored in the specified output dir, with a 'preprocessing_info.json' file. 
-The preprocessing_info.json contains all of the parameters associated with preprocessing, in addition to 
+All data will be stored in the specified output dir, with a 'preprocessing_info.json' file.
+The preprocessing_info.json contains all of the parameters associated with preprocessing, in addition to
 metadata about the preprocessing runtime and config directory.
 
 During preprocessing, a csv file named frames_meta.csv will be generated, which
