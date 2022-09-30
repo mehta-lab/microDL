@@ -77,8 +77,8 @@ tile:
 # step size is the stride between centers of tiles
   step_size: [128, 128]
 
-# Tile depths in z for each channel to be preprocessed. E.g. if tiling for a stack to 2.5D model, input channels would
-# have a depth > 1 (5 is common), and output channel(s) would have a depth of 1.
+# Tile depths in z for each channel to be preprocessed. E.g. if tiling for a stack to 2D model, input channels would
+# have a depth = 1 since the images have just one slice, and output channel(s) would have a depth of 1.
   depths: [1, 1, 1, 1]
     
 # 'image_format' defines the order of 3D array dimensions, z slices (1st dimension), x and y (image x-y dimension).
