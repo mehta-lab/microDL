@@ -49,9 +49,9 @@ Build a [docker](#docker) to set up your microDL environment if the dependencies
 Format your input data to match the microDL [data format](#data-format) requirements.
 
 Once your data is already formatted in a way that microDL understands, you can run preprocessing, training and inference in three command lines.
-For config settings, see module specific readme's in [micro_dl/preprocessing](https://github.com/mehta-lab/microDL/blob/master/micro_dl/preprocessing/readme.md),
-[micro_dl/training](https://github.com/mehta-lab/microDL/blob/master/micro_dl/train/readme.md) and
-[micro_dl/inference](https://github.com/mehta-lab/microDL/blob/master/micro_dl/inference/readme.md).
+For config settings, see module specific readme's in [micro_dl/preprocessing](micro_dl/preprocessing/readme.md),
+[micro_dl/training](micro_dl/train/readme.md) and
+[micro_dl/inference](micro_dl/inference/readme.md).
 
 ```buildoutcfg
 python micro_dl/cli/preprocessing_script.py --config <preprocessing yaml config file>
