@@ -3,7 +3,7 @@
 ## Run Training
 
 Assuming you have a config file that specifies what you would like to train
-(see examples config.yml or config_regression.yml), you can start training with the command
+(see examples [config_train.yml](https://github.com/mehta-lab/microDL/blob/microDL-documentation/config_files/config_train.yml) or [Training-config_2DUnet_regression_phase2nucleus.yml](https://github.com/mehta-lab/microDL/blob/microDL-documentation/config_files/Training-config_2DUnet_regression_phase2nucleus.yml)), you can start training with the command
 
 ```buildoutcfg
 python micro_dl/cli/train_script.py --config <config yml file> --gpu <gpu id> --gpu_mem_frac <memory fraction>
@@ -20,6 +20,8 @@ If memory fraction is unspecified, all memory currently available on the GPU wil
 be allocated for you.
 
 ## Config File Settings
+
+Example configuration files for training a [2D U-Net model](https://github.com/mehta-lab/microDL/blob/microDL-documentation/config_files/Training-config_2DUnet_regression_phase2nucleus.yml) and [2.5D U-Net model](https://github.com/mehta-lab/microDL/blob/microDL-documentation/config_files/Training-config_2.5DUnet_regression_phase2membrane.yml) are included in the [config_files](https://github.com/mehta-lab/microDL/tree/microDL-documentation/config_files) folder.
 
 There are three main blocks you can configure settings for in this module: dataset, trainer and network.
 
