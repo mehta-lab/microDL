@@ -2,8 +2,7 @@
 
 ## Run Training
 
-Assuming you have a config file that specifies what you would like to train
-(see examples [config_train.yml](https://github.com/mehta-lab/microDL/blob/microDL-documentation/config_files/config_train.yml) or [Training-config_2DUnet_regression_phase2nucleus.yml](https://github.com/mehta-lab/microDL/blob/microDL-documentation/config_files/Training-config_2DUnet_regression_phase2nucleus.yml)), you can start training with the command
+Assuming you have a config file that specifies what you would like to train. See examples [config_train](https://github.com/mehta-lab/microDL/blob/microDL-documentation/config_files/config_train.yml).yml or [Training-config_2DUnet_regression_phase2nucleus](https://github.com/mehta-lab/microDL/blob/microDL-documentation/config_files/Training-config_2DUnet_regression_phase2nucleus.yml).yml. You can start training with the command
 
 ```buildoutcfg
 python micro_dl/cli/train_script.py --config <config yml file> --gpu <gpu id> --gpu_mem_frac <memory fraction>

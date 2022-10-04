@@ -20,9 +20,9 @@ python micro_dl/cli/preprocess_script.py --config <config path (.yml)>
 
 ### Specify input data to be used for training the model
 
-Example preprocessing configuration files for [2D U-Net model](https://github.com/mehta-lab/microDL/blob/microDL-documentation/config_files/Preprocessing-config_2DUnet_regression_phase2nucleus.yml) and [2.5D U-Net model](https://github.com/mehta-lab/microDL/blob/microDL-documentation/config_files/Preprocessing-config_2.5DUnet_regression_phase2membrane.yml) are included in '[config_files](https://github.com/mehta-lab/microDL/tree/microDL-documentation/config_files)' folder.
+Example preprocessing configuration files for [2D U-Net model](https://github.com/mehta-lab/microDL/blob/microDL-documentation/config_files/Preprocessing-config_2DUnet_regression_phase2nucleus.yml) and [2.5D U-Net model](https://github.com/mehta-lab/microDL/blob/microDL-documentation/config_files/Preprocessing-config_2.5DUnet_regression_phase2membrane.yml) are included in [config_files](https://github.com/mehta-lab/microDL/tree/microDL-documentation/config_files) folder.
 
-The following settings can be adjusted in preprocessing using a config file (see example in [config_preprocess.yml](https://github.com/mehta-lab/microDL/blob/microDL-documentation/config_files/config_preprocess.yml) and [Preprocessing-config_2DUnet_regression_phase2nucleus.yml](https://github.com/mehta-lab/microDL/blob/microDL-documentation/config_files/Preprocessing-config_2DUnet_regression_phase2nucleus.yml)):
+The following settings can be adjusted in preprocessing using a config file. See example in [config_preprocess](https://github.com/mehta-lab/microDL/blob/microDL-documentation/config_files/config_preprocess.yml).yml and [Preprocessing-config_2DUnet_regression_phase2nucleus](https://github.com/mehta-lab/microDL/blob/microDL-documentation/config_files/Preprocessing-config_2DUnet_regression_phase2nucleus.yml).yml.
 
 * output_dir: (str) folder name where all processed data will be written
 * verbose: (int) Logging verbosity levels: NOTSET:0, DEBUG:10, INFO:20, WARNING:30, ERROR:40, CRITICAL:50
