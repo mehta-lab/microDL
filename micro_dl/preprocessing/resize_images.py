@@ -101,6 +101,7 @@ class ImageResizer:
             )
             kwargs = {
                 'meta_row': meta_row,
+                'dir_name': self.input_dir,
                 'output_dir': self.resize_dir,
                 'scale_factor': self.scale_factor,
                 'ff_path': ff_path,

@@ -430,25 +430,29 @@ def pre_process(preprocess_config):
     time_start = time.time()
     required_params = get_required_params(preprocess_config)
 
-    # ------------------Check or create metadata---------------------
-    try:
-        # Check if metadata is present
-        aux_utils.read_meta(required_params['input_dir'])
-    except AssertionError as e:
-        print(e, "Generating metadata.")
-        order = 'cztp'
-        name_parser = 'parse_sms_name'
-        if 'metadata' in preprocess_config:
-            if 'order' in preprocess_config['metadata']:
-                order = preprocess_config['metadata']['order']
-            if 'name_parser' in preprocess_config['metadata']:
-                name_parser = preprocess_config['metadata']['name_parser']
-        # Create metadata from file names instead
-        meta_utils.frames_meta_generator(
-            input_dir=required_params['input_dir'],
-            order=order,
-            name_parser=name_parser,
-        )
+    # ------------------Create metadata---------------------
+    # Remove old metadata first
+    meta_path = os.path.join(required_params['input_dir'], 'frames_meta.csv')
+    if os.path.exists(meta_path):
+        os.remove(meta_path)
+    # Create metadata
+    order = 'cztp'
+    name_parser = 'parse_sms_name'
+    if 'metadata' in preprocess_config:
+        if 'order' in preprocess_config['metadata']:
+            order = preprocess_config['metadata']['order']
+        if 'name_parser' in preprocess_config['metadata']:
+            name_parser = preprocess_config['metadata']['name_parser']
+    # Create metadata from file names instead
+    file_format = 'zarr'
+    if 'file_format' in preprocess_config:
+        file_format = preprocess_config['file_format']
+    meta_utils.frames_meta_generator(
+        input_dir=required_params['input_dir'],
+        file_format=file_format,
+        order=order,
+        name_parser=name_parser,
+    )
 
     # -----------------Estimate flat field images--------------------
     flat_field_dir = None

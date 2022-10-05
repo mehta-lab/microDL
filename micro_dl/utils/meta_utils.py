@@ -12,6 +12,7 @@ import micro_dl.utils.mp_utils as mp_utils
 
 def frames_meta_generator(
         input_dir,
+        file_format='zarr',
         order='cztp',
         name_parser='parse_sms_name',
         ):
@@ -37,20 +38,25 @@ def frames_meta_generator(
     https://ngff.openmicroscopy.org/0.1/
 
     :param str input_dir:   path to input directory containing image data
+    :param str file_format: Image file format ('zarr' or 'tiff' or 'png')
     :param str order: Order in which file name encodes cztp (for tiff/png)
     :param str name_parser: Function in aux_utils for parsing indices from tiff/png file name
     :return pd.DataFrame frames_meta: Metadata for all frames in dataset
     """
-    zarr_files = glob.glob(os.path.join(input_dir, '*.zarr'))
-    if len(zarr_files) == 0:
+    if 'zarr' in file_format:
+        zarr_files = glob.glob(os.path.join(input_dir, '*.zarr'))
+        assert len(zarr_files) > 0, \
+            "file_format specified as zarr, but no zarr files found"
+        # Generate frames_meta from zarr metadata
+        frames_meta = frames_meta_from_zarr(input_dir, zarr_files)
+    elif 'tif' in file_format or 'png' in file_format:
         frames_meta = frames_meta_from_filenames(
             input_dir,
             name_parser,
             order,
         )
     else:
-        # Generate frames_meta from zarr metadata
-        frames_meta = frames_meta_from_zarr(input_dir, zarr_files)
+        raise FileNotFoundError("Check that file_format matches image files")
 
     # Write metadata
     frames_meta_filename = os.path.join(input_dir, 'frames_meta.csv')
@@ -153,6 +159,10 @@ def ints_meta_generator(
     :param str flat_field_dir: Directory containing flatfield images
     :param list/int channel_ids: Channel indices to process
     """
+    ints_meta_filename = os.path.join(input_dir, 'intensity_meta.csv')
+    # Remove old file if exists first
+    if os.path.exists(ints_meta_filename):
+        os.remove(ints_meta_filename)
     if block_size is None:
         block_size = 256
     frames_metadata = aux_utils.read_meta(input_dir)
@@ -174,7 +184,6 @@ def ints_meta_generator(
     im_ints_list = list(itertools.chain.from_iterable(im_ints_list))
     ints_meta = pd.DataFrame.from_dict(im_ints_list)
 
-    ints_meta_filename = os.path.join(input_dir, 'intensity_meta.csv')
     ints_meta.to_csv(ints_meta_filename, sep=",")
 
 

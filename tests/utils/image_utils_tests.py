@@ -298,6 +298,7 @@ class TestImageUtils(unittest.TestCase):
     def test_read_imstack_from_meta(self):
         im_stack = image_utils.read_imstack_from_meta(
             frames_meta_sub=self.frames_meta,
+            dir_name=self.temp_path,
             hist_clip_limits=(0, 100),
         )
         np.testing.assert_array_equal(im_stack, self.sph)
