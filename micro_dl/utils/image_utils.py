@@ -288,7 +288,7 @@ def read_image(file_path):
     return im
 
 
-def read_image_from_row(meta_row):
+def read_image_from_row(meta_row, dir_name=None):
     """
     Read 2D grayscale image from file.
     Checks file extension for npy and load array if true. Otherwise
@@ -296,12 +296,15 @@ def read_image_from_row(meta_row):
     files) of any bit depth.
 
     :param pd.DataFrame meta_row: Row in metadata
+    :param str/None dir_name: Directory containing images (none if using frames meta dir_name)
     :return array im: 2D image
     :raise IOError if image can't be opened
     """
     if isinstance(meta_row, (pd.DataFrame, pd.Series)):
         meta_row = meta_row.squeeze()
-    file_path = os.path.join(meta_row['dir_name'], meta_row['file_name'])
+    if dir_name is None:
+        dir_name = meta_row['dir_name']
+    file_path = os.path.join(dir_name, meta_row['file_name'])
     if file_path[-3:] == 'npy':
         im = np.load(file_path)
     elif 'zarr' in file_path[-5:]:
@@ -380,6 +383,7 @@ def preprocess_image(im,
 
 
 def read_imstack_from_meta(frames_meta_sub,
+                           dir_name=None,
                            flat_field_fnames=None,
                            hist_clip_limits=None,
                            is_mask=False,
@@ -391,6 +395,7 @@ def read_imstack_from_meta(frames_meta_sub,
     If images are masks, make sure they're boolean by setting >0 to True
 
     :param pd.DataFrame frames_meta_sub: Selected subvolume to be read
+    :param str/None dir_name: Directory path (none if using dir in frames_meta)
     :param str/list flat_field_fnames: Path(s) to flat field image(s)
     :param tuple hist_clip_limits: Percentile limits for histogram clipping
     :param bool is_mask: Indicator for if files contain masks
@@ -412,7 +417,7 @@ def read_imstack_from_meta(frames_meta_sub,
     if nbr_images > 1:
         for idx in range(meta_shape[0]):
             meta_row = frames_meta_sub.iloc[idx]
-            im = read_image_from_row(meta_row)
+            im = read_image_from_row(meta_row, dir_name)
             flat_field_fname = flat_field_fnames[idx]
             if flat_field_fname is not None:
                 if not is_mask and not normalize_im:
@@ -423,7 +428,7 @@ def read_imstack_from_meta(frames_meta_sub,
             im_stack.append(im)
     else:
         # In case of series
-        im = read_image_from_row(frames_meta_sub)
+        im = read_image_from_row(frames_meta_sub, dir_name)
         flat_field_fname = flat_field_fnames[0]
         if flat_field_fname is not None:
             if not is_mask and not normalize_im:
@@ -504,6 +509,7 @@ def preprocess_imstack(frames_metadata,
                        channel_idx,
                        slice_idx,
                        pos_idx,
+                       dir_name=None,
                        flat_field_path=None,
                        hist_clip_limits=None,
                        normalize_im='stack',
@@ -518,6 +524,7 @@ def preprocess_imstack(frames_metadata,
     :param int channel_idx: Channel index
     :param int slice_idx: Slice (z) index
     :param int pos_idx: Position (FOV) index
+    :param str/None dir_name: Image directory (none if using the frames_meta dir_name)
     :param np.array flat_field_path: Path to flat field image for channel
     :param list hist_clip_limits: Limits for histogram clipping (size 2)
     :param str or None normalize_im: options to z-score the image
@@ -542,7 +549,7 @@ def preprocess_imstack(frames_metadata,
             pos_idx,
         )
         meta_row = frames_metadata.loc[meta_idx]
-        im = read_image_from_row(meta_row)
+        im = read_image_from_row(meta_row, dir_name)
         # Only flatfield correct images that won't be normalized
         if flat_field_path is not None:
             assert normalize_im in [None, 'stack'], \

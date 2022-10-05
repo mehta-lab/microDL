@@ -161,6 +161,7 @@ class TestMpUtilsOtsu(TestMpUtilsBaseClass):
                 slice_start_idx=0,
                 slice_end_idx=8,
                 frames_metadata=self.frames_meta,
+                dir_name=self.temp_path,
                 output_fname=op_fname,
                 scale_factor=[4.1, 1.0, 1.0],
                 ff_path=None,
@@ -262,8 +263,8 @@ def test_mp_sample_im_pixels():
         meta_row2 = meta_row.copy()
         meta_row2['file_name'] = 'im2.tif'
         fn_args = [
-            (meta_row, ff_path, 10),
-            (meta_row2, ff_path, 10),
+            (meta_row, ff_path, 10, temp_path),
+            (meta_row2, ff_path, 10, temp_path),
         ]
         res = mp_utils.mp_sample_im_pixels(fn_args, 1)
         nose.tools.assert_equal(len(res), 2)
