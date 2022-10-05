@@ -168,6 +168,7 @@ class ImageResizer:
                                         slice_start_idx,
                                         slice_end_idx,
                                         self.frames_metadata,
+                                        self.input_dir,
                                         write_fpath,
                                         self.scale_factor,
                                         ff_path))

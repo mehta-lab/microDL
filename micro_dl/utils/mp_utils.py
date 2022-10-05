@@ -362,12 +362,13 @@ def resize_and_save(**kwargs):
 
     Keyword arguments:
     :param pd.DataFrame meta_row: Row of metadata
+    :param str/None dir_name: Image directory (none if using dir_name from frames_meta)
     :param str output_dir: Path to output directory
     :param float scale_factor: Scale factor for resizing
     :param str ff_path: Path to flatfield image
     """
     meta_row = kwargs['meta_row']
-    im = image_utils.read_image_from_row(meta_row)
+    im = image_utils.read_image_from_row(meta_row, kwargs['dir_name'])
 
     if kwargs['ff_path'] is not None:
         im = image_utils.apply_flat_field_correction(
@@ -413,6 +414,7 @@ def rescale_vol_and_save(time_idx,
                          slice_start_idx,
                          slice_end_idx,
                          frames_metadata,
+                         dir_name,
                          output_fname,
                          scale_factor,
                          ff_path):
@@ -424,6 +426,7 @@ def rescale_vol_and_save(time_idx,
     :param int slice_start_idx: start slice idx for the vol to be saved
     :param int slice_end_idx: end slice idx for the vol to be saved
     :param pd.Dataframe frames_metadata: metadata for the input slices
+    :param str/None dir_name: Image directory (none if using dir_name from frames_meta)
     :param str output_fname: output_fname
     :param float/list scale_factor: scale factor for resizing
     :param str/None ff_path: path to flat field image
@@ -438,7 +441,9 @@ def rescale_vol_and_save(time_idx,
             pos_idx,
         )
         meta_row = frames_metadata.loc[meta_idx]
-        cur_img = image_utils.read_image_from_row(meta_row)
+        if dir_name is None:
+            dir_name = meta_row['dir_name']
+        cur_img = image_utils.read_image_from_row(meta_row, dir_name)
         if ff_path is not None:
             cur_img = image_utils.apply_flat_field_correction(
                 cur_img,
@@ -502,7 +507,7 @@ def mp_sample_im_pixels(fn_args, workers):
     return list(res)
 
 
-def sample_im_pixels(meta_row, ff_path, grid_spacing):
+def sample_im_pixels(meta_row, ff_path, grid_spacing, dir_name=None):
     """
     Read and computes statistics of images for each point in a grid.
     Grid spacing determines distance in pixels between grid points
@@ -513,9 +518,12 @@ def sample_im_pixels(meta_row, ff_path, grid_spacing):
     :param dict meta_row: Metadata row for image
     :param str ff_path: Full path to flatfield image corresponding to image
     :param int grid_spacing: Distance in pixels between sampling points
+    :param str/None dir_name: Image directory (none if using dir_name from frames_meta)
     :return list meta_rows: Dicts with intensity data for each grid point
     """
-    im = image_utils.read_image_from_row(meta_row)
+    if dir_name is None:
+        dir_name = meta_row['dir_name']
+    im = image_utils.read_image_from_row(meta_row, dir_name)
     if ff_path is not None:
         im = image_utils.apply_flat_field_correction(
             input_image=im,

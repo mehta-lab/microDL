@@ -241,6 +241,10 @@ class TestImageUtils(unittest.TestCase):
         im = image_utils.read_image_from_row(self.meta_row)
         np.testing.assert_array_equal(im, self.sph[..., 7])
 
+    def test_read_image_from_row_dir_name(self):
+        im = image_utils.read_image_from_row(self.meta_row, self.temp_path)
+        np.testing.assert_array_equal(im, self.sph[..., 7])
+
     def test_read_image_from_row_zarr(self):
         meta_row = self.meta_row.copy()
         meta_row['file_name'] = 'test_sphere_pos{}.zarr'.format(self.pos_idx)

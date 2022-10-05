@@ -69,7 +69,7 @@ class FlatFieldEstimator2D:
             summed_image = None
             # Average over all positions
             for idx, row in channel_metadata.iterrows():
-                im = im_utils.read_image_from_row(row)
+                im = im_utils.read_image_from_row(row, self.input_dir)
                 if len(im.shape) == 3:
                     im = np.mean(im, axis=2)
                 if summed_image is None:
