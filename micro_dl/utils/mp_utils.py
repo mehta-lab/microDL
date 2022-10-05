@@ -45,6 +45,7 @@ def create_save_mask(channels_meta_sub,
                      int2str_len,
                      mask_type,
                      mask_ext,
+                     dir_name=None,
                      channel_thrs=None):
 
     """
@@ -68,6 +69,7 @@ def create_save_mask(channels_meta_sub,
      NPY files for otsu, unimodal masks, recommended to save as npy
      float64 for borders_weight_loss_map masks to avoid loss due to scaling it
      to uint8.
+    :param str/None dir_name: Image directory (none if using frames_meta dir_name)
     :param list channel_thrs: list of threshold for each channel to generate
     binary masks. Only used when mask_type is 'dataset_otsu'
     :return dict cur_meta: One for each mask. fg_frac is added to metadata
@@ -75,6 +77,7 @@ def create_save_mask(channels_meta_sub,
     """
     im_stack = image_utils.read_imstack_from_meta(
         frames_meta_sub=channels_meta_sub,
+        dir_name=dir_name,
         flat_field_fnames=flat_field_fnames,
         normalize_im=None,
     )
@@ -196,6 +199,7 @@ def tile_and_save(meta_sub,
                   min_fraction,
                   image_format,
                   save_dir,
+                  dir_name=None,
                   int2str_len=3,
                   is_mask=False,
                   normalize_im=None,
@@ -214,6 +218,7 @@ def tile_and_save(meta_sub,
     :param float min_fraction: min foreground volume fraction for keep tile
     :param str image_format: zyx / xyz
     :param str save_dir: output dir to save tiles
+    :param str/None dir_name: Image directory
     :param int int2str_len: len of indices for creating file names
     :param bool is_mask: Indicates if files are masks
     :param str/None normalize_im: Normalization method
@@ -227,12 +232,13 @@ def tile_and_save(meta_sub,
     try:
         input_image = image_utils.read_imstack_from_meta(
             frames_meta_sub=meta_sub,
+            dir_name=dir_name,
             flat_field_fnames=flat_field_fname,
             hist_clip_limits=hist_clip_limits,
             is_mask=is_mask,
             normalize_im=normalize_im,
             zscore_mean=zscore_mean,
-            zscore_std=zscore_std
+            zscore_std=zscore_std,
         )
         save_dict = {'time_idx': time_idx,
                      'channel_idx': channel_idx,
@@ -281,6 +287,7 @@ def crop_at_indices_save(meta_sub,
                          crop_indices,
                          image_format,
                          save_dir,
+                         dir_name=None,
                          int2str_len=3,
                          is_mask=False,
                          tile_3d=False,
@@ -300,6 +307,7 @@ def crop_at_indices_save(meta_sub,
     :param tuple crop_indices: tuple of indices for cropping
     :param str image_format: zyx or xyz
     :param str save_dir: output dir to save tiles
+    :param str/None dir_name: Input directory
     :param int int2str_len: len of indices for creating file names
     :param bool is_mask: Indicates if files are masks
     :param bool tile_3d: indicator for tiling in 3D
@@ -311,6 +319,7 @@ def crop_at_indices_save(meta_sub,
     try:
         input_image = image_utils.read_imstack_from_meta(
             frames_meta_sub=meta_sub,
+            dir_name=dir_name,
             flat_field_fnames=flat_field_fname,
             hist_clip_limits=hist_clip_limits,
             is_mask=is_mask,

@@ -196,6 +196,7 @@ class MaskProcessor:
                             self.int2str_len,
                             self.mask_type,
                             self.mask_ext,
+                            self.input_dir,
                             channel_thrs)
                 fn_args.append(cur_args)
         else:
@@ -220,7 +221,8 @@ class MaskProcessor:
                                     self.mask_channel,
                                     self.int2str_len,
                                     self.mask_type,
-                                    self.mask_ext)
+                                    self.mask_ext,
+                                    self.input_dir)
                         fn_args.append(cur_args)
 
         mask_meta_list = mp_create_save_mask(fn_args, self.num_workers)
