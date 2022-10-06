@@ -334,12 +334,13 @@ class TestImageTilerUniform(unittest.TestCase):
         # nose.tools.assert_equal(cur_args[5], self.exp_tile_indices)
         nose.tools.assert_equal(cur_args[5], 'zyx')
         nose.tools.assert_equal(cur_args[6], self.tile_inst.get_tile_dir())
-        nose.tools.assert_equal(cur_args[7], 3)
-        self.assertFalse(cur_args[8])
+        nose.tools.assert_equal(cur_args[7], self.temp_path)
+        nose.tools.assert_equal(cur_args[8], 3)
         self.assertFalse(cur_args[9])
-        self.assertIsNone(cur_args[10])
+        self.assertFalse(cur_args[10])
         self.assertIsNone(cur_args[11])
         self.assertIsNone(cur_args[12])
+        self.assertIsNone(cur_args[13])
 
     def test_get_tile_args(self):
         """Test get_crop_tile_args with task_type=tile"""
@@ -379,16 +380,18 @@ class TestImageTilerUniform(unittest.TestCase):
         self.assertEqual(cur_args[7], 'zyx')
         # tile dir
         self.assertEqual(cur_args[8], self.tile_inst.get_tile_dir())
+        # dir name
+        self.assertEqual(cur_args[9], self.mask_dir)
         # int2strlen
-        self.assertEqual(cur_args[9], 3)
+        self.assertEqual(cur_args[10], 3)
         # is_mask
-        self.assertTrue(cur_args[10])
+        self.assertTrue(cur_args[11])
         # normalize_im
-        self.assertIsNone(cur_args[11])
-        # zscore median
         self.assertIsNone(cur_args[12])
-        # zscore iqr
+        # zscore median
         self.assertIsNone(cur_args[13])
+        # zscore iqr
+        self.assertIsNone(cur_args[14])
 
     def test_get_tile_args_not_mask(self):
         cur_args = self.tile_inst.get_crop_tile_args(
@@ -421,16 +424,18 @@ class TestImageTilerUniform(unittest.TestCase):
         self.assertEqual(cur_args[7], 'zyx')
         # tile dir
         self.assertEqual(cur_args[8], self.tile_inst.get_tile_dir())
+        # dir name
+        self.assertEqual(cur_args[9], self.temp_path)
         # int2strlen
-        self.assertEqual(cur_args[9], 3)
+        self.assertEqual(cur_args[10], 3)
         # is_mask
-        self.assertFalse(cur_args[10])
+        self.assertFalse(cur_args[11])
         # normalize_im
-        self.assertIsNone(cur_args[11])
-        # zscore median
         self.assertIsNone(cur_args[12])
-        # zscore iqr
+        # zscore median
         self.assertIsNone(cur_args[13])
+        # zscore iqr
+        self.assertIsNone(cur_args[14])
 
     def test_tile_stack(self):
         """Test tile_stack"""

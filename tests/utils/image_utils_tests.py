@@ -348,6 +348,7 @@ class TestImageUtils(unittest.TestCase):
             channel_idx=self.channel_idx,
             slice_idx=2,
             pos_idx=self.pos_idx,
+            dir_name=self.temp_path,
             normalize_im='dataset',
         )
         np.testing.assert_equal(im_stack.shape, (32, 32, 3))

@@ -179,6 +179,7 @@ class InferenceDataSet(keras.utils.Sequence):
                    channel_ids,
                    depth,
                    normalize_im,
+                   dir_name=None,
                    is_mask=False):
         """
         Assemble one input or target tensor
@@ -186,7 +187,8 @@ class InferenceDataSet(keras.utils.Sequence):
         :param pd.Series cur_row: Current row in frames_meta
         :param int/list channel_ids: Channel indices
         :param int depth: Stack depth
-        :param str normalize: normalization options for images
+        :param str/None normalize_im: normalization options for images
+        :param str/None dir_name: Image directory
         :return np.array (3D / 4D) im_stack: Image stack
         """
         im_stack = []
@@ -209,6 +211,7 @@ class InferenceDataSet(keras.utils.Sequence):
                 channel_idx=channel_idx,
                 slice_idx=cur_row['slice_idx'],
                 pos_idx=cur_row['pos_idx'],
+                dir_name=dir_name,
                 flat_field_path=flat_field_path,
                 normalize_im=normalize_im,
             )
@@ -254,12 +257,14 @@ class InferenceDataSet(keras.utils.Sequence):
             channel_ids=self.input_channels,
             depth=self.depth,
             normalize_im=self.normalize_im,
+            dir_name=self.image_dir,
         )
         target_stack = self._get_image(
             cur_row=cur_row,
             channel_ids=self.target_channels,
             depth=self.target_depth,
             normalize_im=None,
+            dir_name=self.target_dir,
             is_mask=is_mask,
         )
         # Add batch dimension
