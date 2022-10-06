@@ -112,6 +112,7 @@ class TestPreprocessScript(unittest.TestCase):
         self.pp_config = {
             'output_dir': self.output_dir,
             'input_dir': self.image_dir,
+            'file_format': 'tiff',
             'channel_ids': [0, 1, 3],
             'num_workers': 4,
             'flat_field': {'method': 'estimate',
@@ -135,6 +136,7 @@ class TestPreprocessScript(unittest.TestCase):
         self.base_config = {
             'input_dir': self.image_dir,
             'output_dir': self.output_dir,
+            'file_format': 'tiff',
             'slice_ids': -1,
             'time_ids': -1,
             'pos_ids': -1,
@@ -271,6 +273,7 @@ class TestPreprocessScript(unittest.TestCase):
 
     def test_pre_process_zarr(self):
         self.pp_config['input_dir'] = self.zarr_dir
+        self.pp_config['file_format'] = 'zarr'
         out_config, runtime = pp.pre_process(self.pp_config)
         self.assertIsInstance(runtime, np.float)
         self.assertEqual(
@@ -416,8 +419,6 @@ class TestPreprocessScript(unittest.TestCase):
             'channel_name',
             'dir_name',
             'file_name',
-            'mean',
-            'std',
             'row_idx',
             'col_idx',
             'intensity',
