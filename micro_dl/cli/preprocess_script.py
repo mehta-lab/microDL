@@ -431,11 +431,7 @@ def pre_process(preprocess_config):
     required_params = get_required_params(preprocess_config)
 
     # ------------------Create metadata---------------------
-    # Remove old metadata first
-    meta_path = os.path.join(required_params['input_dir'], 'frames_meta.csv')
-    if os.path.exists(meta_path):
-        os.remove(meta_path)
-    # Create metadata
+    # Create metadata (ignore old metadata)
     order = 'cztp'
     name_parser = 'parse_sms_name'
     if 'metadata' in preprocess_config:
@@ -537,6 +533,9 @@ def pre_process(preprocess_config):
     mask_dir = None
     mask_channel = None
     if 'masks' in preprocess_config:
+        # Automatically assign existing masks the next available channel number
+        frames_meta = aux_utils.read_meta(required_params['input_dir'])
+        mask_channel = frames_meta['channel_idx'].max() + 1
         if 'channels' in preprocess_config['masks']:
             # Generate masks from channel
             assert 'mask_dir' not in preprocess_config['masks'], \
@@ -558,7 +557,7 @@ def pre_process(preprocess_config):
                 flat_field_dir=flat_field_dir,
                 str_elem_radius=str_elem_radius,
                 mask_type=mask_type,
-                mask_channel=None,
+                mask_channel=mask_channel,
                 mask_ext=mask_ext,
             )
         elif 'mask_dir' in preprocess_config['masks']:

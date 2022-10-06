@@ -347,6 +347,7 @@ class ImageTilerUniform:
         zscore_iqr = None
         is_mask = False
         normalize_im = None
+        dir_name = self.input_dir
         if mask_dir is None:
             normalize_im = self.normalize_channels[channel_idx]
             flat_field_path = image_utils.get_flat_field_path(
@@ -373,6 +374,7 @@ class ImageTilerUniform:
         else:
             # Using masks, need to make sure they're bool
             is_mask = True
+            dir_name = mask_dir
 
         cur_args = ()
         if task_type == 'crop':
@@ -383,7 +385,7 @@ class ImageTilerUniform:
                         tuple(tile_indices),
                         self.image_format,
                         self.tile_dir,
-                        self.input_dir,
+                        dir_name,
                         self.int2str_len,
                         is_mask,
                         self.tile_3d,
@@ -400,7 +402,7 @@ class ImageTilerUniform:
                         self.min_fraction,
                         self.image_format,
                         self.tile_dir,
-                        self.input_dir,
+                        dir_name,
                         self.int2str_len,
                         is_mask,
                         normalize_im,
@@ -444,6 +446,7 @@ class ImageTilerUniform:
                                 channel_idx=channel_idx,
                                 slice_idx=slice_idx,
                                 pos_idx=pos_idx,
+                                dir_name=self.input_dir,
                                 flat_field_path=flat_field_path,
                                 hist_clip_limits=self.hist_clip_limits,
                                 normalize_im=self.normalize_channels[channel_idx],
