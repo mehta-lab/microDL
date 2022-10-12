@@ -11,18 +11,23 @@ import micro_dl.utils.aux_utils as aux_utils
 
 # Create test metadata table
 meta_df = aux_utils.make_dataframe()
-channel_idx = 5
+channel_name = 'Phase'
+channel_idx = 0
 time_idx = 6
 for s in range(3):
     for p in range(4):
-        im_temp = aux_utils.get_im_name(
-            channel_idx=channel_idx,
+        im_temp = aux_utils.get_sms_im_name(
+            channel_name=channel_name,
             slice_idx=s,
             time_idx=time_idx,
             pos_idx=p,
         )
         # Now dataframes are assumed to have dir name in them
-        meta_row = aux_utils.parse_idx_from_name(im_name=im_temp, dir_name='temp_dir')
+        meta_row = aux_utils.parse_sms_name(
+            im_name=im_temp,
+            dir_name='temp_dir',
+        )
+        print(meta_row)
         meta_df = meta_df.append(
             meta_row,
             ignore_index=True,
@@ -46,13 +51,57 @@ def test_read_config():
         nose.tools.assert_dict_equal(config, test_config)
 
 
+def test_get_channels():
+    with TempDirectory() as tempdir:
+        dir_name = tempdir.path
+        meta_df.to_csv(os.path.join(dir_name, 'frames_meta.csv'), sep=',')
+        channel_map = aux_utils.get_channels(dir_name)
+        nose.tools.assert_equal(len(channel_map), 1)
+        nose.tools.assert_equal(list(channel_map)[0], channel_name)
+        nose.tools.assert_equal(channel_map[channel_name], 0)
+
+
+def test_convert_channel_names_to_ids():
+    channel_map = {
+        "foo": 0,
+        "bar": 1,
+        "baz": 2,
+    }
+    channel_names = ['bar', 'baz']
+    channel_ids = aux_utils.convert_channel_names_to_ids(
+        channel_map=channel_map,
+        channel_list=channel_names,
+    )
+    nose.tools.assert_list_equal(channel_ids, [1, 2])
+
+
+def test_convert_channel_names_to_ids_ints():
+    channel_map = {
+        "foo": 0,
+        "bar": 1,
+        "baz": 2,
+    }
+    channel_ids = aux_utils.convert_channel_names_to_ids(
+        channel_map=channel_map,
+        channel_list=[1],
+    )
+    nose.tools.assert_list_equal(channel_ids, [1])
+
+
+@nose.tools.raises(AssertionError)
+def test_convert_channel_names_to_ids_bad_map():
+    channel_ids = aux_utils.convert_channel_names_to_ids(
+        channel_map={},
+        channel_list=[3, 5],
+    )
+
+
 def test_get_row_idx():
     row_idx = aux_utils.get_row_idx(meta_df, time_idx, channel_idx)
     nose.tools.assert_equal(row_idx.all(), True)
 
 
 def test_get_row_idx_slice():
-    aux_utils.parse_idx_from_name(im_temp)
     row_idx = aux_utils.get_row_idx(meta_df, time_idx, channel_idx, slice_idx=1)
     for i, val in row_idx.items():
         if meta_df.iloc[i].slice_idx == 1:
@@ -78,7 +127,7 @@ def test_get_row_idx_slice_pos():
 
 def test_get_meta_idx():
     pos_idx = aux_utils.get_meta_idx(meta_df, time_idx, channel_idx, 0, 1)
-    # This corrresponds to the second row in the dataframe
+    # This corresponds to the second row in the dataframe
     nose.tools.assert_equal(pos_idx, 1)
 
 
@@ -110,14 +159,14 @@ def test_get_sms_im_name():
 def test_get_sms_im_name_nones():
     im_name = aux_utils.get_sms_im_name(
         time_idx=0,
-        channel_name=None,
+        channel_name='channel_name',
         slice_idx=None,
         pos_idx=10,
         extra_field=None,
         ext='.jpg',
         int2str_len=2,
     )
-    nose.tools.assert_equal(im_name, 'img_t00_p10.jpg')
+    nose.tools.assert_equal(im_name, 'img_channel_name_t00_p10.jpg')
 
 
 def test_get_im_name_default():
@@ -129,11 +178,12 @@ def test_sort_meta_by_channel():
     # Create a df with a second channel idx
     meta_copy = meta_df.copy()
     meta_copy.channel_idx = 4
+    meta_copy.channel_name = 'channel2'
     meta_copy = meta_copy.append(meta_df, ignore_index=True)
     meta_channel = aux_utils.sort_meta_by_channel(meta_copy)
     col_names = list(meta_channel)
+    nose.tools.assert_in('file_name_0', col_names)
     nose.tools.assert_in('file_name_4', col_names)
-    nose.tools.assert_in('file_name_5', col_names)
 
 
 def validate_metadata_indices():

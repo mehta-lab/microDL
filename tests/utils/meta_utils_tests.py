@@ -33,6 +33,7 @@ class TestMetaUtils(unittest.TestCase):
         # Mask meta file
         self.csv_name = 'mask_image_matchup.csv'
         self.input_meta = aux_utils.make_dataframe()
+        self.channel_names = ['channel0', 'channel1', 'channel2']
         # Make input meta
         for c in range(3):
             ff_path = os.path.join(
@@ -41,8 +42,8 @@ class TestMetaUtils(unittest.TestCase):
             )
             np.save(ff_path, ff_im, allow_pickle=True, fix_imports=True)
             for p in range(5):
-                im_name = aux_utils.get_im_name(
-                    channel_idx=c,
+                im_name = aux_utils.get_sms_im_name(
+                    channel_name=self.channel_names[c],
                     slice_idx=self.slice_idx,
                     time_idx=self.time_idx,
                     pos_idx=p,
@@ -55,7 +56,7 @@ class TestMetaUtils(unittest.TestCase):
                     os.path.join(self.mask_dir, im_name),
                     self.mask,
                 )
-                meta_row = aux_utils.parse_idx_from_name(im_name=im_name, dir_name=self.input_dir)
+                meta_row = aux_utils.parse_sms_name(im_name=im_name, dir_name=self.input_dir)
                 self.input_meta = self.input_meta.append(
                     meta_row,
                     ignore_index=True,
@@ -72,7 +73,7 @@ class TestMetaUtils(unittest.TestCase):
         frames_meta = meta_utils.frames_meta_generator(
             input_dir=self.input_dir,
             file_format='png',
-            name_parser='parse_idx_from_name',
+            name_parser='parse_sms_name',
         )
         for idx, row in frames_meta.iterrows():
             input_row = self.input_meta.iloc[idx]
@@ -80,6 +81,7 @@ class TestMetaUtils(unittest.TestCase):
             nose.tools.assert_equal(input_row['slice_idx'], row['slice_idx'])
             nose.tools.assert_equal(input_row['time_idx'], row['time_idx'])
             nose.tools.assert_equal(input_row['channel_idx'], row['channel_idx'])
+            nose.tools.assert_equal(input_row['channel_name'], row['channel_name'])
             nose.tools.assert_equal(input_row['pos_idx'], row['pos_idx'])
 
     def test_ints_meta_generator(self):
@@ -100,12 +102,13 @@ class TestMetaUtils(unittest.TestCase):
         self.assertEqual(intensity_meta.shape[0], 45)
         # Check one image
         meta_im = intensity_meta.loc[
-            intensity_meta['file_name'] == 'im_c000_z001_t002_p000.png',
+            intensity_meta['file_name'] == 'img_channel0_t002_p003_z001.tiff',
         ]
+        meta_im = meta_im.reset_index(drop=True)
         for i, col_idx in enumerate([5, 10, 15]):
             self.assertEqual(meta_im.loc[i, 'col_idx'], col_idx)
             self.assertEqual(meta_im.loc[i, 'row_idx'], 5)
-            self.assertEqual(meta_im.loc[i, 'intensity'], 5)
+            self.assertEqual(meta_im.loc[i, 'intensity'], 35)
 
     def test_ints_meta_generator_flatfield(self):
         # Write metadata
@@ -125,7 +128,7 @@ class TestMetaUtils(unittest.TestCase):
         self.assertEqual(intensity_meta.shape[0], 45)
         # Check one image
         meta_im = intensity_meta.loc[
-            intensity_meta['file_name'] == 'im_c000_z001_t002_p000.png',
+            intensity_meta['file_name'] == 'img_channel0_t002_p000_z001.tiff',
         ]
         for i, col_idx in enumerate([5, 10, 15]):
             self.assertEqual(meta_im.loc[i, 'col_idx'], col_idx)
