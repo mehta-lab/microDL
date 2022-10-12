@@ -2,20 +2,20 @@ output_dir: '/Users/jenny.folkesson/Data/microdl_testdata/output_zarr/'
 verbose: 10
 input_dir: '/Users/jenny.folkesson/Data/microdl_testdata/'
 file_format: 'zarr'
-channel_ids: [0, 1, 2]
+channel_names: ['Phase2D', 'Nucleus-NucView', 'Nucleus-Hoechst']
 slice_ids: [0]
 pos_ids: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
 num_workers: 4
 flat_field:
     method: 'estimate'
-    flat_field_channels: [0, 1, 2]
+    flat_field_channels: ['Phase2D', 'Nucleus-NucView', 'Nucleus-Hoechst']
 normalize:
     normalize_im: 'dataset'
     min_fraction: 0.25
     normalize_channels: [True, True, True]
 uniform_struct: True
 masks:
-    channels: [1]
+    channels: ['Nucleus-NucView']
     str_elem_radius: 3
     mask_type: 'unimodal'
     mask_ext: '.png'
@@ -26,6 +26,3 @@ tile:
     depths: [1, 1, 1]
     image_format: 'zyx'
     min_fraction: 0.25
-metadata:
-    order: 'cztp'
-    name_parser: 'parse_sms_name'

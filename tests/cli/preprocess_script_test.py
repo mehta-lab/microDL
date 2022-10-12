@@ -30,6 +30,7 @@ class TestPreprocessScript(unittest.TestCase):
         self.time_idx = 0
         self.pos_ids = [7, 8, 10]
         self.channel_ids = [0, 1, 2, 3]
+        self.channel_names = ['ch0', 'ch1', 'ch2', 'ch3']
         self.flat_field_channels = [0, 1]
         self.slice_ids = [0, 1, 2, 3, 4, 5]
         self.im = 1500 * np.ones((30, 20), dtype=np.uint16)
@@ -44,13 +45,13 @@ class TestPreprocessScript(unittest.TestCase):
                 position=p,
                 data_shape=(1, 4, 6, 30, 20),
                 chunk_size=(1, 1, 1, 30, 20),
-                chan_names=['ch0', 'ch1', 'ch2', 'ch3'],
+                chan_names=self.channel_names,
                 dtype='uint16',
             )
             for c in self.channel_ids:
                 for z in self.slice_ids:
-                    im_name = aux_utils.get_im_name(
-                        channel_idx=c,
+                    im_name = aux_utils.get_sms_im_name(
+                        channel_name=self.channel_names[c],
                         slice_idx=z,
                         time_idx=self.time_idx,
                         pos_idx=p,
@@ -61,7 +62,7 @@ class TestPreprocessScript(unittest.TestCase):
                     # Write zarr
                     zarr_writer.write(im, p=p, t=0, c=c, z=z)
                     # Create metadata
-                    meta_row = aux_utils.parse_idx_from_name(
+                    meta_row = aux_utils.parse_sms_name(
                         im_name=im_name,
                         dir_name=self.image_dir,
                     )
@@ -113,7 +114,7 @@ class TestPreprocessScript(unittest.TestCase):
             'output_dir': self.output_dir,
             'input_dir': self.image_dir,
             'file_format': 'tiff',
-            'channel_ids': [0, 1, 3],
+            'channel_names': ['ch0', 'ch1', 'ch3'],
             'num_workers': 4,
             'flat_field': {'method': 'estimate',
                            'block_size': 2,
@@ -140,7 +141,8 @@ class TestPreprocessScript(unittest.TestCase):
             'slice_ids': -1,
             'time_ids': -1,
             'pos_ids': -1,
-            'channel_ids': self.pp_config['channel_ids'],
+            'channel_names': self.pp_config['channel_names'],
+            'channel_ids': [0, 1, 3],
             'uniform_struct': True,
             'int2strlen': 3,
             'num_workers': 4,
@@ -163,7 +165,7 @@ class TestPreprocessScript(unittest.TestCase):
         )
         self.assertEqual(
             self.base_config['channel_ids'],
-            self.pp_config['channel_ids'],
+            out_config['channel_ids'],
         )
         self.assertEqual(
             out_config['flat_field']['flat_field_dir'],
@@ -278,7 +280,7 @@ class TestPreprocessScript(unittest.TestCase):
         self.assertIsInstance(runtime, np.float)
         self.assertEqual(
             self.base_config['channel_ids'],
-            self.pp_config['channel_ids'],
+            out_config['channel_ids'],
         )
         self.assertEqual(
             out_config['flat_field']['flat_field_dir'],
