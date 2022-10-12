@@ -31,12 +31,12 @@ The images part is focused around running predictions, whereas metrics parameter
 * model_fname (str/None): File name of weights in model dir (.hdf5).
 If left out, latest weights file will be selected.
 * image_dir (str): Directory containing full size input images (not tiles)
-* data_split (str): Which data (train/test/val) to run inference on.
+* data_split (str): Which data (train/test/val/all) to run inference on.
  (default = test)
 * save_figs (str): 'True' or 'False', if figures generated should be saved.
 
 * dataset:
-  * input_channels (list/None): label-free channel used for prediction by model, get numbers from metadata
+  * input_channels (list/None): label-free channel used for prediction by model, get numbers from metadata. Channel id arranged according to names in the order of preference: number -> Uppercase alphabets -> lowercase alphabets. 
   * target_channels (list/None): target image channel (fluorescence image) to compare how well the prediction worked
   * slice_ids (list/None): image slices
   * pos_ids (list/None): may not effect the positions where prediction is performed if data split is defined

@@ -25,7 +25,7 @@ images:
     image_ext: '.tif'       # output images are stored as single page tiff files
     suffix: '2DUnet_nucl'   # saved output image name suffix
     name_format: sms        # 'sms' corresponds to image naming format 'img_channelname_t***_p***_z***_customfield', default naming convention is 'im_c***_z***_t***_p***'
-    pred_chan_name: 'pred'  # prefix of saved output image name
+    pred_chan_name: 'pred'  # suffix added to saved output image name
 save_to_image_dir: False    # 'False' saves output in model directory, 'True' in input image directory
 save_folder_name: predictions # specify the name of directory to be created inside model dir to save output images
 data_split: val             # define which image set in train/val/test/all split are to be used for the prediction

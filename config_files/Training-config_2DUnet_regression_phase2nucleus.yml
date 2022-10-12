@@ -41,7 +41,7 @@ dataset:
     train: 0.8
     val: 0.1
 
-  squeeze: True
+  squeeze: True           # It makes sure that the singleton dimension in 2D data is squeezed
   width: 256               # width of the tiles for model trsining
   random_seed: 0
 

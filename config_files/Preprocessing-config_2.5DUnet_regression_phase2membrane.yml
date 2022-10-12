@@ -14,10 +14,10 @@ verbose: 10
 
 # This is the folder the data used for training is stored. The image stacks compose of label-free images, corresponding fluorescence images at different time points, positions and z slices.
 # The stacks must be processed to get the focus slice in the same positon in all z stack from different positions.
-# If your images are not well aligned you can use the following [code](https://github.com/mehta-lab/microDL/blob/master/scripts/align_z_focus.py) to register the channels in z.
+# If your images are not well aligned in z, you can use the following [code](https://github.com/mehta-lab/microDL/blob/master/scripts/align_z_focus.py) to register the channels in z.
 input_dir: '/home/TrainingData_dir'
 
-# Specify all the input and target channels to be preprocessed (normalization is an option).
+# Specify all the input and target channels to be preprocessed.
 # the id numbers can be found in metadata generated for input data. The ids are allocated based on channel names on image name, accounting
 # them in the order :  numbers --> uppercase alphabets --> lower case alphabets in alphabetical order.
 channel_ids: [0, 1, 2]  # in this specific case, 0=membrane, 1=nucleus, 2=label-free channel
