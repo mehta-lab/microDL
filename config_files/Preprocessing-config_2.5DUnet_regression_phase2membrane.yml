@@ -1,0 +1,99 @@
+## Preprocessing images before microDL model training
+
+# Preprocessing config file contains all information required to be input to the preprocessing code in microDL.
+# The preprocessing code performs normalization of the images from different channels and creates segmented mask for channel to be predicted/segmented.
+# The masks are used to vaguely define the pixels belonging to foreground and background of the targeted channel.
+# The masks can be created either using an Otsu or Unimodal threshold, more details on the notebook demonstrating microDL.
+# In order to perform efficient training, the images and corresponding masks are cropped into tiles of defined size which is stored as preprocessed data.
+
+# Preprocessed tiles and corresponding masks are stored in the following directory after preprocessing.
+output_dir: '/home/Processed_temp_dir/'
+
+# log verbosity level
+verbose: 10
+
+# This is the folder the data used for training is stored. The image stacks compose of label-free images, corresponding fluorescence images at different time points, positions and z slices.
+# The stacks must be processed to get the focus slice in the same positon in all z stack from different positions.
+# If your images are not well aligned in z, you can use the following [code](https://github.com/mehta-lab/microDL/blob/master/scripts/align_z_focus.py) to register the channels in z.
+input_dir: '/home/TrainingData_dir'
+
+# Specify all the input and target channels to be preprocessed.
+# the id numbers can be found in metadata generated for input data. The ids are allocated based on channel names on image name, accounting
+# them in the order :  numbers --> uppercase alphabets --> lower case alphabets in alphabetical order.
+channel_ids: [0, 1, 2]  # in this specific case, 0=membrane, 1=nucleus, 2=label-free channel
+
+# Specify the slices which should be used for training. Some slices might be too out-of-focus' and thus may not yield any useful information for training or can even confuse the training process.
+# Pick the slices to be in good focus range, but diverse enough to get enough 3D information.
+slice_ids: [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+
+# Chose the image positions used for training.
+pos_ids: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49]
+
+# Chose the image time indices used for training.
+time_ids: [0,3,5]
+
+# The number of workers to be used during preprocessing.
+# This is hardware specific.
+num_workers: 12
+
+# Normalize the images using the following parameters:
+normalize:
+
+# Specifies subset over which to normalize data: dataset, stack, slice, volume
+  normalize_im: 'dataset'
+
+# The fraction of pixels which can be considered as foreground. min_fraction of 0.25 means 1/4th of the pixels are foreground
+# if you are staining nucleus, tiles will be around 25% covered by nuclear regions
+  min_fraction: 0.1
+
+# Which channels are to be normalized : same length as length of channel id vector, specify if required or not using True or False
+  normalize_channels: [True, True, True]
+
+# If the data set has a uniform structure over times, channels, slices, positions, and image sizes. Non-uniform structures are currently not supported.
+  uniform_struct: True
+
+# Mask parameters: defines segmnetion for foreground and background regions for staining
+masks:
+
+# which is your target channel, to be segmented for use in training the model? The number can be determined from input image metadata generated.
+  channels: [1]
+
+# Structuring element radius for morphological operations in unimodal or otsu thresholding for mask generation.
+  str_elem_radius: 3
+
+# method used for segmentation, can be unimodal if intensities are not uniform, otsu if signal is uniform
+  mask_type: 'unimodal'
+
+# Save format of the processed mask images (for visualization as well!)
+  mask_ext: '.png'
+
+
+# Tile parameters : Defines parameters for tile creation for training, from the different input channels and mask channel images
+tile:
+
+# The fraction of pixels which can be considered as foreground. min_fraction of 0.25 means 1/4th of the pixels are foreground
+# if you are staining nucleus, tiles will be around 25% covered by nuclear regions
+  min_fraction: 0.1
+
+# The parameter 'tile_size' defines the size of tiles in [x-width,y-length] format to be created from input images useful for training the microDL models.
+  tile_size: [256, 256]
+
+# step size is the stride between centers of tiles
+  step_size: [128, 128]
+
+# Tile depths in z for each channel to be preprocessed. E.g. if tiling for a stack to 2.5D model, input channels would
+# have a depth > 1 (5 is common), and output channel(s) would have a depth of 1.
+  depths: [1, 1, 5]
+    
+# 'image_format' defines the order of 3D array dimensions, z slices (1st dimension), x and y (image x-y dimension).
+  image_format: 'zyx'
+
+# Metadata helps read files with specific naming conventions and extract metadata from their file names.
+metadata:
+
+# the images produced by processing are named by the format 'channel_zslice_time_position', for example, 'c001_z046_t000_p023'
+  order: 'cztp'
+
+# this deals with metadata parsing with specific naming convention for files
+  name_parser: 'parse_sms_name'
+
