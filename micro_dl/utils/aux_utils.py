@@ -98,7 +98,8 @@ def convert_channel_names_to_ids(channel_map, channel_list):
     if all(isinstance(val, int) for val in channel_list):
         # Check that indices exist in metadata
         assert set(channel_list).issubset(set(channel_map.values())), \
-            "Channel list {} is not subset of frames meta channels".format(channel_list)
+            "Channel list {} is not subset of frames meta channels:" \
+            " {}".format(channel_list, channel_map.values())
         return channel_list
     channel_ids = []
     existing_channels = list(channel_map)

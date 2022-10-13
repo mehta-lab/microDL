@@ -61,6 +61,7 @@ class TestMetaUtils(unittest.TestCase):
                     meta_row,
                     ignore_index=True,
                 )
+        self.input_meta.sort_values(by=['file_name'])
 
     def tearDown(self):
         """
@@ -72,7 +73,7 @@ class TestMetaUtils(unittest.TestCase):
     def test_frames_meta_generator(self):
         frames_meta = meta_utils.frames_meta_generator(
             input_dir=self.input_dir,
-            file_format='png',
+            file_format='tiff',
             name_parser='parse_sms_name',
         )
         for idx, row in frames_meta.iterrows():
