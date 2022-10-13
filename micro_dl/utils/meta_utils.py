@@ -121,21 +121,10 @@ def ints_meta_generator(
     Generate pixel intensity metadata for estimating image normalization
     parameters during preprocessing step. Pixels are sub-sampled from the image
     following a grid pattern defined by block_size to for efficient estimation of
-    median and interquatile range. Grid sampling is preferred over random sampling
+    median and interquartile range. Grid sampling is preferred over random sampling
     in the case due to the spatial correlation in images.
     Will write found data in ints_meta.csv in input directory.
-    Assumed default file naming convention is:
-    dir_name
-    |
-    |- im_c***_z***_t***_p***.png
-    |- im_c***_z***_t***_p***.png
-
-    c is channel
-    z is slice in stack (z)
-    t is time
-    p is position (FOV)
-
-    Other naming convention is:
+    Assumed default naming convention for tiff files is:
     img_channelname_t***_p***_z***.tif for parse_sms_name
 
     :param str input_dir: path to input directory containing images
@@ -169,7 +158,6 @@ def ints_meta_generator(
     im_ints_list = mp_utils.mp_sample_im_pixels(mp_fn_args, num_workers)
     im_ints_list = list(itertools.chain.from_iterable(im_ints_list))
     ints_meta = pd.DataFrame.from_dict(im_ints_list)
-
     ints_meta.to_csv(ints_meta_filename, sep=",")
 
 

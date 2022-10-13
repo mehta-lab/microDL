@@ -31,7 +31,8 @@ class TestPreprocessScript(unittest.TestCase):
         self.pos_ids = [7, 8, 10]
         self.channel_ids = [0, 1, 2, 3]
         self.channel_names = ['ch0', 'ch1', 'ch2', 'ch3']
-        self.flat_field_channels = [0, 1]
+        self.flat_field_channels = ['ch0', 'ch1']
+        self.flat_field_channel_ids = [0, 1]
         self.slice_ids = [0, 1, 2, 3, 4, 5]
         self.im = 1500 * np.ones((30, 20), dtype=np.uint16)
         self.im[10:20, 5:15] = 3000
@@ -120,7 +121,7 @@ class TestPreprocessScript(unittest.TestCase):
                            'block_size': 2,
                            'flat_field_channels': self.flat_field_channels,
                            },
-            'masks': {'channels': [3],
+            'masks': {'channels': ['ch3'],
                       'str_elem_radius': 3,
                       },
             'tile': {'tile_size': [10, 10],
@@ -214,7 +215,7 @@ class TestPreprocessScript(unittest.TestCase):
         ff_names.sort()
         for i, ff_name in enumerate(ff_names):
             expected_name = 'flat-field_channel-{}.npy'.format(
-                self.flat_field_channels[i],
+                self.flat_field_channel_ids[i],
             )
             self.assertEqual(ff_name, expected_name)
             im = np.load(os.path.join(ff_dir, expected_name))
@@ -329,7 +330,7 @@ class TestPreprocessScript(unittest.TestCase):
         ff_names.sort()
         for i, ff_name in enumerate(ff_names):
             expected_name = 'flat-field_channel-{}.npy'.format(
-                self.flat_field_channels[i],
+                self.flat_field_channel_ids[i],
             )
             self.assertEqual(ff_name, expected_name)
             im = np.load(os.path.join(ff_dir, expected_name))
@@ -421,6 +422,8 @@ class TestPreprocessScript(unittest.TestCase):
             'channel_name',
             'dir_name',
             'file_name',
+            'mean',
+            'std',
             'row_idx',
             'col_idx',
             'intensity',
@@ -515,7 +518,7 @@ class TestPreprocessScript(unittest.TestCase):
         flat_field_dir = os.path.join(self.output_dir,
                                       'flat_field_images')
         os.makedirs(flat_field_dir, exist_ok=True)
-        for ff_channel in self.flat_field_channels:
+        for ff_channel in self.flat_field_channel_ids:
             ff_name = 'flat-field_channel-{}.npy'.format(ff_channel)
             np.save(
                 os.path.join(flat_field_dir, ff_name),
@@ -589,7 +592,7 @@ class TestPreprocessScript(unittest.TestCase):
         self.assertEqual(resize_meta.shape[0], expected_rows)
         # Load an image and make sure it's twice as big
         im = cv2.imread(
-            os.path.join(resize_dir, 'im_c003_z002_t000_p010.png'),
+            os.path.join(resize_dir, 'img_ch3_t000_p008_z004.tiff'),
             cv2.IMREAD_ANYDEPTH,
         )
         self.assertTupleEqual(im.shape, (60, 40))

@@ -71,12 +71,14 @@ def get_required_params(preprocess_config):
     channel_ids = -1
     # Find channel names in frames meta
     channel_map = aux_utils.get_channels(input_dir)
+    preprocess_config['channel_map'] = channel_map
     if 'channel_names' in preprocess_config:
         channel_names = preprocess_config['channel_names']
         channel_ids = aux_utils.convert_channel_names_to_ids(
             channel_map=channel_map,
             channel_list=channel_names,
         )
+        preprocess_config['channel_ids'] = channel_ids
     else:
         warnings.warn("No channels specified, using all channels.")
 
@@ -442,8 +444,7 @@ def pre_process(preprocess_config):
     try:
         # Check if metadata is present
         aux_utils.read_meta(preprocess_config['input_dir'])
-        warnings.warn("Using existing frames_meta.csv file. Please delete "
-                      "old metadata prior to running if you want to create new.")
+        warnings.warn("Using existing frames_meta.csv file. Delete prior to running if you want to create new.")
     except AssertionError as e:
         print(e, "Generating metadata from files.")
         name_parser = 'parse_sms_name'
@@ -465,7 +466,6 @@ def pre_process(preprocess_config):
 
     # -----------------Estimate flat field images--------------------
     flat_field_dir = None
-    flat_field_channels = []
     if 'flat_field' in preprocess_config:
         # If flat_field_channels aren't specified, correct all channel_ids
         flat_field_channels = required_params['channel_ids']
@@ -510,6 +510,7 @@ def pre_process(preprocess_config):
             assert set(existing_channels) == set(flat_field_channels), \
                 "Expected flatfield channels {}, and saved channels {} " \
                 "mismatch".format(flat_field_channels, existing_channels)
+        preprocess_config['flat_field']['flat_field_channels'] = flat_field_channels
 
     # -------Compute intensities for flatfield corrected images-------
     if required_params['normalize_im'] in ['dataset', 'volume', 'slice']:
