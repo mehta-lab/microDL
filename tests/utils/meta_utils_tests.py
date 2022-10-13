@@ -61,7 +61,7 @@ class TestMetaUtils(unittest.TestCase):
                     meta_row,
                     ignore_index=True,
                 )
-        self.input_meta.sort_values(by=['file_name'])
+        self.input_meta.sort_values(by=['channel_idx', 'slice_idx', 'pos_idx', 'time_idx'])
 
     def tearDown(self):
         """
@@ -131,6 +131,7 @@ class TestMetaUtils(unittest.TestCase):
         meta_im = intensity_meta.loc[
             intensity_meta['file_name'] == 'img_channel0_t002_p000_z001.tiff',
         ]
+        print(meta_im)
         for i, col_idx in enumerate([5, 10, 15]):
             self.assertEqual(meta_im.loc[i, 'col_idx'], col_idx)
             self.assertEqual(meta_im.loc[i, 'row_idx'], 5)
