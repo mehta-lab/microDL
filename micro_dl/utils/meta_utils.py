@@ -46,7 +46,7 @@ def frames_meta_generator(
         raise FileNotFoundError("Check that file_format matches image files")
 
     # Sort metadata
-    frames_meta.sort_values(by=['file_name'])
+    frames_meta.sort_values(by=['channel_idx', 'slice_idx', 'pos_idx', 'time_idx'])
     # Write metadata
     frames_meta_filename = os.path.join(input_dir, 'frames_meta.csv')
     frames_meta.to_csv(frames_meta_filename, sep=",")
@@ -55,6 +55,8 @@ def frames_meta_generator(
 
 def frames_meta_from_filenames(input_dir, name_parser):
     """
+    Extracts metadata (channel, position, time, slice) from file name.
+
     :param str input_dir:   path to input directory containing images
     :param str name_parser: Function in aux_utils for parsing indices from file name
     :return pd.DataFrame frames_meta: Metadata for all frames in dataset
@@ -153,6 +155,7 @@ def ints_meta_generator(
             channel_idx,
             channel_ids,
         )
+        print('ff path', ff_path)
         mp_fn_args.append((meta_row, ff_path, block_size))
 
     im_ints_list = mp_utils.mp_sample_im_pixels(mp_fn_args, num_workers)

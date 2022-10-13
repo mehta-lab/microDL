@@ -194,7 +194,7 @@ def get_sub_meta(frames_metadata,
         (frames_metadata['channel_idx'].isin(channel_ids)) &
         (frames_metadata['time_idx'].isin(time_ids)) &
         (frames_metadata["slice_idx"].isin(slice_ids)) &
-        (frames_metadata["pos_idx"].isin(pos_ids))]
+        (frames_metadata["pos_idx"].isin(pos_ids))].copy()
     return frames_meta_sub
 
 

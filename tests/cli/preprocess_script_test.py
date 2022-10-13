@@ -422,8 +422,6 @@ class TestPreprocessScript(unittest.TestCase):
             'channel_name',
             'dir_name',
             'file_name',
-            'mean',
-            'std',
             'row_idx',
             'col_idx',
             'intensity',

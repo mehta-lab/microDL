@@ -441,25 +441,22 @@ def pre_process(preprocess_config):
     time_start = time.time()
 
     # ------------------------Create metadata------------------------
-    try:
-        # Check if metadata is present
-        aux_utils.read_meta(preprocess_config['input_dir'])
-        warnings.warn("Using existing frames_meta.csv file. Delete prior to running if you want to create new.")
-    except AssertionError as e:
-        print(e, "Generating metadata from files.")
-        name_parser = 'parse_sms_name'
-        if 'metadata' in preprocess_config:
-            if 'name_parser' in preprocess_config['metadata']:
-                name_parser = preprocess_config['metadata']['name_parser']
-        # Create metadata from file names instead
-        file_format = 'zarr'
-        if 'file_format' in preprocess_config:
-            file_format = preprocess_config['file_format']
-        meta_utils.frames_meta_generator(
-            input_dir=preprocess_config['input_dir'],
-            file_format=file_format,
-            name_parser=name_parser,
-        )
+    meta_path = os.path.join(preprocess_config['input_dir'], 'frames_meta.csv')
+    if os.path.exists(meta_path):
+        os.remove(meta_path)
+    name_parser = 'parse_sms_name'
+    if 'metadata' in preprocess_config:
+        if 'name_parser' in preprocess_config['metadata']:
+            name_parser = preprocess_config['metadata']['name_parser']
+    # Create metadata from file names instead
+    file_format = 'zarr'
+    if 'file_format' in preprocess_config:
+        file_format = preprocess_config['file_format']
+    meta_utils.frames_meta_generator(
+        input_dir=preprocess_config['input_dir'],
+        file_format=file_format,
+        name_parser=name_parser,
+    )
 
     # ---------Collect required parameters for preprocessing---------
     required_params = get_required_params(preprocess_config)
