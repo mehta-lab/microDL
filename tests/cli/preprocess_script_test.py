@@ -66,6 +66,7 @@ class TestPreprocessScript(unittest.TestCase):
                     meta_row = aux_utils.parse_sms_name(
                         im_name=im_name,
                         dir_name=self.image_dir,
+                        channel_names=self.channel_names,
                     )
                     meta_row['mean'] = np.nanmean(im)
                     meta_row['std'] = np.nanstd(im)
