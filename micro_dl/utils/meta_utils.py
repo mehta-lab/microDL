@@ -146,6 +146,7 @@ def ints_meta_generator(
     if not isinstance(channel_ids, list):
         # Use all channels
         channel_ids = frames_metadata['channel_idx'].unique()
+
     mp_fn_args = []
     # Fill dataframe with rows from image names
     for i, meta_row in frames_metadata.iterrows():
@@ -155,7 +156,6 @@ def ints_meta_generator(
             channel_idx,
             channel_ids,
         )
-        print('ff path', ff_path)
         mp_fn_args.append((meta_row, ff_path, block_size))
 
     im_ints_list = mp_utils.mp_sample_im_pixels(mp_fn_args, num_workers)

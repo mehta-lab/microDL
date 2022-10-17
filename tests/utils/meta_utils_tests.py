@@ -56,7 +56,11 @@ class TestMetaUtils(unittest.TestCase):
                     os.path.join(self.mask_dir, im_name),
                     self.mask,
                 )
-                meta_row = aux_utils.parse_sms_name(im_name=im_name, dir_name=self.input_dir)
+                meta_row = aux_utils.parse_sms_name(
+                    im_name=im_name,
+                    dir_name=self.input_dir,
+                    channel_names=self.channel_names,
+                )
                 self.input_meta = self.input_meta.append(
                     meta_row,
                     ignore_index=True,
