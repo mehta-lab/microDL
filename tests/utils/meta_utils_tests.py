@@ -97,6 +97,7 @@ class TestMetaUtils(unittest.TestCase):
         )
         meta_utils.ints_meta_generator(
             input_dir=self.input_dir,
+            channel_ids=[0, 1, 2],
             block_size=5,
         )
         intensity_meta = pd.read_csv(
@@ -123,6 +124,7 @@ class TestMetaUtils(unittest.TestCase):
         )
         meta_utils.ints_meta_generator(
             input_dir=self.input_dir,
+            channel_ids=[0, 1, 2],
             block_size=5,
             flat_field_dir=self.ff_dir,
         )
@@ -172,6 +174,7 @@ class TestMetaUtils(unittest.TestCase):
         )
         meta_utils.ints_meta_generator(
             input_dir=self.input_dir,
+            channel_ids=[0, 1, 2],
             block_size=5,
         )
         intensity_meta = pd.read_csv(

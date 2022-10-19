@@ -29,56 +29,37 @@ class TestImageTilerUniform(unittest.TestCase):
         self.im2 = 234 * np.ones((15, 11), dtype=np.uint8)
         self.channel_idx = 1
         self.time_idx = 5
-        self.pos_idx1 = 7
-        self.pos_idx2 = 8
+        self.pos_ids = [7, 8]
+        self.slice_ids = list(range(15, 20))
         self.int2str_len = 3
         self.normalize_im = None
 
         # Write test images with 4 z and 2 pos idx
-        for z in range(15, 20):
-            im_name = aux_utils.get_im_name(
-                channel_idx=self.channel_idx,
-                slice_idx=z,
-                time_idx=self.time_idx,
-                pos_idx=self.pos_idx1,
-            )
-            meta_row = aux_utils.parse_idx_from_name(
-                im_name=im_name,
-                dir_name=self.temp_path,
-            )
-            meta_row['mean'] = np.nanmean(self.im)
-            meta_row['std'] = np.nanstd(self.im)
-            cv2.imwrite(
-                os.path.join(self.temp_path, im_name),
-                self.im,
-            )
-            frames_meta = frames_meta.append(
-                meta_row,
-                ignore_index=True,
-            )
-
-        for z in range(15, 20):
-            im_name = aux_utils.get_im_name(
-                channel_idx=self.channel_idx,
-                slice_idx=z,
-                time_idx=self.time_idx,
-                pos_idx=self.pos_idx2,
-            )
-
-            meta_row = aux_utils.parse_idx_from_name(
-                im_name=im_name,
-                dir_name=self.temp_path,
-            )
-            meta_row['mean'] = np.nanmean(self.im2)
-            meta_row['std'] = np.nanstd(self.im2)
-            cv2.imwrite(
-                os.path.join(self.temp_path, im_name),
-                self.im2,
-            )
-            frames_meta = frames_meta.append(
-                meta_row,
-                ignore_index=True,
-            )
+        for z in self.slice_ids:
+            for p in self.pos_ids:
+                im = self.im
+                if p == 8:
+                    im = self.im2
+                im_name = aux_utils.get_im_name(
+                    channel_idx=self.channel_idx,
+                    slice_idx=z,
+                    time_idx=self.time_idx,
+                    pos_idx=p,
+                )
+                meta_row = aux_utils.parse_idx_from_name(
+                    im_name=im_name,
+                    dir_name=self.temp_path,
+                )
+                meta_row['mean'] = np.nanmean(self.im)
+                meta_row['std'] = np.nanstd(self.im)
+                cv2.imwrite(
+                    os.path.join(self.temp_path, im_name),
+                    im,
+                )
+                frames_meta = frames_meta.append(
+                    meta_row,
+                    ignore_index=True,
+                )
 
         # Write metadata
         frames_meta.to_csv(
@@ -106,6 +87,9 @@ class TestImageTilerUniform(unittest.TestCase):
             step_size=[4, 4],
             depths=3,
             channel_ids=[1],
+            time_ids=[self.time_idx],
+            pos_ids=self.pos_ids,
+            slice_ids=self.slice_ids,
             normalize_channels=[True],
             flat_field_dir=self.flat_field_dir,
             normalize_im=self.normalize_im,
@@ -135,7 +119,7 @@ class TestImageTilerUniform(unittest.TestCase):
                 channel_idx=3,
                 slice_idx=z + 15,
                 time_idx=self.time_idx,
-                pos_idx=self.pos_idx1,
+                pos_idx=self.pos_ids[0],
                 ext='.npy',
             )
             np.save(os.path.join(self.mask_dir, im_name), cur_im)
@@ -173,15 +157,13 @@ class TestImageTilerUniform(unittest.TestCase):
         nose.tools.assert_equal(self.tile_inst.channel_ids, [self.channel_idx])
         nose.tools.assert_equal(self.tile_inst.time_ids, [self.time_idx])
         nose.tools.assert_equal(self.tile_inst.flat_field_dir,
-                                self.flat_field_dir,)
+                                self.flat_field_dir)
         # Depth is 3 so first and last frame will not be used
-        np.testing.assert_array_equal(self.tile_inst.slice_ids,
-                                      np.asarray([16, 17, 18]),)
-        np.testing.assert_array_equal(self.tile_inst.pos_ids,
-                                      np.asarray([7, 8]),)
+        self.assertListEqual(self.tile_inst.slice_ids, [16, 17, 18])
+        self.assertListEqual(self.tile_inst.pos_ids, self.pos_ids)
         # channel_depth should be a dict containing depths for each channel
         self.assertListEqual(list(self.tile_inst.channel_depth),
-                             [self.channel_idx],)
+                             [self.channel_idx])
         nose.tools.assert_equal(
             self.tile_inst.channel_depth[self.channel_idx],
             3,
@@ -261,7 +243,7 @@ class TestImageTilerUniform(unittest.TestCase):
                     time_idx=self.time_idx,
                     channel_idx=self.channel_idx,
                     slice_idx=z,
-                    pos_idx=self.pos_idx1,
+                    pos_idx=self.pos_ids[0],
                     extra_field=cur_img_id,
                     ext='.npy',
                 )
@@ -269,7 +251,7 @@ class TestImageTilerUniform(unittest.TestCase):
                              'slice_idx': z,
                              'time_idx': self.time_idx,
                              'file_name': pos1_fname,
-                             'pos_idx': self.pos_idx1,
+                             'pos_idx': self.pos_ids[0],
                              'row_start': exp_idx[0],
                              'col_start': exp_idx[2],
                              'dir_name': self.tile_inst.get_tile_dir(),
@@ -279,7 +261,7 @@ class TestImageTilerUniform(unittest.TestCase):
                     time_idx=self.time_idx,
                     channel_idx=self.channel_idx,
                     slice_idx=z,
-                    pos_idx=self.pos_idx2,
+                    pos_idx=self.pos_ids[1],
                     extra_field=cur_img_id,
                     ext='.npy',
                 )
@@ -287,7 +269,7 @@ class TestImageTilerUniform(unittest.TestCase):
                              'slice_idx': z,
                              'time_idx': self.time_idx,
                              'file_name': pos2_fname,
-                             'pos_idx': self.pos_idx2,
+                             'pos_idx': self.pos_ids[1],
                              'row_start': exp_idx[0],
                              'col_start': exp_idx[2],
                              'dir_name': self.tile_inst.get_tile_dir(),
@@ -305,12 +287,12 @@ class TestImageTilerUniform(unittest.TestCase):
             time_idx=self.time_idx,
             channel_idx=self.channel_idx,
             slice_idx=18,
-            pos_idx=self.pos_idx1,
+            pos_idx=self.pos_ids[0],
         )
         # Depth is 3 so indices will be 17, 18, 19
         self.assertListEqual(list(meta_sub['slice_idx']), [17, 18, 19])
         self.assertListEqual(list(meta_sub['channel_idx']), 3 * [self.channel_idx])
-        self.assertListEqual(list(meta_sub['pos_idx']), 3 * [self.pos_idx1])
+        self.assertListEqual(list(meta_sub['pos_idx']), 3 * [self.pos_ids[0]])
         self.assertListEqual(list(meta_sub['time_idx']), 3 * [self.time_idx])
 
     def test_get_crop_args(self):
@@ -459,6 +441,7 @@ class TestImageTilerUniform(unittest.TestCase):
         im_norm = im_val * np.ones((3, 5, 5))
         im_val = np.mean(self.im2 / self.ff_im)
         im2_norm = im_val * np.ones((3, 5, 5))
+        print(frames_meta)
         for i, row in frames_meta.iterrows():
             tile = np.load(os.path.join(tile_dir, row.file_name))
             if row.pos_idx == 7:
@@ -475,8 +458,10 @@ class TestImageTilerUniform(unittest.TestCase):
             tile_size=[5, 5],
             step_size=[4, 4],
             depths=3,
-            channel_ids=[1],
-            pos_ids=[7],
+            channel_ids=[self.channel_idx],
+            pos_ids=[self.pos_ids[0]],
+            time_ids=[self.time_idx],
+            slice_ids=self.slice_ids,
             normalize_channels=[True],
             flat_field_dir=self.flat_field_dir,
             normalize_im=self.normalize_im,
@@ -497,7 +482,7 @@ class TestImageTilerUniform(unittest.TestCase):
         self.assertSetEqual(set(frames_meta.channel_idx.tolist()), {1, 3})
         self.assertSetEqual(set(frames_meta.slice_idx.tolist()), {17, 18})
         self.assertSetEqual(set(frames_meta.time_idx.tolist()), {5})
-        self.assertSetEqual(set(frames_meta.pos_idx.tolist()), {self.pos_idx1})
+        self.assertSetEqual(set(frames_meta.pos_idx.tolist()), {self.pos_ids[0]})
 
         # with vf >= 0.5, 4 tiles will be saved for mask channel & [1]
         # [4,9,4,9,17], [8,13,4,9,17], [4,9,4,9,18], [8,13,4,9,18]

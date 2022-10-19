@@ -43,16 +43,16 @@ class TestMaskProcessor(unittest.TestCase):
         self.rec_object = rec
 
         self.channel_ids = [1, 2]
-        self.time_ids = 0
-        self.pos_ids = 1
+        self.time_ids = [0]
+        self.pos_ids = [1]
         self.int2str_len = 3
 
         for z in range(sph.shape[2]):
             im_name = aux_utils.get_im_name(
-                time_idx=self.time_ids,
+                time_idx=self.time_ids[0],
                 channel_idx=1,
                 slice_idx=z,
-                pos_idx=self.pos_ids,
+                pos_idx=self.pos_ids[0],
             )
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
@@ -66,10 +66,10 @@ class TestMaskProcessor(unittest.TestCase):
             )
         for z in range(rec.shape[2]):
             im_name = aux_utils.get_im_name(
-                time_idx=self.time_ids,
+                time_idx=self.time_ids[0],
                 channel_idx=2,
                 slice_idx=z,
-                pos_idx=self.pos_ids,
+                pos_idx=self.pos_ids[0],
             )
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
@@ -90,6 +90,9 @@ class TestMaskProcessor(unittest.TestCase):
             input_dir=self.temp_path,
             output_dir=self.output_dir,
             channel_ids=self.channel_ids,
+            time_ids=self.time_ids,
+            slice_ids=list(range(sph.shape[2])),
+            pos_ids=self.pos_ids,
         )
 
     def tearDown(self):
@@ -145,15 +148,15 @@ class TestMaskProcessor(unittest.TestCase):
     def test_generate_masks_nonuni(self):
         """Test generate_masks with non-uniform structure"""
         rec = self.rec_object[:, :, 3:6]
-        channel_ids = 0
-        time_ids = 0
+        channel_ids = [0]
+        time_ids = [0]
         pos_ids = [1, 2]
         frames_meta = aux_utils.make_dataframe()
 
         for z in range(self.sph_object.shape[2]):
             im_name = aux_utils.get_im_name(
-                time_idx=time_ids,
-                channel_idx=channel_ids,
+                time_idx=time_ids[0],
+                channel_idx=channel_ids[0],
                 slice_idx=z,
                 pos_idx=pos_ids[0],
             )
@@ -165,8 +168,8 @@ class TestMaskProcessor(unittest.TestCase):
             )
         for z in range(rec.shape[2]):
             im_name = aux_utils.get_im_name(
-                time_idx=time_ids,
-                channel_idx=channel_ids,
+                time_idx=time_ids[0],
+                channel_idx=channel_ids[0],
                 slice_idx=z,
                 pos_idx=pos_ids[1],
             )
@@ -181,10 +184,15 @@ class TestMaskProcessor(unittest.TestCase):
                            sep=',')
 
         self.output_dir = os.path.join(self.temp_path, 'mask_dir')
-        mask_gen_inst = MaskProcessor(input_dir=self.temp_path,
-                                      output_dir=self.output_dir,
-                                      channel_ids=channel_ids,
-                                      uniform_struct=False)
+        mask_gen_inst = MaskProcessor(
+            input_dir=self.temp_path,
+            output_dir=self.output_dir,
+            channel_ids=channel_ids,
+            time_ids=time_ids,
+            pos_ids=pos_ids,
+            slice_ids=list(range(self.sph_object.shape[2])),
+            uniform_struct=False,
+        )
         exp_nested_id_dict = {0: {0: {1: [0, 1, 2, 3, 4, 5, 6, 7],
                                       2: [0, 1, 2]}}}
         numpy.testing.assert_array_equal(mask_gen_inst.nested_id_dict[0][0][1],
