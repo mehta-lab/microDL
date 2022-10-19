@@ -15,10 +15,10 @@ class MaskProcessor:
                  input_dir,
                  output_dir,
                  channel_ids,
+                 time_ids,
+                 slice_ids,
+                 pos_ids,
                  flat_field_dir=None,
-                 time_ids=-1,
-                 slice_ids=-1,
-                 pos_ids=-1,
                  int2str_len=3,
                  uniform_struct=True,
                  num_workers=4,
@@ -30,14 +30,14 @@ class MaskProcessor:
         :param str output_dir: Base output directory
         :param list[int] channel_ids: Channel indices to be masked (typically
             just one)
+        :param list channel_ids: generate mask from the sum of these
+            (flurophore) channel indices
+        :param list time_ids: timepoints indices
+        :param list slice_ids: Indices of which focal planes (z)
+            acquisition to use
+        :param list pos_ids: Position (FOV) indices to use
         :param str flat_field_dir: Directory with flatfield images if
             flatfield correction is applied
-        :param int/list channel_ids: generate mask from the sum of these
-            (flurophore) channel indices
-        :param list/int time_ids: timepoints to consider
-        :param int slice_ids: Index of which focal plane (z)
-            acquisition to use (default -1 includes all slices)
-        :param int pos_ids: Position (FOV) indices to use
         :param int int2str_len: Length of str when converting ints
         :param bool uniform_struct: bool indicator for same structure across
             pos and time points

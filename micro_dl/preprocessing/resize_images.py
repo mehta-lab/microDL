@@ -16,10 +16,10 @@ class ImageResizer:
                  input_dir,
                  output_dir,
                  scale_factor,
-                 channel_ids=-1,
-                 time_ids=-1,
-                 slice_ids=-1,
-                 pos_ids=-1,
+                 channel_ids,
+                 time_ids,
+                 slice_ids,
+                 pos_ids,
                  int2str_len=3,
                  num_workers=4,
                  flat_field_dir=None,
@@ -30,9 +30,9 @@ class ImageResizer:
         :param float/list scale_factor: Scale factor for resizing frames.
         :param int/list channel_ids: Channel indices to resize
             (default -1 includes all slices)
-        :param int/list time_ids: timepoints to use
-        :param int/list slice_ids: Index of slice (z) indices to use
-        :param int/list pos_ids: Position (FOV) indices to use
+        :param list time_ids: timepoints to use
+        :param list slice_ids: Index of slice (z) indices to use
+        :param list pos_ids: Position (FOV) indices to use
         :param int int2str_len: Length of str when converting ints
         :param int num_workers: number of workers for multiprocessing
         :param str flat_field_dir: dir with flat field images
@@ -47,17 +47,10 @@ class ImageResizer:
         self.scale_factor = scale_factor
 
         self.frames_metadata = aux_utils.read_meta(self.input_dir)
-        metadata_ids, _ = aux_utils.validate_metadata_indices(
-            frames_metadata=self.frames_metadata,
-            time_ids=time_ids,
-            channel_ids=channel_ids,
-            slice_ids=slice_ids,
-            pos_ids=pos_ids,
-        )
-        self.time_ids = metadata_ids['time_ids']
-        self.channel_ids = metadata_ids['channel_ids']
-        self.slice_ids = metadata_ids['slice_ids']
-        self.pos_ids = metadata_ids['pos_ids']
+        self.time_ids = time_ids
+        self.channel_ids = channel_ids
+        self.slice_ids = slice_ids
+        self.pos_ids = pos_ids
         self.flat_field_channels = flat_field_channels
 
         # Create resize_dir as a subdirectory of output_dir

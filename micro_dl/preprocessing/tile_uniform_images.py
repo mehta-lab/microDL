@@ -15,14 +15,14 @@ class ImageTilerUniform:
     def __init__(self,
                  input_dir,
                  output_dir,
+                 time_ids,
+                 channel_ids,
+                 slice_ids,
+                 pos_ids,
+                 normalize_channels,
                  tile_size=[256, 256],
                  step_size=[64, 64],
                  depths=1,
-                 time_ids=-1,
-                 channel_ids=-1,
-                 normalize_channels=-1,
-                 slice_ids=-1,
-                 pos_ids=-1,
                  hist_clip_limits=None,
                  flat_field_dir=None,
                  image_format='zyx',
@@ -49,14 +49,13 @@ class ImageTilerUniform:
             Default 1 assumes 2D data for all channels to be tiled.
             For cases where input and target shapes are not the same (e.g. stack
             to 2D) you should specify depths for each channel in tile.channels.
-        :param list/int time_ids: Tile given timepoint indices
-        :param list/int channel_ids: Tile images in the given channel indices
-            default=-1, tile all channels.
-        :param list/int normalize_channels: list of booleans matching channel_ids
+        :param list time_ids: Tile given timepoint indices
+        :param list channel_ids: Tile images in the given channel indices
+        :param list slice_ids: Index of which focal plane acquisition to
+            use.
+        :param list pos_ids: Position (FOV) indices to use
+        :param list normalize_channels: list of booleans matching channel_ids
             indicating if channel should be normalized or not.
-        :param int slice_ids: Index of which focal plane acquisition to
-            use (for 2D). default=-1 for the whole z-stack
-        :param list/int pos_ids: Position (FOV) indices to use
         :param list hist_clip_limits: lower and upper percentiles used for
             histogram clipping.
         :param str flat_field_dir: Flatfield directory. None if no flatfield
@@ -108,20 +107,10 @@ class ImageTilerUniform:
 
         self.flat_field_dir = flat_field_dir
         self.frames_metadata = aux_utils.read_meta(self.input_dir)
-        # Get metadata indices
-        metadata_ids, _ = aux_utils.validate_metadata_indices(
-            frames_metadata=self.frames_metadata,
-            time_ids=time_ids,
-            channel_ids=channel_ids,
-            slice_ids=slice_ids,
-            pos_ids=pos_ids,
-            uniform_structure=True
-        )
-
-        self.channel_ids = metadata_ids['channel_ids']
-        self.time_ids = metadata_ids['time_ids']
-        self.slice_ids = metadata_ids['slice_ids']
-        self.pos_ids = metadata_ids['pos_ids']
+        self.channel_ids = channel_ids
+        self.time_ids = time_ids
+        self.slice_ids = slice_ids
+        self.pos_ids = pos_ids
         self.min_fraction = min_fraction
 
         if isinstance(self.depths, list):
@@ -154,20 +143,9 @@ class ImageTilerUniform:
             pos_ids=self.pos_ids)
 
         # Determine which channels should be normalized in tiling
-        if normalize_channels == -1:
-            self.normalize_channels = \
-                dict(zip(self.channel_ids, [normalize_im] * len(self.channel_ids)))
-        else:
-            assert len(normalize_channels) == len(self.channel_ids),\
-                "Channel ids {} and normalization list {} mismatch".format(
-                    self.channel_ids,
-                    normalize_channels,
-                )
-
-            normalize_channels = [normalize_im if flag else None for flag in normalize_channels]
-            # If more than one depth is specified, length must match channel ids
-            self.normalize_channels = \
-                dict(zip(self.channel_ids, normalize_channels))
+        normalize_channels = [normalize_im if flag else None for flag in normalize_channels]
+        # If more than one depth is specified, length must match channel ids
+        self.normalize_channels = dict(zip(self.channel_ids, normalize_channels))
 
     def get_tile_dir(self):
         """

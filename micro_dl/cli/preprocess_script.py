@@ -56,21 +56,26 @@ def get_required_params(preprocess_config):
     """
     input_dir = preprocess_config['input_dir']
     output_dir = preprocess_config['output_dir']
-    slice_ids = -1
-    if 'slice_ids' in preprocess_config:
-        slice_ids = preprocess_config['slice_ids']
+    frames_meta = aux_utils.read_meta(input_dir)
+    # Get indices for positions, times, slices and channels
+    slice_ids = aux_utils.validate_indices(
+        frames_meta=frames_meta,
+        preprocess_config=preprocess_config,
+        idx_type='slice',
+    )
+    time_ids = aux_utils.validate_indices(
+        frames_meta=frames_meta,
+        preprocess_config=preprocess_config,
+        idx_type='time',
+    )
+    pos_ids = aux_utils.validate_indices(
+        frames_meta=frames_meta,
+        preprocess_config=preprocess_config,
+        idx_type='pos',
+    )
 
-    time_ids = -1
-    if 'time_ids' in preprocess_config:
-        time_ids = preprocess_config['time_ids']
-
-    pos_ids = -1
-    if 'pos_ids' in preprocess_config:
-        pos_ids = preprocess_config['pos_ids']
-
-    channel_ids = -1
     # Find channel names in frames meta
-    channel_map = aux_utils.get_channels(input_dir)
+    channel_map = aux_utils.get_channels(frames_meta)
     preprocess_config['channel_map'] = channel_map
     if 'channel_names' in preprocess_config:
         channel_names = preprocess_config['channel_names']
@@ -81,6 +86,18 @@ def get_required_params(preprocess_config):
         preprocess_config['channel_ids'] = channel_ids
     else:
         warnings.warn("No channels specified, using all channels.")
+        channel_ids = list(channel_map.values())
+
+    # Only keep the metadata you will use
+    frames_meta_sub = aux_utils.get_sub_meta(
+        frames_metadata=frames_meta,
+        time_ids=time_ids,
+        channel_ids=channel_ids,
+        slice_ids=slice_ids,
+        pos_ids=pos_ids,
+    )
+    frames_meta_filename = os.path.join(input_dir, 'frames_meta.csv')
+    frames_meta_sub.to_csv(frames_meta_filename, sep=",")
 
     uniform_struct = True
     if 'uniform_struct' in preprocess_config:
@@ -95,18 +112,17 @@ def get_required_params(preprocess_config):
         num_workers = preprocess_config['num_workers']
 
     normalize_im = 'stack'
-    normalize_channels = -1
+    normalize_channels = [False] * len(channel_ids)
     if 'normalize' in preprocess_config:
         if 'normalize_im' in preprocess_config['normalize']:
             normalize_im = preprocess_config['normalize']['normalize_im']
         if 'normalize_channels' in preprocess_config['normalize']:
             normalize_channels = preprocess_config['normalize']['normalize_channels']
-            if isinstance(channel_ids, list):
-                assert len(channel_ids) == len(normalize_channels), \
-                    "Nbr channels {} and normalization {} mismatch".format(
-                        channel_ids,
-                        normalize_channels,
-                    )
+            assert len(channel_ids) == len(normalize_channels), \
+                "Nbr channels {} and normalization {} mismatch".format(
+                    channel_ids,
+                    normalize_channels,
+                )
 
     required_params = {
         'input_dir': input_dir,
@@ -239,10 +255,10 @@ def generate_masks(required_params,
         input_dir=input_dir,
         output_dir=required_params['output_dir'],
         channel_ids=mask_from_channel,
-        flat_field_dir=flat_field_dir,
         time_ids=required_params['time_ids'],
         slice_ids=required_params['slice_ids'],
         pos_ids=required_params['pos_ids'],
+        flat_field_dir=flat_field_dir,
         int2str_len=required_params['int2strlen'],
         uniform_struct=required_params['uniform_struct'],
         num_workers=required_params['num_workers'],
@@ -277,6 +293,7 @@ def generate_zscore_table(required_params,
     )
     mask_metadata = aux_utils.read_meta(mask_dir)
     cols_to_merge = ints_metadata.columns[ints_metadata.columns != 'fg_frac']
+
     ints_metadata = pd.merge(
         ints_metadata[cols_to_merge],
         mask_metadata[['pos_idx', 'time_idx', 'slice_idx', 'fg_frac']],
@@ -332,14 +349,14 @@ def tile_images(required_params,
     # setup tiling keyword arguments
     kwargs = {'input_dir': required_params['input_dir'],
               'output_dir': required_params['output_dir'],
-              'normalize_channels': required_params["normalize_channels"],
-              'tile_size': tile_dict['tile_size'],
-              'step_size': tile_dict['step_size'],
-              'depths': tile_dict['depths'],
               'time_ids': required_params['time_ids'],
               'channel_ids': required_params['channel_ids'],
               'slice_ids': required_params['slice_ids'],
               'pos_ids': required_params['pos_ids'],
+              'normalize_channels': required_params["normalize_channels"],
+              'tile_size': tile_dict['tile_size'],
+              'step_size': tile_dict['step_size'],
+              'depths': tile_dict['depths'],
               'hist_clip_limits': hist_clip_limits,
               'flat_field_dir': flat_field_dir,
               'num_workers': required_params['num_workers'],
@@ -473,7 +490,7 @@ def pre_process(preprocess_config):
                 channel_list=flat_field_channel_names,
             )
         # Check that flatfield channels is subset of channel_ids
-        assert set(flat_field_channels).issubset(required_params['channel_ids']), \
+        assert set(flat_field_channels).issubset(set(required_params['channel_ids'])), \
             "Flatfield channels {} is not a subset of channel_ids".format(flat_field_channels)
         #  Method options: 'estimate' (from input) or 'from_file' (load pre-saved)
         flat_field_method = 'estimate'
@@ -493,7 +510,6 @@ def pre_process(preprocess_config):
                 flat_field_channels,
             )
             preprocess_config['flat_field']['flat_field_dir'] = flat_field_dir
-
         elif flat_field_method is 'from_file':
             assert 'flat_field_dir' in preprocess_config['flat_field'], \
                 'flat_field_dir must exist if using from_file as flat_field method.'
