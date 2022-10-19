@@ -4,6 +4,7 @@ Script for testing .zarr reading. Compares with .tiff reader to show that output
 metadata are the same from both inputs: 
 '''
 
+from copy import deepcopy
 import numpy as np
 import pandas as pd
 import os
@@ -69,8 +70,8 @@ class TestZarrReading(unittest.TestCase):
         :param str tiff_tile_dir: directory containing tiff-preprocessed tiles
         :param str zarr_tile_dir: directory containing zarr-preprocessed tiles
         '''
-        tiff_tile_names = self._get_files_of_type(tiff_tile_dir, ftype = '.npy')
-        zarr_tile_names = self._get_files_of_type(zarr_tile_dir, ftype = '.npy')
+        tiff_tile_names = self._get_files_of_type(tiff_tile_dir, ftype='.npy')
+        zarr_tile_names = self._get_files_of_type(zarr_tile_dir, ftype='.npy')
         
         assert len(tiff_tile_names) == len(zarr_tile_names), 'Different numbers of tiles'
         
@@ -136,20 +137,20 @@ def get_base_preprocess_config():
         'output_dir': None,
         'verbose': 10,
         'input_dir': None,
-        'channel_ids': [0, 1, 2],
+        'channel_names': ['Phase3D', 'Nucleus-Hoechst', 'Membrane-CellMask'],
         'slice_ids': [8, 9, 10, 11, 12],
-        'pos_ids': [0, 1, 2, 3, 12, 24, 25, 26],
+        'pos_ids': [0, 1, 12, 24, 25],
         'num_workers': 4,
         'flat_field':
             {'method': 'estimate',
-            'flat_field_channels': [0, 1, 2]},
+            'flat_field_channels': ['Nucleus-Hoechst', 'Membrane-CellMask']},
         'normalize':
-            {'normalize_im': 'dataset',
+            {'normalize_im': 'slice',
             'min_fraction': 0.1,
             'normalize_channels': [True, True, True]},
         'uniform_struct': True,
         'masks':
-            {'channels': [0],
+            {'channels': ['Nucleus-Hoechst'],
             'str_elem_radius': 3,
             'mask_type': 'otsu',
             'mask_ext': '.png'},
@@ -175,23 +176,28 @@ def main(zarr_dir=None, tiff_dir=None, output_dir=None, config_path=None):
     else:
         preprocess_config = get_base_preprocess_config()
     
-    zarr_preprocess_config = preprocess_config.copy()
+    zarr_preprocess_config = deepcopy(preprocess_config)
     zarr_preprocess_config['input_dir'] = zarr_dir
     zarr_preprocess_config['output_dir'] = os.path.join(output_dir, 'temp_zarr_tiles')
     
-    tiff_preprocess_config = preprocess_config.copy()
+    tiff_preprocess_config = deepcopy(preprocess_config)
+    tiff_preprocess_config['file_format'] = 'tiff'
     tiff_preprocess_config['input_dir'] = tiff_dir
     tiff_preprocess_config['output_dir'] = os.path.join(output_dir, 'temp_tiff_tiles')
-    
+    tiff_preprocess_config['channel_names'] = ['phase', 'nucleus', 'membrane']
+    tiff_preprocess_config['flat_field']['flat_field_channels'] = \
+        ['nucleus', 'membrane']
+    tiff_preprocess_config['masks']['channels'] = ['nucleus']
+
     # generate tiles using tiff and zarr
     if not os.path.exists(zarr_preprocess_config['output_dir']):
         print('\t Running zarr preprocessing...',end='')
         zarr_prep_config, runtime = preprocess_script.pre_process(zarr_preprocess_config)
-        print('Done')
+        print('Done. Time: {} s'.format(runtime))
     if not os.path.exists(tiff_preprocess_config['output_dir']):
         print('\t Running tiff preprocessing ...',end='')
         tiff_prep_config, runtime = preprocess_script.pre_process(tiff_preprocess_config)
-        print('Done')
+        print('Done. Time: {} s'.format(runtime))
     
     # initiate tester and run tests
     tester = TestZarrReading()
@@ -212,7 +218,6 @@ def main(zarr_dir=None, tiff_dir=None, output_dir=None, config_path=None):
 
 if __name__ == '__main__':
     args = parse_args()
-    print(args.zarr_dir)
     # main('/Volumes/comp_micro/projects/Rickettsia/2022_RickettsiaAnalysis_Soorya/2_Cell_Phase_Reconstruction/Analysis_2022_09_15_A549NuclMemRecon/A5493DPhaseRecon/',
     #      '/Volumes/comp_micro/projects/Rickettsia/2022_RickettsiaAnalysis_Soorya/3_Cell_Image_Preprocessing/VirtualStainingMicroDL_A549NuclMem_2022_09_14_15/Data_UnalignedTiffImages_Sep15/',
     #      '/Volumes/comp_micro/projects/virtualstaining/tf_microDL/config/test_config_preprocess_A549MemNuclStain_Set2.yml')

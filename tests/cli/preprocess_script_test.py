@@ -130,9 +130,9 @@ class TestPreprocessScript(unittest.TestCase):
                      'depths': [1, 1, 1],
                      'mask_depth': 1,
                      'image_format': 'zyx',
-                     'normalize_channels': [True, True, True],
                      },
             'normalize': {'normalize_im': 'stack',
+                          'normalize_channels': [True, True, True],
                           },
         }
         # Create base config, generated party from pp_config in script
@@ -140,10 +140,10 @@ class TestPreprocessScript(unittest.TestCase):
             'input_dir': self.image_dir,
             'output_dir': self.output_dir,
             'file_format': 'tiff',
-            'slice_ids': -1,
-            'time_ids': -1,
-            'pos_ids': -1,
-            'channel_names': self.pp_config['channel_names'],
+            'slice_ids': self.slice_ids,
+            'time_ids': [self.time_idx],
+            'pos_ids': self.pos_ids,
+            'channel_names': ['ch0', 'ch1', 'ch3'],
             'channel_ids': [0, 1, 3],
             'uniform_struct': True,
             'int2strlen': 3,
@@ -622,7 +622,6 @@ class TestPreprocessScript(unittest.TestCase):
             'depths': [1, 1, 1],
             'mask_depth': 1,
             'image_format': 'zyx',
-            'normalize_channels': [True, True, True],
         }
         out_config, runtime = pp.pre_process(cur_config)
 

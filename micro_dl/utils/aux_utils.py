@@ -57,16 +57,15 @@ def read_config(config_fname):
     return config
 
 
-def get_channels(input_dir):
+def get_channels(frames_meta):
     """
     Load frames metadata from directory, find channel names and their
     corresponding indices.
 
-    :param str input_dir: Directory containing frames_meta.csv
+    :param pd.DataFrame frames_meta: Metadata for frames
     :return dict channel_map: Channel name and corresponding index
     :raises AssertionError: if channel name column is incompletely populated
     """
-    frames_meta = read_meta(input_dir)
     # Get all channel names
     channel_names = frames_meta['channel_name'].unique()
     assert not pd.isna(channel_names).any(), \
@@ -109,6 +108,35 @@ def convert_channel_names_to_ids(channel_map, channel_list):
             " {}".format(channel_name, existing_channels)
         channel_ids.append(channel_map[channel_name])
     return channel_ids
+
+
+def validate_indices(frames_meta, preprocess_config, idx_type):
+    """
+    Helper function to check if a list of position, time or slice
+    indices in the preprocessing config exist in the frames metadata.
+    If not, use all indices in metadata.
+
+    :param pd.DataFrame frames_meta: Metadata for all images
+    :param dict preprocess_config: Preprocessing config
+    :param str idx_type: Type of index: 'pos', 'time', 'slice'
+    :return list use_ids: Indices to be used in preprocessing
+    :raises AssertionError: If indices in preprocess config is not
+        a subset of those found in frames metadata
+    """
+    assert idx_type in {'pos', 'time', 'slice'}, \
+        "Idx type: {} not present in metadata".format(idx_type)
+    meta_name = idx_type + '_idx'
+    all_ids = list(frames_meta[meta_name].unique())
+    config_name = idx_type + '_ids'
+    if config_name in preprocess_config:
+        use_ids = preprocess_config[config_name]
+        assert set(use_ids).issubset(set(all_ids)), \
+            "{} indices: {} are not a subset of frames meta indices: " \
+            "{}.".format(idx_type, use_ids, all_ids)
+    else:
+        use_ids = all_ids
+    use_ids.sort()
+    return use_ids
 
 
 def get_row_idx(frames_metadata,

@@ -27,7 +27,6 @@ for s in range(3):
             im_name=im_temp,
             dir_name='temp_dir',
         )
-        print(meta_row)
         meta_df = meta_df.append(
             meta_row,
             ignore_index=True,
@@ -52,13 +51,10 @@ def test_read_config():
 
 
 def test_get_channels():
-    with TempDirectory() as tempdir:
-        dir_name = tempdir.path
-        meta_df.to_csv(os.path.join(dir_name, 'frames_meta.csv'), sep=',')
-        channel_map = aux_utils.get_channels(dir_name)
-        nose.tools.assert_equal(len(channel_map), 1)
-        nose.tools.assert_equal(list(channel_map)[0], channel_name)
-        nose.tools.assert_equal(channel_map[channel_name], 0)
+    channel_map = aux_utils.get_channels(frames_meta=meta_df)
+    nose.tools.assert_equal(len(channel_map), 1)
+    nose.tools.assert_equal(list(channel_map)[0], channel_name)
+    nose.tools.assert_equal(channel_map[channel_name], 0)
 
 
 def test_convert_channel_names_to_ids():
@@ -93,6 +89,32 @@ def test_convert_channel_names_to_ids_bad_map():
     channel_ids = aux_utils.convert_channel_names_to_ids(
         channel_map={},
         channel_list=[3, 5],
+    )
+
+
+def test_validate_indices():
+    preprocess_config = {
+        'pos_ids': [1, 2],
+        'slice_ids': [0],
+    }
+    pos_ids = aux_utils.validate_indices(
+        frames_meta=meta_df,
+        preprocess_config=preprocess_config,
+        idx_type='pos',
+    )
+    nose.tools.assert_list_equal(pos_ids, [1, 2])
+
+
+@nose.tools.raises(AssertionError)
+def test_validate_indices():
+    preprocess_config = {
+        'pos_ids': [1, 2],
+        'slice_ids': [0, 10],
+    }
+    slice_ids = aux_utils.validate_indices(
+        frames_meta=meta_df,
+        preprocess_config=preprocess_config,
+        idx_type='slice',
     )
 
 

@@ -46,7 +46,9 @@ def frames_meta_generator(
         raise FileNotFoundError("Check that file_format matches image files")
 
     # Sort metadata
-    frames_meta.sort_values(by=['channel_idx', 'slice_idx', 'pos_idx', 'time_idx'])
+    frames_meta = frames_meta.sort_values(
+        by=['channel_idx', 'pos_idx', 'slice_idx', 'time_idx'],
+    )
     # Write metadata
     frames_meta_filename = os.path.join(input_dir, 'frames_meta.csv')
     frames_meta.to_csv(frames_meta_filename, sep=",")
@@ -115,10 +117,10 @@ def frames_meta_from_zarr(input_dir, file_names):
 
 def ints_meta_generator(
         input_dir,
+        channel_ids,
         num_workers=4,
         block_size=256,
-        flat_field_dir=None,
-        channel_ids=-1):
+        flat_field_dir=None):
     """
     Generate pixel intensity metadata for estimating image normalization
     parameters during preprocessing step. Pixels are sub-sampled from the image
@@ -130,11 +132,11 @@ def ints_meta_generator(
     img_channelname_t***_p***_z***.tif for parse_sms_name
 
     :param str input_dir: path to input directory containing images
+    :param list channel_ids: Channel indices to process
     :param int num_workers: number of workers for multiprocessing
     :param int block_size: block size for the grid sampling pattern. Default value works
         well for 2048 X 2048 images.
     :param str flat_field_dir: Directory containing flatfield images
-    :param list/int channel_ids: Channel indices to process
     """
     ints_meta_filename = os.path.join(input_dir, 'intensity_meta.csv')
     # Remove old file if exists first
@@ -143,9 +145,6 @@ def ints_meta_generator(
     if block_size is None:
         block_size = 256
     frames_metadata = aux_utils.read_meta(input_dir)
-    if not isinstance(channel_ids, list):
-        # Use all channels
-        channel_ids = frames_metadata['channel_idx'].unique()
 
     mp_fn_args = []
     # Fill dataframe with rows from image names
@@ -161,6 +160,9 @@ def ints_meta_generator(
     im_ints_list = mp_utils.mp_sample_im_pixels(mp_fn_args, num_workers)
     im_ints_list = list(itertools.chain.from_iterable(im_ints_list))
     ints_meta = pd.DataFrame.from_dict(im_ints_list)
+    ints_meta = ints_meta.sort_values(
+        by=['channel_idx', 'pos_idx', 'slice_idx', 'time_idx'],
+    )
     ints_meta.to_csv(ints_meta_filename, sep=",")
 
 
@@ -176,17 +178,7 @@ def mask_meta_generator(
     in the case due to the spatial correlation in images.
     Will write found data in intensity_meta.csv in input directory.
     Assumed default file naming convention is:
-    dir_name
-    |
-    |- im_c***_z***_t***_p***.png
-    |- im_c***_z***_t***_p***.png
 
-    c is channel
-    z is slice in stack (z)
-    t is time
-    p is position (FOV)
-
-    Other naming convention is:
     img_channelname_t***_p***_z***.tif for parse_sms_name
 
     :param str input_dir: path to input directory containing images
@@ -272,7 +264,9 @@ def compute_zscore_params(frames_meta,
         how='left',
         on=agg_cols,
     )
-    if frames_meta['zscore_median'].isnull().values.any():
+
+    if normalize_im is not 'slice' and \
+            frames_meta['zscore_median'].isnull().values.any():
         raise ValueError('Found NaN in normalization parameters. \
         min_fraction might be too low or images might be corrupted.')
     frames_meta_filename = os.path.join(input_dir, 'frames_meta.csv')
