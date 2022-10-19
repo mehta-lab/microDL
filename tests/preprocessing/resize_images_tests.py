@@ -23,17 +23,19 @@ class TestResizeImages(unittest.TestCase):
         self.meta_name = 'frames_meta.csv'
         self.frames_meta = aux_utils.make_dataframe()
         # Write images
-        self.time_idx = 5
-        self.slice_idx = 6
+        self.time_ids = [5]
+        self.slice_ids = [6]
         self.pos_idx = 7
+        self.pos_ids = [7, 8, 9]
+        self.channel_ids = list(range(4))
         self.im = 1500 * np.ones((30, 20), dtype=np.uint16)
 
-        for c in range(4):
-            for p in range(self.pos_idx, self.pos_idx + 2):
+        for c in self.channel_ids:
+            for p in self.pos_ids:
                 im_name = aux_utils.get_im_name(
                     channel_idx=c,
-                    slice_idx=self.slice_idx,
-                    time_idx=self.time_idx,
+                    slice_idx=self.slice_ids[0],
+                    time_idx=self.time_ids[0],
                     pos_idx=p,
                 )
                 cv2.imwrite(os.path.join(self.temp_path, im_name),
@@ -61,12 +63,16 @@ class TestResizeImages(unittest.TestCase):
         resize_inst = resize_images.ImageResizer(
             input_dir=self.temp_path,
             output_dir=self.output_dir,
+            channel_ids=self.channel_ids,
+            time_ids=self.time_ids,
+            slice_ids=self.slice_ids,
+            pos_ids=self.pos_ids,
             scale_factor=scale_factor,
         )
-        self.assertEqual(resize_inst.time_ids, self.time_idx)
-        self.assertListEqual(resize_inst.channel_ids.tolist(), [0, 1, 2, 3])
-        self.assertEqual(resize_inst.slice_ids, self.slice_idx)
-        self.assertListEqual(resize_inst.pos_ids.tolist(), [7, 8])
+        self.assertEqual(resize_inst.time_ids, self.time_ids)
+        self.assertListEqual(resize_inst.channel_ids, self.channel_ids)
+        self.assertListEqual(resize_inst.slice_ids, self.slice_ids)
+        self.assertListEqual(resize_inst.pos_ids, self.pos_ids)
         resize_dir = resize_inst.get_resize_dir()
         self.assertEqual(os.path.join(self.output_dir, 'resized_images'),
                          resize_dir)
@@ -89,12 +95,16 @@ class TestResizeImages(unittest.TestCase):
         resize_inst = resize_images.ImageResizer(
             input_dir=self.temp_path,
             output_dir=self.output_dir,
+            channel_ids=self.channel_ids,
+            time_ids=self.time_ids,
+            slice_ids=self.slice_ids,
+            pos_ids=self.pos_ids,
             scale_factor=scale_factor,
         )
-        self.assertEqual(resize_inst.time_ids, self.time_idx)
-        self.assertListEqual(resize_inst.channel_ids.tolist(), [0, 1, 2, 3])
-        self.assertEqual(resize_inst.slice_ids, self.slice_idx)
-        self.assertListEqual(resize_inst.pos_ids.tolist(), [7, 8])
+        self.assertEqual(resize_inst.time_ids, self.time_ids)
+        self.assertListEqual(resize_inst.channel_ids, self.channel_ids)
+        self.assertListEqual(resize_inst.slice_ids, self.slice_ids)
+        self.assertListEqual(resize_inst.pos_ids, self.pos_ids)
         resize_dir = resize_inst.get_resize_dir()
         self.assertEqual(os.path.join(self.output_dir, 'resized_images'),
                          resize_dir)
@@ -125,7 +135,7 @@ class TestResizeImages(unittest.TestCase):
                 im_name = aux_utils.get_im_name(
                     channel_idx=c,
                     slice_idx=s,
-                    time_idx=self.time_idx,
+                    time_idx=self.time_ids[0],
                     pos_idx=self.pos_idx,
                 )
                 cv2.imwrite(os.path.join(self.temp_path, im_name),
@@ -135,7 +145,7 @@ class TestResizeImages(unittest.TestCase):
                     ignore_index=True,
                 )
             op_fname = 'im_c00{}_z000_t005_p007_3.3-0.8-1.0.npy'.format(c)
-            exp_meta_dict.append({'time_idx': self.time_idx,
+            exp_meta_dict.append({'time_idx': self.time_ids[0],
                                   'pos_idx': self.pos_idx,
                                   'channel_idx': c,
                                   'slice_idx': 0,
@@ -154,6 +164,10 @@ class TestResizeImages(unittest.TestCase):
         resize_inst = resize_images.ImageResizer(
             input_dir=self.temp_path,
             output_dir=self.output_dir,
+            channel_ids=channel_ids,
+            time_ids=self.time_ids,
+            slice_ids=slice_ids,
+            pos_ids=[self.pos_idx],
             scale_factor=scale_factor,
         )
 
@@ -168,7 +182,7 @@ class TestResizeImages(unittest.TestCase):
             for s in [0, 2]:
                 op_fname = 'im_c00{}_z00{}_t005_p007_3.3-0.8-1.0.npy'.format(c,
                                                                              s)
-                exp_meta_dict.append({'time_idx': self.time_idx,
+                exp_meta_dict.append({'time_idx': self.time_ids[0],
                                       'pos_idx': self.pos_idx,
                                       'channel_idx': c,
                                       'slice_idx': s,

@@ -82,7 +82,10 @@ class TestImageTilerNonUniform(unittest.TestCase):
             step_size=[4, 4],
             depths=3,
             channel_ids=[1, 2],
-            normalize_channels=[False, True]
+            time_ids=[0, 1, 2],
+            slice_ids=[0, 1, 2, 3, 4],
+            pos_ids=[7, 8],
+            normalize_channels=[False, True],
         )
 
     def tearDown(self):

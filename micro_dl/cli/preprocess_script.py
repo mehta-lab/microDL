@@ -88,16 +88,16 @@ def get_required_params(preprocess_config):
         warnings.warn("No channels specified, using all channels.")
         channel_ids = list(channel_map.values())
 
-    # Only keep the metadata you will use
-    frames_meta_sub = aux_utils.get_sub_meta(
-        frames_metadata=frames_meta,
-        time_ids=time_ids,
-        channel_ids=channel_ids,
-        slice_ids=slice_ids,
-        pos_ids=pos_ids,
-    )
-    frames_meta_filename = os.path.join(input_dir, 'frames_meta.csv')
-    frames_meta_sub.to_csv(frames_meta_filename, sep=",")
+    # # Only keep the metadata you will use
+    # frames_meta_sub = aux_utils.get_sub_meta(
+    #     frames_metadata=frames_meta,
+    #     time_ids=time_ids,
+    #     channel_ids=channel_ids,
+    #     slice_ids=slice_ids,
+    #     pos_ids=pos_ids,
+    # )
+    # frames_meta_filename = os.path.join(input_dir, 'frames_meta.csv')
+    # frames_meta_sub.to_csv(frames_meta_filename, sep=",")
 
     uniform_struct = True
     if 'uniform_struct' in preprocess_config:
