@@ -400,7 +400,8 @@ class TestPreprocessScript(unittest.TestCase):
             self.image_dir,
         )
         frames_meta = aux_utils.read_meta(self.image_dir)
-        self.assertTupleEqual(frames_meta.shape, (72, 8))
+        # Shape after removal of unused indices
+        self.assertTupleEqual(frames_meta.shape, (54, 8))
 
     def test_pre_process_intensity_meta(self):
         cur_config = self.pp_config
