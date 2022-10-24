@@ -203,53 +203,6 @@ def select_gpu(gpu_ids=None, gpu_mem_frac=None):
     return gpu_id, max_mem
 
 
-def set_keras_session(gpu_ids, gpu_mem_frac):
-    raise DeprecationWarning("Keras sessions are no longer supported as of 2.0.0")
-    """Set the Keras session"""
-
-    assert K.backend() == "tensorflow"
-    tf = K.tf
-    # assumes only one process is run per GPU, if not get num_processes and
-    # change accordingly
-    gpu_options = tf.GPUOptions(
-        visible_device_list=str(gpu_ids),
-        allow_growth=True,
-        per_process_gpu_memory_fraction=gpu_mem_frac,
-    )
-    config = tf.ConfigProto(
-        gpu_options=gpu_options, allow_soft_placement=True, log_device_placement=False
-    )
-    # log_device_placement to find out which devices the operations and tensors
-    # are assigned to
-    sess = tf.Session(config=config)
-    K.set_session(sess)
-    return sess
-
-
-def get_loss(loss_str):
-    raise DeprecationWarning("Tensorflow losses are no longer supported as of 2.0.0")
-    """Get loss type from config"""
-
-    def _get_one_loss(cur_loss_str):
-        if hasattr(keras_losses, cur_loss_str):
-            loss_cls = getattr(keras_losses, cur_loss_str)
-        elif hasattr(custom_losses, cur_loss_str):
-            loss_cls = getattr(custom_losses, cur_loss_str)
-        else:
-            raise ValueError("%s is not a valid loss" % cur_loss_str)
-        return loss_cls
-
-    if not isinstance(loss_str, list):
-        loss_cls = _get_one_loss(loss_str)
-        return loss_cls
-    else:
-        loss_cls_list = []
-        for cur_loss in loss_str:
-            loss_cls = _get_one_loss(cur_loss)
-            loss_cls_list.append(loss_cls)
-        return loss_cls_list
-
-
 def get_metrics(metrics_list):
     """Get the metrics from config"""
 
