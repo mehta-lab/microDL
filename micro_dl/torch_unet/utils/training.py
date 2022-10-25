@@ -123,17 +123,10 @@ class TorchTrainer:
                 ds.GenerateMasks(self.training_config["mask_type"])
             )
 
-        # init dataset container and pull dataset split objects
-        caching = (
-            self.training_config["caching"]
-            if "caching" in self.training_config
-            else False
-        )
         torch_data_container = ds.TorchDataset(
             self.torch_config["train_config_path"],
             transforms=transforms,
             target_transforms=target_transforms,
-            caching=caching,
             device=self.device,
         )
         train_dataset = torch_data_container["train"]

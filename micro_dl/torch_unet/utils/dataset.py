@@ -1,5 +1,6 @@
 import cv2
 import collections
+import gunpowder as gp
 import numpy as np
 import os
 import pandas as pd
@@ -10,6 +11,8 @@ import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.masks as mask_utils
 import micro_dl.utils.normalize as norm_utils
 import micro_dl.utils.train_utils as train_utils
+import micro_dl.input.gunpowder_nodes as custom_nodes
+import micro_dl.utils.gunpowder_utils as gp_utils
 
 
 class TorchDataset(Dataset):
@@ -17,171 +20,118 @@ class TorchDataset(Dataset):
     Based off of torch.utils.data.Dataset:
         - https://pytorch.org/docs/stable/data.html
 
-    Custom dataset class that draws samples from a  'micro_dl.input.dataset.BaseDataSet' object,
-    and converts them to PyTorch inputs.
+    Custom dataset class that builds gunpowder pipelines constitution of multi-zarr source nodes
+    and a series of augmentation nodes. This object will call from the gunpowder pipeline directly,
+    and transform resulting data into tensors to be placed onto the gpu for processing.
 
-    Also takes lists of transformation classes. Transformations should be primarily designed for
-    data refactoring and type conversion, since augmentations are already applied to tensorflow
-    BaseDataSet object.
-
-    The dataset object will cache samples so that the processing required to produce samples
-    does not need to be repeated. This drastically speeds up training time.
-
-    Multiprocessing is supported with num_workers > 0. However, there is a non-fatal warning about
+    Multiprocessing is supported with num_workers > 0. However, there are non-fatal warnings about
     "...processes being terminated before shared CUDA tensors are released..." with torch 1.10.
 
-    They are discussed on the following post, and I believe have been since fixed:
+    These warnings are discussed on the following post, and I believe have been since fixed:
         - https://github.com/pytorch/pytorch/issues/71187
     """
 
-    def __init__(
-        self,
-        train_config=None,
-        tf_dataset=None,
-        transforms=None,
-        target_transforms=None,
-        caching=False,
-        device=torch.device("cuda"),
-    ):
+    def __init__(self, train_config, network_config):
+        # TODO I still think that the container/dataset duality structure is superior. alter to conform
         """
-        Init object.
-        Params:
-        :param str train_config -> str: path to .yml config file from which to create BaseDataSet
-                                        object if none given
-        :param micro_dl.input.dataset.BaseDataSet tf_dataset: tensorflow-based dataset
-                                                                containing samples to convert
-        :param iterable(Transform object) transforms: transforms to be applied to every sample
-                                                      *after tf_dataset transforms*
-        :param iterable(Transform object) target_transforms: transforms to be applied to every
-                                                            target *after tf_dataset transforms*
-        :param str device: device name, example: 'cuda:0' for gpu 0, 'cpu' for cpu.
+        Inits an object which builds a testing, training, and validation dataset
+        from .zarr data files using gunpowder pipelines
+
+        :param str zarr_source_dir: directory of .zarr files containing all data
+        :param list augmentation_nodes: list of gp nodes (type gp.BatchFilter) with which to build
+                                        the augmentation pipeline
         """
-        assert (
-            train_config or tf_dataset
-        ), "Must provide either train config file or tf dataset"
+        self.train_config = train_config
+        self.network_config = network_config
 
-        self.tf_dataset = None
-        self.transforms = transforms
-        self.target_transforms = target_transforms
-        self.caching = caching
-        self.device = device
+        # acquire sources from the zarr directory
+        array_spec = gp_utils.generate_array_spec(network_config)
+        (
+            self.train_source,
+            self.test_source,
+            self.val_source,
+        ) = gp_utils.multi_zarr_source(
+            zarr_dir=self.train_config["data_dir"],
+            array_name=self.train_config["array_name"],
+            array_spec=array_spec,
+            data_split=self.train_config["split_ratio"],
+        )
 
-        if tf_dataset != None:
-            self.tf_dataset = tf_dataset
-            self.sample_cache = collections.defaultdict()
-
-            self.train_dataset = None
-            self.test_dataset = None
-            self.val_dataset = None
-            self.mask = True
-            self.last_idx = -1
-        else:
-            config = aux_utils.read_config(train_config)
-
-            dataset_config, trainer_config = config["dataset"], config["trainer"]
-            tile_dir, image_format = train_utils.get_image_dir_format(dataset_config)
-
-            tiles_meta = pd.read_csv(os.path.join(tile_dir, "frames_meta.csv"))
-            tiles_meta = aux_utils.sort_meta_by_channel(tiles_meta)
-
-            masked_loss = False
-
-            all_datasets, split_samples = train_utils.create_train_datasets(
-                tiles_meta,
-                tile_dir,
-                dataset_config,
-                trainer_config,
-                image_format,
-                masked_loss,
+        # build augmentation nodes
+        aug_nodes = []
+        if "augmentations" in train_config:
+            aug_nodes = gp_utils.generate_augmentation_nodes(
+                train_config["augmentations"]
             )
 
-            self.train_dataset = TorchDataset(
-                None,
-                tf_dataset=all_datasets["df_train"],
-                transforms=self.transforms,
-                target_transforms=self.target_transforms,
-                device=self.device,
-            )
-            self.test_dataset = TorchDataset(
-                None,
-                tf_dataset=all_datasets["df_test"],
-                transforms=self.transforms,
-                target_transforms=self.target_transforms,
-                device=self.device,
-            )
-            self.val_dataset = TorchDataset(
-                None,
-                tf_dataset=all_datasets["df_val"],
-                transforms=self.transforms,
-                target_transforms=self.target_transforms,
-                device=self.device,
-            )
+        # build pipelines
+        self.train_pipeline = self.build_pipeline(self.train_source, aug_nodes)
+        self.test_pipeline = self.build_pipeline(self.test_source)
+        self.val_pipeline = self.build_pipeline(self.val_source)
 
-            self.split_samples_metadata = split_samples
+    def build_pipeline(self, source, nodes=[]):
+        """
+        Builds a gunpowder data pipeline given a source node and a list of augmentation
+        nodes
+
+        :param gp.ZarrSource or tuple source: source node/tuple of source nodes from which to draw
+        :param list nodes: list of augmentation nodes, by default empty list
+        """
+        # if source is multi_zarr_source, attach a RandomProvider
+        if isinstance(source, tuple):
+            source = [source, gp.RandomProvider()]
+
+        # attach permanent nodes
+        source = source + [gp.RandomLocation()]
+        source = source + [custom_nodes.Normalize()]
+        source = source + [custom_nodes.FlatFieldCorrect()]
+
+        # attach additional nodes, if any, and sum
+        pipeline = source + nodes
+        pipeline = gp_utils.gpsum(pipeline, verbose=self.network_config["debug_mode"])
+
+        return pipeline
 
     def __len__(self):
+        # TODO implement
         """
-        Returns number of sample (or sample stack)/target pairs in dataset
+        Returns number of source data arrays in this dataset.
         """
-        if self.tf_dataset:
-            return len(self.tf_dataset)
-        else:
-            return sum(
-                [
-                    1 if self.train_dataset else 0,
-                    1 if self.test_dataset else 0,
-                    1 if self.val_dataset else 0,
-                ]
-            )
 
     def __getitem__(self, idx):
+        # TODO implement
         """
-        If acting as a dataset object, returns the sample target pair at 'idx'
-        in dataset, after applying augment/transformations to sample/target pairs.
+        If acting as a dataset object, returns the standard batch_request
+        of this dataset, with random position and provider.
 
         If acting as a dataset container object, returns subsidary dataset
         objects.
 
         :param int idx: index of dataset item to transform and return
         """
-        # remove the tensor accessed last time from cuda memory
-        if self.caching and self.last_idx != -1:
-            del self.sample_cache[self.last_idx]
-            self.last_idx = idx
 
         # if acting as dataset object
         if self.tf_dataset:
-            if self.sample_cache.get(idx, None):
-                assert len(self.sample_cache[idx]) > 0, "Sample caching error"
-            else:
-                sample = self.tf_dataset[idx]
-                sample_input = sample[0]
-                sample_target = sample[1]
+            sample = self.tf_dataset[idx]
+            sample_input = sample[0]
+            sample_target = sample[1]
 
-                # match num dims as safety check
-                samp_dims, targ_dims = len(sample_input.shape), len(sample_target.shape)
-                for i in range(max(0, samp_dims - targ_dims)):
-                    sample_target = np.expand_dims(sample_target, 1)
-                for i in range(max(0, targ_dims - samp_dims)):
-                    sample_input = np.expand_dims(sample_input, 1)
+            # match num dims as safety check
+            samp_dims, targ_dims = len(sample_input.shape), len(sample_target.shape)
+            for i in range(max(0, samp_dims - targ_dims)):
+                sample_target = np.expand_dims(sample_target, 1)
+            for i in range(max(0, targ_dims - samp_dims)):
+                sample_input = np.expand_dims(sample_input, 1)
 
-                if self.transforms:
-                    for transform in self.transforms:
-                        sample_input = transform(sample_input)
+            if self.transforms:
+                for transform in self.transforms:
+                    sample_input = transform(sample_input)
 
-                if self.target_transforms:
-                    for transform in self.target_transforms:
-                        sample_target = transform(sample_target)
+            if self.target_transforms:
+                for transform in self.target_transforms:
+                    sample_target = transform(sample_target)
 
-                # depending on the transformation we might return lists or tuples, which we must unpack
-                if self.caching:
-                    self.sample_cache[idx] = tuple(
-                        map(self.to_cpu, self.unpack(sample_input, sample_target))
-                    )
-                else:
-                    return self.unpack(sample_input, sample_target)
-
-            return tuple(map(self.to_gpu, self.sample_cache[idx]))
+            return self.unpack(sample_input, sample_target)
 
         # if acting as container object of dataset objects
         else:
@@ -200,23 +150,8 @@ class TorchDataset(Dataset):
                     f"This object is a container. Acceptable keys:{[k for k in keys]}"
                 )
 
-    def to_cpu(tensor):
-        """
-        Sends tensor to cpu. Used because lambda's cant be pickled.
-
-        :param torch.tensor tensor: tensor to sent to cpu
-        """
-        return tensor.cpu()
-
-    def to_gpu(self, tensor):
-        """
-        Sends tensor to current gpu device. Used because lambda's cant be pickled.
-
-        :param torch.tensor tensor: tensor to sent to gpu
-        """
-        return tensor.to(self.device)
-
     def unpack(self, sample_input, sample_target):
+        # TODO this may not be necessary any more
         """
         Helper function for unpacking tuples returned by some transformation objects
         (e.g. GenerateMasks) into outputs.

@@ -1,4 +1,5 @@
 import gunpowder as gp
+import torch
 
 
 class LogNode(gp.BatchFilter):
