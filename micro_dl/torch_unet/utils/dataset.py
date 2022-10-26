@@ -1,3 +1,4 @@
+from socket import TIPC_DEST_DROPPABLE
 import cv2
 import collections
 import gunpowder as gp
@@ -15,31 +16,28 @@ import micro_dl.input.gunpowder_nodes as custom_nodes
 import micro_dl.utils.gunpowder_utils as gp_utils
 
 
-class TorchDataset(Dataset):
+class TorchDatasetContainer(object):
     """
-    Based off of torch.utils.data.Dataset:
-        - https://pytorch.org/docs/stable/data.html
+    Dataset container object which initalizes multiple TorchDatasets depending upon the parameters
+    given in the training and network config files during initialization.
 
-    Custom dataset class that builds gunpowder pipelines constitution of multi-zarr source nodes
-    and a series of augmentation nodes. This object will call from the gunpowder pipeline directly,
-    and transform resulting data into tensors to be placed onto the gpu for processing.
-
-    Multiprocessing is supported with num_workers > 0. However, there are non-fatal warnings about
-    "...processes being terminated before shared CUDA tensors are released..." with torch 1.10.
-
-    These warnings are discussed on the following post, and I believe have been since fixed:
-        - https://github.com/pytorch/pytorch/issues/71187
+    Randomly selects samples to divy up sources between train, test, and validation datasets.
     """
 
-    def __init__(self, train_config, network_config):
+    def __init__(
+        self,
+        train_config,
+        network_config,
+    ):
         # TODO I still think that the container/dataset duality structure is superior. alter to conform
         """
         Inits an object which builds a testing, training, and validation dataset
         from .zarr data files using gunpowder pipelines
 
-        :param str zarr_source_dir: directory of .zarr files containing all data
+        If acting as a container object:
+        :param str zarr_source_dir: directory of .zarr files containing all data, by default None
         :param list augmentation_nodes: list of gp nodes (type gp.BatchFilter) with which to build
-                                        the augmentation pipeline
+                                        the augmentation pipeline, by default None
         """
         self.train_config = train_config
         self.network_config = network_config
@@ -50,12 +48,22 @@ class TorchDataset(Dataset):
             self.train_source,
             self.test_source,
             self.val_source,
+            self.dataset_keys,
         ) = gp_utils.multi_zarr_source(
             zarr_dir=self.train_config["data_dir"],
             array_name=self.train_config["array_name"],
             array_spec=array_spec,
             data_split=self.train_config["split_ratio"],
         )
+        try:
+            assert len(self.test_source) > 0
+            assert len(self.train_source) > 0
+            assert len(self.val_source) > 0
+        except Exception as e:
+            raise AssertionError(
+                f"All datasets must have at least one source node,"
+                "not enough source arrays found: {e}"
+            )
 
         # build augmentation nodes
         aug_nodes = []
@@ -64,10 +72,20 @@ class TorchDataset(Dataset):
                 train_config["augmentations"]
             )
 
-        # build pipelines
-        self.train_pipeline = self.build_pipeline(self.train_source, aug_nodes)
-        self.test_pipeline = self.build_pipeline(self.test_source)
-        self.val_pipeline = self.build_pipeline(self.val_source)
+        # assign each source subset to a child dataset object
+        train_pipeline = self.build_pipeline(self.train_source, aug_nodes)
+        test_pipeline = self.build_pipeline(self.test_source)
+        val_pipeline = self.build_pipeline(self.val_source)
+
+        self.train_dataset = TorchDataset(
+            train_pipeline, self.train_source, self.dataset_keys
+        )
+        self.test_dataset = TorchDataset(
+            test_pipeline, self.test_source, self.dataset_keys
+        )
+        self.val_dataset = TorchDataset(
+            val_pipeline, self.val_source, self.dataset_keys
+        )
 
     def build_pipeline(self, source, nodes=[]):
         """
@@ -92,63 +110,134 @@ class TorchDataset(Dataset):
 
         return pipeline
 
+    def __getitem__(self, idx):
+        """
+        Provides indexing capabilities to reference train, test, and val datasets
+
+        :param int or str idx: index/key of dataset to retrieve:
+                                train -> 0 or 'train'
+                                test -> 1 or 'test'
+                                val -> 2 or 'val'
+        """
+        if isinstance(idx, str):
+            return {
+                "train": self.train_dataset,
+                "test": self.test_dataset,
+                "val": self.val_dataset,
+            }[idx]
+        else:
+            return [self.train_dataset, self.test_dataset, self.val_dataset][idx]
+
+
+class TorchDataset(Dataset):
+    """
+    Based off of torch.utils.data.Dataset:
+        - https://pytorch.org/docs/stable/data.html
+
+    Custom dataset class that builds gunpowder pipelines composed of multi-zarr source nodes
+    and a series of augmentation nodes. This object will call from the gunpowder pipeline directly,
+    and transform resulting data into tensors to be placed onto the gpu for processing.
+
+    Multiprocessing is supported with num_workers > 0. However, there are non-fatal warnings about
+    "...processes being terminated before shared CUDA tensors are released..." with torch 1.10.
+
+    These warnings are discussed on the following post, and I believe have been since fixed:
+        - https://github.com/pytorch/pytorch/issues/71187
+    """
+
+    def __init__(
+        self,
+        data_pipeline,
+        data_source,
+        data_keys,
+        batch_size,
+        target_channel_idx,
+        input_channel_idx,
+        spatial_window_size,
+    ):
+        """
+        Creates a dataset object which draws samples directly from a gunpowder pipeline.
+
+        :param gp.Pipeline data_pipeline: build data pipeline for given dataset task
+        :param tuple data_source: tuple of gp.Source nodes which the given pipeline draws samples
+        :param list data_keys: list of gp.ArrayKey objects which access the given source
+        :param int batch_size: number of samples per batch
+        :param tuple(int) target_channel_idx: indices of target channel(s) within zarr store
+        :param tuple(int) input_channel_idx: indices of input channel(s) within zarr store
+        :param tuple spatial_window_size: tuple of sample dimensions
+                                    2D network, expects 2D tuple; dimensions yx
+                                    2.5D network, expects 3D tuple; dimensions zyx
+        """
+        self.data_pipeline = data_pipeline
+        self.data_source = data_source
+        self.data_keys = data_keys
+        self.batch_size = batch_size
+        self.target_idx = target_channel_idx
+        self.input_idx = input_channel_idx
+
+        # safety checks: iterate through keys and data sources to ensure that they match
+        voxel_size = None
+        for key in self.data_keys:
+            for i, source in enumerate(self.data_source):
+                try:
+                    assert len(source.array_specs) == len(
+                        self.data_keys
+                    ), f"number of keys {len(self.data_keys)} does not match number"
+                    " of array specs {len(source.array_specs)}"
+
+                    # check that all voxel sizes are the same
+                    array_spec = source.array_specs[key]
+                    if not voxel_size:
+                        voxel_size = array_spec.voxel_size
+                    else:
+                        assert (
+                            voxel_size == array_spec.voxel_size
+                        ), f"Voxel size of array {array_spec.voxel_size} does not match"
+                        f" voxel size of previous array {voxel_size}."
+                except Exception as e:
+                    raise AssertionError(
+                        f"Error matching keys to source in dataset: {e}"
+                    )
+
+        # generate batch request depending on pipeline voxel size and input dims/idxs
+        assert len(spatial_window_size) == len(
+            voxel_size
+        ), f"Incompatible voxel size {voxel_size}. "
+        f"Must be equal to spatial_window_size {spatial_window_size}"
+
+        batch_request = gp.BatchRequest()
+        for key in self.data_keys:
+            batch_request[key] = gp.Roi((0, 0, 0), spatial_window_size)
+            # NOTE: the keymapping we are performing here makes it so that if
+            # we DO end up generating multiple arrays at the group level
+            # (for example one with and without flatfield correction), we can
+            # access all of them by requesting that key. The index we request
+            # in __getitem__ ends up being the index of our key.
+        self.batch_request = batch_request
+
     def __len__(self):
-        # TODO implement
         """
         Returns number of source data arrays in this dataset.
         """
+        return len(self.data_source)
 
     def __getitem__(self, idx):
-        # TODO implement
+        # TODO this implementation might not play nice with our dataloader, since its call
+        # signature messes with the key index. Watch out for that.
         """
-        If acting as a dataset object, returns the standard batch_request
-        of this dataset, with random position and provider.
+        Requests a batch from the data pipeline by selecting the key from self.data_keys at
+        index 'idx', and using that key to call a batch from its corresponding source using
+        self.batch_request.
 
-        If acting as a dataset container object, returns subsidary dataset
-        objects.
-
-        :param int idx: index of dataset item to transform and return
+        :param int idx: index of the key you wish to use to access a random sample. Generally:
+                        0 -> key for arr_0 in Pos_x
+                        1 -> key for arr_1 in Pos_x
+                                .
+                                .
+                                .
         """
-
-        # if acting as dataset object
-        if self.tf_dataset:
-            sample = self.tf_dataset[idx]
-            sample_input = sample[0]
-            sample_target = sample[1]
-
-            # match num dims as safety check
-            samp_dims, targ_dims = len(sample_input.shape), len(sample_target.shape)
-            for i in range(max(0, samp_dims - targ_dims)):
-                sample_target = np.expand_dims(sample_target, 1)
-            for i in range(max(0, targ_dims - samp_dims)):
-                sample_input = np.expand_dims(sample_input, 1)
-
-            if self.transforms:
-                for transform in self.transforms:
-                    sample_input = transform(sample_input)
-
-            if self.target_transforms:
-                for transform in self.target_transforms:
-                    sample_target = transform(sample_target)
-
-            return self.unpack(sample_input, sample_target)
-
-        # if acting as container object of dataset objects
-        else:
-            keys = {}
-            if self.val_dataset:
-                keys["val"] = self.val_dataset
-            if self.train_dataset:
-                keys["train"] = self.train_dataset
-            if self.test_dataset:
-                keys["test"] = self.test_dataset
-
-            if idx in keys:
-                return keys[idx]
-            else:
-                raise KeyError(
-                    f"This object is a container. Acceptable keys:{[k for k in keys]}"
-                )
+        for i in range(self.batch_size):
+            pass  # TODO implement
 
     def unpack(self, sample_input, sample_target):
         # TODO this may not be necessary any more

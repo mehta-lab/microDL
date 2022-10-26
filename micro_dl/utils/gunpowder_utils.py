@@ -180,3 +180,16 @@ def generate_array_spec(network_config):
     )
 
     return array_spec
+
+
+def generate_augmentation_nodes(augmentation_config):
+    """Returns a list of augmentation nodes as specified in 'augmentation_config'.
+    Return order is insensitive to the order of creation in augmentation_config...
+    Augmentations are always ordered in the same way, which depends on their sequential
+    compatibility
+
+    :param augmentation_config: dict of augmentation type -> hyperparameters,
+                                see torch_config readme.md for more details
+    :return list aug_nodes: list of augmentation nodes in order
+    """
+    # TODO implement this. Will likely need a discussion about what augmentations to support

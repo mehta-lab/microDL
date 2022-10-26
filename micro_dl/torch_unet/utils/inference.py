@@ -52,7 +52,8 @@ class TorchPredictor:
     def predict_large_image(self, input_image, model=None):
         """
         Runs prediction on entire image field of view. xy size is configurable, but it must be
-        a power of 2.
+        a power of 2. Input must be either 4 or 5 dimensions, and output is returned with the
+        same dimensionality as given in input.
 
         Params:
         :param numpy.ndarray/torch.Tensor input_image: input image or image stack on which
