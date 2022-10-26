@@ -24,23 +24,23 @@ class TorchDatasetContainer(object):
     Randomly selects samples to divy up sources between train, test, and validation datasets.
     """
 
-    def __init__(
-        self,
-        train_config,
-        network_config,
-    ):
-        # TODO I still think that the container/dataset duality structure is superior. alter to conform
+    def __init__(self, train_config, network_config, dataset_config, device=None):
+        # TODO make necessary changes to configs to match structure implied in this module
         """
         Inits an object which builds a testing, training, and validation dataset
         from .zarr data files using gunpowder pipelines
 
         If acting as a container object:
-        :param str zarr_source_dir: directory of .zarr files containing all data, by default None
-        :param list augmentation_nodes: list of gp nodes (type gp.BatchFilter) with which to build
-                                        the augmentation pipeline, by default None
+        :param dict train_config: dict object of train_config
+        :param dict train_config: dict object of train_config
+        :param dict train_config: dict object of train_config
+        :param str device: device on which to place tensors in child datasets,
+                            by default, places on 'cuda'
         """
         self.train_config = train_config
         self.network_config = network_config
+        self.dataset_config = dataset_config
+        self.device = device
 
         # acquire sources from the zarr directory
         array_spec = gp_utils.generate_array_spec(network_config)
@@ -50,10 +50,10 @@ class TorchDatasetContainer(object):
             self.val_source,
             self.dataset_keys,
         ) = gp_utils.multi_zarr_source(
-            zarr_dir=self.train_config["data_dir"],
-            array_name=self.train_config["array_name"],
+            zarr_dir=self.train_config["data_dir"],  # TODO config change
+            array_name=self.train_config["array_name"],  # TODO config change
             array_spec=array_spec,
-            data_split=self.train_config["split_ratio"],
+            data_split=self.train_config["split_ratio"],  # TODO config change
         )
         try:
             assert len(self.test_source) > 0
@@ -62,53 +62,50 @@ class TorchDatasetContainer(object):
         except Exception as e:
             raise AssertionError(
                 f"All datasets must have at least one source node,"
-                "not enough source arrays found: {e}"
+                f"not enough source arrays found: {e}"
             )
 
         # build augmentation nodes
         aug_nodes = []
         if "augmentations" in train_config:
             aug_nodes = gp_utils.generate_augmentation_nodes(
-                train_config["augmentations"]
+                train_config["augmentations"]  # TODO config change
             )
 
         # assign each source subset to a child dataset object
-        train_pipeline = self.build_pipeline(self.train_source, aug_nodes)
-        test_pipeline = self.build_pipeline(self.test_source)
-        val_pipeline = self.build_pipeline(self.val_source)
+        self.train_dataset = self.init_torch_dataset(self.train_source, aug_nodes)
+        self.test_dataset = self.init_torch_dataset(self.test_source, aug_nodes)
+        self.val_dataset = self.init_torch_dataset(self.val_source, aug_nodes)
 
-        self.train_dataset = TorchDataset(
-            train_pipeline, self.train_source, self.dataset_keys
-        )
-        self.test_dataset = TorchDataset(
-            test_pipeline, self.test_source, self.dataset_keys
-        )
-        self.val_dataset = TorchDataset(
-            val_pipeline, self.val_source, self.dataset_keys
-        )
-
-    def build_pipeline(self, source, nodes=[]):
+    def init_torch_dataset(self, source, augmentation_nodes):
         """
-        Builds a gunpowder data pipeline given a source node and a list of augmentation
-        nodes
+        Initializes a torch dataset to sample 'source' through the given
+        augmentations 'augmentations'.
 
-        :param gp.ZarrSource or tuple source: source node/tuple of source nodes from which to draw
-        :param list nodes: list of augmentation nodes, by default empty list
+        :param tuple(gp.ZarrSource) source: tuple of source nodes representing the
+                                            dataset sample space
+        :param list augmentation_nodes: list of augmentation nodes in order
         """
-        # if source is multi_zarr_source, attach a RandomProvider
-        if isinstance(source, tuple):
-            source = [source, gp.RandomProvider()]
-
-        # attach permanent nodes
-        source = source + [gp.RandomLocation()]
-        source = source + [custom_nodes.Normalize()]
-        source = source + [custom_nodes.FlatFieldCorrect()]
-
-        # attach additional nodes, if any, and sum
-        pipeline = source + nodes
-        pipeline = gp_utils.gpsum(pipeline, verbose=self.network_config["debug_mode"])
-
-        return pipeline
+        # NOTE: not passing the whole dataset config is a design choice here. The
+        # elements ofthe config are a black box until theyre indexed. I do this
+        # to make them more readable. This can change with PyDantic later
+        dataset = TorchDataset(
+            data_source=source,
+            augmentation_nodes=augmentation_nodes,
+            data_keys=self.dataset_keys,
+            batch_size=self.train_config["batch_size"],  # TODO config change
+            target_channel_idx=tuple(
+                self.dataset_config["target_channels"]
+            ),  # TODO config change
+            input_channel_idx=tuple(
+                self.dataset_config["input_channels"]
+            ),  # TODO config change
+            spatial_window_size=tuple(
+                self.dataset_config["window_size"]
+            ),  # TODO config change
+            device=self.device,
+        )
+        return dataset
 
     def __getitem__(self, idx):
         """
@@ -147,33 +144,38 @@ class TorchDataset(Dataset):
 
     def __init__(
         self,
-        data_pipeline,
         data_source,
+        augmentation_nodes,
         data_keys,
         batch_size,
         target_channel_idx,
         input_channel_idx,
         spatial_window_size,
+        device,
     ):
         """
         Creates a dataset object which draws samples directly from a gunpowder pipeline.
 
-        :param gp.Pipeline data_pipeline: build data pipeline for given dataset task
+        :param tuple(gp.ZarrSource) source: tuple of source nodes representing the
+                                            dataset sample space
+        :param list augmentation_nodes: list of augmentation nodes in order
         :param tuple data_source: tuple of gp.Source nodes which the given pipeline draws samples
         :param list data_keys: list of gp.ArrayKey objects which access the given source
         :param int batch_size: number of samples per batch
         :param tuple(int) target_channel_idx: indices of target channel(s) within zarr store
         :param tuple(int) input_channel_idx: indices of input channel(s) within zarr store
-        :param tuple spatial_window_size: tuple of sample dimensions
+        :param tuple spatial_window_size: tuple of sample dimensions, specifies batch request ROI
                                     2D network, expects 2D tuple; dimensions yx
                                     2.5D network, expects 3D tuple; dimensions zyx
         """
-        self.data_pipeline = data_pipeline
         self.data_source = data_source
+        self.augmentation_nodes = augmentation_nodes
         self.data_keys = data_keys
         self.batch_size = batch_size
         self.target_idx = target_channel_idx
         self.input_idx = input_channel_idx
+        self.device = device
+        self.active_key = 0
 
         # safety checks: iterate through keys and data sources to ensure that they match
         voxel_size = None
@@ -183,7 +185,7 @@ class TorchDataset(Dataset):
                     assert len(source.array_specs) == len(
                         self.data_keys
                     ), f"number of keys {len(self.data_keys)} does not match number"
-                    " of array specs {len(source.array_specs)}"
+                    f" of array specs {len(source.array_specs)}"
 
                     # check that all voxel sizes are the same
                     array_spec = source.array_specs[key]
@@ -215,18 +217,19 @@ class TorchDataset(Dataset):
             # in __getitem__ ends up being the index of our key.
         self.batch_request = batch_request
 
+        # build our pipeline
+        self.pipeline = self.build_pipeline
+
     def __len__(self):
         """
         Returns number of source data arrays in this dataset.
         """
         return len(self.data_source)
 
-    def __getitem__(self, idx):
-        # TODO this implementation might not play nice with our dataloader, since its call
-        # signature messes with the key index. Watch out for that.
+    def __getitem__(self, idx=0):
         """
-        Requests a batch from the data pipeline by selecting the key from self.data_keys at
-        index 'idx', and using that key to call a batch from its corresponding source using
+        Requests a batch from the data pipeline using the key selected by self.use_key,
+        and applying that key to call a batch from its corresponding source using
         self.batch_request.
 
         :param int idx: index of the key you wish to use to access a random sample. Generally:
@@ -236,8 +239,93 @@ class TorchDataset(Dataset):
                                 .
                                 .
         """
-        for i in range(self.batch_size):
-            pass  # TODO implement
+        assert self.active_key != None, "No active key. Try '.use_key()'"
+
+        # TODO: this implementation pulls 5 x 256 x 256 of all channels. We may not want
+        # all of those slices in all channels if theyre note being used. Fix this inefficiency
+
+        sample = self.pipeline.request_batch(request=self.batch_request)
+        sample_data = sample[self.active_key].data
+
+        # TODO if the .zarr doesnt have a batch dimension already, removing an extra dimension
+        # breaks the sample. Add safety checks for this (iff arch = 2d.. etc)
+
+        # remove extra dimension from stack node
+        sample_data = sample_data[:, 0, ...]
+
+        # stack multiple channels
+        full_input = []
+        for idx in self.input_idx:  # assumes bczyx or bcyx
+            channel_input = sample[:, idx, ...]
+            full_input.append(channel_input)
+        full_input = np.stack(full_input, 1)[:, :, 0, ...]
+
+        full_target = []
+        for idx in self.input_idx:  # assumes bczyx or bcyx
+            channel_target = sample[:, idx, ...]
+            full_target.append(channel_target)
+        full_target = np.stack(full_target, 1)[:, :, 0, ...]
+
+        # convert to tensor and place onto gpu
+        convert = ToTensor(self.device)
+        input_, target_ = convert(input_), convert(target_)
+
+        return (full_input, full_target)
+
+    def build_pipeline(self):
+        """
+        Builds a gunpowder data pipeline given a source node and a list of augmentation
+        nodes
+
+        :param gp.ZarrSource or tuple source: source node/tuple of source nodes from which to draw
+        :param list nodes: list of augmentation nodes, by default empty list
+        """
+        # if source is multi_zarr_source, attach a RandomProvider
+        source = self.data_source
+        if isinstance(source, tuple):
+            source = [source, gp.RandomProvider()]
+
+        # attach permanent nodes
+        source = source + [gp.RandomLocation()]
+        source = source + [custom_nodes.Normalize()]
+        source = source + [custom_nodes.FlatFieldCorrect()]
+
+        batch_creation = []
+        batch_creation.append(
+            gp.PreCache(cache_size=150, num_workers=20)
+        )  # TODO make these parameters variable
+        batch_creation.append(gp.stack(self.batch_size))
+
+        # attach additional nodes, if any, and sum
+        pipeline = source + self.augmentation_nodes + batch_creation
+        pipeline = gp_utils.gpsum(pipeline, verbose=self.network_config["debug_mode"])
+        gp.build(pipeline)
+
+        return pipeline
+
+    def use_key(self, selection):
+        """
+        Sets self.active_key to selection if selection is an ArrayKey. If selection is an int,
+        sets self.active_key to the index in self.data_keys given by selection.
+
+        :param int or gp.ArrayKey selection: key index of key in self.data_keys to activate
+        """
+        if isinstance(selection, int):
+            try:
+                self.active_key = self.data_keys[selection]
+            except IndexError as e:
+                raise IndexError(
+                    f"Handling exception {e}: index of selection"
+                    " must be within length of data_keys"
+                )
+        elif isinstance(selection, gp.ArrayKey):
+            # TODO change this assertion to reference the source-> arrayspec-> keys
+            assert (
+                selection in self.data_keys
+            ), "Given key not associated with dataset sources"
+            self.active_key = selection
+        else:
+            raise AttributeError("Selection must be int or gp.ArrayKey")
 
     def unpack(self, sample_input, sample_target):
         # TODO this may not be necessary any more
@@ -278,6 +366,12 @@ class ToTensor(object):
         self.device = device
 
     def __call__(self, sample):
+        """
+        Perform transformation.
+
+        :param torch.tensor or numpy.ndarray sample: data to convert to tensor and place on device
+        :return torch.tensor sample: converted data on device
+        """
         if isinstance(sample, torch.Tensor):
             sample = sample.to(self.device)
         else:
