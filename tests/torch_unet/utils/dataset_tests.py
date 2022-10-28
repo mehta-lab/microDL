@@ -1,4 +1,3 @@
-#%%
 import collections
 import glob
 import shutil
@@ -12,7 +11,7 @@ import zarr
 
 import sys
 
-sys.path.insert(0, "/home/christian.foley/virtual_staining/workspaces/microDL")
+# sys.path.insert(0, "/home/christian.foley/virtual_staining/workspaces/microDL")
 
 import micro_dl.torch_unet.utils.dataset as dataset_utils
 import micro_dl.torch_unet.utils.io as io_utils
@@ -49,12 +48,13 @@ class TestDataset(unittest.TestCase):
         # build zarr store accordingly
         self.build_zarr_store(self.temp, num_stores=6)
 
-    def TakeDown(self):
+    def tearDown(self):
         """
         Cleans up testing environment
         """
         # clean up zarr store
-        shutil.rmtree(self.temp)
+        if os.path.exists(self.temp):
+            shutil.rmtree(self.temp)
 
     def build_zarr_store(self, temp, num_stores):
         """
@@ -121,8 +121,18 @@ class TestDataset(unittest.TestCase):
             recurse_helper(g1, ["Row", "Col", "Pos", "arr"], 3, 3)
 
     def _test_basic_functionality(self):
-        self.SetUp()
+        """
+        Tests functionality with configuration described in self.SetUp().
 
+        Pulls one sample from each dataset created in setup with every key
+        corresponding to that dataset (see train_config.array_name)
+
+        :raises AssertionError: Errors if errors found in initiation
+        :raises AssertionError: Errors if setting key and accessing dataset produces
+                                unexpected behavior
+        :raises AssertionError: Errors if samples produced are not of expected size,
+                                shape, and type
+        """
         try:
             torch_container = dataset_utils.TorchDatasetContainer(
                 self.train_config,
@@ -153,10 +163,10 @@ class TestDataset(unittest.TestCase):
                             len(sample) == 2
                         ), f"Target-input tuple shape :{len(sample)} not 2"
                         assert isinstance(
-                            sample[0], torch.tensor
+                            sample[0], torch.Tensor
                         ), "Samples produced are not tensors"
                         assert isinstance(
-                            sample[1], torch.tensor
+                            sample[1], torch.Tensor
                         ), "Samples produced are not tensors"
 
                         # ensure sample is correct shape
@@ -167,30 +177,42 @@ class TestDataset(unittest.TestCase):
                         )
                         num_input_channels = len(self.dataset_config["input_channels"])
 
-                        expected_target_size = tuple(
-                            [batch_size, num_target_channels] + list(window_size)
-                        )
-                        assert sample[1].shape == expected_target_size(
-                            f"Target samples produced of incorrect"
-                            f"shape: expected: {expected_target_size} actual: {sample.shape}"
-                        )
+                        # remove extra torch batch dim
+                        input_ = sample[0][0]
+                        target_ = sample[1][0]
 
                         expected_input_size = tuple(
                             [batch_size, num_input_channels] + list(window_size)
                         )
-                        assert sample[0].shape == expected_input_size(
+                        assert input_.shape == expected_input_size, (
                             f"Input samples produced of incorrect"
-                            f"shape: expected: {expected_input_size} actual: {sample.shape}"
+                            f"shape: expected: {expected_input_size} actual: {input_.shape}"
                         )
 
+                        expected_target_size = tuple(
+                            [batch_size, num_target_channels] + list(window_size)
+                        )
+                        assert target_.shape == expected_target_size, (
+                            f"Target samples produced of incorrect "
+                            f"shape: expected: {expected_target_size} actual: {target_.shape}"
+                        )
+                        break
+
                 except Exception as e:
+                    self.tearDown()
                     raise AssertionError(
                         f"Error in loading samples from dataloader: {e.args}"
                     )
 
-        self.TakeDown()
+    # ------- tests --------#
 
-
-# %%
-tester = TestDataset()
-tester._test_basic_functionality()
+    def test_functionality(self):
+        """
+        Test basic functionality on given configurations:
+            - builds zarr store
+            - tests container and dataset initation stability
+            - tests that sample size, shape, and type matches expected
+        """
+        self.SetUp()
+        self._test_basic_functionality()
+        self.tearDown()

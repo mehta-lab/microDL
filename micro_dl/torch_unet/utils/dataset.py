@@ -245,8 +245,9 @@ class TorchDataset(Dataset):
         # TODO: this implementation pulls 5 x 256 x 256 of all channels. We may not want
         # all of those slices in all channels if theyre note being used. Fix this inefficiency
 
-        sample = self.pipeline.request_batch(request=self.batch_request)
-        sample_data = sample[self.active_key].data
+        with gp.build(self.pipeline):
+            sample = self.pipeline.request_batch(request=self.batch_request)
+            sample_data = sample[self.active_key].data
 
         # TODO if the .zarr doesnt have a batch dimension already, removing an extra dimension
         # breaks the sample. Add safety checks for this (iff arch = 2d.. etc)
@@ -257,21 +258,21 @@ class TorchDataset(Dataset):
         # stack multiple channels
         full_input = []
         for idx in self.input_idx:  # assumes bczyx or bcyx
-            channel_input = sample[:, idx, ...]
+            channel_input = sample_data[:, idx, ...]
             full_input.append(channel_input)
-        full_input = np.stack(full_input, 1)[:, :, 0, ...]
+        full_input = np.stack(full_input, 1)
 
         full_target = []
         for idx in self.input_idx:  # assumes bczyx or bcyx
-            channel_target = sample[:, idx, ...]
+            channel_target = sample_data[:, idx, ...]
             full_target.append(channel_target)
-        full_target = np.stack(full_target, 1)[:, :, 0, ...]
+        full_target = np.stack(full_target, 1)
 
         # convert to tensor and place onto gpu
         convert = ToTensor(self.device)
-        input_, target_ = convert(input_), convert(target_)
+        input_, target_ = convert(full_input), convert(full_target)
 
-        return (full_input, full_target)
+        return (input_, target_)
 
     def _build_pipeline(self):
         """
@@ -301,7 +302,6 @@ class TorchDataset(Dataset):
         # attach additional nodes, if any, and sum
         pipeline = source + self.augmentation_nodes + batch_creation
         pipeline = gp_utils.gpsum(pipeline, verbose=False)
-        gp.build(pipeline)
 
         return pipeline
 
