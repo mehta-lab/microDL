@@ -68,6 +68,7 @@ class Unet25d(nn.Module):
         up_mode = "trilinear"  # TODO set static trilinear
         activation = "relu"  # TODO set static relu
         self.bottom_block_spatial = False  # TODO set static
+        # TODO set conv_block layer order variable
 
         # ----- Standardize Filter Sequence ----- #
         if len(num_filters) != 0:

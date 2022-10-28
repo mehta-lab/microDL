@@ -1,4 +1,3 @@
-from socket import TIPC_DEST_DROPPABLE
 import cv2
 import collections
 import gunpowder as gp
@@ -62,7 +61,7 @@ class TorchDatasetContainer(object):
         except Exception as e:
             raise AssertionError(
                 f"All datasets must have at least one source node,"
-                f"not enough source arrays found: {e}"
+                f" not enough source arrays found.\n {e.args}"
             )
 
         # build augmentation nodes
@@ -87,7 +86,7 @@ class TorchDatasetContainer(object):
         :param list augmentation_nodes: list of augmentation nodes in order
         """
         # NOTE: not passing the whole dataset config is a design choice here. The
-        # elements ofthe config are a black box until theyre indexed. I do this
+        # elements of the config are a black box until theyre indexed. I do this
         # to make them more readable. This can change with PyDantic later
         dataset = TorchDataset(
             data_source=source,
@@ -167,6 +166,8 @@ class TorchDataset(Dataset):
         :param tuple spatial_window_size: tuple of sample dimensions, specifies batch request ROI
                                     2D network, expects 2D tuple; dimensions yx
                                     2.5D network, expects 3D tuple; dimensions zyx
+        :param str device: device on which to place tensors in child datasets,
+                            by default, places on 'cuda'
         """
         self.data_source = data_source
         self.augmentation_nodes = augmentation_nodes
@@ -198,7 +199,7 @@ class TorchDataset(Dataset):
                         f" voxel size of previous array {voxel_size}."
                 except Exception as e:
                     raise AssertionError(
-                        f"Error matching keys to source in dataset: {e}"
+                        f"Error matching keys to source in dataset: {e.args}"
                     )
 
         # generate batch request depending on pipeline voxel size and input dims/idxs
@@ -218,7 +219,7 @@ class TorchDataset(Dataset):
         self.batch_request = batch_request
 
         # build our pipeline
-        self.pipeline = self.build_pipeline
+        self.pipeline = self._build_pipeline()
 
     def __len__(self):
         """
@@ -272,7 +273,7 @@ class TorchDataset(Dataset):
 
         return (full_input, full_target)
 
-    def build_pipeline(self):
+    def _build_pipeline(self):
         """
         Builds a gunpowder data pipeline given a source node and a list of augmentation
         nodes
@@ -287,18 +288,19 @@ class TorchDataset(Dataset):
 
         # attach permanent nodes
         source = source + [gp.RandomLocation()]
-        source = source + [custom_nodes.Normalize()]
-        source = source + [custom_nodes.FlatFieldCorrect()]
+        # TODO implement
+        # source = source + [custom_nodes.Normalize()]
+        # source = source + [custom_nodes.FlatFieldCorrect()]
 
         batch_creation = []
         batch_creation.append(
             gp.PreCache(cache_size=150, num_workers=20)
         )  # TODO make these parameters variable
-        batch_creation.append(gp.stack(self.batch_size))
+        batch_creation.append(gp.Stack(self.batch_size))
 
         # attach additional nodes, if any, and sum
         pipeline = source + self.augmentation_nodes + batch_creation
-        pipeline = gp_utils.gpsum(pipeline, verbose=self.network_config["debug_mode"])
+        pipeline = gp_utils.gpsum(pipeline, verbose=False)
         gp.build(pipeline)
 
         return pipeline
@@ -315,7 +317,7 @@ class TorchDataset(Dataset):
                 self.active_key = self.data_keys[selection]
             except IndexError as e:
                 raise IndexError(
-                    f"Handling exception {e}: index of selection"
+                    f"Handling exception {e.args}: index of selection"
                     " must be within length of data_keys"
                 )
         elif isinstance(selection, gp.ArrayKey):
