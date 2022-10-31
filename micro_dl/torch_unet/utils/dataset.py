@@ -299,9 +299,9 @@ class TorchDataset(Dataset):
         # source = source + [custom_nodes.FlatFieldCorrect()]
 
         batch_creation = []
-        # batch_creation.append(
-        #     gp.PreCache(cache_size=150, num_workers=20)
-        # )  # TODO make these parameters variable
+        batch_creation.append(
+            gp.PreCache(cache_size=150, num_workers=20)
+        )  # TODO make these parameters variable
         batch_creation.append(gp.Stack(self.batch_size))
 
         # attach additional nodes, if any, and sum
