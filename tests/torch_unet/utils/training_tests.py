@@ -14,9 +14,11 @@ from micro_dl.torch_unet.utils.training import TorchTrainer
 
 class TestTraining(unittest.TestCase):
     def SetUp(self):
+        #TODO Rewrite
         '''
         Set up configuration for testing TorchTrainer and module
         '''
+        self.temp = "temp_dir"
         self.network_config = {
             'model': {
                 'architecture': '2.5D',
@@ -24,7 +26,8 @@ class TestTraining(unittest.TestCase):
                 'out_channels': 1,
                 'residual': True,
                 'task': 'reg',
-                'model_dir': None},
+                'model_dir': None
+            },
             'training': {
                 'epochs': 40,
                 'learning_rate': 0.0045,
@@ -33,15 +36,29 @@ class TestTraining(unittest.TestCase):
                 'testing_stride': 1,
                 'save_model_stride': 1,
                 'save_dir': '',
-                'mask': False,
                 'mask_type': 'unimodal',
-                'device': 0
+                'device': 0,
+                'batch_size': 8,
+                "data_dir": self.temp,
+                "array_name": "arr_0",
+                "split_ratio": {
+                    "train": 0.66,
+                    "test": 0.17,
+                    "val": 0.17,
                 }
+            },
+            'dataset': {
+                "target_channels": [1],
+                "input_channels": [0],
+                "window_size": (256, 256),
+                
+            },
         }
         self.archs = ['2D', '2.5D']
         self.data_dims = [(16,1,512,512), (16,1,5,512,512)]
     
     def _random_dataloaders(self, size):
+        #TODO Rewrite
         """_Creates torch dataloaders which load from random normally
         distributed datasets of size 'size'
 
@@ -75,17 +92,3 @@ class TestTraining(unittest.TestCase):
         far from randomly generated train dataset
         """
         self._all_test_configurations(test = 'residual')
-
-# %%
-tester = TestTraining()
-tester.SetUp()
-output = tester._random_dataloaders(5)[0]
-# %%
-a = output[0]
-len(a)
-next(iter(a))[0].shape
-# %%
-for sample in a:
-    print(len(sample))
-    #print(sample.shape, sample.shape)
-# %%

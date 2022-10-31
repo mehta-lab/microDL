@@ -28,7 +28,7 @@ class TestDataset(unittest.TestCase):
         self.train_config_batch = {
             "data_dir": self.temp,
             "array_name": "arr_0",
-            # "augmentations": None TODO implement
+            # "augmentations": None #TODO implement
             "batch_size": 5,
             "split_ratio": {
                 "train": 0.66,
@@ -39,7 +39,7 @@ class TestDataset(unittest.TestCase):
         self.train_config_single = {
             "data_dir": self.temp,
             "array_name": "arr_0",
-            # "augmentations": None TODO implement
+            # "augmentations": None #TODO implement
             "batch_size": 1,
             "split_ratio": {
                 "train": 0.66,
@@ -61,7 +61,7 @@ class TestDataset(unittest.TestCase):
         self.dataset_config_2d = {
             "target_channels": [1],
             "input_channels": [0],
-            "window_size": (256, 256), #NOTE assumes .zarr data ALWAYS 5D
+            "window_size": (256, 256),
         }
         self.dataset_config_25d = {
             "target_channels": [1],
@@ -293,6 +293,8 @@ class TestDataset(unittest.TestCase):
         self.SetUp()
         self._all_test_configurations(self._test_basic_functionality)
         self.tearDown()
+        
+    
 
 # %%
 tester = TestDataset()

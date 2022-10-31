@@ -9,6 +9,7 @@ from torch.utils.tensorboard import SummaryWriter
 import torch
 import torch.optim as optim
 import torch.nn as nn
+from torch.utils.data import DataLoader
 
 if __name__ == "__main__":
     # This should exclusively be set in main file. Cannot set context twice
@@ -35,6 +36,7 @@ class TorchTrainer:
         self.torch_config = torch_config
         self.network_config = self.torch_config["model"]
         self.training_config = self.torch_config["training"]
+        self.dataset_config = self.torch_config["dataset"]
 
         self.train_dataloader = None
         self.test_dataloader = None
@@ -118,15 +120,11 @@ class TorchTrainer:
         # determine transforms/augmentations
         transforms = [ds.ToTensor()]
         target_transforms = [ds.ToTensor()]
-        if self.training_config["mask"]:
-            target_transforms.append(
-                ds.GenerateMasks(self.training_config["mask_type"])
-            )
 
-        torch_data_container = ds.TorchDataset(
-            self.torch_config["train_config_path"],
-            transforms=transforms,
-            target_transforms=target_transforms,
+        torch_data_container = ds.TorchDatasetContainer(
+            train_config = self.training_config,
+            network_config= self.network_config,
+            dataset_config= self.dataset_config,
             device=self.device,
         )
         train_dataset = torch_data_container["train"]
@@ -138,13 +136,13 @@ class TorchTrainer:
         if "num_workers" in self.training_config:
             workers = self.training_config["num_workers"]
 
-        self.train_dataloader = torch.utils.data.DataLoader(
+        self.train_dataloader = DataLoader(
             dataset=train_dataset, shuffle=True, num_workers=workers
         )
-        self.test_dataloader = torch.utils.data.DataLoader(
+        self.test_dataloader = DataLoader(
             dataset=test_dataset, shuffle=True, num_workers=workers
         )
-        self.val_dataloader = torch.utils.data.DataLoader(
+        self.val_dataloader = DataLoader(
             dataset=val_dataset, shuffle=True, num_workers=workers
         )
         self.split_samples = torch_data_container.split_samples_metadata
