@@ -1,3 +1,4 @@
+# %%
 import collections
 import glob
 import shutil
@@ -11,20 +12,20 @@ import zarr
 
 import sys
 
-# sys.path.insert(0, "/home/christian.foley/virtual_staining/workspaces/microDL")
+sys.path.insert(0, "/home/christian.foley/virtual_staining/workspaces/microDL")
 
 import micro_dl.torch_unet.utils.dataset as dataset_utils
 import micro_dl.torch_unet.utils.io as io_utils
 
 
-class TestDataset(unittest.TestCase):
+class TestDataset(unittest.TestCase):     
     def SetUp(self):
         """
-        Sets up testing environment
+        Initialize different test configurations to set up testing environment
         """
         # generate configuration data
         self.temp = "temp_dir"
-        self.train_config = {
+        self.train_config_batch = {
             "data_dir": self.temp,
             "array_name": "arr_0",
             # "augmentations": None TODO implement
@@ -35,18 +36,42 @@ class TestDataset(unittest.TestCase):
                 "val": 0.17,
             },
         }
-        self.network_config = {"architecture": "2.5D", "debug_mode": False}
-        self.dataset_config = {
+        self.train_config_single = {
+            "data_dir": self.temp,
+            "array_name": "arr_0",
+            # "augmentations": None TODO implement
+            "batch_size": 1,
+            "split_ratio": {
+                "train": 0.66,
+                "test": 0.17,
+                "val": 0.17,
+            },
+        }
+        self.all_train_configs = [
+            self.train_config_batch,
+            self.train_config_single
+        ]
+        
+        self.network_config_2d = {"architecture": "2D", "debug_mode": False}
+        self.network_config_25d = {"architecture": "2.5D", "debug_mode": False}
+        self.all_network_configs = [
+            self.network_config_2d,
+            self.network_config_25d
+        ]
+        self.dataset_config_2d = {
             "target_channels": [1],
             "input_channels": [0],
-            "window_size": (2, 256, 256),
+            "window_size": (256, 256), #NOTE assumes .zarr data ALWAYS 5D
         }
-        self.num_channels = len(self.dataset_config["input_channels"]) + len(
-            self.dataset_config["target_channels"]
-        )
-
-        # build zarr store accordingly
-        self.build_zarr_store(self.temp, num_stores=6)
+        self.dataset_config_25d = {
+            "target_channels": [1],
+            "input_channels": [0, 2],
+            "window_size": (3, 256, 256),
+        }
+        self.all_dataset_configs = [
+            self.dataset_config_2d,
+            self.dataset_config_25d
+        ]
 
     def tearDown(self):
         """
@@ -56,7 +81,7 @@ class TestDataset(unittest.TestCase):
         if os.path.exists(self.temp):
             shutil.rmtree(self.temp)
 
-    def build_zarr_store(self, temp, num_stores):
+    def build_zarr_store(self, temp, arr_spatial, num_stores=6):
         """
         Builds a test zarr store conforming to OME-NGFF Zarr format with 5d arrays
         in the directory 'temp'
@@ -64,6 +89,7 @@ class TestDataset(unittest.TestCase):
         :param str temp: dir path to build zarr store in
         :param str zarr_name: name of zarr store inside temp dir (discluding extension)
         :param int num_stores: of zarr_stores to build
+        :param tuple arr_spatial: spatial dimensions of data
         :raises FileExistsError: cannot overwrite a currently written directory, so
                                 temp must be a new directory
         """
@@ -71,7 +97,56 @@ class TestDataset(unittest.TestCase):
             os.makedirs(temp, exist_ok=True)
         except Exception as e:
             raise FileExistsError(f"parent directory cannot already exist {e.args}")
+        
+        def recurse_helper(group, names, subgroups, depth):
+            """
+            Recursively makes heirarchies of 'num_subgroups' subgroups until 'depth' is reached
+            as children of 'group', filling the bottom most groups with arrays of value
+            arr_value, and incrementing arr_value.
 
+            :param zarr.heirarchy.Group group: Parent group ('.zarr' store)
+            :param list names: names subgroups at each depth level + [name of arr]
+            :param int subgroups: number of subgroups at each level (width)
+            :param int depth: height of subgroup tree (height)
+            :param int ar_channels: number of channels of data array
+            :param int depth: window size of data array
+            """
+            if depth == 0:
+                for j in range(subgroups):
+                    z1 = zarr.open(
+                        os.path.join(
+                            group.store.dir_path(),
+                            group.path,
+                            names[-depth - 1] + f"_{j}",
+                        ),
+                        mode="w",
+                        shape=(
+                            [1, arr_channels] + [dim * 2 for dim in arr_spatial]
+                        ),
+                        chunks=([1, 1] + list(arr_spatial)),
+                        dtype="float32",
+                    )
+                    val = arr_value.pop(0)
+                    z1[:] = val
+                    arr_value.append(val + 1)
+            else:
+                for j in range(subgroups):
+                    subgroup = group.create_group(names[-depth - 1] + f"_{j}")
+                    recurse_helper(subgroup, names, subgroups, depth - 1)
+        
+        # set parameters for store creation
+        max_input_channels = 0
+        max_target_channels = 0
+        for config in self.all_dataset_configs:
+            max_input_channels = max(
+                len(config["input_channels"]), max_input_channels
+            )
+            max_target_channels = max(
+                len(config["target_channels"]), max_target_channels
+            )
+        self.num_channels = max_input_channels + max_target_channels
+
+        #build stores
         self.groups = []
         for i in range(num_stores):
             store = zarr.DirectoryStore(os.path.join(temp, f"example_{i}.zarr"))
@@ -80,43 +155,6 @@ class TestDataset(unittest.TestCase):
 
             arr_value = [0]
             arr_channels = self.num_channels
-            arr_spatial = self.dataset_config["window_size"]
-
-            def recurse_helper(group, names, subgroups, depth):
-                """
-                Recursively makes heirarchies of 'num_subgroups' subgroups until 'depth' is reached
-                as children of 'group', filling the bottom most groups with arrays of value
-                arr_value, and incrementing arr_value.
-
-                :param zarr.heirarchy.Group group: Parent group ('.zarr' store)
-                :param list names: names subgroups at each depth level + [name of arr]
-                :param int subgroups: number of subgroups at each level (width)
-                :param int depth: height of subgroup tree (height)
-                :param int ar_channels: number of channels of data array
-                :param int depth: window size of data array
-                """
-                if depth == 0:
-                    for j in range(subgroups):
-                        z1 = zarr.open(
-                            os.path.join(
-                                group.store.dir_path(),
-                                group.path,
-                                names[-depth - 1] + f"_{j}",
-                            ),
-                            mode="w",
-                            shape=(
-                                [1, arr_channels] + [dim * 2 for dim in arr_spatial]
-                            ),
-                            chunks=([1, 1] + list(arr_spatial)),
-                            dtype="float32",
-                        )
-                        val = arr_value.pop(0)
-                        z1[:] = val
-                        arr_value.append(val + 1)
-                else:
-                    for j in range(subgroups):
-                        subgroup = group.create_group(names[-depth - 1] + f"_{j}")
-                        recurse_helper(subgroup, names, subgroups, depth - 1)
 
             recurse_helper(g1, ["Row", "Col", "Pos", "arr"], 3, 3)
 
@@ -186,24 +224,63 @@ class TestDataset(unittest.TestCase):
                         )
                         assert input_.shape == expected_input_size, (
                             f"Input samples produced of incorrect"
-                            f"shape: expected: {expected_input_size} actual: {input_.shape}"
+                            f" shape - expected: {expected_input_size} actual: {input_.shape}"
                         )
 
-                        expected_target_size = tuple(
-                            [batch_size, num_target_channels] + list(window_size)
-                        )
+                        if len(window_size) == 3:
+                            expected_target_size = tuple(
+                                [batch_size, num_target_channels] + [1] + list(window_size)[1:]
+                            )
+                        else:
+                            expected_target_size = tuple(
+                                [batch_size, num_target_channels] + list(window_size)
+                            )
                         assert target_.shape == expected_target_size, (
                             f"Target samples produced of incorrect "
-                            f"shape: expected: {expected_target_size} actual: {target_.shape}"
+                            f" shape - expected: {expected_target_size} actual: {target_.shape}"
                         )
                         break
 
                 except Exception as e:
-                    self.tearDown()
                     raise AssertionError(
                         f"Error in loading samples from dataloader: {e.args}"
                     )
-
+    
+    def _all_test_configurations(self, test):
+        """
+        Run specified test on all possible data sampling configurations. Pairs dataset
+        and network configurations by index (necessary as there are exclusive parameters).
+        With every pair of dataset and network configs, tries every possible training config.
+        
+        :param str test: test to run (must be attribute of self)
+        """
+            
+        for i in range(len(self.all_network_configs)):
+            self.dataset_config = self.all_dataset_configs[i]
+            self.network_config = self.all_network_configs[i]
+            
+            self.build_zarr_store(
+                temp = self.temp,
+                arr_spatial=self.dataset_config["window_size"]
+            )
+            
+            for train_config in self.all_train_configs:
+                self.train_config = train_config
+                
+                #test functionality with each config
+                try:
+                    test() 
+                except Exception as e:
+                    #self.tearDown()
+                    raise Exception(
+                        f"\n\n Exception caught with configuration:"
+                        f"\n\n training: {self.train_config}"
+                        f"\n\n dataset: {self.dataset_config}"
+                        f"\n\n network: {self.network_config}"
+                    )
+                    
+            self.tearDown()
+    
     # ------- tests --------#
 
     def test_functionality(self):
@@ -214,5 +291,11 @@ class TestDataset(unittest.TestCase):
             - tests that sample size, shape, and type matches expected
         """
         self.SetUp()
-        self._test_basic_functionality()
+        self._all_test_configurations(self._test_basic_functionality)
         self.tearDown()
+
+# %%
+tester = TestDataset()
+tester.test_functionality()
+
+# %%

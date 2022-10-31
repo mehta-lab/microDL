@@ -73,7 +73,7 @@ def build_sources(zarr_store_dir, store_well_paths, arr_spec):
             identity = lambda x: x.identifier
             assert list(map(identity, path_keys)) == list(
                 map(identity, keys)
-            ), f"Found different array types for path {os.path.join(zarr_dir, path)}"
+            ), f"Found different array types for path {os.path.join(zarr_store_dir, path)}"
 
         dataset_dict = {}
         for i, key in enumerate(keys):
@@ -282,4 +282,5 @@ def generate_augmentation_nodes(augmentation_config):
                                 see torch_config readme.md for more details
     :return list aug_nodes: list of augmentation nodes in order
     """
+    pass
     # TODO implement this. Will likely need a discussion about what augmentations to support

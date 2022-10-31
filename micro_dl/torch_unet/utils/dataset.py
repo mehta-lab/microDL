@@ -7,10 +7,7 @@ import pandas as pd
 import torch
 from torch.utils.data import Dataset
 
-import micro_dl.utils.aux_utils as aux_utils
-import micro_dl.utils.masks as mask_utils
 import micro_dl.utils.normalize as norm_utils
-import micro_dl.utils.train_utils as train_utils
 import micro_dl.input.gunpowder_nodes as custom_nodes
 import micro_dl.utils.gunpowder_utils as gp_utils
 
@@ -175,6 +172,7 @@ class TorchDataset(Dataset):
         self.batch_size = batch_size
         self.target_idx = target_channel_idx
         self.input_idx = input_channel_idx
+        self.window_size = spatial_window_size
         self.device = device
         self.active_key = 0
 
@@ -203,14 +201,16 @@ class TorchDataset(Dataset):
                     )
 
         # generate batch request depending on pipeline voxel size and input dims/idxs
-        assert len(spatial_window_size) == len(
+        assert len(self.window_size) == len(
             voxel_size
-        ), f"Incompatible voxel size {voxel_size}. "
-        f"Must be equal to spatial_window_size {spatial_window_size}"
+        ), (
+            f"Incompatible voxel size {voxel_size}. "
+            f"Must be same length as spatial_window_size {self.window_size}"
+        )
 
         batch_request = gp.BatchRequest()
         for key in self.data_keys:
-            batch_request[key] = gp.Roi((0, 0, 0), spatial_window_size)
+            batch_request[key] = gp.Roi((0, )*len(self.window_size), self.window_size)
             # NOTE: the keymapping we are performing here makes it so that if
             # we DO end up generating multiple arrays at the group level
             # (for example one with and without flatfield correction), we can
@@ -249,8 +249,8 @@ class TorchDataset(Dataset):
             sample = self.pipeline.request_batch(request=self.batch_request)
             sample_data = sample[self.active_key].data
 
-        # TODO if the .zarr doesnt have a batch dimension already, removing an extra dimension
-        # breaks the sample. Add safety checks for this (iff arch = 2d.. etc)
+        #NOTE We assume the .zarr ALWAYS has an extra batch channel.
+        # SO, 3d -> 5d data, 2d -> 4d data
 
         # remove extra dimension from stack node
         sample_data = sample_data[:, 0, ...]
@@ -263,10 +263,15 @@ class TorchDataset(Dataset):
         full_input = np.stack(full_input, 1)
 
         full_target = []
-        for idx in self.input_idx:  # assumes bczyx or bcyx
+        for idx in self.target_idx:  # assumes bczyx or bcyx
             channel_target = sample_data[:, idx, ...]
             full_target.append(channel_target)
         full_target = np.stack(full_target, 1)
+        
+        if len(full_target.shape) == 5:
+            # target is always 2 dimensional, we select middle z dim
+            middle_z_idx = full_target.shape[-3]//2
+            full_target = np.expand_dims(full_target[...,middle_z_idx,:,:], -3)
 
         # convert to tensor and place onto gpu
         convert = ToTensor(self.device)
@@ -294,9 +299,9 @@ class TorchDataset(Dataset):
         # source = source + [custom_nodes.FlatFieldCorrect()]
 
         batch_creation = []
-        batch_creation.append(
-            gp.PreCache(cache_size=150, num_workers=20)
-        )  # TODO make these parameters variable
+        # batch_creation.append(
+        #     gp.PreCache(cache_size=150, num_workers=20)
+        # )  # TODO make these parameters variable
         batch_creation.append(gp.Stack(self.batch_size))
 
         # attach additional nodes, if any, and sum
@@ -472,10 +477,11 @@ class GenerateMasks(object):
     """
 
     def __init__(self, masking_type="rosin", clipping=False, clip_amount=0):
-
+        import micro_dl.utils.masks as mask_utils
         assert masking_type in {"rosin", "unimodal", "otsu"}, (
             f"Unaccepted masking" "type: {masking_type}"
         )
+        self.mask_utils = mask_utils
         self.masking_type = masking_type
         self.clipping = clipping
         self.clip_amount = clip_amount
@@ -505,9 +511,9 @@ class GenerateMasks(object):
         masks = []
         for i in range(sample.shape[0]):
             if self.masking_type == "otsu":
-                masks.append(mask_utils.create_otsu_mask(sample[i, 0, 0]))
+                masks.append(self.mask_utils.create_otsu_mask(sample[i, 0, 0]))
             elif self.masking_type == "rosin" or self.masking_type == "unimodal":
-                masks.append(mask_utils.create_unimodal_mask(sample[i, 0, 0]))
+                masks.append(self.mask_utils.create_unimodal_mask(sample[i, 0, 0]))
             else:
                 raise NotImplementedError(
                     f"Masking type {self.masking_type} not implemented."
