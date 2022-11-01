@@ -201,16 +201,14 @@ class TorchDataset(Dataset):
                     )
 
         # generate batch request depending on pipeline voxel size and input dims/idxs
-        assert len(self.window_size) == len(
-            voxel_size
-        ), (
+        assert len(self.window_size) == len(voxel_size), (
             f"Incompatible voxel size {voxel_size}. "
             f"Must be same length as spatial_window_size {self.window_size}"
         )
 
         batch_request = gp.BatchRequest()
         for key in self.data_keys:
-            batch_request[key] = gp.Roi((0, )*len(self.window_size), self.window_size)
+            batch_request[key] = gp.Roi((0,) * len(self.window_size), self.window_size)
             # NOTE: the keymapping we are performing here makes it so that if
             # we DO end up generating multiple arrays at the group level
             # (for example one with and without flatfield correction), we can
@@ -249,7 +247,7 @@ class TorchDataset(Dataset):
             sample = self.pipeline.request_batch(request=self.batch_request)
             sample_data = sample[self.active_key].data
 
-        #NOTE We assume the .zarr ALWAYS has an extra batch channel.
+        # NOTE We assume the .zarr ALWAYS has an extra batch channel.
         # SO, 3d -> 5d data, 2d -> 4d data
 
         # remove extra dimension from stack node
@@ -267,11 +265,11 @@ class TorchDataset(Dataset):
             channel_target = sample_data[:, idx, ...]
             full_target.append(channel_target)
         full_target = np.stack(full_target, 1)
-        
+
         if len(full_target.shape) == 5:
             # target is always 2 dimensional, we select middle z dim
-            middle_z_idx = full_target.shape[-3]//2
-            full_target = np.expand_dims(full_target[...,middle_z_idx,:,:], -3)
+            middle_z_idx = full_target.shape[-3] // 2
+            full_target = np.expand_dims(full_target[..., middle_z_idx, :, :], -3)
 
         # convert to tensor and place onto gpu
         convert = ToTensor(self.device)

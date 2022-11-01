@@ -214,13 +214,6 @@ class TorchTrainer:
                 input_ = minibatch[0][0].to(self.device).float()
                 target_ = minibatch[1][0].to(self.device).float()
 
-                # if specified mask sample to get input and target
-                # TODO: change caching to include masked inputs since masks never change
-                if self.training_config["mask"]:
-                    mask = minibatch[2][0].to(self.device).float()
-                    input_ = torch.mul(input_, mask)
-                    target_ = torch.mul(target_, mask)
-
                 # run through model
                 output = self.model(input_, validate_input=True)
                 loss = self.criterion(output, target_)
@@ -315,12 +308,6 @@ class TorchTrainer:
             input_ = minibatch[0][0].to(self.device).float()
             target_ = minibatch[1][0].to(self.device).float()
             sample, target = input_, target_
-
-            # if mask provided, mask sample to get input and target
-            if mask_override:
-                mask_ = minibatch[2][0].to(self.device).float()
-                input_ = torch.mul(input_, mask_)
-                target_ = torch.mul(target_, mask_)
 
             # run through model
             output = self.model(input_, validate_input=True)

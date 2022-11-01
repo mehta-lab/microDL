@@ -1,24 +1,27 @@
 # %%
 import collections
 import sys
-sys.path.insert(0, '/home/christian.foley/virtual_staining/microDL/')
+sys.path.insert(0, '/home/christian.foley/virtual_staining/workspaces/microDL/')
 
 import torch
 from torch.utils.data import TensorDataset, DataLoader
 import numpy as np
 import itertools
 import unittest
-from micro_dl.torch_unet.utils.dataset import ToTensor
 
+
+from micro_dl.torch_unet.utils.dataset import ToTensor
 from micro_dl.torch_unet.utils.training import TorchTrainer
+from tests.torch_unet.utils.dataset_tests import TestDataset
 
 class TestTraining(unittest.TestCase):
     def SetUp(self):
         #TODO Rewrite
         '''
-        Set up configuration for testing TorchTrainer and module
+        Initialize different test configurations for TorchTrainer and module
+        to run tests on.
+        Must build testing environment before running SetUp.
         '''
-        self.temp = "temp_dir"
         self.network_config = {
             'model': {
                 'architecture': '2.5D',
@@ -54,13 +57,30 @@ class TestTraining(unittest.TestCase):
                 
             },
         }
-        self.archs = ['2D', '2.5D']
-        self.data_dims = [(16,1,512,512), (16,1,5,512,512)]
+    def build_testing_environment(self):
+        """
+        Create a testing environment:
+            create a temp directory
+            build zarr data
+        """
+        dataset_tester = TestDataset()
+        dataset_tester.build_zarr_store()
+        
+        #sync temp dirs
+        self.temp = dataset_tester.temp
+    
+    def tearDown(self):
+        """
+        Clean up temporary file directories created by testing.
+        """
+        super().tearDown()
+        
     
     def _random_dataloaders(self, size):
         #TODO Rewrite
-        """_Creates torch dataloaders which load from random normally
-        distributed datasets of size 'size'
+        """
+        Creates torch dataloaders which load from random normally distributed 
+        datasets of size 'size'
 
         :param int size: size of datasets to generate
         :return list dataloaders: list of random pytorch dataloaders for each arch
@@ -86,9 +106,9 @@ class TestTraining(unittest.TestCase):
     #-------------- Tests -----------------#
     
     def test_loss_closeness(self):
-        """Test functionality of test_cycle loss versus training loss
+        """
+        Test functionality of training with gunpowder backend.
         
-        Fails if loss from randomly generated test dataset is too
-        far from randomly generated train dataset
         """
         self._all_test_configurations(test = 'residual')
+# %%
