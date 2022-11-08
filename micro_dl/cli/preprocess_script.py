@@ -567,7 +567,7 @@ def pre_process(preprocess_config):
             )
             frames_meta = aux_utils.read_meta(required_params['input_dir'])
             # Automatically assign existing masks the next available channel number
-            mask_channel = (frames_meta['channel_idx'].max() + 1)
+            mask_channel = int(frames_meta['channel_idx'].max() + 1)
             mask_meta['channel_idx'] = mask_channel
             # Write metadata
             mask_meta_fname = os.path.join(mask_dir, 'frames_meta.csv')
