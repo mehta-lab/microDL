@@ -12,7 +12,8 @@ from micro_dl.utils.normalize import hist_clipping
 
 
 def mp_wrapper(fn, fn_args, workers):
-    """Create and save masks with multiprocessing
+    """
+    Create and save masks with multiprocessing
 
     :param list of tuple fn_args: list with tuples of function arguments
     :param int workers: max number of workers
@@ -25,7 +26,8 @@ def mp_wrapper(fn, fn_args, workers):
 
 
 def mp_create_save_mask(fn_args, workers):
-    """Create and save masks with multiprocessing
+    """
+    Create and save masks with multiprocessing
 
     :param list of tuple fn_args: list with tuples of function arguments
     :param int workers: max number of workers
@@ -172,6 +174,15 @@ def create_save_mask(channels_meta_sub,
 
 
 def get_mask_meta_row(file_path, meta_row):
+    """
+    Given path to mask, read mask, compute foreground fraction and fill\
+    in corresponding metadata row.
+
+    :param str file_path: Path to binary mask image
+    :param pd.DataFrame meta_row: Metadata row to fill in
+    :return pd.DataFrame meta_row: Metadata row with foreground fraction
+        for mask
+    """
     mask = image_utils.read_image(file_path)
     fg_frac = np.sum(mask > 0) / mask.size
     meta_row = {**meta_row, 'fg_frac': fg_frac}
@@ -179,8 +190,10 @@ def get_mask_meta_row(file_path, meta_row):
 
 
 def mp_tile_save(fn_args, workers):
-    """Tile and save with multiprocessing
+    """
+    Tile and save with multiprocessing\
     https://stackoverflow.com/questions/42074501/python-concurrent-futures-processpoolexecutor-performance-of-submit-vs-map
+
     :param list of tuple fn_args: list with tuples of function arguments
     :param int workers: max number of workers
     :return: list of returned df from tile_and_save
@@ -208,7 +221,7 @@ def tile_and_save(meta_sub,
                   zscore_std=None,
                   ):
     """
-    Crop image into tiles at given indices and save
+    Crop image into tiles at given indices and save.
 
     :param pd.DataFrame meta_sub: Subset of metadata for images to be tiled
     :param str flat_field_fname: fname of flat field image
@@ -268,7 +281,8 @@ def tile_and_save(meta_sub,
 
 
 def mp_crop_save(fn_args, workers):
-    """Crop and save images with multiprocessing
+    """
+    Crop and save images with multiprocessing.
 
     :param list of tuple fn_args: list with tuples of function arguments
     :param int workers: max number of workers
@@ -296,7 +310,8 @@ def crop_at_indices_save(meta_sub,
                          zscore_mean=None,
                          zscore_std=None
                          ):
-    """Crop image into tiles at given indices and save
+    """
+    Crop image into tiles at given indices and save.
 
     :param pd.DataFrame meta_sub: Subset of metadata for images to be cropped
     :param str flat_field_fname: File nname of flat field image
@@ -356,7 +371,7 @@ def crop_at_indices_save(meta_sub,
 
 def mp_resize_save(mp_args, workers):
     """
-    Resize and save images with multiprocessing
+    Resize and save images with multiprocessing.
 
     :param list mp_args: Function keyword arguments
     :param int workers: max number of workers
@@ -406,7 +421,8 @@ def resize_and_save(**kwargs):
 
 
 def mp_rescale_vol(fn_args, workers):
-    """Rescale and save image stacks with multiprocessing
+    """
+    Rescale and save image stacks with multiprocessing.
 
     :param list of tuple fn_args: list with tuples of function arguments
     :param int workers: max number of workers
@@ -427,7 +443,8 @@ def rescale_vol_and_save(time_idx,
                          output_fname,
                          scale_factor,
                          ff_path):
-    """Rescale volumes and save
+    """
+    Rescale volumes and save.
 
     :param int time_idx: time point of input image
     :param int pos_idx: sample idx of input image
@@ -473,7 +490,8 @@ def rescale_vol_and_save(time_idx,
 
 
 def mp_get_im_stats(fn_args, workers):
-    """Read and computes statistics of images with multiprocessing
+    """
+    Read and computes statistics of images with multiprocessing.
 
     :param list of tuple fn_args: list with tuples of function arguments
     :param int workers: max number of workers
@@ -489,7 +507,7 @@ def mp_get_im_stats(fn_args, workers):
 
 def get_im_stats(im_path):
     """
-    Read and computes statistics of images
+    Read and computes statistics of images.
 
     :param str im_path: Full path to image
     :return dict meta_row: Dict with intensity data for image
@@ -503,7 +521,8 @@ def get_im_stats(im_path):
 
 
 def mp_sample_im_pixels(fn_args, workers):
-    """Read and computes statistics of images with multiprocessing
+    """
+    Read and computes statistics of images with multiprocessing.
 
     :param list of tuple fn_args: list with tuples of function arguments
     :param int workers: max number of workers
@@ -518,10 +537,10 @@ def mp_sample_im_pixels(fn_args, workers):
 
 def sample_im_pixels(meta_row, ff_path, grid_spacing, dir_name=None):
     """
-    Read and computes statistics of images for each point in a grid.
-    Grid spacing determines distance in pixels between grid points
-    for rows and cols.
-    Applies flatfield correction prior to intensity sampling if flatfield
+    Read and computes statistics of images for each point in a grid.\
+    Grid spacing determines distance in pixels between grid points\
+    for rows and cols.\
+    Applies flatfield correction prior to intensity sampling if flatfield\
     path is specified.
 
     :param dict meta_row: Metadata row for image
