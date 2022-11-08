@@ -469,7 +469,7 @@ def get_channel_axis(data_format):
 
 def adjust_slice_margins(slice_ids, depth):
     """
-    Adjusts slice (z) indices to given z depth by removing indices too close
+    Adjusts slice (z) indices to given z depth by removing indices too close \
     to boundaries. Assumes that slice indices are contiguous.
 
     :param list of ints slice_ids: Slice (z) indices
@@ -542,9 +542,9 @@ def get_sorted_names(dir_name):
 
 def parse_idx_from_name(im_name, df_names=DF_NAMES, order="cztp"):
     """
-    Assumes im_name is e.g. im_c***_z***_p***_t***.png,
-    It doesn't care about the extension or the number of digits each index is
-    represented by, it extracts all integers from the image file name and assigns
+    Assumes im_name is e.g. im_c***_z***_p***_t***.png, \
+    It doesn't care about the extension or the number of digits each index is \
+    represented by, it extracts all integers from the image file name and assigns \
     them by order. By default it assumes that the order is c, z, t, p.
 
     :param str im_name: Image name without path

@@ -141,7 +141,9 @@ def resize_images(required_params,
                   num_slices_subvolume,
                   resize_3d,
                   flat_field_dir):
-    """Resample images first
+    """
+    Resamples images by a scale factor for either 2D or 3D images
+    using bilinear interpolation.
 
     :param dict required_params: dict with keys: input_dir, output_dir, time_ids,
      channel_ids, pos_ids, slice_ids, int2strlen, uniform_struct, num_workers
@@ -195,7 +197,7 @@ def generate_masks(required_params,
                    mask_dir=None,
                    ):
     """
-    Generate masks per image or volume
+    Generate binary masks from specified channel(s).
 
     :param dict required_params: dict with keys: input_dir, output_dir, time_ids,
         channel_ids, pos_ids, slice_ids, int2strlen, uniform_struct, num_workers
@@ -204,9 +206,9 @@ def generate_masks(required_params,
     :param int str_elem_radius: structuring element size for morphological
         opening
     :param str/None flat_field_dir: dir with flat field correction images
-    :param str mask_type: string to map to masking function. otsu or unimodal
-        or borders_weight_loss_map
-    :param int/None mask_channel: channel num assigned to mask channel. I
+    :param str mask_type: string to map to masking function. Available options:
+        'otsu', 'unimodal', 'dataset otsu', 'borders_weight_loss_map'
+    :param int/None mask_channel: channel index assigned to mask channel.
     :param str mask_ext: 'npy' or 'png'. Save the mask as uint8 PNG or
          NPY files
     :param str/None mask_dir: If creating weight maps from mask directory,
@@ -251,7 +253,11 @@ def generate_zscore_table(required_params,
                           norm_dict,
                           mask_dir):
     """
-    Compute z-score parameters and update frames_metadata based on the normalize_im
+    Computes z-score parameters (zscore_median and zscore_iqr) from precomputed
+    intensities sampled from blocks/tiles with a minimum foreground specified by
+    masks (masks with min_fraction specified required).
+    Updates frames_metadata with values for given normalization scheme.
+
     :param dict required_params: Required preprocessing parameters
     :param dict norm_dict: Normalization scheme (preprocess_config['normalization'])
     :param str mask_dir: Directory containing masks
@@ -451,7 +457,6 @@ def pre_process(preprocess_config):
 
     # -----------------Estimate flat field images--------------------
     flat_field_dir = None
-    flat_field_channels = []
     if 'flat_field' in preprocess_config:
         # If flat_field_channels aren't specified, correct all channel_ids
         flat_field_channels = required_params['channel_ids']
@@ -494,7 +499,7 @@ def pre_process(preprocess_config):
                 "Expected flatfield channels {}, and saved channels {} " \
                 "mismatch".format(flat_field_channels, existing_channels)
 
-    # -------Compute intensities for flatfield corrected images-------
+    # -------Compute intensities of blocks/tiles in all images-------
     if required_params['normalize_im'] in ['dataset', 'volume', 'slice']:
         block_size = None
         if 'metadata' in preprocess_config:
@@ -534,7 +539,7 @@ def pre_process(preprocess_config):
     mask_channel = None
     if 'masks' in preprocess_config:
         if 'channels' in preprocess_config['masks']:
-            # Generate masks from channel
+            # Generate masks from channel(s)
             assert 'mask_dir' not in preprocess_config['masks'], \
                 "Don't specify a mask_dir if generating masks from channel"
             mask_from_channel = preprocess_config['masks']['channels']
@@ -561,7 +566,8 @@ def pre_process(preprocess_config):
             assert 'channels' not in preprocess_config['masks'], \
                 "Don't specify channels to mask if using pre-generated masks"
             mask_dir = preprocess_config['masks']['mask_dir']
-            # Get preexisting masks from directory and match to input dir
+            # Get preexisting masks from directory, match to input dir and
+            # compute foreground fraction
             mask_meta = meta_utils.mask_meta_generator(
                 mask_dir,
             )
@@ -572,12 +578,6 @@ def pre_process(preprocess_config):
             # Write metadata
             mask_meta_fname = os.path.join(mask_dir, 'frames_meta.csv')
             mask_meta.to_csv(mask_meta_fname, sep=",")
-            # mask_channel = preprocess_utils.validate_mask_meta(
-            #     mask_dir=mask_dir,
-            #     input_dir=required_params['input_dir'],
-            #     csv_name=mask_meta_fname,
-            #     mask_channel=mask_channel,
-            # )
         else:
             raise ValueError("If using masks, specify either mask_channel",
                              "or mask_dir.")

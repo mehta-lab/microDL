@@ -60,31 +60,22 @@ def ints_meta_generator(
         channel_ids=-1,
         ):
     """
-    Generate pixel intensity metadata for estimating image normalization
-    parameters during preprocessing step. Pixels are sub-sampled from the image
-    following a grid pattern defined by block_size to for efficient estimation of
-    median and interquatile range. Grid sampling is preferred over random sampling
-    in the case due to the spatial correlation in images.
-    Will write found data in ints_meta.csv in input directory.
-    Assumed default file naming convention is:
-    dir_name
-    |
-    |- im_c***_z***_t***_p***.png
-    |- im_c***_z***_t***_p***.png
+    Generate pixel intensity metadata which will later be used for estimating
+    image normalization parameters.
+    Pixels are sub-sampled from the image following a grid pattern defined by
+    block_size to for efficient estimation of median and interquatile range.
+    Grid sampling is preferred over random sampling in this case due to the
+    spatial correlation in images.
+    Block intensities will be written in intensity_meta.csv in input directory.
 
-    c is channel
-    z is slice in stack (z)
-    t is time
-    p is position (FOV)
-
-    Other naming convention is:
+    File naming convention is:
     img_channelname_t***_p***_z***.tif for parse_sms_name
 
     :param str input_dir: path to input directory containing images
     :param int num_workers: number of workers for multiprocessing
-    :param int block_size: block size for the grid sampling pattern. Default value works
-        well for 2048 X 2048 images.
-    :param str flat_field_dir: Directory containing flatfield images
+    :param int block_size: block size for the grid sampling pattern. Default value
+        of 256 works well for 2048 X 2048 images.
+    :param str/None flat_field_dir: Directory containing flatfield images
     :param list/int channel_ids: Channel indices to process
     """
     if block_size is None:
@@ -174,17 +165,20 @@ def compute_zscore_params(frames_meta,
                           normalize_im,
                           min_fraction=0.99):
     """
-    Get zscore median and interquartile range
+    Compute median and interquartile range of intensities in blocks/tiles\
+    determined ints_meta_generator function (saved in intensity_meta.csv).\
+    Masks need to bee computed and only tiles with enough foreground given masks\
+     (determined by min_fraction) will be included in the analysis.
 
     :param pd.DataFrame frames_meta: Dataframe containing all metadata
     :param pd.DataFrame ints_meta: Metadata containing intensity statistics
         each z-slice and foreground fraction for masks
     :param str input_dir: Directory containing images
-    :param None or str normalize_im: normalization scheme for input images
-    :param float min_fraction: Minimum foreground fraction (in case of masks)
+    :param None/str normalize_im: normalization scheme for input images
+    :param float min_fraction: Minimum foreground fraction of masks
         for computing intensity statistics.
 
-    :return pd.DataFrame frames_meta: Dataframe containing all metadata
+    :return pd.DataFrame frames_meta: DataFrame containing all metadata
     :return pd.DataFrame ints_meta: Metadata containing intensity statistics
         each z-slice
     """

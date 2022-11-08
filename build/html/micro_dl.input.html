@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>micro_dl.input package &mdash; microDL_docs 1.0.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> microDL_docs
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">micro_dl.input package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-micro_dl.input.dataset">micro_dl.input.dataset module</a><ul>
+<li><a class="reference internal" href="#micro_dl.input.dataset.BaseDataSet"><code class="docutils literal notranslate"><span class="pre">BaseDataSet</span></code></a><ul>
+<li><a class="reference internal" href="#micro_dl.input.dataset.BaseDataSet.get_steps_per_epoch"><code class="docutils literal notranslate"><span class="pre">BaseDataSet.get_steps_per_epoch()</span></code></a></li>
+<li><a class="reference internal" href="#micro_dl.input.dataset.BaseDataSet.on_epoch_end"><code class="docutils literal notranslate"><span class="pre">BaseDataSet.on_epoch_end()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#micro_dl.input.dataset.apply_affine_transform"><code class="docutils literal notranslate"><span class="pre">apply_affine_transform()</span></code></a></li>
+<li><a class="reference internal" href="#micro_dl.input.dataset.transform_matrix_offset_center"><code class="docutils literal notranslate"><span class="pre">transform_matrix_offset_center()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-micro_dl.input.dataset_with_mask">micro_dl.input.dataset_with_mask module</a><ul>
+<li><a class="reference internal" href="#micro_dl.input.dataset_with_mask.DataSetWithMask"><code class="docutils literal notranslate"><span class="pre">DataSetWithMask</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-micro_dl.input.inference_dataset">micro_dl.input.inference_dataset module</a><ul>
+<li><a class="reference internal" href="#micro_dl.input.inference_dataset.InferenceDataSet"><code class="docutils literal notranslate"><span class="pre">InferenceDataSet</span></code></a><ul>
+<li><a class="reference internal" href="#micro_dl.input.inference_dataset.InferenceDataSet.adjust_slice_indices"><code class="docutils literal notranslate"><span class="pre">InferenceDataSet.adjust_slice_indices()</span></code></a></li>
+<li><a class="reference internal" href="#micro_dl.input.inference_dataset.InferenceDataSet.get_iteration_meta"><code class="docutils literal notranslate"><span class="pre">InferenceDataSet.get_iteration_meta()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-micro_dl.input.training_table">micro_dl.input.training_table module</a><ul>
+<li><a class="reference internal" href="#micro_dl.input.training_table.BaseTrainingTable"><code class="docutils literal notranslate"><span class="pre">BaseTrainingTable</span></code></a><ul>
+<li><a class="reference internal" href="#micro_dl.input.training_table.BaseTrainingTable.split_train_val_test"><code class="docutils literal notranslate"><span class="pre">BaseTrainingTable.split_train_val_test()</span></code></a></li>
+<li><a class="reference internal" href="#micro_dl.input.training_table.BaseTrainingTable.train_test_split"><code class="docutils literal notranslate"><span class="pre">BaseTrainingTable.train_test_split()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-micro_dl.input">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">microDL_docs</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a></li>
+      <li class="breadcrumb-item active">micro_dl.input package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/micro_dl.input.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="micro-dl-input-package">
+<h1>micro_dl.input package<a class="headerlink" href="#micro-dl-input-package" title="Permalink to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
+</section>
+<section id="module-micro_dl.input.dataset">
+<span id="micro-dl-input-dataset-module"></span><h2>micro_dl.input.dataset module<a class="headerlink" href="#module-micro_dl.input.dataset" title="Permalink to this heading"></a></h2>
+<p>Dataset classes</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="micro_dl.input.dataset.BaseDataSet">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">micro_dl.input.dataset.</span></span><span class="sig-name descname"><span class="pre">BaseDataSet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tile_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_fnames</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_fnames</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset_config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'zyx'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.input.dataset.BaseDataSet" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code></p>
+<p>Base class for input and target images</p>
+<p><a class="reference external" href="https://www.tensorflow.org/api_docs/python/tf/keras/utils/Sequence">https://www.tensorflow.org/api_docs/python/tf/keras/utils/Sequence</a>
+<a class="reference external" href="https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly.html">https://stanford.edu/~shervine/blog/keras-how-to-generate-data-on-the-fly.html</a>
+<a class="reference external" href="https://github.com/aleju/imgaug">https://github.com/aleju/imgaug</a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.input.dataset.BaseDataSet.get_steps_per_epoch">
+<span class="sig-name descname"><span class="pre">get_steps_per_epoch</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.input.dataset.BaseDataSet.get_steps_per_epoch" title="Permalink to this definition"></a></dt>
+<dd><p>Returns steps per epoch which is number of training samples per
+epoch divided by batch size.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return int steps_per_epoch</dt>
+<dd class="field-odd"><p>Steps per epoch</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.input.dataset.BaseDataSet.on_epoch_end">
+<span class="sig-name descname"><span class="pre">on_epoch_end</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.input.dataset.BaseDataSet.on_epoch_end" title="Permalink to this definition"></a></dt>
+<dd><p>Update indices and shuffle after each epoch</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.input.dataset.apply_affine_transform">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.input.dataset.</span></span><span class="sig-name descname"><span class="pre">apply_affine_transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">theta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ty</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shear</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row_axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col_axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel_axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fill_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'nearest'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.input.dataset.apply_affine_transform" title="Permalink to this definition"></a></dt>
+<dd><p>Applies an affine transformation specified by the parameters given.
+# Arguments</p>
+<blockquote>
+<div><p>x: 3D numpy array - a 2D image with one or more channels.
+theta: Rotation angle in degrees.
+tx: Width shift.
+ty: Heigh shift.
+shear: Shear angle in degrees.
+zx: Zoom in x direction.
+zy: Zoom in y direction
+row_axis: Index of axis for rows (aka Y axis) in the input image.</p>
+<blockquote>
+<div><p>Direction: left to right.</p>
+</div></blockquote>
+<dl class="simple">
+<dt>col_axis: Index of axis for columns (aka X axis) in the input image.</dt><dd><p>Direction: top to bottom.</p>
+</dd>
+</dl>
+<p>channel_axis: Index of axis for channels in the input image.
+fill_mode: Points outside the boundaries of the input</p>
+<blockquote>
+<div><p>are filled according to the given mode
+(one of <cite>{‘constant’, ‘nearest’, ‘reflect’, ‘wrap’}</cite>).</p>
+</div></blockquote>
+<dl class="simple">
+<dt>cval: Value used for points outside the boundaries</dt><dd><p>of the input if <cite>mode=’constant’</cite>.</p>
+</dd>
+</dl>
+<p>order: int, order of interpolation</p>
+</div></blockquote>
+<dl class="simple">
+<dt># Returns</dt><dd><p>The transformed version of the input.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.input.dataset.transform_matrix_offset_center">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.input.dataset.</span></span><span class="sig-name descname"><span class="pre">transform_matrix_offset_center</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.input.dataset.transform_matrix_offset_center" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-micro_dl.input.dataset_with_mask">
+<span id="micro-dl-input-dataset-with-mask-module"></span><h2>micro_dl.input.dataset_with_mask module<a class="headerlink" href="#module-micro_dl.input.dataset_with_mask" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="micro_dl.input.dataset_with_mask.DataSetWithMask">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">micro_dl.input.dataset_with_mask.</span></span><span class="sig-name descname"><span class="pre">DataSetWithMask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tile_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_fnames</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_fnames</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_fnames</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset_config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'zyx'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.input.dataset_with_mask.DataSetWithMask" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#micro_dl.input.dataset.BaseDataSet" title="micro_dl.input.dataset.BaseDataSet"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseDataSet</span></code></a></p>
+<p>DataSet class that returns input, target images and sample weights</p>
+</dd></dl>
+
+</section>
+<section id="module-micro_dl.input.inference_dataset">
+<span id="micro-dl-input-inference-dataset-module"></span><h2>micro_dl.input.inference_dataset module<a class="headerlink" href="#module-micro_dl.input.inference_dataset" title="Permalink to this heading"></a></h2>
+<p>Dataset class / generator for inference only</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="micro_dl.input.inference_dataset.InferenceDataSet">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">micro_dl.input.inference_dataset.</span></span><span class="sig-name descname"><span class="pre">InferenceDataSet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inference_config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset_config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">network_config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split_col_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preprocess_config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'zyx'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flat_field_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crop2base</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.input.inference_dataset.InferenceDataSet" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code></p>
+<p>Dataset class for model inference</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.input.inference_dataset.InferenceDataSet.adjust_slice_indices">
+<span class="sig-name descname"><span class="pre">adjust_slice_indices</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.input.inference_dataset.InferenceDataSet.adjust_slice_indices" title="Permalink to this definition"></a></dt>
+<dd><p>Adjust slice indices if model is UNetStackTo2D or UNetStackToStack.
+These networks will have a depth &gt; 1.
+Adjust inf_frames_meta only as we’ll need all the indices to load
+stack with depth &gt; 1.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.input.inference_dataset.InferenceDataSet.get_iteration_meta">
+<span class="sig-name descname"><span class="pre">get_iteration_meta</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.input.inference_dataset.InferenceDataSet.get_iteration_meta" title="Permalink to this definition"></a></dt>
+<dd><p>Get the dataframe containing indices for one channel for
+inference iterations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return pandas Dataframe inf_frames_meta</dt>
+<dd class="field-odd"><p>Metadata and indices for
+first target channel</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-micro_dl.input.training_table">
+<span id="micro-dl-input-training-table-module"></span><h2>micro_dl.input.training_table module<a class="headerlink" href="#module-micro_dl.input.training_table" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="micro_dl.input.training_table.BaseTrainingTable">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">micro_dl.input.training_table.</span></span><span class="sig-name descname"><span class="pre">BaseTrainingTable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df_metadata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_channels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_channels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split_by_column</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split_ratio</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_channels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.input.training_table.BaseTrainingTable" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Generates the training table/info</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.input.training_table.BaseTrainingTable.split_train_val_test">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">split_train_val_test</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sample_set</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_ratio</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_ratio</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_ratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.input.training_table.BaseTrainingTable.split_train_val_test" title="Permalink to this definition"></a></dt>
+<dd><p>Generate indices for train, validation and test split</p>
+<p>This can be achieved by using sklearn.model_selection.train_test_split
+twice… :-)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sample_set</strong> (<em>np.array/list</em>) – A set of unique integer indices,
+for split column, not necessarily continuous values</p></li>
+<li><p><strong>train_ratio</strong> (<em>float</em>) – between 0 and 1, percent of samples to be
+used for training</p></li>
+<li><p><strong>test_ratio</strong> (<em>float</em>) – between 0 and 1, percent of samples to be
+used for test set</p></li>
+<li><p><strong>val_ratio</strong> (<em>float</em>) – between 0 and 1, percent of samples to be
+used for the validation set</p></li>
+<li><p><strong>random_seed</strong> (<em>int</em>) – between 0 and 2**32 - 1, random seed for
+train-val-test split</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>dict split_idx with keys [train, val, test] and values as lists</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><strong>AssertionError</strong> – If ratios don’t add up to 1</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.input.training_table.BaseTrainingTable.train_test_split">
+<span class="sig-name descname"><span class="pre">train_test_split</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.input.training_table.BaseTrainingTable.train_test_split" title="Permalink to this definition"></a></dt>
+<dd><p>Split into train-val-test</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>pd.DataFrame for train, val and test</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-micro_dl.input">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-micro_dl.input" title="Permalink to this heading"></a></h2>
+<p>Module for Input functions</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, mehta-lab.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>micro_dl.inference package &mdash; microDL_docs 1.0.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> microDL_docs
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">micro_dl.inference package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-micro_dl.inference.evaluation_metrics">micro_dl.inference.evaluation_metrics module</a><ul>
+<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator"><code class="docutils literal notranslate"><span class="pre">MetricsEstimator</span></code></a><ul>
+<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator.assert_input"><code class="docutils literal notranslate"><span class="pre">MetricsEstimator.assert_input()</span></code></a></li>
+<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator.compute_metrics_row"><code class="docutils literal notranslate"><span class="pre">MetricsEstimator.compute_metrics_row()</span></code></a></li>
+<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator.estimate_xy_metrics"><code class="docutils literal notranslate"><span class="pre">MetricsEstimator.estimate_xy_metrics()</span></code></a></li>
+<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator.estimate_xyz_metrics"><code class="docutils literal notranslate"><span class="pre">MetricsEstimator.estimate_xyz_metrics()</span></code></a></li>
+<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator.estimate_xz_metrics"><code class="docutils literal notranslate"><span class="pre">MetricsEstimator.estimate_xz_metrics()</span></code></a></li>
+<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator.estimate_yz_metrics"><code class="docutils literal notranslate"><span class="pre">MetricsEstimator.estimate_yz_metrics()</span></code></a></li>
+<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator.get_metrics_xy"><code class="docutils literal notranslate"><span class="pre">MetricsEstimator.get_metrics_xy()</span></code></a></li>
+<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator.get_metrics_xyz"><code class="docutils literal notranslate"><span class="pre">MetricsEstimator.get_metrics_xyz()</span></code></a></li>
+<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator.get_metrics_xz"><code class="docutils literal notranslate"><span class="pre">MetricsEstimator.get_metrics_xz()</span></code></a></li>
+<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator.get_metrics_yz"><code class="docutils literal notranslate"><span class="pre">MetricsEstimator.get_metrics_yz()</span></code></a></li>
+<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator.mask_to_bool"><code class="docutils literal notranslate"><span class="pre">MetricsEstimator.mask_to_bool()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.accuracy_metric"><code class="docutils literal notranslate"><span class="pre">accuracy_metric()</span></code></a></li>
+<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.binarize_array"><code class="docutils literal notranslate"><span class="pre">binarize_array()</span></code></a></li>
+<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.corr_metric"><code class="docutils literal notranslate"><span class="pre">corr_metric()</span></code></a></li>
+<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.dice_metric"><code class="docutils literal notranslate"><span class="pre">dice_metric()</span></code></a></li>
+<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.mae_metric"><code class="docutils literal notranslate"><span class="pre">mae_metric()</span></code></a></li>
+<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.mask_decorator"><code class="docutils literal notranslate"><span class="pre">mask_decorator()</span></code></a></li>
+<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.mse_metric"><code class="docutils literal notranslate"><span class="pre">mse_metric()</span></code></a></li>
+<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.r2_metric"><code class="docutils literal notranslate"><span class="pre">r2_metric()</span></code></a></li>
+<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.ssim_metric"><code class="docutils literal notranslate"><span class="pre">ssim_metric()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-micro_dl.inference.image_inference">micro_dl.inference.image_inference module</a><ul>
+<li><a class="reference internal" href="#micro_dl.inference.image_inference.ImagePredictor"><code class="docutils literal notranslate"><span class="pre">ImagePredictor</span></code></a><ul>
+<li><a class="reference internal" href="#micro_dl.inference.image_inference.ImagePredictor.estimate_metrics"><code class="docutils literal notranslate"><span class="pre">ImagePredictor.estimate_metrics()</span></code></a></li>
+<li><a class="reference internal" href="#micro_dl.inference.image_inference.ImagePredictor.get_mask"><code class="docutils literal notranslate"><span class="pre">ImagePredictor.get_mask()</span></code></a></li>
+<li><a class="reference internal" href="#micro_dl.inference.image_inference.ImagePredictor.predict_2d"><code class="docutils literal notranslate"><span class="pre">ImagePredictor.predict_2d()</span></code></a></li>
+<li><a class="reference internal" href="#micro_dl.inference.image_inference.ImagePredictor.predict_3d"><code class="docutils literal notranslate"><span class="pre">ImagePredictor.predict_3d()</span></code></a></li>
+<li><a class="reference internal" href="#micro_dl.inference.image_inference.ImagePredictor.run_prediction"><code class="docutils literal notranslate"><span class="pre">ImagePredictor.run_prediction()</span></code></a></li>
+<li><a class="reference internal" href="#micro_dl.inference.image_inference.ImagePredictor.save_pred_image"><code class="docutils literal notranslate"><span class="pre">ImagePredictor.save_pred_image()</span></code></a></li>
+<li><a class="reference internal" href="#micro_dl.inference.image_inference.ImagePredictor.unzscore"><code class="docutils literal notranslate"><span class="pre">ImagePredictor.unzscore()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-micro_dl.inference.model_inference">micro_dl.inference.model_inference module</a><ul>
+<li><a class="reference internal" href="#micro_dl.inference.model_inference.load_model"><code class="docutils literal notranslate"><span class="pre">load_model()</span></code></a></li>
+<li><a class="reference internal" href="#micro_dl.inference.model_inference.predict_large_image"><code class="docutils literal notranslate"><span class="pre">predict_large_image()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-micro_dl.inference.stitch_predictions">micro_dl.inference.stitch_predictions module</a><ul>
+<li><a class="reference internal" href="#micro_dl.inference.stitch_predictions.ImageStitcher"><code class="docutils literal notranslate"><span class="pre">ImageStitcher</span></code></a><ul>
+<li><a class="reference internal" href="#micro_dl.inference.stitch_predictions.ImageStitcher.stitch_predictions"><code class="docutils literal notranslate"><span class="pre">ImageStitcher.stitch_predictions()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-micro_dl.inference">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">microDL_docs</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a></li>
+      <li class="breadcrumb-item active">micro_dl.inference package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/micro_dl.inference.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="micro-dl-inference-package">
+<h1>micro_dl.inference package<a class="headerlink" href="#micro-dl-inference-package" title="Permalink to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
+</section>
+<section id="module-micro_dl.inference.evaluation_metrics">
+<span id="micro-dl-inference-evaluation-metrics-module"></span><h2>micro_dl.inference.evaluation_metrics module<a class="headerlink" href="#module-micro_dl.inference.evaluation_metrics" title="Permalink to this heading"></a></h2>
+<p>Metrics for model evaluation</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="micro_dl.inference.evaluation_metrics.MetricsEstimator">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">micro_dl.inference.evaluation_metrics.</span></span><span class="sig-name descname"><span class="pre">MetricsEstimator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metrics_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">masked_metrics</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Estimate metrics for evaluating a trained model</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.inference.evaluation_metrics.MetricsEstimator.assert_input">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">assert_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prediction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pred_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator.assert_input" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.inference.evaluation_metrics.MetricsEstimator.compute_metrics_row">
+<span class="sig-name descname"><span class="pre">compute_metrics_row</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prediction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pred_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator.compute_metrics_row" title="Permalink to this definition"></a></dt>
+<dd><p>Compute one row in metrics dataframe.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> (<em>np.array</em>) – ground truth</p></li>
+<li><p><strong>prediction</strong> (<em>np.array</em>) – model prediction</p></li>
+<li><p><strong>pred_name</strong> (<em>str</em>) – filename used for saving model prediction</p></li>
+<li><p><strong>mask</strong> (<em>np.array</em>) – binary mask with foreground / background</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>dict metrics_row: a row for a metrics dataframe</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.inference.evaluation_metrics.MetricsEstimator.estimate_xy_metrics">
+<span class="sig-name descname"><span class="pre">estimate_xy_metrics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prediction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pred_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator.estimate_xy_metrics" title="Permalink to this definition"></a></dt>
+<dd><p>Estimate metrics for the current input, target pair
+along each xy slice (in plane)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> (<em>np.array</em>) – ground truth</p></li>
+<li><p><strong>prediction</strong> (<em>np.array</em>) – model prediction</p></li>
+<li><p><strong>pred_name</strong> (<em>str/list</em>) – filename(s) used for saving model prediction</p></li>
+<li><p><strong>mask</strong> (<em>np.array</em>) – binary mask with foreground / background</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.inference.evaluation_metrics.MetricsEstimator.estimate_xyz_metrics">
+<span class="sig-name descname"><span class="pre">estimate_xyz_metrics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prediction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pred_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator.estimate_xyz_metrics" title="Permalink to this definition"></a></dt>
+<dd><p>Estimate 3D metrics for the current input, target pair</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> (<em>np.array</em>) – ground truth</p></li>
+<li><p><strong>prediction</strong> (<em>np.array</em>) – model prediction</p></li>
+<li><p><strong>pred_name</strong> (<em>str</em>) – filename used for saving model prediction</p></li>
+<li><p><strong>mask</strong> (<em>np.array</em>) – binary mask with foreground / background</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.inference.evaluation_metrics.MetricsEstimator.estimate_xz_metrics">
+<span class="sig-name descname"><span class="pre">estimate_xz_metrics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prediction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pred_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator.estimate_xz_metrics" title="Permalink to this definition"></a></dt>
+<dd><p>Estimate metrics for the current input, target pair
+along each xz slice</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> (<em>np.array</em>) – ground truth</p></li>
+<li><p><strong>prediction</strong> (<em>np.array</em>) – model prediction</p></li>
+<li><p><strong>pred_name</strong> (<em>str</em>) – filename used for saving model prediction</p></li>
+<li><p><strong>mask</strong> (<em>np.array</em>) – binary mask with foreground / background</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.inference.evaluation_metrics.MetricsEstimator.estimate_yz_metrics">
+<span class="sig-name descname"><span class="pre">estimate_yz_metrics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prediction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pred_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator.estimate_yz_metrics" title="Permalink to this definition"></a></dt>
+<dd><p>Estimate metrics for the current input, target pair
+along each yz slice</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> (<em>np.array</em>) – ground truth</p></li>
+<li><p><strong>prediction</strong> (<em>np.array</em>) – model prediction</p></li>
+<li><p><strong>pred_name</strong> (<em>str</em>) – filename used for saving model prediction</p></li>
+<li><p><strong>mask</strong> (<em>np.array</em>) – binary mask with foreground / background</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.inference.evaluation_metrics.MetricsEstimator.get_metrics_xy">
+<span class="sig-name descname"><span class="pre">get_metrics_xy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator.get_metrics_xy" title="Permalink to this definition"></a></dt>
+<dd><p>Return xy metrics</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.inference.evaluation_metrics.MetricsEstimator.get_metrics_xyz">
+<span class="sig-name descname"><span class="pre">get_metrics_xyz</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator.get_metrics_xyz" title="Permalink to this definition"></a></dt>
+<dd><p>Return 3D metrics</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.inference.evaluation_metrics.MetricsEstimator.get_metrics_xz">
+<span class="sig-name descname"><span class="pre">get_metrics_xz</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator.get_metrics_xz" title="Permalink to this definition"></a></dt>
+<dd><p>Return xz metrics</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.inference.evaluation_metrics.MetricsEstimator.get_metrics_yz">
+<span class="sig-name descname"><span class="pre">get_metrics_yz</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator.get_metrics_yz" title="Permalink to this definition"></a></dt>
+<dd><p>Return yz metrics</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.inference.evaluation_metrics.MetricsEstimator.mask_to_bool">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mask_to_bool</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator.mask_to_bool" title="Permalink to this definition"></a></dt>
+<dd><p>If mask exists and is not boolean, convert.
+Assume mask values == 0 is background</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>mask</strong> (<em>np.array</em>) – Mask</p>
+</dd>
+<dt class="field-even">Return np.array mask</dt>
+<dd class="field-even"><p>Mask with boolean dtype</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.inference.evaluation_metrics.accuracy_metric">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.inference.evaluation_metrics.</span></span><span class="sig-name descname"><span class="pre">accuracy_metric</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prediction</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.inference.evaluation_metrics.accuracy_metric" title="Permalink to this definition"></a></dt>
+<dd><p>Accuracy of binary target and prediction.
+Not using mask decorator for binary data evaluation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> (<em>np.array</em>) – ground truth array</p></li>
+<li><p><strong>prediction</strong> (<em>np.array</em>) – model prediction</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return float Accuracy</dt>
+<dd class="field-even"><p>Accuracy for binarized data</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.inference.evaluation_metrics.binarize_array">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.inference.evaluation_metrics.</span></span><span class="sig-name descname"><span class="pre">binarize_array</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">im</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.inference.evaluation_metrics.binarize_array" title="Permalink to this definition"></a></dt>
+<dd><p>Binarize image</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>im</strong> (<em>np.array</em>) – Prediction or target array</p>
+</dd>
+<dt class="field-even">Return np.array im_bin</dt>
+<dd class="field-even"><p>Flattened and binarized array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.inference.evaluation_metrics.corr_metric">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.inference.evaluation_metrics.</span></span><span class="sig-name descname"><span class="pre">corr_metric</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prediction</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.inference.evaluation_metrics.corr_metric" title="Permalink to this definition"></a></dt>
+<dd><p>Pearson correlation of target and prediction</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> (<em>np.array</em>) – ground truth array</p></li>
+<li><p><strong>prediction</strong> (<em>np.array</em>) – model prediction</p></li>
+</ul>
+</dd>
+</dl>
+<p>:return float Pearson correlation</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.inference.evaluation_metrics.dice_metric">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.inference.evaluation_metrics.</span></span><span class="sig-name descname"><span class="pre">dice_metric</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prediction</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.inference.evaluation_metrics.dice_metric" title="Permalink to this definition"></a></dt>
+<dd><p>Dice similarity coefficient (F1 score) of binary target and prediction.
+Reports global metric.
+Not using mask decorator for binary data evaluation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> (<em>np.array</em>) – ground truth array</p></li>
+<li><p><strong>prediction</strong> (<em>np.array</em>) – model prediction</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return float dice</dt>
+<dd class="field-even"><p>Dice for binarized data</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.inference.evaluation_metrics.mae_metric">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.inference.evaluation_metrics.</span></span><span class="sig-name descname"><span class="pre">mae_metric</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prediction</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.inference.evaluation_metrics.mae_metric" title="Permalink to this definition"></a></dt>
+<dd><p>MAE of target and prediction</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> (<em>np.array</em>) – ground truth array</p></li>
+<li><p><strong>prediction</strong> (<em>np.array</em>) – model prediction</p></li>
+</ul>
+</dd>
+</dl>
+<p>:return float mean absolute error</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.inference.evaluation_metrics.mask_decorator">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.inference.evaluation_metrics.</span></span><span class="sig-name descname"><span class="pre">mask_decorator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metric_function</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.inference.evaluation_metrics.mask_decorator" title="Permalink to this definition"></a></dt>
+<dd><p>Decorator for masking the metrics</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>metric_function</strong> (<em>function</em>) – a python function that takes target and
+prediction arrays as input</p>
+</dd>
+<dt class="field-even">Return function wrapper_metric_function</dt>
+<dd class="field-even"><p>input function that returns
+metrics and masked_metrics if mask was passed as param to input function</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.inference.evaluation_metrics.mse_metric">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.inference.evaluation_metrics.</span></span><span class="sig-name descname"><span class="pre">mse_metric</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prediction</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.inference.evaluation_metrics.mse_metric" title="Permalink to this definition"></a></dt>
+<dd><p>MSE of target and prediction</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> (<em>np.array</em>) – ground truth array</p></li>
+<li><p><strong>prediction</strong> (<em>np.array</em>) – model prediction</p></li>
+</ul>
+</dd>
+</dl>
+<p>:return float mean squared error</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.inference.evaluation_metrics.r2_metric">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.inference.evaluation_metrics.</span></span><span class="sig-name descname"><span class="pre">r2_metric</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prediction</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.inference.evaluation_metrics.r2_metric" title="Permalink to this definition"></a></dt>
+<dd><p>Coefficient of determination of target and prediction</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> (<em>np.array</em>) – ground truth array</p></li>
+<li><p><strong>prediction</strong> (<em>np.array</em>) – model prediction</p></li>
+</ul>
+</dd>
+</dl>
+<p>:return float coefficient of determination</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.inference.evaluation_metrics.ssim_metric">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.inference.evaluation_metrics.</span></span><span class="sig-name descname"><span class="pre">ssim_metric</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prediction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">win_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">21</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.inference.evaluation_metrics.ssim_metric" title="Permalink to this definition"></a></dt>
+<dd><p>Structural similarity indiex (SSIM) of target and prediction.
+Window size is not passed into function so make sure tiles
+are never smaller than default win_size.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> (<em>np.array</em>) – ground truth array</p></li>
+<li><p><strong>prediction</strong> (<em>np.array</em>) – model prediction</p></li>
+<li><p><strong>mask</strong> (<em>np.array/None</em>) – Mask</p></li>
+<li><p><strong>win_size</strong> (<em>int</em>) – window size for computing local SSIM</p></li>
+</ul>
+</dd>
+</dl>
+<p>:return float/list ssim and ssim_masked</p>
+</dd></dl>
+
+</section>
+<section id="module-micro_dl.inference.image_inference">
+<span id="micro-dl-inference-image-inference-module"></span><h2>micro_dl.inference.image_inference module<a class="headerlink" href="#module-micro_dl.inference.image_inference" title="Permalink to this heading"></a></h2>
+<p>Model inference at the image/volume level</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="micro_dl.inference.image_inference.ImagePredictor">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">micro_dl.inference.image_inference.</span></span><span class="sig-name descname"><span class="pre">ImagePredictor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inference_config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preprocess_config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gpu_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gpu_mem_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.inference.image_inference.ImagePredictor" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Inference on larger images.
+Methods in this class provide functionality for performing inference on 
+large (x,y &gt; 256,256) images through direct inference in 2 and 3 dimensions,
+or by tiling in 2 or 3 dimensions along xy and z axes.</p>
+<p>Inference is performed by first initalizing an InferenceDataset object which 
+loads samples and performs normalization according to the tile-specific 
+normalization values acquired during preprocessing.</p>
+<p>Actual inference is performed by a trained tensorflow ‘.hdf5’ model specified 
+in config files, which is loaded and instantiated.</p>
+<p>After inference is performed on samples acquired from InferenceDataset object,
+dynamic range is return by denormalizing the outputs if the model task is reg-
+ression.</p>
+<p>Metrics are calculated by use of a MetricEstimator object, which calculates, 
+and indexes metrics for successive images.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.inference.image_inference.ImagePredictor.estimate_metrics">
+<span class="sig-name descname"><span class="pre">estimate_metrics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prediction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pred_fnames</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.inference.image_inference.ImagePredictor.estimate_metrics" title="Permalink to this definition"></a></dt>
+<dd><p>Estimate evaluation metrics
+The row of metrics gets added to metrics_est.df_metrics, and stored
+in class instance of MetricsEstimator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> (<em>np.array</em>) – ground truth</p></li>
+<li><p><strong>prediction</strong> (<em>np.array</em>) – model prediction</p></li>
+<li><p><strong>pred_fnames</strong> (<em>list</em>) – File names (str) for saving model predictions</p></li>
+<li><p><strong>mask</strong> (<em>np.array</em>) – foreground/ background mask</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.inference.image_inference.ImagePredictor.get_mask">
+<span class="sig-name descname"><span class="pre">get_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cur_row</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transpose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.inference.image_inference.ImagePredictor.get_mask" title="Permalink to this definition"></a></dt>
+<dd><p>Get mask, read either from image or mask dir.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cur_row</strong> (<em>pd.Series/dict</em>) – row containing indices</p></li>
+<li><p><strong>transpose</strong> (<em>bool</em>) – Changes image format from xyz to zxy</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return np.array mask</dt>
+<dd class="field-even"><p>Mask</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.inference.image_inference.ImagePredictor.predict_2d">
+<span class="sig-name descname"><span class="pre">predict_2d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">chan_slice_meta</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.inference.image_inference.ImagePredictor.predict_2d" title="Permalink to this definition"></a></dt>
+<dd><p>Run prediction on 2D or 2.5D on indices given by metadata row.</p>
+<p>Reads in images from the inference dataset object, which performs normalization on
+the images based on values calculated in preprocessing and stored in frames_mets.csv.</p>
+<p>Prediction is done over an entire image or over each tile and stitched together,
+as specified by data/model structure.</p>
+<p>For regression models, post-processes images by reversing the z-score normalization
+to reintroduce dynamic range removed in normalization.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>chan_slice_meta</strong> (<em>pd.DataFrame</em>) – Inference meta rows</p>
+</dd>
+<dt class="field-even">Return np.array pred_stack</dt>
+<dd class="field-even"><p>Prediction</p>
+</dd>
+<dt class="field-odd">Return np.array target_stack</dt>
+<dd class="field-odd"><p>Target</p>
+</dd>
+<dt class="field-even">Return np.array/list mask_stack</dt>
+<dd class="field-even"><p>Mask for metrics (empty list if
+not using masked metrics)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.inference.image_inference.ImagePredictor.predict_3d">
+<span class="sig-name descname"><span class="pre">predict_3d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iteration_rows</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.inference.image_inference.ImagePredictor.predict_3d" title="Permalink to this definition"></a></dt>
+<dd><p>Run prediction in 3D on images with 3D shape.</p>
+<p>Reads in images from the inference dataset object, which performs normalization on
+the images based on values calculated in preprocessing and stored in frames_mets.csv.</p>
+<p>Prediction in 3d is done over block-by-block, as specified in object instantiation, 
+and prediction sub-blocks are stitched together.</p>
+<p>For regression models, post-processes images by reversing the z-score normalization
+to reintroduce dynamic range removed in normalization.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>iteration_rows</strong> (<em>list</em>) – Inference meta rows</p>
+</dd>
+<dt class="field-even">Return np.array pred_stack</dt>
+<dd class="field-even"><p>Prediction</p>
+</dd>
+<dt class="field-odd">Return np.array/list mask_stack</dt>
+<dd class="field-odd"><p>Mask for metrics</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.inference.image_inference.ImagePredictor.run_prediction">
+<span class="sig-name descname"><span class="pre">run_prediction</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.inference.image_inference.ImagePredictor.run_prediction" title="Permalink to this definition"></a></dt>
+<dd><p>Run prediction for entire set of 2D images or a 3D image stacks</p>
+<p>Prediction procedure depends on format of input and desired prediction (2D or 3D).
+Generates metrics, if specified in parent object initiation, for each prediction
+channel, channel-wise.</p>
+<p>Saves image predictions by individual channel and prediction metrics in separate
+files. z*** position specified in saved prediction name represents prediction channel.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.inference.image_inference.ImagePredictor.save_pred_image">
+<span class="sig-name descname"><span class="pre">save_pred_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">im_input</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">im_target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">im_pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metric</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">meta_row</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pred_chan_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">nan</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.inference.image_inference.ImagePredictor.save_pred_image" title="Permalink to this definition"></a></dt>
+<dd><p>Save predicted images with image extension given in init.</p>
+<p>Note: images and predictions stored as float values are 
+compressed into uint16 before figure generation. Some loss
+of information may occur during compression for extremely
+low-abs-value images and predictions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>im_input</strong> (<em>np.array</em>) – Input image</p></li>
+<li><p><strong>im_target</strong> (<em>np.array</em>) – Target image</p></li>
+<li><p><strong>im_pred</strong> (<em>np.array</em>) – 2D / 3D predicted image</p></li>
+<li><p><strong>metric</strong> (<em>pd.series</em>) – xy similarity metrics between prediction and target</p></li>
+<li><p><strong>meta_row</strong> (<em>pd.DataFrame</em>) – Row of meta dataframe containing sample</p></li>
+<li><p><strong>pred_chan_name</strong> (<em>str/NaN</em>) – Predicted channel name</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.inference.image_inference.ImagePredictor.unzscore">
+<span class="sig-name descname"><span class="pre">unzscore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">im_pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">im_target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">meta_row</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.inference.image_inference.ImagePredictor.unzscore" title="Permalink to this definition"></a></dt>
+<dd><p>Revert z-score normalization applied during preprocessing. Necessary
+before computing SSIM. Values for normalization may be tile-specific.
+Values are stored in the metadata produced by preprocessing (in the
+tile directory).</p>
+<p>Used for models tasked with regression to reintroduce dynamic range
+into the model predictions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>im_pred</strong> – Prediction image, normalized image for un-zscore</p></li>
+<li><p><strong>im_target</strong> – Target image to compute stats from</p></li>
+<li><p><strong>meta_row</strong> (<em>pd.DataFrame</em>) – Metadata row for image</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return im_pred</dt>
+<dd class="field-even"><p>image at its original scale</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-micro_dl.inference.model_inference">
+<span id="micro-dl-inference-model-inference-module"></span><h2>micro_dl.inference.model_inference module<a class="headerlink" href="#module-micro_dl.inference.model_inference" title="Permalink to this heading"></a></h2>
+<p>Model inference related functions</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.inference.model_inference.load_model">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.inference.model_inference.</span></span><span class="sig-name descname"><span class="pre">load_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">network_config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.inference.model_inference.load_model" title="Permalink to this definition"></a></dt>
+<dd><p>Load the model from model_dir</p>
+<p>Due to the lambda layer only model weights are saved and not the model
+config. Hence load_model wouldn’t work here!
+:param yaml network_config: a yaml file with all the required parameters
+:param str model_fname: fname with full path of the .hdf5 file with saved</p>
+<blockquote>
+<div><p>weights</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>predict</strong> (<em>bool</em>) – load model for predicting / training. predict skips
+checks on input shape</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Keras.Model instance</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.inference.model_inference.predict_large_image">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.inference.model_inference.</span></span><span class="sig-name descname"><span class="pre">predict_large_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_image</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.inference.model_inference.predict_large_image" title="Permalink to this definition"></a></dt>
+<dd><p>Predict on an image larger than the one it was trained on</p>
+<p>All networks with U-net like architecture in this repo, use downsampling of
+2, which is only conducive for images with shapes in powers of 2. If
+different, please crop / resize accordingly to avoid shape mismatches.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<em>keras.Model</em>) – Model instance</p></li>
+<li><p><strong>input_image</strong> (<em>np.array</em>) – as named. expected shape:
+[num_channels, (depth,) height, width] or
+[(depth,) height, width, num_channels]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return np.array predicted image</dt>
+<dd class="field-even"><p>as named. Batch axis removed (and channel
+axis if num_channels=1)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-micro_dl.inference.stitch_predictions">
+<span id="micro-dl-inference-stitch-predictions-module"></span><h2>micro_dl.inference.stitch_predictions module<a class="headerlink" href="#module-micro_dl.inference.stitch_predictions" title="Permalink to this heading"></a></h2>
+<p>Stich model predictions either along Z or as tiles</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="micro_dl.inference.stitch_predictions.ImageStitcher">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">micro_dl.inference.stitch_predictions.</span></span><span class="sig-name descname"><span class="pre">ImageStitcher</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tile_option</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overlap_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'zyx'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'channels_first'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.inference.stitch_predictions.ImageStitcher" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Stitch prediction images for large images</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.inference.stitch_predictions.ImageStitcher.stitch_predictions">
+<span class="sig-name descname"><span class="pre">stitch_predictions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">im_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tile_imgs_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">block_indices_list</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.inference.stitch_predictions.ImageStitcher.stitch_predictions" title="Permalink to this definition"></a></dt>
+<dd><p>Stitch the predicted tiles /blocks for a 3d image</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>im_shape</strong> (<em>list</em>) – shape of stitched pred image</p></li>
+<li><p><strong>tile_imgs_list</strong> (<em>list</em>) – list of prediction images</p></li>
+<li><p><strong>block_indices_list</strong> (<em>list</em>) – list of tuple/lists with indices for
+each prediction. Individual list of: len=2 when tile_z (start_slice,
+end_slice), len=6 for tile_xyz with start and end indices for each
+dimension</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return np.array stitched_img</dt>
+<dd class="field-even"><p>tile_imgs_list stitched into a 3D image</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-micro_dl.inference">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-micro_dl.inference" title="Permalink to this heading"></a></h2>
+<p>Module for inference related classes and functions</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, mehta-lab.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
