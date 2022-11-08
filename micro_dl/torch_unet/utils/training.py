@@ -1,5 +1,6 @@
 from platform import architecture
 import datetime
+import gunpowder as gp
 import numpy as np
 import os
 import matplotlib.pyplot as plt
@@ -57,17 +58,17 @@ class TorchTrainer:
         # lr scheduler
         self.scheduler = optim.lr_scheduler.ReduceLROnPlateau
         # loss
-        assert self.training_config["loss"] in {"mse", "l1", "cossim", "cel"}, (
-            f"loss not supported. " "Try one of 'mse', 'mae', 'cossim', 'l1'"
-        )
         if self.training_config["loss"] == "mse":
             self.criterion = nn.MSELoss()
-        elif self.training_config["loss"] == "l1":
+        elif self.training_config["loss"] in {"l1", "mae"}:
             self.criterion = nn.L1Loss()
         elif self.training_config["loss"] == "cossim":
             self.criterion = nn.CosineSimilarity()
-        elif self.training_config["loss"] == "cel":
-            self.criterion = nn.CrossEntropyLoss()
+        else:
+            raise AttributeError(
+                f"Loss {self.training_config['loss']} not supported."
+                " Try one of 'mse', 'mae', 'l1', 'cossim'"
+            )
         # device
         assert self.training_config["device"] in {
             "cpu",
@@ -103,15 +104,23 @@ class TorchTrainer:
 
         self.model.to(self.device)
 
-    def generate_dataloaders(self) -> None:
+    def generate_dataloaders(self, train_key=None, test_key=None, val_key=None) -> None:
         """
         Helper that generates train, test, validation torch dataloaders for loading samples
         into network for training and testing.
 
-        Dataloaders are set to class variables. torch_config can be specified by parent class initiation.
-        If specified in initiation, config provided in call will be prioritized.
+        Dataloaders are set to class variables. Dataloaders correspond to one multi-zarr
+        dataset each. Each dataset's access key will determine the data array (by type)
+        it calls at the well-level.
 
-        :param pd.dataframe torch_config: configuration dataframe with model & training init parameters
+        If keys unspecified, defaults to the first available data array at each well
+
+        :param int or gp.ArrayKey train_key: key or index of key to data array for training
+                                            in training dataset
+        :param int or gp.ArrayKey test_key: key or index of key to data array for testing
+                                            in testing dataset
+        :param int or gp.ArrayKey val_key: key or index of key to data array for validation
+                                            in validation dataset
         """
         assert self.torch_config != None, (
             "torch_config must be specified in object" "initiation "
@@ -122,16 +131,26 @@ class TorchTrainer:
         target_transforms = [ds.ToTensor()]
 
         torch_data_container = ds.TorchDatasetContainer(
-            train_config = self.training_config,
-            network_config= self.network_config,
-            dataset_config= self.dataset_config,
+            train_config=self.training_config,
+            network_config=self.network_config,
+            dataset_config=self.dataset_config,
             device=self.device,
         )
         train_dataset = torch_data_container["train"]
         test_dataset = torch_data_container["test"]
         val_dataset = torch_data_container["val"]
 
-        # init dataloaders and split metadata
+        # initalize dataset keys
+        train_key = 0 if train_key == None else train_key
+        test_key = 0 if test_key == None else test_key
+        val_key = 0 if val_key == None else val_key
+        train_dataset.use_key(train_key)
+        test_dataset.use_key(test_key)
+        val_dataset.use_key(val_key)
+
+        # TODO Modify metadata to track data split
+
+        # init dataloaders
         workers = 0
         if "num_workers" in self.training_config:
             workers = self.training_config["num_workers"]
@@ -145,7 +164,6 @@ class TorchTrainer:
         self.val_dataloader = DataLoader(
             dataset=val_dataset, shuffle=True, num_workers=workers
         )
-        self.split_samples = torch_data_container.split_samples_metadata
 
     def get_save_location(self):
         """
@@ -182,30 +200,27 @@ class TorchTrainer:
         self.get_save_location()
         self.writer = SummaryWriter(log_dir=self.save_folder)
 
-        split_idx_fname = os.path.join(self.save_folder, "split_samples.json")
-        aux_utils.write_json(self.split_samples, split_idx_fname)
-
         # init optimizer and scheduler
         self.model.train()
         self.optimizer = self.optimizer(
             self.model.parameters(), lr=self.training_config["learning_rate"]
         )
         self.scheduler = self.scheduler(
-            self.optimizer, patience=10, mode="min", factor=2
+            self.optimizer, patience=10, mode="min", factor=0.5
         )
 
         # train
         train_loss_list = []
         test_loss_list = []
+        # with gp.build(self.train_dataloader.dataset.pipeline):
         for i in range(self.training_config["epochs"]):
-
             # Setup epoch
             epoch_time = time.time()
             train_loss = 0
-
             print(f"Epoch {i}:")
             if "num_workers" in self.training_config:
                 print(f"Initializing {self.training_config['num_workers']} cpu workers")
+
             for current, minibatch in enumerate(self.train_dataloader):
                 # pretty printing
                 io_utils.show_progress_bar(self.train_dataloader, current)
@@ -296,6 +311,7 @@ class TorchTrainer:
         if "num_workers" in self.training_config:
             print(f"Initializing {self.training_config['num_workers']} cpu workers")
 
+        # with gp.build(self.train_dataloader.dataset.pipeline):
         for current, minibatch in enumerate(dataloader):
             if not validate_mode:
                 io_utils.show_progress_bar(dataloader, current, process="testing")

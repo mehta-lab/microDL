@@ -1,4 +1,3 @@
-# %%
 import collections
 import glob
 import shutil
@@ -18,7 +17,7 @@ import micro_dl.torch_unet.utils.dataset as dataset_utils
 import micro_dl.torch_unet.utils.io as io_utils
 
 
-class TestDataset(unittest.TestCase):     
+class TestDataset(unittest.TestCase):
     def SetUp(self):
         """
         Initialize different test configurations to run tests on
@@ -47,17 +46,11 @@ class TestDataset(unittest.TestCase):
                 "val": 0.17,
             },
         }
-        self.all_train_configs = [
-            self.train_config_batch,
-            self.train_config_single
-        ]
-        
+        self.all_train_configs = [self.train_config_batch, self.train_config_single]
+
         self.network_config_2d = {"architecture": "2D", "debug_mode": False}
         self.network_config_25d = {"architecture": "2.5D", "debug_mode": False}
-        self.all_network_configs = [
-            self.network_config_2d,
-            self.network_config_25d
-        ]
+        self.all_network_configs = [self.network_config_2d, self.network_config_25d]
         self.dataset_config_2d = {
             "target_channels": [1],
             "input_channels": [0],
@@ -68,10 +61,7 @@ class TestDataset(unittest.TestCase):
             "input_channels": [0, 2],
             "window_size": (3, 256, 256),
         }
-        self.all_dataset_configs = [
-            self.dataset_config_2d,
-            self.dataset_config_25d
-        ]
+        self.all_dataset_configs = [self.dataset_config_2d, self.dataset_config_25d]
 
     def tearDown(self):
         """
@@ -97,7 +87,7 @@ class TestDataset(unittest.TestCase):
             os.makedirs(temp, exist_ok=True)
         except Exception as e:
             raise FileExistsError(f"parent directory cannot already exist {e.args}")
-        
+
         def recurse_helper(group, names, subgroups, depth):
             """
             Recursively makes heirarchies of 'num_subgroups' subgroups until 'depth' is reached
@@ -120,9 +110,7 @@ class TestDataset(unittest.TestCase):
                             names[-depth - 1] + f"_{j}",
                         ),
                         mode="w",
-                        shape=(
-                            [1, arr_channels] + [dim * 2 for dim in arr_spatial]
-                        ),
+                        shape=([1, arr_channels] + [dim * 2 for dim in arr_spatial]),
                         chunks=([1, 1] + list(arr_spatial)),
                         dtype="float32",
                     )
@@ -133,20 +121,18 @@ class TestDataset(unittest.TestCase):
                 for j in range(subgroups):
                     subgroup = group.create_group(names[-depth - 1] + f"_{j}")
                     recurse_helper(subgroup, names, subgroups, depth - 1)
-        
+
         # set parameters for store creation
         max_input_channels = 0
         max_target_channels = 0
         for config in self.all_dataset_configs:
-            max_input_channels = max(
-                len(config["input_channels"]), max_input_channels
-            )
+            max_input_channels = max(len(config["input_channels"]), max_input_channels)
             max_target_channels = max(
                 len(config["target_channels"]), max_target_channels
             )
         self.num_channels = max_input_channels + max_target_channels
 
-        #build stores
+        # build stores
         self.groups = []
         for i in range(num_stores):
             store = zarr.DirectoryStore(os.path.join(temp, f"example_{i}.zarr"))
@@ -229,7 +215,9 @@ class TestDataset(unittest.TestCase):
 
                         if len(window_size) == 3:
                             expected_target_size = tuple(
-                                [batch_size, num_target_channels] + [1] + list(window_size)[1:]
+                                [batch_size, num_target_channels]
+                                + [1]
+                                + list(window_size)[1:]
                             )
                         else:
                             expected_target_size = tuple(
@@ -245,42 +233,41 @@ class TestDataset(unittest.TestCase):
                     raise AssertionError(
                         f"Error in loading samples from dataloader: {e.args}"
                     )
-    
+
     def _all_test_configurations(self, test):
         """
         Run specified test on all possible data sampling configurations. Pairs dataset
         and network configurations by index (necessary as there are exclusive parameters).
         With every pair of dataset and network configs, tries every possible training config.
-        
+
         :param str test: test to run (must be attribute of self)
         """
-            
+
         for i in range(len(self.all_network_configs)):
             self.dataset_config = self.all_dataset_configs[i]
             self.network_config = self.all_network_configs[i]
-            
+
             self.build_zarr_store(
-                temp = self.temp,
-                arr_spatial=self.dataset_config["window_size"]
+                temp=self.temp, arr_spatial=self.dataset_config["window_size"]
             )
-            
+
             for train_config in self.all_train_configs:
                 self.train_config = train_config
-                
-                #test functionality with each config
+
+                # test functionality with each config
                 try:
-                    test() 
+                    test()
                 except Exception as e:
-                    #self.tearDown()
+                    # self.tearDown()
                     raise Exception(
                         f"\n\n Exception caught with configuration:"
                         f"\n\n training: {self.train_config}"
                         f"\n\n dataset: {self.dataset_config}"
                         f"\n\n network: {self.network_config}"
                     )
-                    
+
             self.tearDown()
-    
+
     # ------- tests --------#
 
     def test_functionality(self):
@@ -293,11 +280,3 @@ class TestDataset(unittest.TestCase):
         self.SetUp()
         self._all_test_configurations(self._test_basic_functionality)
         self.tearDown()
-        
-    
-
-# %%
-tester = TestDataset()
-tester.test_functionality()
-
-# %%

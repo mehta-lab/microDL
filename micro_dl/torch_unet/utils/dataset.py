@@ -46,10 +46,10 @@ class TorchDatasetContainer(object):
             self.val_source,
             self.dataset_keys,
         ) = gp_utils.multi_zarr_source(
-            zarr_dir=self.train_config["data_dir"],  # TODO config change
-            array_name=self.train_config["array_name"],  # TODO config change
+            zarr_dir=self.dataset_config["data_dir"],  # TODO config change
+            array_name=self.dataset_config["array_name"],  # TODO config change
             array_spec=array_spec,
-            data_split=self.train_config["split_ratio"],  # TODO config change
+            data_split=self.dataset_config["split_ratio"],  # TODO config change
         )
         try:
             assert len(self.test_source) > 0
@@ -57,7 +57,7 @@ class TorchDatasetContainer(object):
             assert len(self.val_source) > 0
         except Exception as e:
             raise AssertionError(
-                f"All datasets must have at least one source node,"
+                f"All datasets must have at least one source node / zarr store,"
                 f" not enough source arrays found.\n {e.args}"
             )
 
@@ -89,7 +89,7 @@ class TorchDatasetContainer(object):
             data_source=source,
             augmentation_nodes=augmentation_nodes,
             data_keys=self.dataset_keys,
-            batch_size=self.train_config["batch_size"],  # TODO config change
+            batch_size=self.dataset_config["batch_size"],  # TODO config change
             target_channel_idx=tuple(
                 self.dataset_config["target_channels"]
             ),  # TODO config change
@@ -243,9 +243,9 @@ class TorchDataset(Dataset):
         # TODO: this implementation pulls 5 x 256 x 256 of all channels. We may not want
         # all of those slices in all channels if theyre note being used. Fix this inefficiency
 
-        with gp.build(self.pipeline):
-            sample = self.pipeline.request_batch(request=self.batch_request)
-            sample_data = sample[self.active_key].data
+        # with gp.build(self.pipeline):
+        sample = self.pipeline.request_batch(request=self.batch_request)
+        sample_data = sample[self.active_key].data
 
         # NOTE We assume the .zarr ALWAYS has an extra batch channel.
         # SO, 3d -> 5d data, 2d -> 4d data
@@ -256,7 +256,7 @@ class TorchDataset(Dataset):
         # stack multiple channels
         full_input = []
         for idx in self.input_idx:  # assumes bczyx or bcyx
-            channel_input = sample_data[:, idx, ...]
+            channel_input = sample_data[:, idx - 1, ...]
             full_input.append(channel_input)
         full_input = np.stack(full_input, 1)
 
@@ -305,6 +305,8 @@ class TorchDataset(Dataset):
         # attach additional nodes, if any, and sum
         pipeline = source + self.augmentation_nodes + batch_creation
         pipeline = gp_utils.gpsum(pipeline, verbose=False)
+
+        gp.build(pipeline)
 
         return pipeline
 

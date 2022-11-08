@@ -191,10 +191,13 @@ def multi_zarr_source(zarr_dir, array_name="*", array_spec=None, data_split=None
         #               to allow for key sharing
         if len(most_recent_array_types) > 0:
             assert list(most_recent_array_types) == list(array_types), (
-                f"zarr store {most_recent_fname} contains array types "
-                f"{list(zarr_stores[most_recent_fname])} while zarr store {zarr_fname}"
-                f"contains array types {list(array_types)}. Array types of all stores"
-                "must match to enable key sharing."
+                f"Zarr store:\n\t {pathlib.Path(most_recent_fname).parts[-1]}"
+                "\ncontains array types:"
+                f"\n\t{list(zarr_stores[most_recent_fname])}"
+                f"\nWhile Zarr store: \n\t {pathlib.Path(zarr_fname).parts[-1]}"
+                "\ncontains array types"
+                f"\n\t{list(array_types)}"
+                "\n\nArray types of all stores must match to enable key sharing."
             )
         most_recent_array_types = array_types
         most_recent_fname = zarr_fname
@@ -229,7 +232,7 @@ def multi_zarr_source(zarr_dir, array_name="*", array_spec=None, data_split=None
         # randomly generate split
         random.shuffle(all_sources)
         train_idx = int(len(all_sources) * data_split["train"])
-        test_idx = int(len(all_sources) * data_split["train"] + data_split["test"])
+        test_idx = int(len(all_sources) * (data_split["train"] + data_split["test"]))
         val_idx = len(all_sources)
 
         train_source = tuple(all_sources[0:train_idx])
