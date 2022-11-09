@@ -312,7 +312,6 @@ def init_aug_node(aug_name, parameters):
     if aug_name == "Defect":
         pass
     elif aug_name == "ElasticDeform":
-
         pass
     elif aug_name == "RandomIntensity":
         pass

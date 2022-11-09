@@ -12,8 +12,6 @@ import micro_dl.torch_unet.utils.training as train
 
 # %%
 
-# torch.multiprocessing.set_start_method("spawn")
-
 config_25D = (
     "/hpc/projects/CompMicro/projects/virtualstaining/torch_microDL/"
     "config_files/2022_09_27_A549_NuclStain/"

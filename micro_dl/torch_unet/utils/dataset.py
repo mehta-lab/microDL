@@ -20,7 +20,9 @@ class TorchDatasetContainer(object):
     Randomly selects samples to divy up sources between train, test, and validation datasets.
     """
 
-    def __init__(self, train_config, network_config, dataset_config, device=None):
+    def __init__(
+        self, train_config, network_config, dataset_config, device=None, workers=0
+    ):
         # TODO make necessary changes to configs to match structure implied in this module
         """
         Inits an object which builds a testing, training, and validation dataset
@@ -32,11 +34,13 @@ class TorchDatasetContainer(object):
         :param dict train_config: dict object of train_config
         :param str device: device on which to place tensors in child datasets,
                             by default, places on 'cuda'
+        :param int workers: number of cpu workers for simultaneous data fetching
         """
         self.train_config = train_config
         self.network_config = network_config
         self.dataset_config = dataset_config
         self.device = device
+        self.workers = workers
 
         # acquire sources from the zarr directory
         array_spec = gp_utils.generate_array_spec(network_config)
@@ -100,6 +104,7 @@ class TorchDatasetContainer(object):
                 self.dataset_config["window_size"]
             ),  # TODO config change
             device=self.device,
+            workers=self.workers,
         )
         return dataset
 
@@ -148,6 +153,7 @@ class TorchDataset(Dataset):
         input_channel_idx,
         spatial_window_size,
         device,
+        workers,
     ):
         """
         Creates a dataset object which draws samples directly from a gunpowder pipeline.
@@ -165,6 +171,7 @@ class TorchDataset(Dataset):
                                     2.5D network, expects 3D tuple; dimensions zyx
         :param str device: device on which to place tensors in child datasets,
                             by default, places on 'cuda'
+        :param int workers: number of simultaneous threads reading data into batch requests
         """
         self.data_source = data_source
         self.augmentation_nodes = augmentation_nodes
@@ -175,6 +182,7 @@ class TorchDataset(Dataset):
         self.window_size = spatial_window_size
         self.device = device
         self.active_key = 0
+        self.workers = workers - 1
 
         # safety checks: iterate through keys and data sources to ensure that they match
         voxel_size = None
@@ -216,8 +224,9 @@ class TorchDataset(Dataset):
             # in __getitem__ ends up being the index of our key.
         self.batch_request = batch_request
 
-        # build our pipeline
+        # build our pipeline and the generator structure that uses it
         self.pipeline = self._build_pipeline()
+        self.batch_generator = self._generate_batches()
 
     def __len__(self):
         """
@@ -243,8 +252,7 @@ class TorchDataset(Dataset):
         # TODO: this implementation pulls 5 x 256 x 256 of all channels. We may not want
         # all of those slices in all channels if theyre note being used. Fix this inefficiency
 
-        # with gp.build(self.pipeline):
-        sample = self.pipeline.request_batch(request=self.batch_request)
+        sample = next(self.batch_generator)
         sample_data = sample[self.active_key].data
 
         # NOTE We assume the .zarr ALWAYS has an extra batch channel.
@@ -277,39 +285,6 @@ class TorchDataset(Dataset):
 
         return (input_, target_)
 
-    def _build_pipeline(self):
-        """
-        Builds a gunpowder data pipeline given a source node and a list of augmentation
-        nodes
-
-        :param gp.ZarrSource or tuple source: source node/tuple of source nodes from which to draw
-        :param list nodes: list of augmentation nodes, by default empty list
-        """
-        # if source is multi_zarr_source, attach a RandomProvider
-        source = self.data_source
-        if isinstance(source, tuple):
-            source = [source, gp.RandomProvider()]
-
-        # attach permanent nodes
-        source = source + [gp.RandomLocation()]
-        # TODO implement
-        # source = source + [custom_nodes.Normalize()]
-        # source = source + [custom_nodes.FlatFieldCorrect()]
-
-        batch_creation = []
-        batch_creation.append(
-            gp.PreCache(cache_size=150, num_workers=20)
-        )  # TODO make these parameters variable
-        batch_creation.append(gp.Stack(self.batch_size))
-
-        # attach additional nodes, if any, and sum
-        pipeline = source + self.augmentation_nodes + batch_creation
-        pipeline = gp_utils.gpsum(pipeline, verbose=False)
-
-        gp.build(pipeline)
-
-        return pipeline
-
     def use_key(self, selection):
         """
         Sets self.active_key to selection if selection is an ArrayKey. If selection is an int,
@@ -333,6 +308,64 @@ class TorchDataset(Dataset):
             self.active_key = selection
         else:
             raise AttributeError("Selection must be int or gp.ArrayKey")
+
+    def _build_pipeline(self):
+        """
+        Builds a gunpowder data pipeline given a source node and a list of augmentation
+        nodes.
+
+        :param gp.ZarrSource or tuple source: source node/tuple of source nodes from which to draw
+        :param list nodes: list of augmentation nodes, by default empty list
+
+        :return gp.Pipeline pipeline: see name
+        """
+        # if source is multi_zarr_source, attach a RandomProvider
+        if True:
+            source = self.data_source
+            if isinstance(source, tuple):
+                source = [source, gp.RandomProvider()]
+
+            # attach permanent nodes
+            source = source + [gp.RandomLocation()]
+
+            batch_creation = []
+            batch_creation.append(
+                gp.PreCache(cache_size=150, num_workers=max(0, self.workers))
+            )  # TODO make these parameters variable
+            batch_creation.append(gp.Stack(self.batch_size))
+
+            # attach additional nodes, if any, and sum
+            pipeline = source + self.augmentation_nodes + batch_creation
+
+            # attach additional nodes, if any, and sum
+            pipeline = source + self.augmentation_nodes + batch_creation
+
+            pipeline = source
+        else:
+            pass
+            # TODO implement
+            # source = source + [custom_nodes.Normalize()]
+            # source = source + [custom_nodes.FlatFieldCorrect()]
+
+        pipeline = gp_utils.gpsum(pipeline, verbose=False)
+
+        return pipeline
+
+    def _generate_batches(self):
+        """
+        Returns pipeline as a generator. This is done in a separate method from __getitem__()
+        to preserve compatibility with the torch dataloader's item calling signature
+        while also performing appropriate context management for the pipeline via generation.
+
+        :param gp.Pipeline pipeline: pipeline to generate batches from
+        :param gp.BatchRequest request: batch request for pipeline
+
+        :yield gp.Batch batch: single batch yielded from pipeline at each generation
+        :rtype: Iterator[gp.Batch]
+        """
+        with gp.build(self.pipeline):
+            while True:
+                yield self.pipeline.request_batch(self.batch_request)
 
 
 class ToTensor(object):

@@ -130,11 +130,17 @@ class TorchTrainer:
         transforms = [ds.ToTensor()]
         target_transforms = [ds.ToTensor()]
 
+        # init datasets
+        workers = 0
+        if "num_workers" in self.training_config:
+            workers = self.training_config["num_workers"]
+
         torch_data_container = ds.TorchDatasetContainer(
             train_config=self.training_config,
             network_config=self.network_config,
             dataset_config=self.dataset_config,
             device=self.device,
+            workers=workers,
         )
         train_dataset = torch_data_container["train"]
         test_dataset = torch_data_container["test"]
@@ -148,22 +154,13 @@ class TorchTrainer:
         test_dataset.use_key(test_key)
         val_dataset.use_key(val_key)
 
+        self.train_dataset = train_dataset
         # TODO Modify metadata to track data split
 
         # init dataloaders
-        workers = 0
-        if "num_workers" in self.training_config:
-            workers = self.training_config["num_workers"]
-
-        self.train_dataloader = DataLoader(
-            dataset=train_dataset, shuffle=True, num_workers=workers
-        )
-        self.test_dataloader = DataLoader(
-            dataset=test_dataset, shuffle=True, num_workers=workers
-        )
-        self.val_dataloader = DataLoader(
-            dataset=val_dataset, shuffle=True, num_workers=workers
-        )
+        self.train_dataloader = DataLoader(dataset=train_dataset, shuffle=True)
+        self.test_dataloader = DataLoader(dataset=test_dataset, shuffle=True)
+        self.val_dataloader = DataLoader(dataset=val_dataset, shuffle=True)
 
     def get_save_location(self):
         """
@@ -212,7 +209,6 @@ class TorchTrainer:
         # train
         train_loss_list = []
         test_loss_list = []
-        # with gp.build(self.train_dataloader.dataset.pipeline):
         for i in range(self.training_config["epochs"]):
             # Setup epoch
             epoch_time = time.time()
@@ -239,7 +235,7 @@ class TorchTrainer:
                 loss.backward()
                 self.optimizer.step()
 
-            # self.scheduler.step(self.run_test(validate_mode=True))
+            self.scheduler.step(self.run_test(validate_mode=True))
             train_loss_list.append(train_loss / self.train_dataloader.__len__())
 
             # run testing cycle every 'testing_stride' epochs
@@ -311,7 +307,6 @@ class TorchTrainer:
         if "num_workers" in self.training_config:
             print(f"Initializing {self.training_config['num_workers']} cpu workers")
 
-        # with gp.build(self.train_dataloader.dataset.pipeline):
         for current, minibatch in enumerate(dataloader):
             if not validate_mode:
                 io_utils.show_progress_bar(dataloader, current, process="testing")
