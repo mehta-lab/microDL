@@ -473,6 +473,7 @@ class ZarrReader(ReaderBase):
         """
         Gets the position names and paths from HCS metadata
         """
+        position_map = dict()
         idx = 0
         # Assumes that the positions are indexed in the order of Row-->Well-->FOV
         for well in self.wells:

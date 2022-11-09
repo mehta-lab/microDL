@@ -150,13 +150,12 @@ class MaskProcessor:
             channel_ids = [channel_ids]
         for channel_idx in channel_ids:
             ff_path = im_utils.get_flat_field_path(
-                self.flat_field_dir,
-                channel_idx,
-                channel_ids,
+                flat_field_dir=self.flat_field_dir,
+                channel_idx=channel_idx,
+                channel_ids=channel_ids,
             )
             flat_field_fnames.append(ff_path)
         return flat_field_fnames
-
 
     def generate_masks(self, str_elem_radius=5):
         """

@@ -124,36 +124,17 @@ class ImagePredictor:
             self.frames_meta = aux_utils.read_meta(self.image_dir)
         except AssertionError as e:
             print(e, "Generating metadata.")
-            order = 'cztp'
+            file_format = 'zarr'
+            if 'file_format' in preprocess_config:
+                file_format = preprocess_config['file_format']
             name_parser = 'parse_sms_name'
             if 'metadata' in preprocess_config:
-                if 'order' in preprocess_config['metadata']:
-                    order = preprocess_config['metadata']['order']
                 if 'name_parser' in preprocess_config['metadata']:
                     name_parser = preprocess_config['metadata']['name_parser']
             # Create metadata from file names instead
             self.frames_meta = meta_utils.frames_meta_generator(
                 input_dir=self.image_dir,
-                order=order,
-                name_parser=name_parser,
-            )
-
-        try:
-            # Check if metadata is present
-            self.frames_meta = aux_utils.read_meta(self.image_dir)
-        except AssertionError as e:
-            print(e, "Generating metadata.")
-            order = 'cztp'
-            name_parser = 'parse_sms_name'
-            if 'metadata' in preprocess_config:
-                if 'order' in preprocess_config['metadata']:
-                    order = preprocess_config['metadata']['order']
-                if 'name_parser' in preprocess_config['metadata']:
-                    name_parser = preprocess_config['metadata']['name_parser']
-            # Create metadata from file names instead
-            self.frames_meta = meta_utils.frames_meta_generator(
-                input_dir=self.image_dir,
-                order=order,
+                file_format=file_format,
                 name_parser=name_parser,
             )
 
