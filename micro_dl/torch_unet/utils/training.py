@@ -214,8 +214,6 @@ class TorchTrainer:
             epoch_time = time.time()
             train_loss = 0
             print(f"Epoch {i}:")
-            if "num_workers" in self.training_config:
-                print(f"Initializing {self.training_config['num_workers']} cpu workers")
 
             for current, minibatch in enumerate(self.train_dataloader):
                 # pretty printing
@@ -304,9 +302,6 @@ class TorchTrainer:
         else:
             dataloader = self.val_dataloader
 
-        if "num_workers" in self.training_config:
-            print(f"Initializing {self.training_config['num_workers']} cpu workers")
-
         for current, minibatch in enumerate(dataloader):
             if not validate_mode:
                 io_utils.show_progress_bar(dataloader, current, process="testing")
@@ -344,7 +339,7 @@ class TorchTrainer:
                     else samples.pop()[0, 0],
                     cmap="gray",
                 )
-                ax[0].set_title("mean input phase image")
+                ax[0].set_title("input image")
             except TypeError as e:
                 print(
                     f"Caught error showing phase input, arguments: {e.args}. "

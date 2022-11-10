@@ -320,32 +320,25 @@ class TorchDataset(Dataset):
         :return gp.Pipeline pipeline: see name
         """
         # if source is multi_zarr_source, attach a RandomProvider
-        if True:
-            source = self.data_source
-            if isinstance(source, tuple):
-                source = [source, gp.RandomProvider()]
+        source = self.data_source
+        if isinstance(source, tuple):
+            source = [source, gp.RandomProvider()]
 
-            # attach permanent nodes
-            source = source + [gp.RandomLocation()]
+        # attach permanent nodes
+        source = source + [gp.RandomLocation()]
 
-            batch_creation = []
-            batch_creation.append(
-                gp.PreCache(cache_size=150, num_workers=max(0, self.workers))
-            )  # TODO make these parameters variable
-            batch_creation.append(gp.Stack(self.batch_size))
+        # TODO implement
+        # source = source + [custom_nodes.Normalize()]
+        # source = source + [custom_nodes.FlatFieldCorrect()]
 
-            # attach additional nodes, if any, and sum
-            pipeline = source + self.augmentation_nodes + batch_creation
+        batch_creation = []
+        batch_creation.append(
+            gp.PreCache(cache_size=150, num_workers=max(0, self.workers))
+        )  # TODO make these parameters variable
+        batch_creation.append(gp.Stack(self.batch_size))
 
-            # attach additional nodes, if any, and sum
-            pipeline = source + self.augmentation_nodes + batch_creation
-
-            pipeline = source
-        else:
-            pass
-            # TODO implement
-            # source = source + [custom_nodes.Normalize()]
-            # source = source + [custom_nodes.FlatFieldCorrect()]
+        # attach additional nodes, if any, and sum
+        pipeline = source + self.augmentation_nodes + batch_creation
 
         pipeline = gp_utils.gpsum(pipeline, verbose=False)
 
@@ -356,6 +349,8 @@ class TorchDataset(Dataset):
         Returns pipeline as a generator. This is done in a separate method from __getitem__()
         to preserve compatibility with the torch dataloader's item calling signature
         while also performing appropriate context management for the pipeline via generation.
+        See:
+            https://github.com/funkey/gunpowder/issues/181
 
         :param gp.Pipeline pipeline: pipeline to generate batches from
         :param gp.BatchRequest request: batch request for pipeline
