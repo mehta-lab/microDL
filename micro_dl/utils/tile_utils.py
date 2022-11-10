@@ -13,9 +13,8 @@ def tile_image(input_image,
                min_fraction=None,
                save_dict=None):
     """
-     Tiles the image based on given tile and step size.
-
-     USE MIN_FRACTION WITH INPUT_IMAGE.DTYPE=bool / MASKS
+    Tiles the image based on given tile and step size.
+    USE MIN_FRACTION WITH INPUT_IMAGE.DTYPE=bool / MASKS
 
     :param np.array input_image: 3D input image to be tiled
     :param list/tuple/np array tile_size: size of the blocks to be tiled
@@ -24,7 +23,7 @@ def tile_image(input_image,
      no overlap, the step size is tile_size. If overlap, step_size < tile_size
     :param bool return_index: indicator for returning tile indices
     :param float min_fraction: Minimum fraction of foreground in mask for
-    including tile
+        including tile
     :param dict save_dict: dict with keys: time_idx, channel_idx, slice_idx,
      pos_idx, image_format and save_dir for generation output fname
     :return: if not saving: a list with tuples of tiled image id of the format
@@ -186,7 +185,8 @@ def crop_at_indices(input_image,
                     crop_indices,
                     save_dict=None,
                     tile_3d=False):
-    """Crop image into tiles at given indices
+    """
+    Crop image into tiles at given indices.
 
     :param np.array input_image: input image for cropping
     :param list/tuple crop_indices: list of indices for cropping
@@ -194,7 +194,7 @@ def crop_at_indices(input_image,
      pos_idx, image_format and save_dir for generation output fname
     :param bool tile_3d: boolean flag for adding slice_start_idx to meta
     :return: if not saving tiles: a list with tuples of cropped image id of
-     the format rrmin-rmax_ccmin-cmax_slslmin-slmax and cropped image.
+     the format rrmin-rmax_ccmin-cmax_slslmin-slmax and cropped image.\
      Else saves tiles in-place and returns a df with tile metadata
     """
 

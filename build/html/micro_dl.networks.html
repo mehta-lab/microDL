@@ -19,7 +19,9 @@
         <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" /> 
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="micro_dl.networks.layers package" href="micro_dl.networks.layers.html" />
+    <link rel="prev" title="micro_dl.input package" href="micro_dl.input.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -37,91 +39,28 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <!-- Local TOC -->
-              <div class="local-toc"><ul>
-<li><a class="reference internal" href="#">micro_dl.networks package</a><ul>
-<li><a class="reference internal" href="#subpackages">Subpackages</a></li>
-<li><a class="reference internal" href="#submodules">Submodules</a></li>
-<li><a class="reference internal" href="#module-micro_dl.networks.base_conv_net">micro_dl.networks.base_conv_net module</a><ul>
-<li><a class="reference internal" href="#micro_dl.networks.base_conv_net.BaseConvNet"><code class="docutils literal notranslate"><span class="pre">BaseConvNet</span></code></a><ul>
-<li><a class="reference internal" href="#micro_dl.networks.base_conv_net.BaseConvNet.build_net"><code class="docutils literal notranslate"><span class="pre">BaseConvNet.build_net()</span></code></a></li>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">micro_dl</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="micro_dl.html">micro_dl package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="micro_dl.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.cli.html">micro_dl.cli package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.inference.html">micro_dl.inference package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.input.html">micro_dl.input package</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">micro_dl.networks package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.plotting.html">micro_dl.plotting package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.preprocessing.html">micro_dl.preprocessing package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.train.html">micro_dl.train package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.utils.html">micro_dl.utils package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="micro_dl.html#module-micro_dl">Module contents</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a class="reference internal" href="#module-micro_dl.networks.base_image_to_vector_net">micro_dl.networks.base_image_to_vector_net module</a><ul>
-<li><a class="reference internal" href="#micro_dl.networks.base_image_to_vector_net.BaseImageToVectorNet"><code class="docutils literal notranslate"><span class="pre">BaseImageToVectorNet</span></code></a><ul>
-<li><a class="reference internal" href="#micro_dl.networks.base_image_to_vector_net.BaseImageToVectorNet.build_net"><code class="docutils literal notranslate"><span class="pre">BaseImageToVectorNet.build_net()</span></code></a></li>
 </ul>
-</li>
-</ul>
-</li>
-<li><a class="reference internal" href="#module-micro_dl.networks.base_unet">micro_dl.networks.base_unet module</a><ul>
-<li><a class="reference internal" href="#micro_dl.networks.base_unet.BaseUNet"><code class="docutils literal notranslate"><span class="pre">BaseUNet</span></code></a><ul>
-<li><a class="reference internal" href="#micro_dl.networks.base_unet.BaseUNet.build_net"><code class="docutils literal notranslate"><span class="pre">BaseUNet.build_net()</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li><a class="reference internal" href="#module-micro_dl.networks.conv_blocks">micro_dl.networks.conv_blocks module</a><ul>
-<li><a class="reference internal" href="#micro_dl.networks.conv_blocks.conv_block"><code class="docutils literal notranslate"><span class="pre">conv_block()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.networks.conv_blocks.downsample_conv_block"><code class="docutils literal notranslate"><span class="pre">downsample_conv_block()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.networks.conv_blocks.pad_channels"><code class="docutils literal notranslate"><span class="pre">pad_channels()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.networks.conv_blocks.residual_conv_block"><code class="docutils literal notranslate"><span class="pre">residual_conv_block()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.networks.conv_blocks.residual_downsample_conv_block"><code class="docutils literal notranslate"><span class="pre">residual_downsample_conv_block()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.networks.conv_blocks.skip_merge"><code class="docutils literal notranslate"><span class="pre">skip_merge()</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#module-micro_dl.networks.image2D_to_vector_net">micro_dl.networks.image2D_to_vector_net module</a><ul>
-<li><a class="reference internal" href="#micro_dl.networks.image2D_to_vector_net.Image2DToVectorNet"><code class="docutils literal notranslate"><span class="pre">Image2DToVectorNet</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#module-micro_dl.networks.image3D_to_vector_net">micro_dl.networks.image3D_to_vector_net module</a><ul>
-<li><a class="reference internal" href="#micro_dl.networks.image3D_to_vector_net.Image3DToVectorNet"><code class="docutils literal notranslate"><span class="pre">Image3DToVectorNet</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#module-micro_dl.networks.unet2D">micro_dl.networks.unet2D module</a><ul>
-<li><a class="reference internal" href="#micro_dl.networks.unet2D.UNet2D"><code class="docutils literal notranslate"><span class="pre">UNet2D</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#module-micro_dl.networks.unet3D">micro_dl.networks.unet3D module</a><ul>
-<li><a class="reference internal" href="#micro_dl.networks.unet3D.UNet3D"><code class="docutils literal notranslate"><span class="pre">UNet3D</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#module-micro_dl.networks.unet_stack_2D">micro_dl.networks.unet_stack_2D module</a><ul>
-<li><a class="reference internal" href="#micro_dl.networks.unet_stack_2D.UNetStackTo2D"><code class="docutils literal notranslate"><span class="pre">UNetStackTo2D</span></code></a><ul>
-<li><a class="reference internal" href="#micro_dl.networks.unet_stack_2D.UNetStackTo2D.build_net"><code class="docutils literal notranslate"><span class="pre">UNetStackTo2D.build_net()</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li><a class="reference internal" href="#module-micro_dl.networks.unet_stack_stack">micro_dl.networks.unet_stack_stack module</a><ul>
-<li><a class="reference internal" href="#micro_dl.networks.unet_stack_stack.UNetStackToStack"><code class="docutils literal notranslate"><span class="pre">UNetStackToStack</span></code></a><ul>
-<li><a class="reference internal" href="#micro_dl.networks.unet_stack_stack.UNetStackToStack.build_net"><code class="docutils literal notranslate"><span class="pre">UNetStackToStack.build_net()</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li><a class="reference internal" href="#module-micro_dl.networks.vqnet">micro_dl.networks.vqnet module</a><ul>
-<li><a class="reference internal" href="#micro_dl.networks.vqnet.VQVAE"><code class="docutils literal notranslate"><span class="pre">VQVAE</span></code></a><ul>
-<li><a class="reference internal" href="#micro_dl.networks.vqnet.VQVAE.build_net"><code class="docutils literal notranslate"><span class="pre">VQVAE.build_net()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.networks.vqnet.VQVAE.decoder_pass"><code class="docutils literal notranslate"><span class="pre">VQVAE.decoder_pass()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.networks.vqnet.VQVAE.encoder_pass"><code class="docutils literal notranslate"><span class="pre">VQVAE.encoder_pass()</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#micro_dl.networks.vqnet.VectorQuantizer"><code class="docutils literal notranslate"><span class="pre">VectorQuantizer</span></code></a><ul>
-<li><a class="reference internal" href="#micro_dl.networks.vqnet.VectorQuantizer.build"><code class="docutils literal notranslate"><span class="pre">VectorQuantizer.build()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.networks.vqnet.VectorQuantizer.call"><code class="docutils literal notranslate"><span class="pre">VectorQuantizer.call()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.networks.vqnet.VectorQuantizer.sample"><code class="docutils literal notranslate"><span class="pre">VectorQuantizer.sample()</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li><a class="reference internal" href="#module-micro_dl.networks">Module contents</a></li>
-</ul>
-</li>
-</ul>
-</div>
+
         </div>
       </div>
     </nav>
@@ -136,6 +75,8 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">micro_dl</a></li>
+          <li class="breadcrumb-item"><a href="micro_dl.html">micro_dl package</a></li>
       <li class="breadcrumb-item active">micro_dl.networks package</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/micro_dl.networks.rst.txt" rel="nofollow"> View page source</a>
@@ -519,7 +460,10 @@ for weight shape computations.</p>
 
            </div>
           </div>
-          <footer>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="micro_dl.input.html" class="btn btn-neutral float-left" title="micro_dl.input package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="micro_dl.networks.layers.html" class="btn btn-neutral float-right" title="micro_dl.networks.layers package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
 
   <hr/>
 

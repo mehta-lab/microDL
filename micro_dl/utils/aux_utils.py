@@ -1,4 +1,3 @@
-"""Auxiliary utility functions"""
 import glob
 import inspect
 import importlib
@@ -10,6 +9,10 @@ import os
 import re
 import pandas as pd
 import yaml
+
+
+"""Auxiliary utility functions"""
+
 
 DF_NAMES = ["channel_idx",
             "pos_idx",
@@ -45,8 +48,8 @@ def import_object(module_name, obj_name, obj_type='class'):
 
 
 def read_config(config_fname):
-    """Read the config file in yml format
-
+    """
+    Read the config file in yml format.
     TODO: validate config!
 
     :param str config_fname: fname of config yaml with its full path
@@ -148,7 +151,7 @@ def get_row_idx(frames_metadata,
     """
     Get the indices for images with timepoint_idx and channel_idx
 
-    :param pd.DataFrame frames_metadata: DF with columns time_idx,
+    :param pd.DataFrame frames_metadata: DF with columns time_idx,\
      channel_idx, slice_idx, file_name]
     :param int time_idx: get info for this timepoint
     :param int channel_idx: get info for this channel
@@ -270,8 +273,8 @@ def get_sms_im_name(time_idx=None,
     """
     Create an image name given parameters and extension
     This function is custom for the computational microscopy (SMS)
-    group, who has the following file naming convention:
-    File naming convention is assumed to be:
+    group, who has the following file naming convention:\
+    File naming convention is assumed to be:\
         img_channelname_t***_p***_z***_extrafield.tif
     This function will alter list and dict in place.
 
@@ -308,7 +311,7 @@ def sort_meta_by_channel(frames_metadata):
     to moving file names for each channel to separate columns.
 
     :param dataframe frames_metadata: Metadata with one column named 'file_name'
-    :return dataframe sorted_metadata: Metadata with separate file_name_X for
+    :return dataframe sorted_metadata: Metadata with separate file_name_X for\
         channel X.
     """
     metadata_ids, tp_dict = validate_metadata_indices(
@@ -360,18 +363,18 @@ def validate_metadata_indices(frames_metadata,
     evaluated. If input ids are -1, all indices for that parameter will
     be returned.
 
-    :param pd.DataFrame frames_metadata: DF with columns time_idx,
+    :param pd.DataFrame frames_metadata: DF with columns time_idx,\
      channel_idx, slice_idx, pos_idx, file_name]
-    :param int/list time_ids: check availability of these timepoints in
+    :param int/list time_ids: check availability of these timepoints in\
      frames_metadata
-    :param int/list channel_ids: check availability of these channels in
+    :param int/list channel_ids: check availability of these channels in\
      frames_metadata
     :param int/list pos_ids: Check availability of positions in metadata
     :param int/list slice_ids: Check availability of z slices in metadata
-    :param bool uniform_structure: bool indicator if unequal quantities in any
+    :param bool uniform_structure: bool indicator if unequal quantities in any\
      of the ids (channel, time, slice, pos)
     :return dict metadata_ids: All indices found given input
-    :raise AssertionError: If not all channels, timepoints, positions
+    :raises: AssertionError: If not all channels, timepoints, positions\
         or slices are present
     """
     meta_id_names = [
@@ -459,7 +462,7 @@ def make_dataframe(nbr_rows=None, df_names=DF_NAMES):
 
     :param [None, int] nbr_rows: The number of rows in the dataframe
     :param list df_names: Dataframe column names
-    :return dataframe frames_meta: Empty dataframe with given
+    :return dataframe frames_meta: Empty dataframe with given\
         indices and column names
     """
 
@@ -482,7 +485,7 @@ def read_meta(input_dir, meta_fname='frames_meta.csv'):
     :param str input_dir: Directory containing data and metadata
     :param str meta_fname: Metadata file name
     :return dataframe frames_metadata: Metadata for all frames
-    :raise IOError: If metadata file isn't present
+    :raises: IOError: If metadata file isn't present
     """
     meta_fname = glob.glob(os.path.join(input_dir, meta_fname))
     assert len(meta_fname) == 1, \
@@ -501,7 +504,7 @@ def save_tile_meta(tiles_meta,
     """
     Save meta data for tiled images
 
-    :param list tiles_meta: List of tuples holding meta info for tiled
+    :param list tiles_meta: List of tuples holding meta info for tiled\
         images
     :param int cur_channel: Channel being tiled
     :param str tiled_dir: Directory to save meta data in
@@ -557,15 +560,15 @@ def get_channel_axis(data_format):
 
 def adjust_slice_margins(slice_ids, depth):
     """
-    Adjusts slice (z) indices to given z depth by removing indices too close \
+    Adjusts slice indices to given z depth by removing indices too close
     to boundaries. Assumes that slice indices are contiguous.
 
     :param list of ints slice_ids: Slice (z) indices
     :param int depth: Number of z slices
-    :return: list of ints slice_ids: Slice indices with adjusted margins
-    :raises AssertionError if depth is even
-    :raises AssertionError if there aren't enough slice ids for given depth
-    :raises AssertionError if slices aren't contiguous
+    :return list slice_ids: Slice indices with adjusted margins
+    :raises: AssertionError: if depth is even
+    :raises: AssertionError: if there aren't enough slice ids for given depth
+    :raises: AssertionError: if slices aren't contiguous
     """
     assert depth % 2 == 1, "Depth must be uneven"
     if depth > 1:
@@ -588,8 +591,8 @@ def read_json(json_filename):
 
     :param str json_filename: json file name
     :return: dict json_object: JSON object
-    :raise FileNotFoundError: if file can't be read
-    :raise JSONDecodeError: if file is not in json format
+    :raises: FileNotFoundError: if file can't be read
+    :raises: JSONDecodeError: if file is not in json format
     """
     try:
         with open(json_filename, "r") as read_file:
@@ -630,9 +633,9 @@ def get_sorted_names(dir_name):
 
 def parse_idx_from_name(im_name, df_names=DF_NAMES, dir_name=None, order="cztp"):
     """
-    Assumes im_name is e.g. im_c***_z***_p***_t***.png, \
-    It doesn't care about the extension or the number of digits each index is \
-    represented by, it extracts all integers from the image file name and assigns \
+    Assumes im_name is e.g. im_c***_z***_p***_t***.png,
+    It doesn't care about the extension or the number of digits each index is
+    represented by, it extracts all integers from the image file name and assigns
     them by order. By default it assumes that the order is c, z, t, p.
     :param str im_name: Image name without path
     :param list of strs df_names: Dataframe col names
@@ -671,8 +674,7 @@ def parse_sms_name(im_name, df_names=DF_NAMES, dir_name=None, channel_names=[]):
     This function is custom for the computational microscopy (SMS)
     group, who has the following file naming convention:
     File naming convention is assumed to be:
-        img_channelname_t***_p***_z***.tif
-    The order of t, p, and z is arbitrary.
+    img_channelname_t***_p***_z***.tif
     This function will alter list and dict in place.
 
     :param str im_name: File name or path

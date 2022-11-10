@@ -458,7 +458,7 @@ def pre_process(preprocess_config):
     [input_dir, output_dir, slice_ids, time_ids, pos_ids
     correct_flat_field, use_masks, masks, tile_stack, tile]
     :param dict required_params: dict with commom params for all tasks
-    :raises AssertionError: If 'masks' in preprocess_config contains both channels
+    :raises: AssertionError: If 'masks' in preprocess_config contains both channels\
      and mask_dir (the former is for generating masks from a channel)
     """
     time_start = time.time()

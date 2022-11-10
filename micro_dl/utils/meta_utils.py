@@ -23,6 +23,7 @@ def frames_meta_generator(
     Naming convention for default parser 'parse_sms_name':
     img_channelname_t***_p***_z***.tif for parse_sms_name
 
+<<<<<<< HEAD
     The file structure for ome-zarr files is described here:
     https://ngff.openmicroscopy.org/0.1/
 
@@ -60,6 +61,10 @@ def frames_meta_from_filenames(input_dir, name_parser):
     Extracts metadata (channel, position, time, slice) from file name.
 
     :param str input_dir:   path to input directory containing images
+=======
+    :param str input_dir: Path to input directory containing images
+    :param str order: Order in which file name encodes cztp
+>>>>>>> 588a894... Updated sphinx autodoc and fixes some warnings
     :param str name_parser: Function in aux_utils for parsing indices from file name
     :return pd.DataFrame frames_meta: Metadata for all frames in dataset
     """
@@ -213,21 +218,20 @@ def compute_zscore_params(frames_meta,
                           normalize_im,
                           min_fraction=0.99):
     """
-    Compute median and interquartile range of intensities in blocks/tiles\
-    determined ints_meta_generator function (saved in intensity_meta.csv).\
-    Masks need to bee computed and only tiles with enough foreground given masks\
-     (determined by min_fraction) will be included in the analysis.
+    Compute median and interquartile range of intensities in blocks/tiles
+    determined ints_meta_generator function (saved in intensity_meta.csv).
+    Masks need to bee computed and only tiles with enough foreground given masks
+    (determined by min_fraction) will be included in the analysis.
 
     :param pd.DataFrame frames_meta: Dataframe containing all metadata
-    :param pd.DataFrame ints_meta: Metadata containing intensity statistics
+    :param pd.DataFrame ints_meta: Metadata containing intensity statistics\
         each z-slice and foreground fraction for masks
     :param str input_dir: Directory containing images
     :param None/str normalize_im: normalization scheme for input images
-    :param float min_fraction: Minimum foreground fraction of masks
+    :param float min_fraction: Minimum foreground fraction of masks\
         for computing intensity statistics.
-
     :return pd.DataFrame frames_meta: DataFrame containing all metadata
-    :return pd.DataFrame ints_meta: Metadata containing intensity statistics
+    :return pd.DataFrame ints_meta: Metadata containing intensity statistics\
         each z-slice
     """
 
