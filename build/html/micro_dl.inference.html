@@ -19,7 +19,9 @@
         <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" /> 
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="micro_dl.input package" href="micro_dl.input.html" />
+    <link rel="prev" title="micro_dl.cli package" href="micro_dl.cli.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -37,66 +39,28 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <!-- Local TOC -->
-              <div class="local-toc"><ul>
-<li><a class="reference internal" href="#">micro_dl.inference package</a><ul>
-<li><a class="reference internal" href="#submodules">Submodules</a></li>
-<li><a class="reference internal" href="#module-micro_dl.inference.evaluation_metrics">micro_dl.inference.evaluation_metrics module</a><ul>
-<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator"><code class="docutils literal notranslate"><span class="pre">MetricsEstimator</span></code></a><ul>
-<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator.assert_input"><code class="docutils literal notranslate"><span class="pre">MetricsEstimator.assert_input()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator.compute_metrics_row"><code class="docutils literal notranslate"><span class="pre">MetricsEstimator.compute_metrics_row()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator.estimate_xy_metrics"><code class="docutils literal notranslate"><span class="pre">MetricsEstimator.estimate_xy_metrics()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator.estimate_xyz_metrics"><code class="docutils literal notranslate"><span class="pre">MetricsEstimator.estimate_xyz_metrics()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator.estimate_xz_metrics"><code class="docutils literal notranslate"><span class="pre">MetricsEstimator.estimate_xz_metrics()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator.estimate_yz_metrics"><code class="docutils literal notranslate"><span class="pre">MetricsEstimator.estimate_yz_metrics()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator.get_metrics_xy"><code class="docutils literal notranslate"><span class="pre">MetricsEstimator.get_metrics_xy()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator.get_metrics_xyz"><code class="docutils literal notranslate"><span class="pre">MetricsEstimator.get_metrics_xyz()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator.get_metrics_xz"><code class="docutils literal notranslate"><span class="pre">MetricsEstimator.get_metrics_xz()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator.get_metrics_yz"><code class="docutils literal notranslate"><span class="pre">MetricsEstimator.get_metrics_yz()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.MetricsEstimator.mask_to_bool"><code class="docutils literal notranslate"><span class="pre">MetricsEstimator.mask_to_bool()</span></code></a></li>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">micro_dl</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="micro_dl.html">micro_dl package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="micro_dl.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.cli.html">micro_dl.cli package</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">micro_dl.inference package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.input.html">micro_dl.input package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.networks.html">micro_dl.networks package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.plotting.html">micro_dl.plotting package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.preprocessing.html">micro_dl.preprocessing package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.train.html">micro_dl.train package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.utils.html">micro_dl.utils package</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.accuracy_metric"><code class="docutils literal notranslate"><span class="pre">accuracy_metric()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.binarize_array"><code class="docutils literal notranslate"><span class="pre">binarize_array()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.corr_metric"><code class="docutils literal notranslate"><span class="pre">corr_metric()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.dice_metric"><code class="docutils literal notranslate"><span class="pre">dice_metric()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.mae_metric"><code class="docutils literal notranslate"><span class="pre">mae_metric()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.mask_decorator"><code class="docutils literal notranslate"><span class="pre">mask_decorator()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.mse_metric"><code class="docutils literal notranslate"><span class="pre">mse_metric()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.r2_metric"><code class="docutils literal notranslate"><span class="pre">r2_metric()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.inference.evaluation_metrics.ssim_metric"><code class="docutils literal notranslate"><span class="pre">ssim_metric()</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#module-micro_dl.inference.image_inference">micro_dl.inference.image_inference module</a><ul>
-<li><a class="reference internal" href="#micro_dl.inference.image_inference.ImagePredictor"><code class="docutils literal notranslate"><span class="pre">ImagePredictor</span></code></a><ul>
-<li><a class="reference internal" href="#micro_dl.inference.image_inference.ImagePredictor.estimate_metrics"><code class="docutils literal notranslate"><span class="pre">ImagePredictor.estimate_metrics()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.inference.image_inference.ImagePredictor.get_mask"><code class="docutils literal notranslate"><span class="pre">ImagePredictor.get_mask()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.inference.image_inference.ImagePredictor.predict_2d"><code class="docutils literal notranslate"><span class="pre">ImagePredictor.predict_2d()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.inference.image_inference.ImagePredictor.predict_3d"><code class="docutils literal notranslate"><span class="pre">ImagePredictor.predict_3d()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.inference.image_inference.ImagePredictor.run_prediction"><code class="docutils literal notranslate"><span class="pre">ImagePredictor.run_prediction()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.inference.image_inference.ImagePredictor.save_pred_image"><code class="docutils literal notranslate"><span class="pre">ImagePredictor.save_pred_image()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.inference.image_inference.ImagePredictor.unzscore"><code class="docutils literal notranslate"><span class="pre">ImagePredictor.unzscore()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="micro_dl.html#module-micro_dl">Module contents</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a class="reference internal" href="#module-micro_dl.inference.model_inference">micro_dl.inference.model_inference module</a><ul>
-<li><a class="reference internal" href="#micro_dl.inference.model_inference.load_model"><code class="docutils literal notranslate"><span class="pre">load_model()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.inference.model_inference.predict_large_image"><code class="docutils literal notranslate"><span class="pre">predict_large_image()</span></code></a></li>
 </ul>
-</li>
-<li><a class="reference internal" href="#module-micro_dl.inference.stitch_predictions">micro_dl.inference.stitch_predictions module</a><ul>
-<li><a class="reference internal" href="#micro_dl.inference.stitch_predictions.ImageStitcher"><code class="docutils literal notranslate"><span class="pre">ImageStitcher</span></code></a><ul>
-<li><a class="reference internal" href="#micro_dl.inference.stitch_predictions.ImageStitcher.stitch_predictions"><code class="docutils literal notranslate"><span class="pre">ImageStitcher.stitch_predictions()</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li><a class="reference internal" href="#module-micro_dl.inference">Module contents</a></li>
-</ul>
-</li>
-</ul>
-</div>
+
         </div>
       </div>
     </nav>
@@ -111,6 +75,8 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">micro_dl</a></li>
+          <li class="breadcrumb-item"><a href="micro_dl.html">micro_dl package</a></li>
       <li class="breadcrumb-item active">micro_dl.inference package</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/micro_dl.inference.rst.txt" rel="nofollow"> View page source</a>
@@ -668,7 +634,10 @@ dimension</p></li>
 
            </div>
           </div>
-          <footer>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="micro_dl.cli.html" class="btn btn-neutral float-left" title="micro_dl.cli package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="micro_dl.input.html" class="btn btn-neutral float-right" title="micro_dl.input package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
 
   <hr/>
 

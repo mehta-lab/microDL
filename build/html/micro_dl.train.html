@@ -19,7 +19,9 @@
         <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" /> 
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="micro_dl.utils package" href="micro_dl.utils.html" />
+    <link rel="prev" title="micro_dl.preprocessing package" href="micro_dl.preprocessing.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -37,65 +39,28 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <!-- Local TOC -->
-              <div class="local-toc"><ul>
-<li><a class="reference internal" href="#">micro_dl.train package</a><ul>
-<li><a class="reference internal" href="#submodules">Submodules</a></li>
-<li><a class="reference internal" href="#module-micro_dl.train.learning_rates">micro_dl.train.learning_rates module</a><ul>
-<li><a class="reference internal" href="#micro_dl.train.learning_rates.CyclicLearning"><code class="docutils literal notranslate"><span class="pre">CyclicLearning</span></code></a><ul>
-<li><a class="reference internal" href="#micro_dl.train.learning_rates.CyclicLearning.clr"><code class="docutils literal notranslate"><span class="pre">CyclicLearning.clr()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.train.learning_rates.CyclicLearning.on_batch_end"><code class="docutils literal notranslate"><span class="pre">CyclicLearning.on_batch_end()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.train.learning_rates.CyclicLearning.on_epoch_end"><code class="docutils literal notranslate"><span class="pre">CyclicLearning.on_epoch_end()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.train.learning_rates.CyclicLearning.on_train_begin"><code class="docutils literal notranslate"><span class="pre">CyclicLearning.on_train_begin()</span></code></a></li>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">micro_dl</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="micro_dl.html">micro_dl package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="micro_dl.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.cli.html">micro_dl.cli package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.inference.html">micro_dl.inference package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.input.html">micro_dl.input package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.networks.html">micro_dl.networks package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.plotting.html">micro_dl.plotting package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.preprocessing.html">micro_dl.preprocessing package</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">micro_dl.train package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.utils.html">micro_dl.utils package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="micro_dl.html#module-micro_dl">Module contents</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a class="reference internal" href="#module-micro_dl.train.losses">micro_dl.train.losses module</a><ul>
-<li><a class="reference internal" href="#micro_dl.train.losses.binary_crossentropy_loss"><code class="docutils literal notranslate"><span class="pre">binary_crossentropy_loss()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.train.losses.dice_coef_loss"><code class="docutils literal notranslate"><span class="pre">dice_coef_loss()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.train.losses.dssim_loss"><code class="docutils literal notranslate"><span class="pre">dssim_loss()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.train.losses.kl_divergence_loss"><code class="docutils literal notranslate"><span class="pre">kl_divergence_loss()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.train.losses.latent_loss"><code class="docutils literal notranslate"><span class="pre">latent_loss()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.train.losses.mae_loss"><code class="docutils literal notranslate"><span class="pre">mae_loss()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.train.losses.masked_loss"><code class="docutils literal notranslate"><span class="pre">masked_loss()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.train.losses.ms_ssim_loss"><code class="docutils literal notranslate"><span class="pre">ms_ssim_loss()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.train.losses.mse_loss"><code class="docutils literal notranslate"><span class="pre">mse_loss()</span></code></a></li>
 </ul>
-</li>
-<li><a class="reference internal" href="#module-micro_dl.train.lr_finder">micro_dl.train.lr_finder module</a><ul>
-<li><a class="reference internal" href="#micro_dl.train.lr_finder.LRFinder"><code class="docutils literal notranslate"><span class="pre">LRFinder</span></code></a><ul>
-<li><a class="reference internal" href="#micro_dl.train.lr_finder.LRFinder.on_batch_end"><code class="docutils literal notranslate"><span class="pre">LRFinder.on_batch_end()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.train.lr_finder.LRFinder.on_train_begin"><code class="docutils literal notranslate"><span class="pre">LRFinder.on_train_begin()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.train.lr_finder.LRFinder.on_train_end"><code class="docutils literal notranslate"><span class="pre">LRFinder.on_train_end()</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li><a class="reference internal" href="#module-micro_dl.train.metrics">micro_dl.train.metrics module</a><ul>
-<li><a class="reference internal" href="#micro_dl.train.metrics.binary_accuracy"><code class="docutils literal notranslate"><span class="pre">binary_accuracy()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.train.metrics.coeff_determination"><code class="docutils literal notranslate"><span class="pre">coeff_determination()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.train.metrics.dice_coef"><code class="docutils literal notranslate"><span class="pre">dice_coef()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.train.metrics.flip_dimensions"><code class="docutils literal notranslate"><span class="pre">flip_dimensions()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.train.metrics.mask_accuracy"><code class="docutils literal notranslate"><span class="pre">mask_accuracy()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.train.metrics.mask_coeff_determination"><code class="docutils literal notranslate"><span class="pre">mask_coeff_determination()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.train.metrics.ms_ssim"><code class="docutils literal notranslate"><span class="pre">ms_ssim()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.train.metrics.pearson_corr"><code class="docutils literal notranslate"><span class="pre">pearson_corr()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.train.metrics.ssim"><code class="docutils literal notranslate"><span class="pre">ssim()</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#module-micro_dl.train.trainer">micro_dl.train.trainer module</a><ul>
-<li><a class="reference internal" href="#micro_dl.train.trainer.BaseKerasTrainer"><code class="docutils literal notranslate"><span class="pre">BaseKerasTrainer</span></code></a><ul>
-<li><a class="reference internal" href="#micro_dl.train.trainer.BaseKerasTrainer.train"><code class="docutils literal notranslate"><span class="pre">BaseKerasTrainer.train()</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li><a class="reference internal" href="#module-micro_dl.train">Module contents</a></li>
-</ul>
-</li>
-</ul>
-</div>
+
         </div>
       </div>
     </nav>
@@ -110,6 +75,8 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">micro_dl</a></li>
+          <li class="breadcrumb-item"><a href="micro_dl.html">micro_dl package</a></li>
       <li class="breadcrumb-item active">micro_dl.train package</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/micro_dl.train.rst.txt" rel="nofollow"> View page source</a>
@@ -575,7 +542,10 @@ weights are passed from generator to fit_generator / fit.</p>
 
            </div>
           </div>
-          <footer>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="micro_dl.preprocessing.html" class="btn btn-neutral float-left" title="micro_dl.preprocessing package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="micro_dl.utils.html" class="btn btn-neutral float-right" title="micro_dl.utils package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
 
   <hr/>
 

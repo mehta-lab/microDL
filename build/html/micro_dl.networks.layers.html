@@ -19,7 +19,9 @@
         <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" /> 
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="micro_dl.plotting package" href="micro_dl.plotting.html" />
+    <link rel="prev" title="micro_dl.networks package" href="micro_dl.networks.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -37,35 +39,28 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <!-- Local TOC -->
-              <div class="local-toc"><ul>
-<li><a class="reference internal" href="#">micro_dl.networks.layers package</a><ul>
-<li><a class="reference internal" href="#submodules">Submodules</a></li>
-<li><a class="reference internal" href="#module-micro_dl.networks.layers.interp_upsampling2D">micro_dl.networks.layers.interp_upsampling2D module</a><ul>
-<li><a class="reference internal" href="#micro_dl.networks.layers.interp_upsampling2D.InterpUpSampling2D"><code class="docutils literal notranslate"><span class="pre">InterpUpSampling2D</span></code></a><ul>
-<li><a class="reference internal" href="#micro_dl.networks.layers.interp_upsampling2D.InterpUpSampling2D.build"><code class="docutils literal notranslate"><span class="pre">InterpUpSampling2D.build()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.networks.layers.interp_upsampling2D.InterpUpSampling2D.call"><code class="docutils literal notranslate"><span class="pre">InterpUpSampling2D.call()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.networks.layers.interp_upsampling2D.InterpUpSampling2D.compute_output_shape"><code class="docutils literal notranslate"><span class="pre">InterpUpSampling2D.compute_output_shape()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.networks.layers.interp_upsampling2D.InterpUpSampling2D.get_config"><code class="docutils literal notranslate"><span class="pre">InterpUpSampling2D.get_config()</span></code></a></li>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">micro_dl</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="micro_dl.html">micro_dl package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="micro_dl.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.cli.html">micro_dl.cli package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.inference.html">micro_dl.inference package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.input.html">micro_dl.input package</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="micro_dl.networks.html">micro_dl.networks package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.plotting.html">micro_dl.plotting package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.preprocessing.html">micro_dl.preprocessing package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.train.html">micro_dl.train package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.utils.html">micro_dl.utils package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="micro_dl.html#module-micro_dl">Module contents</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a class="reference internal" href="#module-micro_dl.networks.layers.interp_upsampling3D">micro_dl.networks.layers.interp_upsampling3D module</a><ul>
-<li><a class="reference internal" href="#micro_dl.networks.layers.interp_upsampling3D.InterpUpSampling3D"><code class="docutils literal notranslate"><span class="pre">InterpUpSampling3D</span></code></a><ul>
-<li><a class="reference internal" href="#micro_dl.networks.layers.interp_upsampling3D.InterpUpSampling3D.build"><code class="docutils literal notranslate"><span class="pre">InterpUpSampling3D.build()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.networks.layers.interp_upsampling3D.InterpUpSampling3D.call"><code class="docutils literal notranslate"><span class="pre">InterpUpSampling3D.call()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.networks.layers.interp_upsampling3D.InterpUpSampling3D.compute_output_shape"><code class="docutils literal notranslate"><span class="pre">InterpUpSampling3D.compute_output_shape()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.networks.layers.interp_upsampling3D.InterpUpSampling3D.get_config"><code class="docutils literal notranslate"><span class="pre">InterpUpSampling3D.get_config()</span></code></a></li>
 </ul>
-</li>
-</ul>
-</li>
-<li><a class="reference internal" href="#module-micro_dl.networks.layers">Module contents</a></li>
-</ul>
-</li>
-</ul>
-</div>
+
         </div>
       </div>
     </nav>
@@ -80,6 +75,9 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">micro_dl</a></li>
+          <li class="breadcrumb-item"><a href="micro_dl.html">micro_dl package</a></li>
+          <li class="breadcrumb-item"><a href="micro_dl.networks.html">micro_dl.networks package</a></li>
       <li class="breadcrumb-item active">micro_dl.networks.layers package</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/micro_dl.networks.layers.rst.txt" rel="nofollow"> View page source</a>
@@ -223,7 +221,10 @@ the ndim, dtype and shape of every input to a layer</p>
 
            </div>
           </div>
-          <footer>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="micro_dl.networks.html" class="btn btn-neutral float-left" title="micro_dl.networks package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="micro_dl.plotting.html" class="btn btn-neutral float-right" title="micro_dl.plotting package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
 
   <hr/>
 

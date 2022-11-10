@@ -43,12 +43,12 @@ def validate_mask_meta(mask_dir,
     :param str input_dir: Input image directory, to match masks with images
     :param int/None mask_channel: Channel idx assigned to masks
     :return int mask_channel: New channel index for masks for writing tiles
-    :raises IOError: If no csv file is present in mask_dir
-    :raises IOError: If more than one csv file exists in mask_dir
+    :raises: IOError: If no csv file is present in mask_dir
+    :raises: IOError: If more than one csv file exists in mask_dir\
         and no csv_name is provided to resolve ambiguity
-    :raises AssertionError: If csv doesn't consist of two columns named
+    :raises: AssertionError: If csv doesn't consist of two columns named\
         'mask_name' and 'file_name'
-    :raises IndexError: If unable to match file_name in mask_dir csv with
+    :raises: IndexError: If unable to match file_name in mask_dir csv with\
         file_name in input_dir for any given mask row
     """
     input_meta = aux_utils.read_meta(input_dir)

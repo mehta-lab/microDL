@@ -55,12 +55,12 @@ def create_save_mask(input_fnames,
 
     """
     Create and save mask.
-    When >1 channel are used to generate the mask, mask of each channel is
-    generated then added together.
+    When more than one channel are used to generate the mask, mask of each
+    channel is generated then added together.
 
     :param tuple input_fnames: tuple of input fnames with full path
     :param str/None flat_field_fname: fname of flat field image
-    :param int str_elem_radius: size of structuring element used for binary
+    :param int str_elem_radius: size of structuring element used for binary\
      opening. str_elem: disk or ball
     :param str mask_dir: dir to save masks
     :param int mask_channel_idx: channel number of mask
@@ -68,16 +68,15 @@ def create_save_mask(input_fnames,
     :param int pos_idx: generate masks for given position / sample ids
     :param int slice_idx: generate masks for given slice ids
     :param int int2str_len: Length of str when converting ints
-    :param str mask_type: thresholding type used for masking or str to map to
+    :param str mask_type: thresholding type used for masking or str to map to\
      masking function
-    :param str mask_ext: '.npy' or '.png'. Save the mask as uint8 PNG or
-     NPY files for otsu, unimodal masks, recommended to save as npy
-     float64 for borders_weight_loss_map masks to avoid loss due to scaling it
+    :param str mask_ext: '.npy' or '.png'. Save the mask as uint8 PNG or\
+     NPY files for otsu, unimodal masks, recommended to save as npy\
+     float64 for borders_weight_loss_map masks to avoid loss due to scaling it\
      to uint8.
-    :param list channel_thrs: list of threshold for each channel to generate
-    binary masks. Only used when mask_type is 'dataset_otsu'
-    :return dict cur_meta for each mask. fg_frac is added to metadata
-            - how is it used?
+    :param list channel_thrs: list of threshold for each channel to generate\
+     binary masks. Only used when mask_type is 'dataset_otsu'
+    :return dict cur_meta: For each mask, fg_frac is added to metadata
     """
     if mask_type == 'dataset otsu':
         assert channel_thrs is not None, \
@@ -169,12 +168,12 @@ def create_save_mask(input_fnames,
 
 def get_mask_meta_row(file_path, meta_row):
     """
-    Given path to mask, read mask, compute foreground fraction and fill\
+    Given path to mask, read mask, compute foreground fraction and fill
     in corresponding metadata row.
 
     :param str file_path: Path to binary mask image
     :param pd.DataFrame meta_row: Metadata row to fill in
-    :return pd.DataFrame meta_row: Metadata row with foreground fraction
+    :return pd.DataFrame meta_row: Metadata row with foreground fraction\
         for mask
     """
     mask = image_utils.read_image(file_path)
@@ -185,7 +184,7 @@ def get_mask_meta_row(file_path, meta_row):
 
 def mp_tile_save(fn_args, workers):
     """
-    Tile and save with multiprocessing\
+    Tile and save with multiprocessing
     https://stackoverflow.com/questions/42074501/python-concurrent-futures-processpoolexecutor-performance-of-submit-vs-map
 
     :param list of tuple fn_args: list with tuples of function arguments
@@ -375,7 +374,7 @@ def mp_resize_save(mp_args, workers):
 
 def resize_and_save(**kwargs):
     """
-    Resizes images and saving them. Performs flatfield correction\
+    Resizes images and saving them. Performs flatfield correction
     prior to resizing if flatfield images are present.
 
     :param kwargs: Keyword arguments:
@@ -515,10 +514,10 @@ def mp_sample_im_pixels(fn_args, workers):
 
 def sample_im_pixels(im_path, ff_path, grid_spacing, meta_row):
     """
-    Read and computes statistics of images for each point in a grid.\
-    Grid spacing determines distance in pixels between grid points\
-    for rows and cols.\
-    Applies flatfield correction prior to intensity sampling if flatfield\
+    Read and computes statistics of images for each point in a grid.
+    Grid spacing determines distance in pixels between grid points
+    for rows and cols.
+    Applies flatfield correction prior to intensity sampling if flatfield
     path is specified.
 
     :param str im_path: Full path to image

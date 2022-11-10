@@ -19,7 +19,9 @@
         <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" /> 
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="micro_dl.train package" href="micro_dl.train.html" />
+    <link rel="prev" title="micro_dl.plotting package" href="micro_dl.plotting.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -37,68 +39,28 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <!-- Local TOC -->
-              <div class="local-toc"><ul>
-<li><a class="reference internal" href="#">micro_dl.preprocessing package</a><ul>
-<li><a class="reference internal" href="#submodules">Submodules</a></li>
-<li><a class="reference internal" href="#module-micro_dl.preprocessing.estimate_flat_field">micro_dl.preprocessing.estimate_flat_field module</a><ul>
-<li><a class="reference internal" href="#micro_dl.preprocessing.estimate_flat_field.FlatFieldEstimator2D"><code class="docutils literal notranslate"><span class="pre">FlatFieldEstimator2D</span></code></a><ul>
-<li><a class="reference internal" href="#micro_dl.preprocessing.estimate_flat_field.FlatFieldEstimator2D.estimate_flat_field"><code class="docutils literal notranslate"><span class="pre">FlatFieldEstimator2D.estimate_flat_field()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.preprocessing.estimate_flat_field.FlatFieldEstimator2D.get_flat_field_dir"><code class="docutils literal notranslate"><span class="pre">FlatFieldEstimator2D.get_flat_field_dir()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.preprocessing.estimate_flat_field.FlatFieldEstimator2D.get_flatfield"><code class="docutils literal notranslate"><span class="pre">FlatFieldEstimator2D.get_flatfield()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.preprocessing.estimate_flat_field.FlatFieldEstimator2D.sample_block_medians"><code class="docutils literal notranslate"><span class="pre">FlatFieldEstimator2D.sample_block_medians()</span></code></a></li>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">micro_dl</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="micro_dl.html">micro_dl package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="micro_dl.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.cli.html">micro_dl.cli package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.inference.html">micro_dl.inference package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.input.html">micro_dl.input package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.networks.html">micro_dl.networks package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.plotting.html">micro_dl.plotting package</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">micro_dl.preprocessing package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.train.html">micro_dl.train package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.utils.html">micro_dl.utils package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="micro_dl.html#module-micro_dl">Module contents</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a class="reference internal" href="#module-micro_dl.preprocessing.generate_masks">micro_dl.preprocessing.generate_masks module</a><ul>
-<li><a class="reference internal" href="#micro_dl.preprocessing.generate_masks.MaskProcessor"><code class="docutils literal notranslate"><span class="pre">MaskProcessor</span></code></a><ul>
-<li><a class="reference internal" href="#micro_dl.preprocessing.generate_masks.MaskProcessor.generate_masks"><code class="docutils literal notranslate"><span class="pre">MaskProcessor.generate_masks()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.preprocessing.generate_masks.MaskProcessor.get_channel_thr_df"><code class="docutils literal notranslate"><span class="pre">MaskProcessor.get_channel_thr_df()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.preprocessing.generate_masks.MaskProcessor.get_mask_channel"><code class="docutils literal notranslate"><span class="pre">MaskProcessor.get_mask_channel()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.preprocessing.generate_masks.MaskProcessor.get_mask_dir"><code class="docutils literal notranslate"><span class="pre">MaskProcessor.get_mask_dir()</span></code></a></li>
 </ul>
-</li>
-</ul>
-</li>
-<li><a class="reference internal" href="#module-micro_dl.preprocessing.resize_images">micro_dl.preprocessing.resize_images module</a><ul>
-<li><a class="reference internal" href="#micro_dl.preprocessing.resize_images.ImageResizer"><code class="docutils literal notranslate"><span class="pre">ImageResizer</span></code></a><ul>
-<li><a class="reference internal" href="#micro_dl.preprocessing.resize_images.ImageResizer.get_resize_dir"><code class="docutils literal notranslate"><span class="pre">ImageResizer.get_resize_dir()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.preprocessing.resize_images.ImageResizer.resize_frames"><code class="docutils literal notranslate"><span class="pre">ImageResizer.resize_frames()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.preprocessing.resize_images.ImageResizer.resize_volumes"><code class="docutils literal notranslate"><span class="pre">ImageResizer.resize_volumes()</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li><a class="reference internal" href="#module-micro_dl.preprocessing.tile_3d">micro_dl.preprocessing.tile_3d module</a><ul>
-<li><a class="reference internal" href="#micro_dl.preprocessing.tile_3d.ImageTilerUniform3D"><code class="docutils literal notranslate"><span class="pre">ImageTilerUniform3D</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#module-micro_dl.preprocessing.tile_nonuniform_images">micro_dl.preprocessing.tile_nonuniform_images module</a><ul>
-<li><a class="reference internal" href="#micro_dl.preprocessing.tile_nonuniform_images.ImageTilerNonUniform"><code class="docutils literal notranslate"><span class="pre">ImageTilerNonUniform</span></code></a><ul>
-<li><a class="reference internal" href="#micro_dl.preprocessing.tile_nonuniform_images.ImageTilerNonUniform.tile_first_channel"><code class="docutils literal notranslate"><span class="pre">ImageTilerNonUniform.tile_first_channel()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.preprocessing.tile_nonuniform_images.ImageTilerNonUniform.tile_mask_stack"><code class="docutils literal notranslate"><span class="pre">ImageTilerNonUniform.tile_mask_stack()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.preprocessing.tile_nonuniform_images.ImageTilerNonUniform.tile_remaining_channels"><code class="docutils literal notranslate"><span class="pre">ImageTilerNonUniform.tile_remaining_channels()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.preprocessing.tile_nonuniform_images.ImageTilerNonUniform.tile_stack"><code class="docutils literal notranslate"><span class="pre">ImageTilerNonUniform.tile_stack()</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li><a class="reference internal" href="#module-micro_dl.preprocessing.tile_uniform_images">micro_dl.preprocessing.tile_uniform_images module</a><ul>
-<li><a class="reference internal" href="#micro_dl.preprocessing.tile_uniform_images.ImageTilerUniform"><code class="docutils literal notranslate"><span class="pre">ImageTilerUniform</span></code></a><ul>
-<li><a class="reference internal" href="#micro_dl.preprocessing.tile_uniform_images.ImageTilerUniform.get_crop_tile_args"><code class="docutils literal notranslate"><span class="pre">ImageTilerUniform.get_crop_tile_args()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.preprocessing.tile_uniform_images.ImageTilerUniform.get_tile_dir"><code class="docutils literal notranslate"><span class="pre">ImageTilerUniform.get_tile_dir()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.preprocessing.tile_uniform_images.ImageTilerUniform.tile_mask_stack"><code class="docutils literal notranslate"><span class="pre">ImageTilerUniform.tile_mask_stack()</span></code></a></li>
-<li><a class="reference internal" href="#micro_dl.preprocessing.tile_uniform_images.ImageTilerUniform.tile_stack"><code class="docutils literal notranslate"><span class="pre">ImageTilerUniform.tile_stack()</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li><a class="reference internal" href="#module-micro_dl.preprocessing">Module contents</a></li>
-</ul>
-</li>
-</ul>
-</div>
+
         </div>
       </div>
     </nav>
@@ -113,6 +75,8 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">micro_dl</a></li>
+          <li class="breadcrumb-item"><a href="micro_dl.html">micro_dl package</a></li>
       <li class="breadcrumb-item active">micro_dl.preprocessing package</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/micro_dl.preprocessing.rst.txt" rel="nofollow"> View page source</a>
@@ -449,7 +413,10 @@ for all the tiles</p>
 
            </div>
           </div>
-          <footer>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="micro_dl.plotting.html" class="btn btn-neutral float-left" title="micro_dl.plotting package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="micro_dl.train.html" class="btn btn-neutral float-right" title="micro_dl.train package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
 
   <hr/>
 

@@ -114,7 +114,7 @@ def crop2base(im, base=2):
     :param int base: Base to use, typically 2
     :param bool crop_z: crop along z dim, only for UNet3D
     :return nd.array im: Cropped image
-    :raises AssertionError: if base is less than zero
+    :raises: AssertionError: if base is less than zero
     """
     assert base > 0, "Base needs to be greater than zero, not {}".format(base)
     im_shape = im.shape
@@ -138,13 +138,17 @@ def resize_mask(input_image, target_size):
 
 
 def apply_flat_field_correction(input_image, **kwargs):
-    """Apply flat field correction.
+    r"""
+    Apply flat field correction.
 
     :param np.array input_image: image to be corrected
-    Kwargs, either:
-        flat_field_image (np.float): flat_field_image for correction
-        flat_field_path (str): Full path to flatfield image
+    :param \**kwargs:
+        See below
     :return: np.array (float) corrected image
+
+    :Keyword arguments:
+        * flat_field_image (np.float) -- flat_field_image for correction OR
+        * flat_field_path (str) -- Full path to flatfield image
     """
     input_image = input_image.astype('float')
     if 'flat_field_image' in kwargs:
@@ -248,7 +252,7 @@ def read_image(file_path):
 
     :param str file_path: Full path to image
     :return array im: 2D image
-    :raise IOError if image can't be opened
+    :raises: IOError: if image can't be opened
     """
     if file_path[-3:] == 'npy':
         im = np.load(file_path)
@@ -418,7 +422,8 @@ def preprocess_imstack(frames_metadata,
 
 
 def grid_sample_pixel_values(im, grid_spacing):
-    """Sample pixel values in the input image at the grid. Any incomplete
+    """
+    ample pixel values in the input image at the grid. Any incomplete
     grids (remainders of modulus operation) will be ignored.
 
     :param np.array im: 2D image

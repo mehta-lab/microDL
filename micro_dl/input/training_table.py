@@ -118,7 +118,7 @@ class BaseTrainingTable:
         :param int random_seed: between 0 and 2**32 - 1, random seed for
             train-val-test split
         :return: dict split_idx with keys [train, val, test] and values as lists
-        :raises AssertionError: If ratios don't add up to 1
+        :raises: AssertionError: If ratios don't add up to 1
         """
         assert train_ratio + val_ratio + test_ratio == 1, \
             'train, val and test ratios do not add up to 1'
