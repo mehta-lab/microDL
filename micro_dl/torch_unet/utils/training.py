@@ -54,17 +54,17 @@ class TorchTrainer:
         # lr scheduler
         self.scheduler = optim.lr_scheduler.ReduceLROnPlateau
         # loss
-        assert self.training_config["loss"] in {"mse", "l1", "cossim", "cel"}, (
-            f"loss not supported. " "Try one of 'mse', 'mae', 'cossim', 'l1'"
-        )
         if self.training_config["loss"] == "mse":
             self.criterion = nn.MSELoss()
-        elif self.training_config["loss"] == "l1":
+        elif self.training_config["loss"] in {"mae", "l1"}:
             self.criterion = nn.L1Loss()
         elif self.training_config["loss"] == "cossim":
             self.criterion = nn.CosineSimilarity()
-        elif self.training_config["loss"] == "cel":
-            self.criterion = nn.CrossEntropyLoss()
+        else:
+            raise AttributeError(
+                f"Loss {self.training_config['loss']} not supported."
+                "Try one of 'mse', 'mae' or 'l1', 'cossim'"
+            )
         # device
         assert self.training_config["device"] in {
             "cpu",
@@ -113,14 +113,12 @@ class TorchTrainer:
         assert self.torch_config != None, (
             "torch_config must be specified in object" "initiation "
         )
+        # init directory for model and metadata storage
+        self.get_save_location()
 
         # determine transforms/augmentations
         transforms = [ds.ToTensor()]
         target_transforms = [ds.ToTensor()]
-        if self.training_config["mask"]:
-            target_transforms.append(
-                ds.GenerateMasks(self.training_config["mask_type"])
-            )
 
         # init dataset container and pull dataset split objects
         caching = (
@@ -134,6 +132,7 @@ class TorchTrainer:
             target_transforms=target_transforms,
             caching=caching,
             device=self.device,
+            model_dir=self.save_folder,
         )
         train_dataset = torch_data_container["train"]
         test_dataset = torch_data_container["test"]
@@ -187,7 +186,6 @@ class TorchTrainer:
 
         # init io and saving
         start = time.time()
-        self.get_save_location()
         self.writer = SummaryWriter(log_dir=self.save_folder)
 
         split_idx_fname = os.path.join(self.save_folder, "split_samples.json")
@@ -199,10 +197,12 @@ class TorchTrainer:
             self.model.parameters(), lr=self.training_config["learning_rate"]
         )
         self.scheduler = self.scheduler(
-            self.optimizer, patience=3, mode="min", factor=2
+            self.optimizer, patience=3, mode="min", factor=0.5
         )
         self.early_stopper = EarlyStopping(
-            patience=40, verbose=False, path=self.save_folder
+            path=self.save_folder,
+            patience=20,
+            verbose=False,
         )
 
         # train
@@ -224,13 +224,6 @@ class TorchTrainer:
                 # get sample and target (remember we remove the extra batch dimension)
                 input_ = minibatch[0][0].to(self.device).float()
                 target_ = minibatch[1][0].to(self.device).float()
-
-                # if specified mask sample to get input and target
-                # TODO: change caching to include masked inputs since masks never change
-                if self.training_config["mask"]:
-                    mask = minibatch[2][0].to(self.device).float()
-                    input_ = torch.mul(input_, mask)
-                    target_ = torch.mul(target_, mask)
 
                 # run through model
                 output = self.model(input_, validate_input=True)
@@ -290,7 +283,7 @@ class TorchTrainer:
 
         self.writer.close()
 
-    def run_test(self, epoch=0, mask_override=False, validate_mode=False):
+    def run_test(self, epoch=0, validate_mode=False):
         """
         Runs test on all samples in a test_dataloader. Equivalent to one epoch on test/val data
         without updating weights. Runs metrics on the test results (given in criterion) and saves
@@ -300,7 +293,6 @@ class TorchTrainer:
         'device' parameter in torch config.
 
         :param int epoch: training epoch test was run at
-        :param bool mask_override: overrides the masking parameter for testing (for segmentation)
         :param bool validate_mode: run in validation mode to just produce loss (for lr scheduler)
         :return float avg_loss: average testing loss per sample of given data set
         """
@@ -334,12 +326,6 @@ class TorchTrainer:
             input_ = minibatch[0][0].to(self.device).float()
             target_ = minibatch[1][0].to(self.device).float()
             sample, target = input_, target_
-
-            # if mask provided, mask sample to get input and target
-            if mask_override:
-                mask_ = minibatch[2][0].to(self.device).float()
-                input_ = torch.mul(input_, mask_)
-                target_ = torch.mul(target_, mask_)
 
             # run through model
             output = self.model(input_, validate_input=True)
@@ -439,6 +425,7 @@ class TorchTrainer:
 class EarlyStopping:
     def __init__(
         self,
+        path,
         patience=7,
         verbose=False,
         delta=0,
@@ -446,7 +433,7 @@ class EarlyStopping:
     ):
         """
         Early stops the training if validation loss doesn't improve after a given patience.
-        Inspired by:
+        Adapted from:
             https://github.com/Bjarten/early-stopping-pytorch
 
         :param int patience: How long to wait after last time validation loss improved.
@@ -468,6 +455,7 @@ class EarlyStopping:
         self.val_loss_min = np.Inf
         self.delta = delta
         self.trace_func = trace_func
+        self.path = path
 
     def __call__(self, val_loss, model, epoch):
         """
