@@ -417,12 +417,14 @@ class ZarrReader(ReaderBase):
         self._get_wells()
         self.position_map = self._get_positions()
 
+        # Get first position from first key
+        pos_0 = self.position_map[list(self.position_map.keys())[0]]
         # structure of zarr array
         (self.frames,
          self.channels,
          self.slices,
          self.height,
-         self.width) = self.store[self.position_map[0]['well']][self.position_map[0]['name']][self.arr_name].shape
+         self.width) = self.store[pos_0['well']][pos_0['name']][self.arr_name].shape
         self.positions = len(self.position_map)
         self.channel_names = []
         self.stage_positions = 0
@@ -471,16 +473,17 @@ class ZarrReader(ReaderBase):
 
     def _get_positions(self):
         """
-        Gets the position names and paths from HCS metadata
+        Gets the position names and paths from HCS metadata.
+        Keys in dict are position indices
         """
         position_map = dict()
-        idx = 0
         # Assumes that the positions are indexed in the order of Row-->Well-->FOV
         for well in self.wells:
             for pos in self.store[well].attrs.get('well').get('images'):
-                name = pos['path']
-                position_map[idx] = {'name': name, 'well': well}
-                idx += 1
+                pos_name = pos['path']
+                # pos name is 'Pos_xxx'
+                pos_idx = int(pos_name.split('_')[-1])
+                position_map[pos_idx] = {'name': pos_name, 'well': well}
         return position_map
 
     def _generate_hcs_meta(self):
@@ -488,8 +491,7 @@ class ZarrReader(ReaderBase):
         Pulls the HCS metadata and organizes it into a dictionary structure
         that can be easily read by the WaveorderWriter.
         """
-        self.hcs_meta = dict()
-        self.hcs_meta['plate'] = self.plate_meta
+        self.hcs_meta = {'plate': self.plate_meta}
 
         well_metas = []
         for well in self.wells:
@@ -555,10 +557,11 @@ class ZarrReader(ReaderBase):
         :param dict stage_pos: Dictionary containing a single position's device info
         :return dict new_dict: Flattened dictionary
         """
-        new_dict = {}
-        new_dict['Label'] = stage_pos['label']
-        new_dict['GridRow'] = stage_pos['gridRow']
-        new_dict['GridCol'] = stage_pos['gridCol']
+        new_dict = {
+            'Label': stage_pos['label'],
+            'GridRow': stage_pos['gridRow'],
+            'GridCol': stage_pos['gridCol'],
+        }
 
         for sub in stage_pos['subpositions']:
             values = []
@@ -618,10 +621,9 @@ class ZarrReader(ReaderBase):
         :param int z: Index of the z dimension
         :return np.array image: Image at the given dimension of shape (Y, X)
         """
-        pos_idx = p
-        if self.positions == 1:
-            pos_idx = 0
-        pos = self.get_zarr(pos_idx)
+        assert p in self.position_map.keys(), \
+            "Position index {} doesn't exist in map".format(p)
+        pos = self.get_zarr(p)
         return pos[t, c, z]
 
     def get_num_positions(self) -> int:
@@ -635,6 +637,8 @@ class ZarrWriter:
 
     given stokes or physical data, construct a standard hierarchy in zarr for output
         should conform to the ome-zarr standard as much as possible
+
+    TODO: Allow for writing multiple positions in same store
     """
     __builder = None
     __save_dir = None

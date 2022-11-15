@@ -85,13 +85,15 @@ class TestZarrReader(unittest.TestCase):
         self.assertEqual(meta['well'][0]['images'][0]['path'], 'Pos_000')
 
     def test_get_image(self):
-        im = self.zarr_reader.get_image(
-            p=0,
+        zarr_path = os.path.join(self.input_dir, 'test_name_pos1.zarr')
+        zarr_reader = io_utils.ZarrReader(zarr_path)
+        im = zarr_reader.get_image(
+            p=1,
             t=2,
             c=1,
             z=3,
         )
-        self.assertEqual(im.mean(), 50.)
+        self.assertEqual(im.mean(), 51.)
 
 
 class TestZarrWriter(unittest.TestCase):
