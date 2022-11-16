@@ -8,6 +8,10 @@ coverage:
     patch: no
     changes: no
 
+# Temporary workaround for https://github.com/codecov/codecov-action/issues/837
+codecov:
+ token: 8a5c3fd2-c7d0-4784-8b7a-809a0ba69e37
+
 comment:
   layout: "header, reach, diff, flags, files, footer"
   behavior: default
