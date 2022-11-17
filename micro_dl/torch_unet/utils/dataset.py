@@ -1,3 +1,4 @@
+from typing import Union
 import cv2
 import collections
 import gunpowder as gp
@@ -68,6 +69,9 @@ class TorchDatasetContainer(object):
         # build augmentation nodes
         aug_nodes = []
         if "augmentations" in train_config:
+            assert isinstance(train_config["augmentations"], dict), "Augmentations"
+            " section of config must be a dictionary of parameters"
+
             aug_nodes = gp_utils.generate_augmentation_nodes(
                 train_config["augmentations"]  # TODO config change
             )
@@ -319,18 +323,20 @@ class TorchDataset(Dataset):
 
         :return gp.Pipeline pipeline: see name
         """
+        # ---- Sourcing Nodes ----#
         # if source is multi_zarr_source, attach a RandomProvider
         source = self.data_source
         if isinstance(source, tuple):
             source = [source, gp.RandomProvider()]
-
-        # attach permanent nodes
         source = source + [gp.RandomLocation()]
 
-        # TODO implement
+        # ---- Preprocessing Nodes ----#
+        # TODO implement preprocessing nodes
+        # source = source + [custom_nodes.Register()]
         # source = source + [custom_nodes.Normalize()]
         # source = source + [custom_nodes.FlatFieldCorrect()]
 
+        # ---- Batch Creation Nodes ----#
         batch_creation = []
         batch_creation.append(
             gp.PreCache(cache_size=150, num_workers=max(0, self.workers))
@@ -339,9 +345,7 @@ class TorchDataset(Dataset):
 
         # attach additional nodes, if any, and sum
         pipeline = source + self.augmentation_nodes + batch_creation
-
         pipeline = gp_utils.gpsum(pipeline, verbose=False)
-
         return pipeline
 
     def _generate_batches(self):

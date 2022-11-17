@@ -126,10 +126,6 @@ class TorchTrainer:
             "torch_config must be specified in object" "initiation "
         )
 
-        # determine transforms/augmentations
-        transforms = [ds.ToTensor()]
-        target_transforms = [ds.ToTensor()]
-
         # init datasets
         workers = 0
         if "num_workers" in self.training_config:

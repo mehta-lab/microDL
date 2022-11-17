@@ -7,6 +7,7 @@ import random
 from matplotlib import test
 
 import micro_dl.input.gunpowder_nodes as nodes
+import micro_dl.utils.augmentation_utils as aug_utils
 
 
 def gpsum(nodelist, verbose=True):
@@ -276,54 +277,18 @@ def generate_array_spec(network_config):
 
 
 def generate_augmentation_nodes(aug_config):
-    # TODO Change this to be insensitive of ordering and automatically find the
-    #     compatible sequence
-    """Returns a list of augmentation nodes as specified in 'augmentation_config'.
-    Return order is sensitive to the order of creation in augmentation_config...
-    Augmentations should always be given in a sequentially compatible ordering.
+    """
+    Returns a list of augmentation nodes as specified in 'aug_config'.
+    Return order is insensitive to the order of creation in augmentation_config...
+    Augmentations can be given in any order, they will always be returned in a
+    compatible sequence.
 
     :param augmentation_config: dict of augmentation type -> hyperparameters,
                                 see torch_config readme.md for more details
     :return list aug_nodes: list of augmentation nodes in order
     """
-    # generate copy to avoid mutation issues
-    aug_config = aug_config.copy()
-
-    aug_nodes = []
-    for aug_name in aug_config:
-        parameters = aug_config[aug_name]
-        aug_nodes.append(init_aug_node(aug_name, parameters))
+    augmentation_builder = aug_utils.AugmentationNodeBuilder(aug_config)
+    augmentation_builder.build_nodes()
+    aug_nodes = augmentation_builder.get_nodes()
 
     return aug_nodes
-
-
-def init_aug_node(aug_name, parameters):
-    """
-    Acts as a general initatialization method, which takes a augmentation name and
-    parameters and initializes and returns a gunpowder node corresponding to that
-    augmentation
-
-    :param str aug_name: name of augmentation
-    :param dict parameters: dict of parameter names and values for augmentation
-
-    :return gp.BatchFilter aug_node: single gunpowder node for augmentation
-    """
-    # TODO Will need a discussion about what augmentations to support
-    if aug_name == "Defect":
-        pass
-    elif aug_name == "ElasticDeform":
-        pass
-    elif aug_name == "RandomIntensity":
-        pass
-    elif aug_name == "Noise":
-        pass
-    elif aug_name == "SimpleGeometric":
-        pass
-    elif aug_name == "":
-        pass
-    elif aug_name == "":
-        pass
-    elif aug_name == "":
-        pass
-    elif aug_name == "":
-        pass
