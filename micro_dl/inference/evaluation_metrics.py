@@ -100,12 +100,20 @@ def ssim_metric(target, prediction, mask=None, win_size=21):
     :param int win_size: window size for computing local SSIM
     :return float/list ssim and ssim_masked
     """
+    assert target.shape == prediction.shape, (
+        "target and prediction have different shapes:"
+        f"expected target shape {prediction.shape}, "
+        f"but got target shape {target.shape}"
+    )
+
+    multichannel = win_size > target.shape[-1]
     if mask is None:
         cur_ssim = ssim(
             target,
             prediction,
             win_size=win_size,
             data_range=target.max() - target.min(),
+            multichannel=multichannel,
         )
         return cur_ssim
     else:
@@ -114,6 +122,7 @@ def ssim_metric(target, prediction, mask=None, win_size=21):
             prediction,
             data_range=target.max() - target.min(),
             full=True,
+            multichannel=multichannel,
         )
         cur_ssim_masked = np.mean(cur_ssim_img[mask])
         return [cur_ssim, cur_ssim_masked]

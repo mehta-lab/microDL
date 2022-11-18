@@ -1,4 +1,3 @@
-from platform import architecture
 import datetime
 import gunpowder as gp
 import numpy as np
@@ -60,21 +59,21 @@ class TorchTrainer:
         # loss
         if self.training_config["loss"] == "mse":
             self.criterion = nn.MSELoss()
-        elif self.training_config["loss"] in {"l1", "mae"}:
+        elif self.training_config["loss"] in {"mae", "l1"}:
             self.criterion = nn.L1Loss()
         elif self.training_config["loss"] == "cossim":
             self.criterion = nn.CosineSimilarity()
         else:
             raise AttributeError(
                 f"Loss {self.training_config['loss']} not supported."
-                " Try one of 'mse', 'mae', 'l1', 'cossim'"
+                "Try one of 'mse', 'mae' or 'l1', 'cossim'"
             )
         # device
         assert self.training_config["device"] in {
             "cpu",
             "gpu",
-            *range(4),
-        }, "device must be cpu or gpu"
+            *range(torch.cuda.device_count()),
+        }, f"device must be cpu or gpu or within {range(torch.cuda.device_count())}"
         if isinstance(self.training_config["device"], int):
             self.device = torch.device(f"cuda:{self.training_config['device']}")
         elif self.training_config["device"] == "gpu":
@@ -99,7 +98,7 @@ class TorchTrainer:
         if init_dir:
             model_dir = self.network_config["model_dir"]
             readout = model.load_state_dict(torch.load(model_dir))
-            print(readout)
+            print("Initiating from pre-trained model: ", readout)
         self.model = model
 
         self.model.to(self.device)
@@ -125,6 +124,8 @@ class TorchTrainer:
         assert self.torch_config != None, (
             "torch_config must be specified in object" "initiation "
         )
+        # init directory for model and metadata storage
+        self.get_save_location()
 
         # init datasets
         workers = 0
@@ -190,16 +191,24 @@ class TorchTrainer:
 
         # init io and saving
         start = time.time()
-        self.get_save_location()
         self.writer = SummaryWriter(log_dir=self.save_folder)
 
-        # init optimizer and scheduler
+        split_idx_fname = os.path.join(self.save_folder, "split_samples.json")
+        aux_utils.write_json(self.split_samples, split_idx_fname)
+
+        # init optimizer and lr regularization
         self.model.train()
         self.optimizer = self.optimizer(
             self.model.parameters(), lr=self.training_config["learning_rate"]
         )
         self.scheduler = self.scheduler(
-            self.optimizer, patience=10, mode="min", factor=0.5
+            self.optimizer, patience=3, mode="min", factor=0.5
+        )
+        # TODO: make this parameter configurable
+        self.early_stopper = EarlyStopping(
+            path=self.save_folder,
+            patience=3,
+            verbose=False,
         )
 
         # train
@@ -214,10 +223,10 @@ class TorchTrainer:
             for current, minibatch in enumerate(self.train_dataloader):
                 # pretty printing
                 io_utils.show_progress_bar(self.train_dataloader, current)
-
+                torch.ones((1, 2)).cuda()
                 # get sample and target (remember we remove the extra batch dimension)
-                input_ = minibatch[0][0].to(self.device).float()
-                target_ = minibatch[1][0].to(self.device).float()
+                input_ = minibatch[0][0].cuda(device=self.device).float()
+                target_ = minibatch[1][0].cuda(device=self.device).float()
 
                 # run through model
                 output = self.model(input_, validate_input=True)
@@ -229,8 +238,12 @@ class TorchTrainer:
                 loss.backward()
                 self.optimizer.step()
 
-            self.scheduler.step(self.run_test(validate_mode=True))
             train_loss_list.append(train_loss / self.train_dataloader.__len__())
+
+            # regularize
+            val_loss = self.run_test(validate_mode=True)
+            self.scheduler.step(val_loss)
+            self.early_stopper(val_loss=val_loss, model=self.model, epoch=i)
 
             # run testing cycle every 'testing_stride' epochs
             if i % self.training_config["testing_stride"] == 0:
@@ -253,12 +266,16 @@ class TorchTrainer:
             )
             print(" ")
 
+            if self.early_stopper.early_stop:
+                print("\t Stopping early...")
+                break
+
         # save loss figures (overwrites previous)
         print(f"\t Training complete. Time taken: {time.time()-start}")
         print(
             f"\t Training results and testing predictions saved at: \n\t\t{self.save_folder}"
         )
-        fig = plt.figure(figsize=(14, 7))
+        plt.figure(figsize=(14, 7))
         plt.plot(train_loss_list, label="training loss")
         plt.plot(test_loss_list, label="testing loss")
         plt.legend()
@@ -269,7 +286,7 @@ class TorchTrainer:
 
         self.writer.close()
 
-    def run_test(self, epoch=0, mask_override=False, validate_mode=False):
+    def run_test(self, epoch=0, validate_mode=False):
         """
         Runs test on all samples in a test_dataloader. Equivalent to one epoch on test/val data
         without updating weights. Runs metrics on the test results (given in criterion) and saves
@@ -279,7 +296,6 @@ class TorchTrainer:
         'device' parameter in torch config.
 
         :param int epoch: training epoch test was run at
-        :param bool mask_override: overrides the masking parameter for testing (for segmentation)
         :param bool validate_mode: run in validation mode to just produce loss (for lr scheduler)
         :return float avg_loss: average testing loss per sample of given data set
         """
@@ -404,3 +420,86 @@ class TorchTrainer:
         # save model
         save_file = str(f"saved_model_ep_{epoch}_testloss_{avg_loss:.4f}.pt")
         torch.save(self.model.state_dict(), os.path.join(self.save_folder, save_file))
+
+
+class EarlyStopping:
+    def __init__(
+        self,
+        path,
+        patience=7,
+        verbose=False,
+        delta=0,
+        trace_func=print,
+    ):
+        """
+        Early stops the training if validation loss doesn't improve after a given patience.
+        Adapted from:
+            https://github.com/Bjarten/early-stopping-pytorch
+
+        :param int patience: How long to wait after last time validation loss improved.
+                            Default: 7
+        :param bool verbose: If True, prints a message for each validation loss improvement.
+                            Default: False
+        :param float delta: Minimum change in the monitored quantity to qualify as an improvement.
+                            Default: 0
+        :param str path: Path for the checkpoint to be saved to.
+                            Default: 'checkpoint.pt'
+        :param funct trace_func: trace print function.
+                            Default: print
+        """
+        self.patience = patience
+        self.verbose = verbose
+        self.counter = 0
+        self.best_score = None
+        self.early_stop = False
+        self.val_loss_min = np.Inf
+        self.delta = delta
+        self.trace_func = trace_func
+        self.path = path
+
+    def __call__(self, val_loss, model, epoch):
+        """
+        Determine whether stopping is necessary this epoch.
+        Should be called every epoch to enforce early stopping.
+
+        :param float val_loss: avg loss from validation dataset
+        :param nn.Module model: model from which to save early
+        :param int epoch: current epoch at time of call
+        """
+        score = -val_loss
+
+        if self.best_score is None:
+            self.best_score = score
+            save_here = True
+        elif score < self.best_score + self.delta:
+            self.counter += 1
+            self.trace_func(
+                f"EarlyStopping counter: {self.counter} out of {self.patience}"
+            )
+            if self.counter >= self.patience:
+                self.early_stop = True
+        else:
+            self.best_score = score
+            self.counter = 0
+
+        if self.early_stop:
+            self.save_checkpoint(val_loss, model, epoch)
+
+    def save_checkpoint(self, val_loss, model, epoch):
+        """
+        Saves model when validation loss decrease.
+
+        :param float val_loss: avg loss from validation dataset
+        :type nn.Module model: model from which to save early
+        """
+        if self.save_model == False:
+            return
+        if self.verbose:
+            self.trace_func(
+                f"Validation loss decreased ({self.val_loss_min:.6f} --> {val_loss:.6f}).  Saving model ..."
+            )
+
+        save_file = str(f"early_stop_model_ep_{epoch}_testloss_{val_loss:.4f}.pt")
+        torch.save(model.state_dict(), os.path.join(self.path, save_file))
+
+        self.val_loss_min = val_loss
