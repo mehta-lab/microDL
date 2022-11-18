@@ -276,7 +276,7 @@ def generate_array_spec(network_config):
     return array_spec
 
 
-def generate_augmentation_nodes(aug_config):
+def generate_augmentation_nodes(aug_config, augmentation_keys):
     """
     Returns a list of augmentation nodes as specified in 'aug_config'.
     Return order is insensitive to the order of creation in augmentation_config...
@@ -287,7 +287,13 @@ def generate_augmentation_nodes(aug_config):
                                 see torch_config readme.md for more details
     :return list aug_nodes: list of augmentation nodes in order
     """
-    augmentation_builder = aug_utils.AugmentationNodeBuilder(aug_config)
+    augmentation_builder = aug_utils.AugmentationNodeBuilder(
+        aug_config,
+        noise_key=augmentation_keys,
+        blur_key=augmentation_keys,
+        intensities_key=augmentation_keys,
+        defect_key=augmentation_keys,
+    )
     augmentation_builder.build_nodes()
     aug_nodes = augmentation_builder.get_nodes()
 

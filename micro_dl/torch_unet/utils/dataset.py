@@ -67,19 +67,26 @@ class TorchDatasetContainer(object):
             )
 
         # build augmentation nodes
-        aug_nodes = []
+        train_aug_nodes = []
+        test_aug_nodes = []
+        val_aug_nodes = []
         if "augmentations" in train_config:
             assert isinstance(train_config["augmentations"], dict), "Augmentations"
             " section of config must be a dictionary of parameters"
-
-            aug_nodes = gp_utils.generate_augmentation_nodes(
-                train_config["augmentations"]  # TODO config change
+            train_aug_nodes = gp_utils.generate_augmentation_nodes(
+                train_config["augmentations"], self.dataset_keys
+            )
+            test_aug_nodes = gp_utils.generate_augmentation_nodes(
+                train_config["augmentations"], self.dataset_keys
+            )
+            val_aug_nodes = gp_utils.generate_augmentation_nodes(
+                train_config["augmentations"], self.dataset_keys
             )
 
         # assign each source subset to a child dataset object
-        self.train_dataset = self.init_torch_dataset(self.train_source, aug_nodes)
-        self.test_dataset = self.init_torch_dataset(self.test_source, aug_nodes)
-        self.val_dataset = self.init_torch_dataset(self.val_source, aug_nodes)
+        self.train_dataset = self.init_torch_dataset(self.train_source, train_aug_nodes)
+        self.test_dataset = self.init_torch_dataset(self.test_source, test_aug_nodes)
+        self.val_dataset = self.init_torch_dataset(self.val_source, val_aug_nodes)
 
     def init_torch_dataset(self, source, augmentation_nodes):
         """

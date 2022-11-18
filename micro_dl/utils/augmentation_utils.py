@@ -1,6 +1,8 @@
 import gunpowder as gp
 import numpy as np
 
+import micro_dl.input.gunpowder_nodes as custom_nodes
+
 
 class AugmentationNodeBuilder:
     """
@@ -35,6 +37,7 @@ class AugmentationNodeBuilder:
         self.defect_aug_params = {"intensities_defect_key": defect_key}
 
         self.node_list = []
+        self.initalized_builders = {}
 
     def build_nodes(self):
         """
@@ -46,17 +49,26 @@ class AugmentationNodeBuilder:
         3 -> blur
         4 -> intensity, noise, defect (contrast & artifacts)
         """
-        ordering = [
-            {"transpose", "mirror"},
-            {"rotate", "zoom"},
-            {"blur"},
-            {"intensity_jitter", "noise", "contrast_shift", "defect"},
+        # collect params
+        for name in self.config:
+            self.init_aug_node_params(name, self.config[name])
+
+        # build nodes in hard-coded compatible ordering
+        node_ordering = [
+            {self.build_simple_augment_node, self.build_shear_augment_node},
+            {self.build_elastic_augment_node},
+            {self.build_blur_augment_node},
+            {
+                self.build_intensity_augment_node,
+                self.build_noise_augment_node,
+                self.build_defect_augment_node,
+            },
         ]
-        for subset in ordering:
-            for name in subset:
-                if name in self.config:
-                    aug_node = self.init_aug_node(name, self.config[name])
-                    self.node_list.append(aug_node)
+
+        for subset in node_ordering:
+            for aug_node_builder in subset:
+                if aug_node_builder in self.initalized_builders:
+                    self.node_list.append(aug_node_builder())
 
     def get_nodes(self):
         """
@@ -71,7 +83,7 @@ class AugmentationNodeBuilder:
 
         return self.node_list
 
-    def init_aug_node(self, aug_name, parameters):
+    def init_aug_node_params(self, aug_name, parameters):
         """
         Acts as a general initatialization method, which takes a augmentation name and
         parameters and initializes and returns a gunpowder node corresponding to that
@@ -83,28 +95,34 @@ class AugmentationNodeBuilder:
         :return gp.BatchFilter aug_node: single gunpowder node for augmentation
         """
 
-        # TODO Will need a discussion about what augmentations to support
+        # collect augmentation parameters
         if aug_name in {"transpose", "mirror"}:
             self.simple_aug_params.update(parameters)
+            self.initalized_builders[self.build_simple_augment_node] = True
         elif aug_name in {"rotate", "zoom"}:
             self.elastic_aug_params.update(parameters)
+            self.initalized_builders[self.build_elastic_augment_node] = True
         elif aug_name == "shear":
             self.shear_aug_params.update(parameters)
+            self.initalized_builders[self.build_shear_augment_node] = True
         elif aug_name == "intensity_jitter":
             self.intensity_aug_params.update(parameters)
+            self.initalized_builders[self.build_intensity_augment_node] = True
         elif aug_name == "noise":
             assert self.noise_aug_params["array"] != None, "No noise key specified."
             self.noise_aug_params.update(parameters)
+            self.initalized_builders[self.build_noise_augment_node] = True
         elif aug_name == "blur":
             self.blur_aug_params.update(parameters)
+            self.initalized_builders[self.build_blur_augment_node] = True
         elif aug_name == "contrast_shift":  # TODO explore
             pass
         elif aug_name == "defect":  # TODO explore
             pass
 
-    def build_elastic_augment_node(self, parameters):
+    def build_elastic_augment_node(self):
         """
-        passes parameters to elastic augmentation node and returns initialized node
+        Passes parameters to elastic augmentation node and returns initialized node
 
         :param dict parameters: elastic augmentation node parameters
         :return gp.BatchFilter: elastic augmentation node
@@ -131,9 +149,9 @@ class AugmentationNodeBuilder:
         )
         return elastic_aug
 
-    def build_simple_augment_node(self, parameters):
+    def build_simple_augment_node(self):
         """
-        passes parameters to simple augmentation node and returns initialized node
+        Passes parameters to simple augmentation node and returns initialized node
 
         :param dict parameters: simple augmentation node parameters
         :return gp.BatchFilter: simple augmentation node
@@ -141,17 +159,17 @@ class AugmentationNodeBuilder:
 
         transpose_only = None
         transpose_probs = None
-        if "transpose" in self.simple_aug_params:
+        if "transpose_only" in self.simple_aug_params:
             transpose_only = tuple(self.simple_aug_params["transpose_only"])
         else:
-            transpose_probs = (0) * 10
+            transpose_probs = (0,) * 10  # assuming 10 > all reasonable voxel dimensions
 
         mirror_only = None
         mirror_probs = None
-        if "mirror" in self.simple_aug_params:
+        if "mirror_only" in self.simple_aug_params:
             mirror_only = self.simple_aug_params["mirror_only"]
         else:
-            mirror_probs = (0) * 10  # assuming 10 > all reasonable voxel dimensions
+            mirror_probs = (0,) * 10
 
         simple_aug = gp.SimpleAugment(
             transpose_only=transpose_only,
@@ -161,7 +179,7 @@ class AugmentationNodeBuilder:
         )
         return simple_aug
 
-    def build_shear_augment_node(self, parameters):
+    def build_shear_augment_node(self):
         """
         passes parameters to shear augmentation node and returns initialized node
 
@@ -171,17 +189,45 @@ class AugmentationNodeBuilder:
         # TODO implement
         pass
 
-    def build_blur_augment_node(self, parameters):
+    def build_blur_augment_node(self):
         """
-        passes parameters to blur augmentation node and returns initialized node
+        Passes parameters to blur augmentation node and returns initialized node
 
         :param dict parameters: blur augmentation node parameters
         :return gp.BatchFilter: blur augmentation node
         """
-        # TODO implement
-        pass
+        mode = "gaussian"
+        if "mode" in self.blur_aug_params:
+            mode = self.blur_aug_params["mode"]
 
-    def build_intensity_augment_node(self, parameters):
+        width_range = (1, 7)
+        if "width_range" in self.blur_aug_params:
+            width_range = self.blur_aug_params["width_range"]
+
+        sigma = 0.1
+        if "sigma" in self.blur_aug_params:
+            sigma = self.blur_aug_params["sigma"]
+
+        prob = 0.2
+        if "prob" in self.blur_aug_params:
+            prob = self.blur_aug_params["prob"]
+
+        blur_channels = None
+        if "blur_channels" in self.blur_aug_params:
+            blur_channels = self.blur_aug_params["blur_channels"]
+
+        blur_aug = custom_nodes.BlurAugment(
+            array=self.blur_aug_params["blur_array_key"],
+            mode=mode,
+            width_range=tuple(width_range),
+            sigma=sigma,
+            prob=prob,
+            blur_channels=blur_channels,
+        )
+
+        return blur_aug
+
+    def build_intensity_augment_node(self):
         """
         passes parameters to intensity augmentation node and returns initialized node
 
@@ -191,12 +237,22 @@ class AugmentationNodeBuilder:
         # TODO implement
         pass
 
-    def build_noise_augment_node(self, parameters):
+    def build_noise_augment_node(self):
         """
         passes parameters to noise augmentation node and returns initialized node
 
         :param dict parameters: noise augmentation node parameters
         :return gp.BatchFilter: noise augmentation node
+        """
+        # TODO implement
+        pass
+
+    def build_defect_augment_node(self):
+        """
+        passes parameters to defect augmentation node and returns initialized node
+
+        :param dict parameters: defect augmentation node parameters
+        :return gp.BatchFilter: defect augmentation node
         """
         # TODO implement
         pass
