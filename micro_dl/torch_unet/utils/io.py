@@ -63,9 +63,6 @@ def show_progress_bar(dataloader, current, process="training", interval=1):
     else:
         print(output_string)
 
-    # for smoother output
-    time.sleep(0.2)
-
 
 def save_figure(data, save_folder, name, title=None, vmax=0, ext=".png"):
     """

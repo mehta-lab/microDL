@@ -7,6 +7,7 @@ import os
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
+import zarr
 
 import micro_dl.utils.normalize as norm_utils
 import micro_dl.input.gunpowder_nodes as custom_nodes
@@ -105,6 +106,7 @@ class TorchDatasetContainer(object):
             augmentation_nodes=augmentation_nodes,
             data_keys=self.dataset_keys,
             batch_size=self.dataset_config["batch_size"],  # TODO config change
+            epoch_length=self.train_config["samples_per_epoch"],
             target_channel_idx=tuple(
                 self.dataset_config["target_channels"]
             ),  # TODO config change
@@ -160,6 +162,7 @@ class TorchDataset(Dataset):
         augmentation_nodes,
         data_keys,
         batch_size,
+        epoch_length,
         target_channel_idx,
         input_channel_idx,
         spatial_window_size,
@@ -188,6 +191,7 @@ class TorchDataset(Dataset):
         self.augmentation_nodes = augmentation_nodes
         self.data_keys = data_keys
         self.batch_size = batch_size
+        self.epoch_length = epoch_length
         self.target_idx = target_channel_idx
         self.input_idx = input_channel_idx
         self.window_size = spatial_window_size
@@ -219,7 +223,30 @@ class TorchDataset(Dataset):
                         f"Error matching keys to source in dataset: {e.args}"
                     )
 
-        # generate batch request depending on pipeline voxel size and input dims/idxs
+        # calculate epoch length: if no epoch length specified, set according to data size
+        if self.epoch_length == 0 or self.epoch_length == None:
+            source = self.data_source[0]
+            for key in source.datasets:
+                z1 = zarr.open(source.filename)
+                fov_shape = z1[source.datasets[key]][:].shape
+                break
+            data_spatial_dims = fov_shape[-len(self.window_size) :]
+
+            # assuming stride sampling 1/2 of window, calculate # theoretical tiles/fov
+            samples_per_fov = 1
+            for dim_index in range(len(self.window_size)):
+                data_length = data_spatial_dims[dim_index]
+                if len(self.window_size) == 3 and dim_index == 0:  # if z
+                    samples_per_fov *= data_length - (self.window_size[dim_index] - 1)
+                else:  # if x or y
+                    samples_per_fov *= (
+                        (data_length // self.window_size[dim_index]) * 2
+                    ) - 1
+
+            self.epoch_length = int(samples_per_fov * len(self.data_source))
+            self.epoch_length = self.epoch_length // self.batch_size
+
+        # construct pipeline: generate batch request, construct nodes, make iterable
         assert len(self.window_size) == len(voxel_size), (
             f"Incompatible voxel size {voxel_size}. "
             f"Must be same length as spatial_window_size {self.window_size}"
@@ -243,7 +270,7 @@ class TorchDataset(Dataset):
         """
         Returns number of source data arrays in this dataset.
         """
-        return len(self.data_source)
+        return self.epoch_length
 
     def __getitem__(self, idx=0):
         """
@@ -346,8 +373,11 @@ class TorchDataset(Dataset):
         # ---- Batch Creation Nodes ----#
         batch_creation = []
         batch_creation.append(
-            gp.PreCache(cache_size=150, num_workers=max(0, self.workers))
-        )  # TODO make these parameters variable
+            gp.PreCache(
+                cache_size=self.epoch_length // 10,
+                num_workers=max(1, self.workers),
+            )
+        )
         batch_creation.append(gp.Stack(self.batch_size))
 
         # attach additional nodes, if any, and sum

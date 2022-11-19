@@ -191,10 +191,8 @@ class TorchTrainer:
 
         # init io and saving
         start = time.time()
+        self.get_save_location()
         self.writer = SummaryWriter(log_dir=self.save_folder)
-
-        split_idx_fname = os.path.join(self.save_folder, "split_samples.json")
-        aux_utils.write_json(self.split_samples, split_idx_fname)
 
         # init optimizer and lr regularization
         self.model.train()
@@ -221,9 +219,10 @@ class TorchTrainer:
             print(f"Epoch {i}:")
 
             for current, minibatch in enumerate(self.train_dataloader):
+
                 # pretty printing
                 io_utils.show_progress_bar(self.train_dataloader, current)
-                torch.ones((1, 2)).cuda()
+
                 # get sample and target (remember we remove the extra batch dimension)
                 input_ = minibatch[0][0].cuda(device=self.device).float()
                 target_ = minibatch[1][0].cuda(device=self.device).float()

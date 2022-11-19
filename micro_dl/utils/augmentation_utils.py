@@ -18,6 +18,7 @@ class AugmentationNodeBuilder:
         defect_key=None,
         intensities_key=None,
         blur_key=None,
+        shear_key=None,
     ):
         self.config = augmentation_config
 
@@ -30,7 +31,7 @@ class AugmentationNodeBuilder:
             "subsample": 1,
         }
         self.simple_aug_params = {}
-        self.shear_aug_params = {}
+        self.shear_aug_params = {"shear_array_key": shear_key}
         self.intensity_aug_params = {"intensity_array_key": intensities_key}
         self.noise_aug_params = {"noise_array_key": noise_key}
         self.blur_aug_params = {"blur_array_key": blur_key}
@@ -44,9 +45,9 @@ class AugmentationNodeBuilder:
         Build list of augmentation nodes in compatible sequential order going downstream
 
         Strict ordering levels (going downstream):
-        1 -> shear, simple (mirror & transpose)
+        1 -> simple (mirror & transpose)
         2 -> elastic (zoom, rotation)
-        3 -> blur
+        3 -> blur, shear
         4 -> intensity, noise, defect (contrast & artifacts)
         """
         # collect params
@@ -55,9 +56,9 @@ class AugmentationNodeBuilder:
 
         # build nodes in hard-coded compatible ordering
         node_ordering = [
-            {self.build_simple_augment_node, self.build_shear_augment_node},
+            {self.build_simple_augment_node},
             {self.build_elastic_augment_node},
-            {self.build_blur_augment_node},
+            {self.build_blur_augment_node, self.build_shear_augment_node},
             {
                 self.build_intensity_augment_node,
                 self.build_noise_augment_node,
@@ -124,7 +125,6 @@ class AugmentationNodeBuilder:
         """
         Passes parameters to elastic augmentation node and returns initialized node
 
-        :param dict parameters: elastic augmentation node parameters
         :return gp.BatchFilter: elastic augmentation node
         """
 
@@ -153,7 +153,6 @@ class AugmentationNodeBuilder:
         """
         Passes parameters to simple augmentation node and returns initialized node
 
-        :param dict parameters: simple augmentation node parameters
         :return gp.BatchFilter: simple augmentation node
         """
 
@@ -183,17 +182,29 @@ class AugmentationNodeBuilder:
         """
         passes parameters to shear augmentation node and returns initialized node
 
-        :param dict parameters: shear augmentation node parameters
         :return gp.BatchFilter: shear augmentation node
         """
-        # TODO implement
-        pass
+
+        angle_range = (-15, 15)
+        if "angle_range" in self.shear_aug_params:
+            angle_range = self.shear_aug_params["angle_range"]
+
+        prob = 0.2
+        if "prob" in self.shear_aug_params:
+            prob = self.shear_aug_params["prob"]
+
+        blur_aug = custom_nodes.ShearAugment(
+            array=self.shear_aug_params["shear_array_key"],
+            angle_range=tuple(angle_range),
+            prob=prob,
+        )
+
+        return blur_aug
 
     def build_blur_augment_node(self):
         """
         Passes parameters to blur augmentation node and returns initialized node
 
-        :param dict parameters: blur augmentation node parameters
         :return gp.BatchFilter: blur augmentation node
         """
         mode = "gaussian"
@@ -231,7 +242,6 @@ class AugmentationNodeBuilder:
         """
         passes parameters to intensity augmentation node and returns initialized node
 
-        :param dict parameters: intensity augmentation node parameters
         :return gp.BatchFilter: intensity augmentation node
         """
         # TODO implement
@@ -241,7 +251,6 @@ class AugmentationNodeBuilder:
         """
         passes parameters to noise augmentation node and returns initialized node
 
-        :param dict parameters: noise augmentation node parameters
         :return gp.BatchFilter: noise augmentation node
         """
         # TODO implement
@@ -251,7 +260,6 @@ class AugmentationNodeBuilder:
         """
         passes parameters to defect augmentation node and returns initialized node
 
-        :param dict parameters: defect augmentation node parameters
         :return gp.BatchFilter: defect augmentation node
         """
         # TODO implement

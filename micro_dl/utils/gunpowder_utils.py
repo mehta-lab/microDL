@@ -293,6 +293,7 @@ def generate_augmentation_nodes(aug_config, augmentation_keys):
         blur_key=augmentation_keys,
         intensities_key=augmentation_keys,
         defect_key=augmentation_keys,
+        shear_key=augmentation_keys,
     )
     augmentation_builder.build_nodes()
     aug_nodes = augmentation_builder.get_nodes()
