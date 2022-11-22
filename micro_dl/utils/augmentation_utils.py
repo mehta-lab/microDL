@@ -112,7 +112,6 @@ class AugmentationNodeBuilder:
             self.intensity_aug_params.update(parameters)
             self.initalized_builders[self.build_intensity_augment_node] = True
         elif aug_name == "noise":
-            assert self.noise_aug_params["array"] != None, "No noise key specified."
             self.noise_aug_params.update(parameters)
             self.initalized_builders[self.build_noise_augment_node] = True
         elif aug_name == "blur":
@@ -245,45 +244,78 @@ class AugmentationNodeBuilder:
         Passes parameters to intensity augmentation node and returns initialized node.
 
         """
-        scale_min = 0.3
-        if "scale_min" in self.intensity_aug_params:
-            scale_min = self.intensity_aug_params["scale_min"]
+        jitter_channels = None
+        if "jitter_channels" in self.intensity_aug_params:
+            if isinstance(self.intensity_aug_params["jitter_channels"], list):
+                jitter_channels = tuple(self.intensity_aug_params["jitter_channels"])
+            else:
+                jitter_channels = tuple(self.intensity_aug_params["jitter_channels"])
 
-        scale_max = 0.3
-        if "scale_max" in self.intensity_aug_params:
-            scale_max = self.intensity_aug_params["scale_max"]
+        scale_range = [0.7, 1.3]
+        if "scale_range" in self.intensity_aug_params:
+            scale_range = tuple(self.intensity_aug_params["scale_range"])
 
-        shift_min = 0.3
-        if "shift_min" in self.intensity_aug_params:
-            shift_min = self.intensity_aug_params["shift_min"]
+        shift_range = [-0.15, 0.15]
+        if "shift_range" in self.intensity_aug_params:
+            shift_range = tuple(self.intensity_aug_params["shift_range"])
 
-        shift_max = 0.3
-        if "shift_max" in self.intensity_aug_params:
-            shift_max = self.intensity_aug_params["shift_max"]
+        norm_before_shift = True
+        if "norm_before_shift" in self.intensity_aug_params:
+            norm_before_shift = self.intensity_aug_params["norm_before_shift"]
 
-        blur_channels = None
-        if "blur_channels" in self.blur_aug_params:
-            blur_channels = self.blur_aug_params["blur_channels"]
+        jitter_demeaned = True
+        if "jitter_demeaned" in self.blur_aug_params:
+            jitter_demeaned = self.blur_aug_params["jitter_demeaned"]
+
+        prob = 1
+        if "prob" in self.blur_aug_params:
+            prob = self.blur_aug_params["prob"]
 
         intensity_aug = custom_nodes.IntensityAugment(
-            array=self.intensity_aug_params["intensities_array_key"],
-            scale_max=scale_max,
-            scale_min=scale_min,
-            shift_max=shift_max,
-            shift_min=shift_min,
-            z_section_wise=False,  # perform over full volume by channel
-            clip=True,
+            array=self.intensity_aug_params["intensity_array_key"],
+            jitter_channels=jitter_channels,
+            scale_range=scale_range,
+            shift_range=shift_range,
+            norm_before_shift=norm_before_shift,
+            jitter_demeaned=jitter_demeaned,
+            prob=prob,
         )
         return intensity_aug
 
     def build_noise_augment_node(self):
         """
         passes parameters to noise augmentation node and returns initialized node
-
-        :return gp.BatchFilter: noise augmentation node
         """
-        # TODO implement
-        pass
+        mode = "gaussian"
+        if "mode" in self.noise_aug_params:
+            mode = self.noise_aug_params["mode"]
+
+        noise_channels = None
+        if "noise_channels" in self.noise_aug_params:
+            noise_channels = self.noise_aug_params["noise_channels"]
+
+        seed = None
+        if "seed" in self.noise_aug_params:
+            seed = self.noise_aug_params["seed"]
+
+        clip = False
+        if "clip" in self.noise_aug_params:
+            clip = self.noise_aug_params["clip"]
+
+        prob = False
+        if "prob" in self.noise_aug_params:
+            prob = self.noise_aug_params["prob"]
+
+        noise_augment = custom_nodes.NoiseAugment(
+            array=self.noise_aug_params["noise_array_key"],
+            mode=mode,
+            noise_channels=noise_channels,
+            seed=seed,
+            clip=clip,
+            prob=prob,
+        )
+
+        return noise_augment
 
     def build_defect_augment_node(self):
         """
@@ -291,5 +323,5 @@ class AugmentationNodeBuilder:
 
         :return gp.BatchFilter: defect augmentation node
         """
+        raise NotImplementedError("Defect augment not yet implemented")
         # TODO implement
-        pass

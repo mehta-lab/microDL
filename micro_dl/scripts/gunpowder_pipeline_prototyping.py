@@ -28,6 +28,7 @@ from micro_dl.input.gunpowder_nodes import (
     BlurAugment,
     ShearAugment,
     LogNode,
+    NoiseAugment,
 )
 
 # %%
@@ -263,6 +264,12 @@ intensity_aug = IntensityAugment(
     scale_range=(0.5, 1.5),
     norm_before_shift=True,
 )
+noise_aug = NoiseAugment(
+    array=raw,
+    noise_channels=(0,),
+    mode="gaussian",
+    prob=0.5,
+)
 
 profiling = gp.PrintProfilingStats(every=1)
 
@@ -278,9 +285,10 @@ batch_pipeline = gpsum(
         simple_aug,
         elastic_aug,
         shear_aug,
-        intensity_aug,
         blur_aug,
-        # cache,  # important to cache upstream of stack
+        intensity_aug,
+        noise_aug,
+        cache,  # important to cache upstream of stack
         batch_stack,
     ],
     track_nodes=False,

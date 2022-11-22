@@ -2,6 +2,7 @@ import cv2
 import gunpowder as gp
 import numpy as np
 from scipy import fftpack, signal
+import skimage
 import torch
 import time
 
@@ -214,6 +215,9 @@ class BlurAugment(gp.BatchFilter):
 
         self._init_kernels()
 
+        if self.blur_channels == None:
+            Warning("You are blurring all channels. This is likely a mistake...")
+
     def prepare(self, request: gp.BatchRequest):
         """
         Prepare request going upstream for data retrieval by increasing request size
@@ -402,6 +406,11 @@ class IntensityAugment(gp.BatchFilter):
         self.jitter_demeaned = jitter_demeaned
         self.prob = prob
 
+        if jitter_channels == None:
+            Warning(
+                "You are jittering the intensity of all channels. This is likely a mistake..."
+            )
+
     def prepare(self, request: gp.BatchRequest):
         """
         Prepare request going upstream. sets random seet
@@ -445,7 +454,7 @@ class IntensityAugment(gp.BatchFilter):
                     for channel_idx in range(batch_data.shape[1]):
                         data = batch_data[batch_idx, channel_idx]
                         if channel_idx in self.jitter_channels:
-                            data = self.__jitter(
+                            data = self._jitter(
                                 data, self.active_scale, self.active_shift
                             )
 
@@ -456,7 +465,7 @@ class IntensityAugment(gp.BatchFilter):
                 batch[key] = batch[key].crop(request[key].roi)
                 batch[key].data = jittered_data
 
-    def __jitter(self, a, scale, shift):
+    def _jitter(self, a, scale, shift):
         """
         Perform actual jitter computation
 
@@ -475,3 +484,123 @@ class IntensityAugment(gp.BatchFilter):
             return a.mean() + unzscore(a - a.mean(), shift, scale)
         else:
             return unzscore(a, shift, scale)
+
+
+class NoiseAugment(gp.BatchFilter):
+    def __init__(
+        self,
+        array=None,
+        mode="gaussian",
+        noise_channels=None,
+        seed=None,
+        clip=True,
+        prob=1,
+        **kwargs,
+    ):
+        """
+        Custom gunpowder augmentation node for applying random noise.
+        For kwargs see skimage.util.randomnoise:
+            https://scikit-image.org/docs/stable/api/skimage.util.html#skimage.util.random_noise
+
+        Assumes channel dim is the last non-spatial dimension.
+
+        :param gp.ArrayKey array: key to array to perform jittering on. If no key provided,
+                                applies to all key:data pairs in request.
+        :param str mode: type of noise to apply. see skimage.util.randomnoise
+        :param tuple(int) noise_channels: noise only these channels in channel dimension,
+                                            by default applies to all channels
+        :param int seed: Optionally set a random seed, see scikit-image documentation.
+        :param bool clip: Whether to preserve the image range after adding noise or
+                            not, (note: noise will be scaled to image intensity values)
+        :param float prob: probability of applying noise
+        """
+
+        self.array_key = array
+        self.mode = mode
+        self.noise_channels = noise_channels
+        self.seed = seed
+        self.clip = clip
+        self.prob = prob
+        self.kwargs = kwargs
+
+        if noise_channels == None:
+            Warning(
+                "You are applying noise to all channels. This is likely a mistake..."
+            )
+
+    def prepare(self, request: gp.BatchRequest):
+        """
+        Prepare request going upstream. sets random seet
+        """
+        if not self.seed:
+            self.seed = np.random.seed(request.random_seed)
+
+    def process(self, batch: gp.Batch, request: gp.BatchRequest):
+        """
+        Noise batch going downstream according to parameters.
+
+        :param gp.BatchRequest request: current gp downstream request
+        :param gp.Batch batch: current batch heading downstream
+        """
+        if self.array_key == None:
+            keys = [pair[0] for pair in request.items()]
+        else:
+            keys = self.array_key
+            if not isinstance(self.array_key, list):
+                keys = [self.array_key]
+
+        noise = np.random.uniform(0, 1) <= self.prob
+
+        if noise:
+            for key in keys:
+                batch_data = batch[key].data
+                channel_dim = -(request[key].roi.dims()) - 1
+
+                if self.noise_channels == None:
+                    self.noise_channels = tuple(range(batch_data.shape[channel_dim]))
+
+                output_shape = list(batch_data.shape[:-3]) + list(
+                    request[key].roi.get_shape()
+                )
+                noisy_data = np.empty(output_shape, dtype=batch_data.dtype)
+
+                # TODO: datasets with an additional index beyond channel and batch may
+                #      break in loops. Can be safely implemented with dynamic recursion.
+                for batch_idx in range(batch_data.shape[0]):
+                    for channel_idx in range(batch_data.shape[1]):
+                        data = batch_data[batch_idx, channel_idx]
+                        if channel_idx in self.noise_channels:
+                            data = self._apply_noise(data)
+
+                        noisy_data[batch_idx, channel_idx] = data.astype(
+                            batch_data.dtype
+                        )
+
+                batch[key] = batch[key].crop(request[key].roi)
+                batch[key].data = noisy_data
+
+    def _apply_noise(self, a):
+        """
+        Apply noise using skimage.util.randomnoise
+
+        :param np.ndarray a: array to apply noise to
+        :return np.ndarray jittered_array: see name
+
+        """
+        # normalize
+        norm_val = np.max(np.abs(a))
+        a = a / norm_val
+
+        # noise
+        a = skimage.util.random_noise(
+            a,
+            mode=self.mode,
+            seed=self.seed,
+            clip=self.clip,
+            **self.kwargs,
+        ).astype(a.dtype)
+
+        # denormalize
+        a = (a * norm_val).astype(a.dtype)
+
+        return a
