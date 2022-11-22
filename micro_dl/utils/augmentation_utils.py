@@ -195,10 +195,15 @@ class AugmentationNodeBuilder:
         if "prob" in self.shear_aug_params:
             prob = self.shear_aug_params["prob"]
 
+        shear_middle_only = None
+        if "shear_middle_slice_only" in self.shear_aug_params:
+            shear_middle_only = self.shear_aug_params["shear_middle_slice_only"]
+
         blur_aug = custom_nodes.ShearAugment(
             array=self.shear_aug_params["shear_array_key"],
             angle_range=tuple(angle_range),
             prob=prob,
+            shear_middle_slice_only=shear_middle_only,
         )
 
         return blur_aug
