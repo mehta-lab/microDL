@@ -1,37 +1,45 @@
+import cv2
 import gunpowder as gp
 import numpy as np
-import torch
 from scipy import fftpack, signal
-import cv2
+import torch
+import time
 
 from micro_dl.input.dataset import apply_affine_transform
+from micro_dl.utils.normalize import unzscore
 
 
 class LogNode(gp.BatchFilter):
-    def __init__(self, prefix, log_image_dir=None):
+    def __init__(self, prefix, log_image_dir=None, time_nodes=False):
         """Custom gunpowder node for printing data path
 
         :param str prefix: prefix to print before message (ex: node number)
         :param str log_image_dir: directory to log data to as it travels downstream
                                     by default, is None, and will not log data
+        :param bool time_nodes: whether to time request-receive delay for this node
         """
         self.prefix = prefix
         self.log_image_dir = log_image_dir
+        self.time_nodes = time_nodes
 
     def prepare(self, request):
         """Prints message during call to upstream request
         :param gp.BatchRequest request: current gp request
         """
         print(f"{self.prefix}\t Upstream provider: {self.upstream_providers[0]}")
+        if self.time_nodes:
+            self.time = time.time()
 
     def process(self, batch, request):
         """Prints message during call to downstream request
         :param gp.BatchRequest batch: batch returned by request from memory
         :param gp.BatchRequest request: current gp request
         """
+        print(f"{self.prefix}\tBatch going downstream: {batch}")
         if self.log_image_dir:
             pass  # TODO implement this using the datalogging utils.
-        print(f"{self.prefix}\tBatch going downstream: {batch}")
+        if self.time_nodes:
+            print(f"Took{time.time() - self.time:.2f}s to get back to me \n")
 
 
 class ShearAugment(gp.BatchFilter):
@@ -341,3 +349,129 @@ class BlurAugment(gp.BatchFilter):
                 self.kernels.append(circle)
             else:
                 raise AssertionError(f"Mode {self.mode} not an accepted blur mode")
+
+
+class IntensityAugment(gp.BatchFilter):
+    def __init__(
+        self,
+        array=None,
+        jitter_channels=None,
+        scale_range=(0.7, 1.3),
+        shift_range=(-0.3, 0.3),
+        norm_before_shift=False,
+        jitter_demeaned=True,
+        prob=1,
+    ):
+        """
+        Custom gunpowder augmentation node for applying intensity jitter by volume or
+        slice.
+
+        Intensity jitter scales and shifts the intensity values of an entire FoV according
+        to:
+                a = a.mean() + ((a-a.mean()) * scale) + shift
+
+        The scale/shift values are selected from the given ranges, but the trans-
+        formation is standard across each image.
+
+        Assumes channel dimension is last dimension before spatial dimensions.
+
+        :param gp.ArrayKey array: key to array to perform jittering on. If no key provided,
+                                applies to all key:data pairs in request.
+        :param tuple(int) jitter_channels: jitter intensity of only these channels in
+                                            channel dimension
+        :param tuple(int, int) scale_range: range of random scale
+        :param tuple(int, int) shift_range: range of random shift
+        :param bool norm_before_shift: normalize the data to [0,1] before applying shift. Will
+                                        renormalize after, but treats shift as a proportion
+                                        of max contrast than numeric value
+        :param bool jitter_demeaned: If true, only applies jitter shift to the demeaned
+                                    components to augment contrast over absolute intensity
+        :param float prob: probability of applying jitter
+        """
+        assert (
+            scale_range[0] >= 0 and scale_range[1] >= 0
+        ), "Scale bounds must be positive"
+        assert scale_range[0] <= scale_range[1], "Scale bounds must be non-decreasing"
+        assert shift_range[0] <= shift_range[1], "Shift bounds must be non-decreasing"
+
+        self.array_key = array
+        self.jitter_channels = jitter_channels
+        self.scale_range = scale_range
+        self.shift_range = shift_range
+        self.norm_before_shift = norm_before_shift
+        self.jitter_demeaned = jitter_demeaned
+        self.prob = prob
+
+    def prepare(self, request: gp.BatchRequest):
+        """
+        Prepare request going upstream. sets random seet
+        """
+        np.random.seed(request.random_seed)
+        self.active_scale = np.random.uniform(*self.scale_range)
+        self.active_shift = np.random.uniform(*self.shift_range)
+
+    def process(self, batch: gp.Batch, request: gp.BatchRequest):
+        """
+        Jitter batch going downstream according to parameters.
+
+        :param gp.BatchRequest request: current gp downstream request
+        :param gp.Batch batch: current batch heading downstream
+        """
+        if self.array_key == None:
+            keys = [pair[0] for pair in request.items()]
+        else:
+            keys = self.array_key
+            if not isinstance(self.array_key, list):
+                keys = [self.array_key]
+
+        jitter = np.random.uniform(0, 1) <= self.prob
+
+        if jitter:
+            for key in keys:
+                batch_data = batch[key].data
+                channel_dim = -(request[key].roi.dims()) - 1
+
+                if self.jitter_channels == None:
+                    self.jitter_channels = tuple(range(batch_data.shape[channel_dim]))
+
+                output_shape = list(batch_data.shape[:-3]) + list(
+                    request[key].roi.get_shape()
+                )
+                jittered_data = np.empty(output_shape, dtype=batch_data.dtype)
+
+                # TODO: datasets with an additional index beyond channel and batch may
+                #      break in loops. Can be safely implemented with dynamic recursion.
+                for batch_idx in range(batch_data.shape[0]):
+                    for channel_idx in range(batch_data.shape[1]):
+                        data = batch_data[batch_idx, channel_idx]
+                        if channel_idx in self.jitter_channels:
+                            data = self.__jitter(
+                                data, self.active_scale, self.active_shift
+                            )
+
+                        jittered_data[batch_idx, channel_idx] = data.astype(
+                            batch_data.dtype
+                        )
+
+                batch[key] = batch[key].crop(request[key].roi)
+                batch[key].data = jittered_data
+
+    def __jitter(self, a, scale, shift):
+        """
+        Perform actual jitter computation
+
+        :param np.ndarray a: array to apply intensity jitter to
+        :param float scale: demeaned scaling factor
+        :param float shift: shifting factor
+
+        :return np.ndarray jittered_array: see name
+
+        """
+        if self.norm_before_shift:
+            max_contrast = np.max(a - np.min(a))
+            shift = max_contrast * shift
+
+        if self.jitter_demeaned:
+            return a.mean() + unzscore(a - a.mean(), shift, scale)
+        else:
+            return unzscore(a, shift, scale)

@@ -42,7 +42,9 @@ class AugmentationNodeBuilder:
 
     def build_nodes(self):
         """
-        Build list of augmentation nodes in compatible sequential order going downstream
+        Build list of augmentation nodes in compatible sequential order going downstream.
+        Augmentations that have spatial nonuniformity are prioritized upstream, while
+        those that are uniform over a FoV are generally performed later.
 
         Strict ordering levels (going downstream):
         1 -> simple (mirror & transpose)
@@ -240,12 +242,39 @@ class AugmentationNodeBuilder:
 
     def build_intensity_augment_node(self):
         """
-        passes parameters to intensity augmentation node and returns initialized node
+        Passes parameters to intensity augmentation node and returns initialized node.
 
-        :return gp.BatchFilter: intensity augmentation node
         """
-        # TODO implement
-        pass
+        scale_min = 0.3
+        if "scale_min" in self.intensity_aug_params:
+            scale_min = self.intensity_aug_params["scale_min"]
+
+        scale_max = 0.3
+        if "scale_max" in self.intensity_aug_params:
+            scale_max = self.intensity_aug_params["scale_max"]
+
+        shift_min = 0.3
+        if "shift_min" in self.intensity_aug_params:
+            shift_min = self.intensity_aug_params["shift_min"]
+
+        shift_max = 0.3
+        if "shift_max" in self.intensity_aug_params:
+            shift_max = self.intensity_aug_params["shift_max"]
+
+        blur_channels = None
+        if "blur_channels" in self.blur_aug_params:
+            blur_channels = self.blur_aug_params["blur_channels"]
+
+        intensity_aug = custom_nodes.IntensityAugment(
+            array=self.intensity_aug_params["intensities_array_key"],
+            scale_max=scale_max,
+            scale_min=scale_min,
+            shift_max=shift_max,
+            shift_min=shift_min,
+            z_section_wise=False,  # perform over full volume by channel
+            clip=True,
+        )
+        return intensity_aug
 
     def build_noise_augment_node(self):
         """
