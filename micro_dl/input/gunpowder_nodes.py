@@ -49,6 +49,7 @@ class ShearAugment(gp.BatchFilter):
         array=None,
         angle_range=(0, 0),
         prob=0.1,
+        shear_middle_slice_only=None,
     ):
         """
         Custom gunpowder augmentation node for applying shear in xy.
@@ -66,6 +67,9 @@ class ShearAugment(gp.BatchFilter):
         :param tuple(float, float) angle_range: range of angles in degrees of shear. To prevent
                                             data corruption, angle must be within (0,30)
         :param float prob: probability of applying shear
+        :param tuple(int)/None shear_middle_slice_only: shear only the middle z-slice of these
+                                                    channel indices. Used when target plucked
+                                                    from stack. By default None.
         """
         assert (
             abs(angle_range[0]) <= 30 and abs(angle_range[1]) <= 30
@@ -75,6 +79,7 @@ class ShearAugment(gp.BatchFilter):
         self.array_keys = array
         self.angle_range = angle_range
         self.prob = prob
+        self.shear_middle_slice_only = shear_middle_slice_only
 
     def prepare(self, request: gp.BatchRequest):
         """
@@ -144,6 +149,9 @@ class ShearAugment(gp.BatchFilter):
                 batch_data = batch[key].data
                 roi = request[key].roi
 
+                if self.shear_middle_slice_only == None:
+                    self.shear_middle_slice_only = ()
+
                 output_shape = list(batch_data.shape[:-3]) + list(
                     request[key].roi.get_shape()
                 )
@@ -153,15 +161,26 @@ class ShearAugment(gp.BatchFilter):
                 #      break in loops. Can be safely implemented with dynamic recursion.
                 for batch_idx in range(batch_data.shape[0]):
                     for channel_idx in range(batch_data.shape[1]):
+                        middle_only = channel_idx in self.shear_middle_slice_only
                         data = batch_data[batch_idx, channel_idx]
+
                         if roi.dims() == 2:
                             data = np.expand_dims(data, 0)
                             data = apply_affine_transform(data, shear=self.angle)[0]
                         else:
-                            data = apply_affine_transform(data, shear=self.angle)
+                            if middle_only:
+                                middle_idx = data.shape[0] // 2
+                                data[middle_idx] = apply_affine_transform(
+                                    np.expand_dims(data[middle_idx], 0),
+                                    shear=self.angle,
+                                )[0]
+                            else:
+                                data = apply_affine_transform(data, shear=self.angle)
 
                         if self.angle > 0:
-                            data = data[..., :, : -self.extra_pixels * 2]
+                            data = data[
+                                ..., :, : data.shape[-1] - self.extra_pixels * 2
+                            ]
                         else:
                             data = data[..., :, self.extra_pixels * 2 :]
 

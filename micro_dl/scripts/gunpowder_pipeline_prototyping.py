@@ -242,19 +242,21 @@ elastic_aug = gp.ElasticAugment(
     rotation_interval=(0, 0),
     scale_interval=(1, 1),
     spatial_dims=2,
+    subsample=1,
 )
 blur_aug = BlurAugment(
     array=raw,
     mode="gaussian",
     width_range=(23, 25),
     sigma=1,
-    prob=0.5,
+    prob=1,
     blur_channels=(0,),
 )
 shear_aug = ShearAugment(
     array=raw,
-    angle_range=(-30, 30),
-    prob=0.33,
+    angle_range=(29, 30),
+    prob=1,
+    # shear_middle_slice_only=(1, 2),
 )
 intensity_aug = IntensityAugment(
     array=raw,
@@ -263,18 +265,20 @@ intensity_aug = IntensityAugment(
     shift_range=(-0.15, 0.15),
     scale_range=(0.5, 1.5),
     norm_before_shift=True,
+    prob=1,
 )
 noise_aug = NoiseAugment(
     array=raw,
     noise_channels=(0,),
     mode="gaussian",
-    prob=0.5,
+    prob=1,
 )
 
 profiling = gp.PrintProfilingStats(every=1)
 
 cache = gp.PreCache(cache_size=2500, num_workers=16)
-batch_stack = gp.Stack(3)
+stack_num = 15
+batch_stack = gp.Stack(stack_num)
 print("done")
 print("building pipeline...", end="")
 batch_pipeline = gpsum(
@@ -288,15 +292,15 @@ batch_pipeline = gpsum(
         blur_aug,
         intensity_aug,
         noise_aug,
-        cache,  # important to cache upstream of stack
+        # cache,  # important to cache upstream of stack
         batch_stack,
     ],
-    track_nodes=False,
-    time_nodes=False,
+    track_nodes=True,
+    time_nodes=True,
 )
 
 request = gp.BatchRequest()
-request[raw] = gp.Roi((15, 728, 728), (5, 256, 256))
+request[raw] = gp.Roi((15, 728, 728), (5, 624, 624))
 
 with gp.build(batch_pipeline) as pipeline:
     print("done")
@@ -315,8 +319,8 @@ with gp.build(batch_pipeline) as pipeline:
     print(f"max: {np.max(data)}, min: {np.min(data)}")
 
     vmax = None
-    fig, ax = plt.subplots(3, 3, figsize=(15, 15))
-    for row in range(3):
+    fig, ax = plt.subplots(stack_num, 3, figsize=(15, 5 * stack_num))
+    for row in range(min(5, stack_num)):
         for channel in range(3):
             if channel == 0:
                 ax[row][channel].imshow(np.mean(data[row][channel], 0), cmap="gray")
@@ -325,10 +329,10 @@ with gp.build(batch_pipeline) as pipeline:
                     f"min:{np.max(np.mean(data[row][channel],0)):.3f}"
                 )
             else:
-                ax[row][channel].imshow(data[row][channel][3])
+                ax[row][channel].imshow(data[row][channel][2])
                 ax[row][channel].set_title(
-                    f"max:{np.max(data[row][channel][3]):.3f}, "
-                    f"min:{np.max(data[row][channel][3]):.3f}"
+                    f"max:{np.max(data[row][channel][2]):.3f}, "
+                    f"min:{np.max(data[row][channel][2]):.3f}"
                 )
     plt.show()
 # %%

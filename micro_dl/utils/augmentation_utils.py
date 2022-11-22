@@ -21,6 +21,7 @@ class AugmentationNodeBuilder:
         shear_key=None,
     ):
         self.config = augmentation_config
+        self.spatial_dims = spatial_dims
 
         # augmentations with default parameters
         self.elastic_aug_params = {
@@ -162,14 +163,14 @@ class AugmentationNodeBuilder:
         if "transpose_only" in self.simple_aug_params:
             transpose_only = tuple(self.simple_aug_params["transpose_only"])
         else:
-            transpose_probs = (0,) * 10  # assuming 10 > all reasonable voxel dimensions
+            transpose_probs = (0,) * self.spatial_dims + 3  # additional dim for b,t,c
 
         mirror_only = None
         mirror_probs = None
         if "mirror_only" in self.simple_aug_params:
             mirror_only = self.simple_aug_params["mirror_only"]
         else:
-            mirror_probs = (0,) * 10
+            mirror_probs = (0,) * self.spatial_dims + 3
 
         simple_aug = gp.SimpleAugment(
             transpose_only=transpose_only,
