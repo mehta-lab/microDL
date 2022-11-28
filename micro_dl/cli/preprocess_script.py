@@ -49,6 +49,7 @@ def get_required_params(preprocess_config):
         'num_workers': Number of workers for multiprocessing
         'normalize_im': (str) Normalization scheme
             (stack, dataset, slice, volume)
+        'zarr_file': Zarr file name in case of zarr file (as opposed to tiffs)
 
     :param dict preprocess_config: Preprocessing config
     :return dict required_params: Required parameters
@@ -429,25 +430,25 @@ def pre_process(preprocess_config):
     time_start = time.time()
     required_params = get_required_params(preprocess_config)
 
-    # ------------------Check or create metadata---------------------
-    try:
-        # Check if metadata is present
-        aux_utils.read_meta(required_params['input_dir'])
-    except AssertionError as e:
-        print(e, "Generating metadata.")
-        order = 'cztp'
-        name_parser = 'parse_sms_name'
-        if 'metadata' in preprocess_config:
-            if 'order' in preprocess_config['metadata']:
-                order = preprocess_config['metadata']['order']
-            if 'name_parser' in preprocess_config['metadata']:
-                name_parser = preprocess_config['metadata']['name_parser']
-        # Create metadata from file names instead
-        meta_utils.frames_meta_generator(
-            input_dir=required_params['input_dir'],
-            order=order,
-            name_parser=name_parser,
-        )
+    # ------------------Create metadata---------------------
+    # Create metadata (ignore old metadata)
+    order = 'cztp'
+    name_parser = 'parse_sms_name'
+    if 'metadata' in preprocess_config:
+        if 'order' in preprocess_config['metadata']:
+            order = preprocess_config['metadata']['order']
+        if 'name_parser' in preprocess_config['metadata']:
+            name_parser = preprocess_config['metadata']['name_parser']
+    # Create metadata from file names instead
+    file_format = 'zarr'
+    if 'file_format' in preprocess_config:
+        file_format = preprocess_config['file_format']
+    meta_utils.frames_meta_generator(
+        input_dir=required_params['input_dir'],
+        file_format=file_format,
+        order=order,
+        name_parser=name_parser,
+    )
 
     # -----------------Estimate flat field images--------------------
     flat_field_dir = None
@@ -488,7 +489,6 @@ def pre_process(preprocess_config):
             for ff_name in os.listdir(flat_field_dir):
                 # Naming convention is: flat-field-channel_c.npy
                 if ff_name[:10] == 'flat-field':
-                    print('channel', int(ff_name[-5]))
                     existing_channels.append(int(ff_name[-5]))
             assert set(existing_channels) == set(flat_field_channels), \
                 "Expected flatfield channels {}, and saved channels {} " \
@@ -533,6 +533,9 @@ def pre_process(preprocess_config):
     mask_dir = None
     mask_channel = None
     if 'masks' in preprocess_config:
+        # Automatically assign existing masks the next available channel number
+        frames_meta = aux_utils.read_meta(required_params['input_dir'])
+        mask_channel = frames_meta['channel_idx'].max() + 1
         if 'channels' in preprocess_config['masks']:
             # Generate masks from channel
             assert 'mask_dir' not in preprocess_config['masks'], \
@@ -554,7 +557,7 @@ def pre_process(preprocess_config):
                 flat_field_dir=flat_field_dir,
                 str_elem_radius=str_elem_radius,
                 mask_type=mask_type,
-                mask_channel=None,
+                mask_channel=mask_channel,
                 mask_ext=mask_ext,
             )
         elif 'mask_dir' in preprocess_config['masks']:
@@ -565,19 +568,10 @@ def pre_process(preprocess_config):
             mask_meta = meta_utils.mask_meta_generator(
                 mask_dir,
             )
-            frames_meta = aux_utils.read_meta(required_params['input_dir'])
-            # Automatically assign existing masks the next available channel number
-            mask_channel = (frames_meta['channel_idx'].max() + 1)
             mask_meta['channel_idx'] = mask_channel
             # Write metadata
             mask_meta_fname = os.path.join(mask_dir, 'frames_meta.csv')
             mask_meta.to_csv(mask_meta_fname, sep=",")
-            # mask_channel = preprocess_utils.validate_mask_meta(
-            #     mask_dir=mask_dir,
-            #     input_dir=required_params['input_dir'],
-            #     csv_name=mask_meta_fname,
-            #     mask_channel=mask_channel,
-            # )
         else:
             raise ValueError("If using masks, specify either mask_channel",
                              "or mask_dir.")

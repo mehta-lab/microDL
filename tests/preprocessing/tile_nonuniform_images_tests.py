@@ -46,7 +46,7 @@ class TestImageTilerNonUniform(unittest.TestCase):
                             self.im,
                         )
                     frames_meta = frames_meta.append(
-                        aux_utils.parse_idx_from_name(im_name),
+                        aux_utils.parse_idx_from_name(im_name=im_name, dir_name=self.temp_path),
                         ignore_index=True,
                     )
         # write pos2 with 2 time points and 3 slices
@@ -66,13 +66,12 @@ class TestImageTilerNonUniform(unittest.TestCase):
                             self.im,
                         )
                     frames_meta = frames_meta.append(
-                        aux_utils.parse_idx_from_name(im_name),
+                        aux_utils.parse_idx_from_name(im_name=im_name, dir_name=self.temp_path),
                         ignore_index=True,
                     )
 
         # Write metadata
-        frames_meta.to_csv(os.path.join(self.temp_path, self.meta_name),
-                           sep=',',)
+        frames_meta.to_csv(os.path.join(self.temp_path, self.meta_name), sep=',')
         # Instantiate tiler class
         self.output_dir = os.path.join(self.temp_path, 'tile_dir')
 
@@ -126,7 +125,7 @@ class TestImageTilerNonUniform(unittest.TestCase):
 
     def test_tile_first_channel(self):
         """Test tile_first_channel"""
-
+        tile_dir = self.tile_inst.get_tile_dir()
         ch0_ids = {}
         # get the indices for first channel
         for tp_idx, tp_dict in self.tile_inst.nested_id_dict.items():
@@ -157,7 +156,8 @@ class TestImageTilerNonUniform(unittest.TestCase):
                                     'file_name': fname,
                                     'pos_idx': 7,
                                     'row_start': row,
-                                    'col_start': col}
+                                    'col_start': col,
+                                    'dir_name': tile_dir}
                         exp_meta.append(cur_meta)
                 for t in [0, 1]:
                     fname = aux_utils.get_im_name(
@@ -176,7 +176,8 @@ class TestImageTilerNonUniform(unittest.TestCase):
                                 'file_name': fname,
                                 'pos_idx': 8,
                                 'row_start': row,
-                                'col_start': col}
+                                'col_start': col,
+                                'dir_name': tile_dir}
                     exp_meta.append(cur_meta)
         exp_meta_df = pd.DataFrame.from_dict(exp_meta)
         exp_meta_df = exp_meta_df.sort_values(by=['file_name'])
@@ -186,12 +187,13 @@ class TestImageTilerNonUniform(unittest.TestCase):
             channel0_depth=3,
         )
         ch0_meta_df = ch0_meta_df.sort_values(by=['file_name'])
+        self.assertListEqual(list(ch0_meta_df), list(exp_meta_df))
         # compare values of the returned and expected dfs
         np.testing.assert_array_equal(exp_meta_df.values, ch0_meta_df.values)
 
     def test_tile_remaining_channels(self):
         """Test tile_remaining_channels"""
-
+        tile_dir = self.tile_inst.get_tile_dir()
         # tile channel 1
         nested_id_dict_copy = copy.deepcopy(self.tile_inst.nested_id_dict)
         ch0_ids = {}
@@ -204,12 +206,12 @@ class TestImageTilerNonUniform(unittest.TestCase):
 
         ch0_meta_df = self.tile_inst.tile_first_channel(ch0_ids, 3)
         # tile channel 2
-        self.tile_inst.tile_remaining_channels(nested_id_dict_copy,
-                                               tiled_ch_id=1,
-                                               cur_meta_df=ch0_meta_df)
-        frames_meta = pd.read_csv(os.path.join(self.tile_inst.tile_dir,
-                                               'frames_meta.csv'),
-                                  sep=',')
+        self.tile_inst.tile_remaining_channels(
+            nested_id_dict_copy,
+            tiled_ch_id=1,
+            cur_meta_df=ch0_meta_df,
+        )
+        frames_meta = aux_utils.read_meta(self.tile_inst.tile_dir)
         # get the expected meta df which is a concat of the first channel df
         # and the current. it does seem to retain orig index, not sure how to
         # replace index in-place!
@@ -235,7 +237,8 @@ class TestImageTilerNonUniform(unittest.TestCase):
                                         'file_name': fname,
                                         'pos_idx': 7,
                                         'row_start': row,
-                                        'col_start': col}
+                                        'col_start': col,
+                                        'dir_name': tile_dir}
                             exp_meta.append(cur_meta)
                 for t in [0, 1]:
                     for c in self.channel_idx:
@@ -255,11 +258,12 @@ class TestImageTilerNonUniform(unittest.TestCase):
                                     'file_name': fname,
                                     'pos_idx': 8,
                                     'row_start': row,
-                                    'col_start': col}
+                                    'col_start': col,
+                                    'dir_name': tile_dir}
                         exp_meta.append(cur_meta)
-        exp_meta_df = pd.DataFrame.from_dict(exp_meta, )
-        frames_meta = frames_meta.sort_values(by=['file_name'])
-        nose.tools.assert_equal(len(exp_meta_df), len(frames_meta))
+        exp_meta_df = pd.DataFrame.from_dict(exp_meta)
+        self.assertListEqual(list(frames_meta), list(exp_meta_df))
+        self.assertEqual(len(exp_meta_df), len(frames_meta))
 
         for i in range(len(frames_meta)):
             act_row = frames_meta.loc[i]
@@ -284,7 +288,7 @@ class TestImageTilerNonUniform(unittest.TestCase):
         mask_images[4:12, 4:9, 2:4] = 1
 
         # timepoints for testing
-        mask_meta = []
+        mask_meta = aux_utils.make_dataframe()
         for z in range(5):
             for t in range(3):
                 cur_im = mask_images[:, :, z]
@@ -296,36 +300,43 @@ class TestImageTilerNonUniform(unittest.TestCase):
                     ext='.npy',
                 )
                 np.save(os.path.join(mask_dir, im_name), cur_im)
-                cur_meta = {'channel_idx': 3,
-                            'slice_idx': z,
-                            'time_idx': t,
-                            'pos_idx': self.pos_idx1,
-                            'file_name': im_name}
-                mask_meta.append(cur_meta)
-        mask_meta_df = pd.DataFrame.from_dict(mask_meta)
-        mask_meta_df.to_csv(os.path.join(mask_dir, 'frames_meta.csv'), sep=',')
+                mask_meta = mask_meta.append(
+                    aux_utils.parse_idx_from_name(im_name=im_name, dir_name=mask_dir),
+                    ignore_index=True,
+                )
+        mask_meta.to_csv(os.path.join(mask_dir, 'frames_meta.csv'), sep=',')
 
         self.tile_inst.pos_ids = [7]
         self.tile_inst.normalize_channels = [None, None, None, False]
         self.tile_inst.min_fraction = 0.5
-        self.tile_inst.tile_mask_stack(mask_dir,
-                                       mask_channel=3,
-                                       mask_depth=3)
+        self.tile_inst.tile_mask_stack(
+            mask_dir,
+            mask_channel=3,
+            mask_depth=3,
+        )
         nose.tools.assert_equal(self.tile_inst.mask_depth, 3)
 
-        frames_meta = pd.read_csv(
-            os.path.join(self.tile_inst.tile_dir, 'frames_meta.csv'),
-            sep=',',
-        )
+        frames_meta = aux_utils.read_meta(self.tile_inst.tile_dir)
         # only 4 tiles have >= min_fraction. 4 tiles x 3 slices x 3 tps
-        nose.tools.assert_equal(len(frames_meta), 36)
-        nose.tools.assert_list_equal(
+        self.assertEqual(len(frames_meta), 36)
+        exp_cols = ['channel_idx',
+                    'slice_idx',
+                    'time_idx',
+                    'file_name',
+                    'pos_idx',
+                    'row_start',
+                    'col_start',
+                    'dir_name']
+        self.assertListEqual(list(frames_meta), exp_cols)
+        self.assertListEqual(
             frames_meta['row_start'].unique().tolist(),
-            [4, 8])
-        nose.tools.assert_equal(frames_meta['col_start'].unique().tolist(),
-                                [4])
-        nose.tools.assert_equal(frames_meta['slice_idx'].unique().tolist(),
-                                [2, 3])
+            [4, 8],
+        )
+        self.assertListEqual(frames_meta['col_start'].unique().tolist(), [4])
+        self.assertListEqual(
+            frames_meta['slice_idx'].unique().tolist(),
+            [2, 3],
+        )
         self.assertSetEqual(set(frames_meta.channel_idx.tolist()), {1, 2, 3})
         self.assertSetEqual(set(frames_meta.time_idx.tolist()), {0, 1, 2})
         self.assertSetEqual(set(frames_meta.pos_idx.tolist()), {self.pos_idx1})

@@ -1,20 +1,18 @@
-output_dir: '/gpfs/CompMicro/projects/virtualstaining/kidneyslice/2019_02_15_kidney_slice/MBL_DL_image_translation/temp/tile_small'
+output_dir: '/Users/jenny.folkesson/Data/microdl_testdata/output_zarr/'
 verbose: 10
-input_dir: '/gpfs/CompMicro/projects/virtualstaining/kidneyslice/2019_02_15_kidney_slice/MBL_DL_image_translation/data'
-channel_ids: [0, 1, 2, 3]
-slice_ids: [10, 11, 12, 13, 14, 15]
-pos_ids: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-num_workers: 12
+input_dir: '/Users/jenny.folkesson/Data/microdl_testdata/'
+file_format: 'zarr'
+channel_ids: [0, 1, 2]
+slice_ids: [0]
+pos_ids: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+num_workers: 4
 flat_field:
     method: 'estimate'
-    flat_field_channels: [0, 1]
-#resize:
-#    scale_factor: 2
-#    resize_3d: False
+    flat_field_channels: [0, 1, 2]
 normalize:
     normalize_im: 'dataset'
     min_fraction: 0.25
-    normalize_channels: [True, True, True, True]
+    normalize_channels: [True, True, True]
 uniform_struct: True
 masks:
     channels: [1]
@@ -25,7 +23,7 @@ make_weight_map: False
 tile:
     tile_size: [256, 256]
     step_size: [128, 128]
-    depths: [1, 1, 1, 1]
+    depths: [1, 1, 1]
     image_format: 'zyx'
     min_fraction: 0.25
 metadata:

@@ -9,7 +9,6 @@ import micro_dl.utils.image_utils as image_utils
 import micro_dl.utils.masks as mask_utils
 import micro_dl.utils.tile_utils as tile_utils
 from micro_dl.utils.normalize import hist_clipping
-from micro_dl.utils.image_utils import im_adjust
 
 
 def mp_wrapper(fn, fn_args, workers):
@@ -38,17 +37,15 @@ def mp_create_save_mask(fn_args, workers):
     return list(res)
 
 
-def create_save_mask(input_fnames,
-                     flat_field_fname,
+def create_save_mask(channels_meta_sub,
+                     flat_field_fnames,
                      str_elem_radius,
                      mask_dir,
                      mask_channel_idx,
-                     time_idx,
-                     pos_idx,
-                     slice_idx,
                      int2str_len,
                      mask_type,
                      mask_ext,
+                     dir_name=None,
                      channel_thrs=None):
 
     """
@@ -56,8 +53,8 @@ def create_save_mask(input_fnames,
     When >1 channel are used to generate the mask, mask of each channel is
     generated then added together.
 
-    :param tuple input_fnames: tuple of input fnames with full path
-    :param str/None flat_field_fname: fname of flat field image
+    :param pd.DataFrame channels_meta_sub: Metadata for given PTCZ
+    :param list/None flat_field_fnames: Paths to corresponding flat field images
     :param int str_elem_radius: size of structuring element used for binary
      opening. str_elem: disk or ball
     :param str mask_dir: dir to save masks
@@ -72,19 +69,24 @@ def create_save_mask(input_fnames,
      NPY files for otsu, unimodal masks, recommended to save as npy
      float64 for borders_weight_loss_map masks to avoid loss due to scaling it
      to uint8.
+    :param str/None dir_name: Image directory (none if using frames_meta dir_name)
     :param list channel_thrs: list of threshold for each channel to generate
     binary masks. Only used when mask_type is 'dataset_otsu'
-    :return dict cur_meta for each mask. fg_frac is added to metadata
+    :return dict cur_meta: One for each mask. fg_frac is added to metadata
             - how is it used?
     """
+    im_stack = image_utils.read_imstack_from_meta(
+        frames_meta_sub=channels_meta_sub,
+        dir_name=dir_name,
+        flat_field_fnames=flat_field_fnames,
+        normalize_im=None,
+    )
     if mask_type == 'dataset otsu':
         assert channel_thrs is not None, \
             'channel threshold is required for mask_type="dataset otsu"'
-    im_stack = image_utils.read_imstack(
-        input_fnames,
-        flat_field_fname,
-        normalize_im=None,
-    )
+        assert len(channel_thrs) == range(im_stack.shape[-1]), \
+            "Mismatch between channel thrs {} and im_stack {}".format(
+                len(channel_thrs), im_stack.shape[-1])
     masks = []
     for idx in range(im_stack.shape[-1]):
         im = im_stack[..., idx]
@@ -109,6 +111,9 @@ def create_save_mask(input_fnames,
         fg_frac = np.mean(mask)
 
     # Create mask name for given slice, time and position
+    time_idx = int(channels_meta_sub['time_idx'].iloc[0])
+    slice_idx = int(channels_meta_sub['slice_idx'].iloc[0])
+    pos_idx = int(channels_meta_sub['pos_idx'].iloc[0])
     file_name = aux_utils.get_im_name(
         time_idx=time_idx,
         channel_idx=mask_channel_idx,
@@ -117,7 +122,6 @@ def create_save_mask(input_fnames,
         int2str_len=int2str_len,
         ext=mask_ext,
     )
-
     overlay_name = aux_utils.get_im_name(
         time_idx=time_idx,
         channel_idx=mask_channel_idx,
@@ -142,7 +146,7 @@ def create_save_mask(input_fnames,
             # Note: Border weight map mask should only be generated from one binary image
         else:
             mask = image_utils.im_bit_convert(mask, bit=8, norm=True)
-            mask = im_adjust(mask)
+            mask = image_utils.im_adjust(mask)
             im_mean = np.mean(im_stack, axis=-1)
             im_mean = hist_clipping(im_mean, 1, 99)
             im_alpha = 255 / (np.max(im_mean) - np.min(im_mean) + sys.float_info.epsilon)
@@ -161,7 +165,8 @@ def create_save_mask(input_fnames,
                 'time_idx': time_idx,
                 'pos_idx': pos_idx,
                 'file_name': file_name,
-                'fg_frac': fg_frac,}
+                'fg_frac': fg_frac,
+                }
     return cur_meta
 
 
@@ -185,53 +190,55 @@ def mp_tile_save(fn_args, workers):
     return list(res)
 
 
-def tile_and_save(input_fnames,
+def tile_and_save(meta_sub,
                   flat_field_fname,
                   hist_clip_limits,
-                  time_idx,
-                  channel_idx,
-                  pos_idx,
                   slice_idx,
                   tile_size,
                   step_size,
                   min_fraction,
                   image_format,
                   save_dir,
+                  dir_name=None,
                   int2str_len=3,
                   is_mask=False,
                   normalize_im=None,
                   zscore_mean=None,
-                  zscore_std=None
+                  zscore_std=None,
                   ):
-    """Crop image into tiles at given indices and save
+    """
+    Crop image into tiles at given indices and save
 
-    :param tuple input_fnames: tuple of input fnames with full path
+    :param pd.DataFrame meta_sub: Subset of metadata for images to be tiled
     :param str flat_field_fname: fname of flat field image
     :param tuple hist_clip_limits: limits for histogram clipping
-    :param int time_idx: time point of input image
-    :param int channel_idx: channel idx of input image
     :param int slice_idx: slice idx of input image
-    :param int pos_idx: sample idx of input image
     :param list tile_size: size of tile along row, col (& slices)
     :param list step_size: step size along row, col (& slices)
     :param float min_fraction: min foreground volume fraction for keep tile
     :param str image_format: zyx / xyz
     :param str save_dir: output dir to save tiles
+    :param str/None dir_name: Image directory
     :param int int2str_len: len of indices for creating file names
     :param bool is_mask: Indicates if files are masks
+    :param str/None normalize_im: Normalization method
+    :param float/None zscore_mean: Mean for normalization
+    :param float/None zscore_std: Std for normalization
     :return: pd.DataFrame from a list of dicts with metadata
     """
+    time_idx = meta_sub.loc[0, 'time_idx']
+    channel_idx = meta_sub.loc[0, 'channel_idx']
+    pos_idx = meta_sub.loc[0, 'pos_idx']
     try:
-        print('tile image t{:03d} p{:03d} z{:03d} c{:03d}...'
-              .format(time_idx, pos_idx, slice_idx, channel_idx))
-        input_image = image_utils.read_imstack(
-            input_fnames=input_fnames,
-            flat_field_fname=flat_field_fname,
+        input_image = image_utils.read_imstack_from_meta(
+            frames_meta_sub=meta_sub,
+            dir_name=dir_name,
+            flat_field_fnames=flat_field_fname,
             hist_clip_limits=hist_clip_limits,
             is_mask=is_mask,
             normalize_im=normalize_im,
             zscore_mean=zscore_mean,
-            zscore_std=zscore_std
+            zscore_std=zscore_std,
         )
         save_dict = {'time_idx': time_idx,
                      'channel_idx': channel_idx,
@@ -273,16 +280,14 @@ def mp_crop_save(fn_args, workers):
     return list(res)
 
 
-def crop_at_indices_save(input_fnames,
+def crop_at_indices_save(meta_sub,
                          flat_field_fname,
                          hist_clip_limits,
-                         time_idx,
-                         channel_idx,
-                         pos_idx,
                          slice_idx,
                          crop_indices,
                          image_format,
                          save_dir,
+                         dir_name=None,
                          int2str_len=3,
                          is_mask=False,
                          tile_3d=False,
@@ -292,8 +297,8 @@ def crop_at_indices_save(input_fnames,
                          ):
     """Crop image into tiles at given indices and save
 
-    :param tuple input_fnames: tuple of input fnames with full path
-    :param str flat_field_fname: fname of flat field image
+    :param pd.DataFrame meta_sub: Subset of metadata for images to be cropped
+    :param str flat_field_fname: File nname of flat field image
     :param tuple hist_clip_limits: limits for histogram clipping
     :param int time_idx: time point of input image
     :param int channel_idx: channel idx of input image
@@ -302,18 +307,20 @@ def crop_at_indices_save(input_fnames,
     :param tuple crop_indices: tuple of indices for cropping
     :param str image_format: zyx or xyz
     :param str save_dir: output dir to save tiles
+    :param str/None dir_name: Input directory
     :param int int2str_len: len of indices for creating file names
     :param bool is_mask: Indicates if files are masks
     :param bool tile_3d: indicator for tiling in 3D
     :return: pd.DataFrame from a list of dicts with metadata
     """
-
+    time_idx = meta_sub.loc[0, 'time_idx']
+    channel_idx = meta_sub.loc[0, 'channel_idx']
+    pos_idx = meta_sub.loc[0, 'pos_idx']
     try:
-        print('tile image t{:03d} p{:03d} z{:03d} c{:03d}...'
-              .format(time_idx, pos_idx, slice_idx, channel_idx))
-        input_image = image_utils.read_imstack(
-            input_fnames=input_fnames,
-            flat_field_fname=flat_field_fname,
+        input_image = image_utils.read_imstack_from_meta(
+            frames_meta_sub=meta_sub,
+            dir_name=dir_name,
+            flat_field_fnames=flat_field_fname,
             hist_clip_limits=hist_clip_limits,
             is_mask=is_mask,
             normalize_im=normalize_im,
@@ -350,7 +357,7 @@ def mp_resize_save(mp_args, workers):
     """
     Resize and save images with multiprocessing
 
-    :param dict mp_args: Function keyword arguments
+    :param list mp_args: Function keyword arguments
     :param int workers: max number of workers
     """
     with ProcessPoolExecutor(workers) as ex:
@@ -359,26 +366,42 @@ def mp_resize_save(mp_args, workers):
 
 def resize_and_save(**kwargs):
     """
-    Resizing images and saving them
-    :param kwargs: Keyword arguments:
-    str file_path: Path to input image
-    str write_path: Path to image to be written
-    float scale_factor: Scale factor for resizing
-    str ff_path: path to flat field correction image
-    """
+    Resizing images and saving them.
 
-    im = image_utils.read_image(kwargs['file_path'])
+    Keyword arguments:
+    :param pd.DataFrame meta_row: Row of metadata
+    :param str/None dir_name: Image directory (none if using dir_name from frames_meta)
+    :param str output_dir: Path to output directory
+    :param float scale_factor: Scale factor for resizing
+    :param str ff_path: Path to flatfield image
+    """
+    meta_row = kwargs['meta_row']
+    im = image_utils.read_image_from_row(meta_row, kwargs['dir_name'])
+
     if kwargs['ff_path'] is not None:
         im = image_utils.apply_flat_field_correction(
             im,
-            flat_field_patjh=kwargs['ff_path'],
+            flat_field_path=kwargs['ff_path'],
         )
     im_resized = image_utils.rescale_image(
         im=im,
         scale_factor=kwargs['scale_factor'],
     )
     # Write image
-    cv2.imwrite(kwargs['write_path'], im_resized)
+    # TODO: will we keep this functionality and thus write to zarr?
+    # If so, should I create a zarr roots before mp?
+    # Where to do init_array for each position?
+    if 'zarr' in meta_row['file_name'][-5:]:
+        im_name = aux_utils.get_im_name(
+                        channel_idx=meta_row['channel_idx'],
+                        slice_idx=meta_row['slice_idx'],
+                        time_idx=meta_row['time_idx'],
+                        pos_idx=meta_row['pos_idx'],
+                    )
+        write_path = os.path.join(kwargs['output_dir'], im_name)
+    else:
+        write_path = os.path.join(kwargs['output_dir'], meta_row['file_name'])
+    cv2.imwrite(write_path, im_resized)
 
 
 def mp_rescale_vol(fn_args, workers):
@@ -387,7 +410,6 @@ def mp_rescale_vol(fn_args, workers):
     :param list of tuple fn_args: list with tuples of function arguments
     :param int workers: max number of workers
     """
-
     with ProcessPoolExecutor(workers) as ex:
         # can't use map directly as it works only with single arg functions
         res = ex.map(rescale_vol_and_save, *zip(*fn_args))
@@ -397,36 +419,39 @@ def mp_rescale_vol(fn_args, workers):
 def rescale_vol_and_save(time_idx,
                          pos_idx,
                          channel_idx,
-                         sl_start_idx,
-                         sl_end_idx,
+                         slice_start_idx,
+                         slice_end_idx,
                          frames_metadata,
+                         dir_name,
                          output_fname,
                          scale_factor,
-                         input_dir,
                          ff_path):
     """Rescale volumes and save
 
     :param int time_idx: time point of input image
     :param int pos_idx: sample idx of input image
     :param int channel_idx: channel idx of input image
-    :param int sl_start_idx: start slice idx for the vol to be saved
-    :param int sl_end_idx: end slice idx for the vol to be saved
+    :param int slice_start_idx: start slice idx for the vol to be saved
+    :param int slice_end_idx: end slice idx for the vol to be saved
     :param pd.Dataframe frames_metadata: metadata for the input slices
+    :param str/None dir_name: Image directory (none if using dir_name from frames_meta)
     :param str output_fname: output_fname
     :param float/list scale_factor: scale factor for resizing
-    :param str input_dir: input dir for 2D images
     :param str/None ff_path: path to flat field image
     """
-
     input_stack = []
-    for sl_idx in range(sl_start_idx, sl_end_idx):
-        meta_idx = aux_utils.get_meta_idx(frames_metadata,
-                                          time_idx,
-                                          channel_idx,
-                                          sl_idx,
-                                          pos_idx)
-        cur_fname = frames_metadata.loc[meta_idx, 'file_name']
-        cur_img = image_utils.read_image(os.path.join(input_dir, cur_fname))
+    for slice_idx in range(slice_start_idx, slice_end_idx):
+        meta_idx = aux_utils.get_meta_idx(
+            frames_metadata,
+            time_idx,
+            channel_idx,
+            slice_idx,
+            pos_idx,
+        )
+        meta_row = frames_metadata.loc[meta_idx]
+        if dir_name is None:
+            dir_name = meta_row['dir_name']
+        cur_img = image_utils.read_image_from_row(meta_row, dir_name)
         if ff_path is not None:
             cur_img = image_utils.apply_flat_field_correction(
                 cur_img,
@@ -439,7 +464,7 @@ def rescale_vol_and_save(time_idx,
     cur_metadata = {'time_idx': time_idx,
                     'pos_idx': pos_idx,
                     'channel_idx': channel_idx,
-                    'slice_idx': sl_start_idx,
+                    'slice_idx': slice_start_idx,
                     'file_name': os.path.basename(output_fname),
                     'mean': np.mean(resc_vol),
                     'std': np.std(resc_vol)}
@@ -453,7 +478,6 @@ def mp_get_im_stats(fn_args, workers):
     :param int workers: max number of workers
     :return: list of returned df from get_im_stats
     """
-
     with ProcessPoolExecutor(workers) as ex:
         # can't use map directly as it works only with single arg functions
         res = ex.map(get_im_stats, fn_args)
@@ -491,7 +515,7 @@ def mp_sample_im_pixels(fn_args, workers):
     return list(res)
 
 
-def sample_im_pixels(im_path, ff_path, grid_spacing, meta_row):
+def sample_im_pixels(meta_row, ff_path, grid_spacing, dir_name=None):
     """
     Read and computes statistics of images for each point in a grid.
     Grid spacing determines distance in pixels between grid points
@@ -499,13 +523,15 @@ def sample_im_pixels(im_path, ff_path, grid_spacing, meta_row):
     Applies flatfield correction prior to intensity sampling if flatfield
     path is specified.
 
-    :param str im_path: Full path to image
+    :param dict meta_row: Metadata row for image
     :param str ff_path: Full path to flatfield image corresponding to image
     :param int grid_spacing: Distance in pixels between sampling points
-    :param dict meta_row: Metadata row for image
+    :param str/None dir_name: Image directory (none if using dir_name from frames_meta)
     :return list meta_rows: Dicts with intensity data for each grid point
     """
-    im = image_utils.read_image(im_path)
+    if dir_name is None:
+        dir_name = meta_row['dir_name']
+    im = image_utils.read_image_from_row(meta_row, dir_name)
     if ff_path is not None:
         im = image_utils.apply_flat_field_correction(
             input_image=im,

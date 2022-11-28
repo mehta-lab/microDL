@@ -52,14 +52,7 @@ class TestMpUtilsBaseClass(unittest.TestCase):
         self.tempdir = TempDirectory()
         self.temp_path = self.tempdir.path
         self.meta_fname = 'frames_meta.csv'
-        self.df_columns = [
-            'channel_idx',
-            'slice_idx',
-            'time_idx',
-            'channel_name',
-            'file_name',
-            'pos_idx']
-        self.frames_meta = pd.DataFrame(columns=self.df_columns)
+        self.frames_meta = aux_utils.make_dataframe()
         self.channel_ids = [1, 2]
         self.time_ids = 0
         self.pos_ids = 1
@@ -75,16 +68,15 @@ class TestMpUtilsBaseClass(unittest.TestCase):
                     array[:, :, z].astype('uint8'),
                 )
             frames_meta = frames_meta.append(
-                aux_utils.parse_idx_from_name(im_name, self.df_columns),
+                aux_utils.parse_idx_from_name(im_name=im_name, dir_name=self.temp_path),
                 ignore_index=True
             )
         return frames_meta
 
     def tearDown(self):
         """Tear down temporary folder and file structure"""
-
         TempDirectory.cleanup_all()
-        nose.tools.assert_equal(os.path.isdir(self.temp_path), False)
+        self.assertFalse(os.path.isdir(self.temp_path))
 
 
 class TestMpUtilsOtsu(TestMpUtilsBaseClass):
@@ -108,22 +100,22 @@ class TestMpUtilsOtsu(TestMpUtilsBaseClass):
         """test create_save_mask otsu"""
         self.write_mask_data()
         for sl_idx in range(8):
-            input_fnames = ['im_c001_z00{}_t000_p001.png'.format(sl_idx),
-                            'im_c002_z00{}_t000_p001.png'.format(sl_idx)]
-            input_fnames = [os.path.join(self.temp_path, fname)
-                            for fname in input_fnames]
+            channels_meta_sub = aux_utils.get_sub_meta(
+                frames_metadata=self.frames_meta,
+                time_ids=self.time_ids,
+                channel_ids=self.channel_ids,
+                slice_ids=sl_idx,
+                pos_ids=self.pos_ids,
+            )
             cur_meta = mp_utils.create_save_mask(
-                input_fnames=tuple(input_fnames),
-                flat_field_fname=None,
+                channels_meta_sub=channels_meta_sub,
+                flat_field_fnames=None,
                 str_elem_radius=1,
                 mask_dir=self.output_dir,
                 mask_channel_idx=3,
-                time_idx=self.time_ids,
-                pos_idx=self.pos_ids,
-                slice_idx=sl_idx,
                 int2str_len=3,
                 mask_type='otsu',
-                mask_ext='.png'
+                mask_ext='.png',
             )
             fname = aux_utils.get_im_name(
                 time_idx=self.time_ids,
@@ -131,30 +123,27 @@ class TestMpUtilsOtsu(TestMpUtilsBaseClass):
                 slice_idx=sl_idx,
                 pos_idx=self.pos_ids,
             )
-            exp_meta = {'channel_idx': 3,
-                        'slice_idx': sl_idx,
-                        'time_idx': 0,
-                        'pos_idx': 1,
-                        'file_name': fname,
-                        }
-            # Not testing specific fg_frac values
-            cur_meta.pop('fg_frac')
-            nose.tools.assert_dict_equal(cur_meta, exp_meta)
-
+            self.assertEqual(cur_meta['channel_idx'], 3)
+            self.assertEqual(cur_meta['slice_idx'], sl_idx)
+            self.assertEqual(cur_meta['time_idx'], self.time_ids)
+            self.assertEqual(cur_meta['pos_idx'], self.pos_ids)
+            self.assertEqual(cur_meta['file_name'], fname)
+            # Check that mask file has been written
             op_fname = os.path.join(self.output_dir, fname)
-            nose.tools.assert_equal(os.path.exists(op_fname),
-                                    True)
-
+            self.assertTrue(os.path.exists(op_fname))
+            # Read mask iamge
             mask_image = image_utils.read_image(op_fname)
             if mask_image.dtype != bool:
                 mask_image = mask_image > 0
             input_image = (self.sph_object[:, :, sl_idx],
                            self.rect_object[:, :, sl_idx])
-            mask_stack = np.stack([create_otsu_mask(input_image[0], str_elem_size=1),
-                                  create_otsu_mask(input_image[1], str_elem_size=1)])
+            mask_stack = np.stack(
+                [create_otsu_mask(input_image[0], str_elem_size=1),
+                 create_otsu_mask(input_image[1], str_elem_size=1)])
             mask_exp = np.any(mask_stack, axis=0)
             numpy.testing.assert_array_equal(
-                mask_image, mask_exp
+                mask_image,
+                mask_exp,
             )
 
     def test_rescale_vol_and_save(self):
@@ -165,17 +154,17 @@ class TestMpUtilsOtsu(TestMpUtilsBaseClass):
                 self.temp_path,
                 'im_c{}_z0_t0_p0_sc4.1-1.0-1.0.npy'.format(ch_idx)
             )
-            ff_path = None
             mp_utils.rescale_vol_and_save(
-                self.time_ids,
-                self.pos_ids,
-                ch_idx,
-                0, 8,
-                self.frames_meta,
-                op_fname,
-                [4.1, 1.0, 1.0],
-                self.temp_path,
-                ff_path,
+                time_idx=self.time_ids,
+                pos_idx=self.pos_ids,
+                channel_idx=ch_idx,
+                slice_start_idx=0,
+                slice_end_idx=8,
+                frames_metadata=self.frames_meta,
+                dir_name=self.temp_path,
+                output_fname=op_fname,
+                scale_factor=[4.1, 1.0, 1.0],
+                ff_path=None,
             )
             resc_vol = np.load(op_fname)
             nose.tools.assert_tuple_equal(resc_vol.shape,
@@ -213,21 +202,22 @@ class TestMpUtilsBorderWeightMap(TestMpUtilsBaseClass):
         """test create_save_mask border weight map"""
         self.write_mask_data()
         for sl_idx in range(1):
-            input_fnames = ['im_c001_z00{}_t000_p001.png'.format(sl_idx)]
-            input_fnames = [os.path.join(self.temp_path, fname)
-                            for fname in input_fnames]
+            channels_meta_sub = aux_utils.get_sub_meta(
+                frames_metadata=self.frames_meta,
+                time_ids=self.time_ids,
+                channel_ids=self.channel_ids,
+                slice_ids=sl_idx,
+                pos_ids=self.pos_ids,
+            )
             cur_meta = mp_utils.create_save_mask(
-                input_fnames=tuple(input_fnames),
-                flat_field_fname=None,
+                channels_meta_sub=channels_meta_sub,
+                flat_field_fnames=None,
                 str_elem_radius=1,
                 mask_dir=self.output_dir,
                 mask_channel_idx=2,
-                time_idx=self.time_ids,
-                pos_idx=self.pos_ids,
-                slice_idx=sl_idx,
                 int2str_len=3,
                 mask_type='borders_weight_loss_map',
-                mask_ext='.png'
+                mask_ext='.png',
             )
             fname = aux_utils.get_im_name(
                 time_idx=self.time_ids,
@@ -235,18 +225,15 @@ class TestMpUtilsBorderWeightMap(TestMpUtilsBaseClass):
                 slice_idx=sl_idx,
                 pos_idx=self.pos_ids,
             )
-            exp_meta = {'channel_idx': 2,
-                        'slice_idx': sl_idx,
-                        'time_idx': 0,
-                        'pos_idx': 1,
-                        'file_name': fname,
-                        'fg_frac': None,
-                        }
-            nose.tools.assert_dict_equal(cur_meta, exp_meta)
-
+            self.assertEqual(cur_meta['channel_idx'], 2)
+            self.assertEqual(cur_meta['slice_idx'], sl_idx)
+            self.assertEqual(cur_meta['time_idx'], self.time_ids)
+            self.assertEqual(cur_meta['pos_idx'], self.pos_ids)
+            self.assertEqual(cur_meta['file_name'], fname)
+            self.assertIsNone(cur_meta['fg_frac'])
+            # Check that mask is written
             op_fname = os.path.join(self.output_dir, fname)
-            nose.tools.assert_equal(os.path.exists(op_fname),
-                                    True)
+            self.assertTrue(os.path.exists(op_fname))
             weight_map = image_utils.read_image(op_fname)
             max_weight_map = np.max(weight_map)
             # weight map between 20, 16 and 44, 16 should be maximum
@@ -271,9 +258,13 @@ def test_mp_sample_im_pixels():
             [[2, 1, 0, 3]],
             columns=['time_idx', 'channel_idx', 'pos_idx', 'slice_idx'],
         )
+        meta_row['dir_name'] = temp_path
+        meta_row['file_name'] = 'im1.tif'
+        meta_row2 = meta_row.copy()
+        meta_row2['file_name'] = 'im2.tif'
         fn_args = [
-            (im1_path, ff_path, 10, meta_row),
-            (im2_path, ff_path, 10, meta_row),
+            (meta_row, ff_path, 10, temp_path),
+            (meta_row2, ff_path, 10, temp_path),
         ]
         res = mp_utils.mp_sample_im_pixels(fn_args, 1)
         nose.tools.assert_equal(len(res), 2)

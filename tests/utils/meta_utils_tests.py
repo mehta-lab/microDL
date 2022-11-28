@@ -55,8 +55,7 @@ class TestMetaUtils(unittest.TestCase):
                     os.path.join(self.mask_dir, im_name),
                     self.mask,
                 )
-                meta_row = aux_utils.parse_idx_from_name(im_name)
-                meta_row['dir_name'] = self.input_dir
+                meta_row = aux_utils.parse_idx_from_name(im_name=im_name, dir_name=self.input_dir)
                 self.input_meta = self.input_meta.append(
                     meta_row,
                     ignore_index=True,
@@ -72,6 +71,7 @@ class TestMetaUtils(unittest.TestCase):
     def test_frames_meta_generator(self):
         frames_meta = meta_utils.frames_meta_generator(
             input_dir=self.input_dir,
+            file_format='png',
             name_parser='parse_idx_from_name',
         )
         for idx, row in frames_meta.iterrows():

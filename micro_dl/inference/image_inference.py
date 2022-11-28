@@ -11,6 +11,7 @@ from micro_dl.input.inference_dataset import InferenceDataSet
 from micro_dl.inference.evaluation_metrics import MetricsEstimator
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.image_utils as image_utils
+import micro_dl.utils.meta_utils as meta_utils
 import micro_dl.utils.tile_utils as tile_utils
 import micro_dl.utils.normalize as normalize
 import micro_dl.plotting.plot_utils as plot_utils
@@ -119,6 +120,25 @@ class ImagePredictor:
             )
             self.pred_dir = os.path.join(self.image_dir, os.path.basename(model_dir))
         os.makedirs(self.pred_dir, exist_ok=True)
+
+        try:
+            # Check if metadata is present
+            self.frames_meta = aux_utils.read_meta(self.image_dir)
+        except AssertionError as e:
+            print(e, "Generating metadata.")
+            order = "cztp"
+            name_parser = "parse_sms_name"
+            if "metadata" in preprocess_config:
+                if "order" in preprocess_config["metadata"]:
+                    order = preprocess_config["metadata"]["order"]
+                if "name_parser" in preprocess_config["metadata"]:
+                    name_parser = preprocess_config["metadata"]["name_parser"]
+            # Create metadata from file names instead
+            self.frames_meta = meta_utils.frames_meta_generator(
+                input_dir=self.image_dir,
+                order=order,
+                name_parser=name_parser,
+            )
 
         # Set default for data split, determine column name and indices
         # TODO remove these parameters from config. drop support for variability
@@ -293,10 +313,8 @@ class ImagePredictor:
         :return list inference_ids: Indices for inference given data split
         :return str split_col: Dataframe column name, which was split in training
         """
-        # TODO handle config parameter in master config
         split_col = self.config["dataset"]["split_by_column"]
-        frames_meta = aux_utils.read_meta(self.image_dir)
-        inference_ids = np.unique(frames_meta[split_col]).tolist()
+        inference_ids = np.unique(self.frames_meta[split_col]).tolist()
         if data_split == "all":
             return split_col, inference_ids
 

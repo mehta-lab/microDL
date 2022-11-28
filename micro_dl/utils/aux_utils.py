@@ -99,7 +99,7 @@ def get_meta_idx(frames_metadata, time_idx, channel_idx, slice_idx, pos_idx):
     :param dataframe frames_metadata: Dataframe with column names given below
     :param int time_idx: Timepoint index
     :param int channel_idx: Channel index
-    :param int slice_idx: Slize (z) index
+    :param int slice_idx: Slice (z) index
     :param int pos_idx: Position (FOV) index
     :return: int pos_idx: Row position matching indices above
     """
@@ -117,12 +117,20 @@ def get_sub_meta(frames_metadata, time_ids, channel_ids, slice_ids, pos_ids):
     Get sliced metadata dataframe given variable indices
 
     :param dataframe frames_metadata: Dataframe with column names given below
-    :param int time_ids: Timepoint indices
-    :param int channel_ids: Channel indices
-    :param int slice_ids: Slize (z) indices
-    :param int pos_ids: Position (FOV) indices
+    :param int/list time_ids: Timepoint indices
+    :param int/list channel_ids: Channel indices
+    :param int/list slice_ids: Slize (z) indices
+    :param int/list pos_ids: Position (FOV) indices
     :return: int pos_ids: Row positions matching indices above
     """
+    if isinstance(channel_ids, (int, np.integer)):
+        channel_ids = [channel_ids]
+    if isinstance(time_ids, (int, np.integer)):
+        time_ids = [time_ids]
+    if isinstance(slice_ids, (int, np.integer)):
+        slice_ids = [slice_ids]
+    if isinstance(pos_ids, (int, np.integer)):
+        pos_ids = [pos_ids]
     frames_meta_sub = frames_metadata[
         (frames_metadata["channel_idx"].isin(channel_ids))
         & (frames_metadata["time_idx"].isin(time_ids))
@@ -544,7 +552,7 @@ def get_sorted_names(dir_name):
     return natsort.natsorted(im_names)
 
 
-def parse_idx_from_name(im_name, df_names=DF_NAMES, order="cztp"):
+def parse_idx_from_name(im_name, df_names=DF_NAMES, dir_name=None, order="cztp"):
     """
     Assumes im_name is e.g. im_c***_z***_p***_t***.png,
     It doesn't care about the extension or the number of digits each index is
@@ -552,7 +560,8 @@ def parse_idx_from_name(im_name, df_names=DF_NAMES, order="cztp"):
     them by order. By default it assumes that the order is c, z, t, p.
 
     :param str im_name: Image name without path
-    :param list of strs df_names: Dataframe col names
+    :param list[strs] df_names: Dataframe col names
+    :param str dir_name: Directory path
     :param str order: Order in which c, z, t, p are given in the image (4 chars)
     :return dict meta_row: One row of metadata given image file name
     """
@@ -564,6 +573,8 @@ def parse_idx_from_name(im_name, df_names=DF_NAMES, order="cztp"):
     # Channel name can't be retrieved from image name
     meta_row["channel_name"] = np.nan
     meta_row["file_name"] = im_name
+    if dir_name is not None:
+        meta_row['dir_name'] = dir_name
     # Find all integers in name string
     ints = re.findall(r"\d+", im_name)
     assert len(ints) == 4, "Expected 4 integers, found {}".format(len(ints))
@@ -577,7 +588,7 @@ def parse_idx_from_name(im_name, df_names=DF_NAMES, order="cztp"):
     return meta_row
 
 
-def parse_sms_name(im_name, df_names=DF_NAMES, channel_names=[]):
+def parse_sms_name(im_name, df_names=DF_NAMES, dir_name=None, channel_names=[]):
     """
     Parse metadata from file name or file path.
     This function is custom for the computational microscopy (SMS)
@@ -588,6 +599,7 @@ def parse_sms_name(im_name, df_names=DF_NAMES, channel_names=[]):
 
     :param str im_name: File name or path
     :param list of strs df_names: Dataframe col names
+    :param str dir_name: Directory path
     :param list[str] channel_names: Expanding list of channel names
     :return dict meta_row: One row of metadata given image file name
     """
@@ -595,7 +607,10 @@ def parse_sms_name(im_name, df_names=DF_NAMES, channel_names=[]):
     # Get rid of path if present
     im_name = os.path.basename(im_name)
     meta_row["file_name"] = im_name
-    im_name = im_name[:-4]
+    if dir_name is not None:
+        meta_row['dir_name'] = dir_name
+    # Remove extension
+    im_name = im_name.split('.')[0]
     str_split = im_name.split("_")[1:]
 
     if len(str_split) > 4:
