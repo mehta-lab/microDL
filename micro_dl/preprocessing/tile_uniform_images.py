@@ -15,14 +15,14 @@ class ImageTilerUniform:
     def __init__(self,
                  input_dir,
                  output_dir,
+                 time_ids,
+                 channel_ids,
+                 slice_ids,
+                 pos_ids,
+                 normalize_channels,
                  tile_size=[256, 256],
                  step_size=[64, 64],
                  depths=1,
-                 time_ids=-1,
-                 channel_ids=-1,
-                 normalize_channels=-1,
-                 slice_ids=-1,
-                 pos_ids=-1,
                  hist_clip_limits=None,
                  flat_field_dir=None,
                  image_format='zyx',
@@ -49,14 +49,13 @@ class ImageTilerUniform:
             Default 1 assumes 2D data for all channels to be tiled.
             For cases where input and target shapes are not the same (e.g. stack
             to 2D) you should specify depths for each channel in tile.channels.
-        :param list/int time_ids: Tile given timepoint indices
-        :param list/int channel_ids: Tile images in the given channel indices
-            default=-1, tile all channels.
-        :param list/int normalize_channels: list of booleans matching channel_ids
+        :param list time_ids: Tile given timepoint indices
+        :param list channel_ids: Tile images in the given channel indices
+        :param list slice_ids: Index of which focal plane acquisition to
+            use.
+        :param list pos_ids: Position (FOV) indices to use
+        :param list normalize_channels: list of booleans matching channel_ids
             indicating if channel should be normalized or not.
-        :param int slice_ids: Index of which focal plane acquisition to
-            use (for 2D). default=-1 for the whole z-stack
-        :param list/int pos_ids: Position (FOV) indices to use
         :param list hist_clip_limits: lower and upper percentiles used for
             histogram clipping.
         :param str flat_field_dir: Flatfield directory. None if no flatfield
@@ -83,6 +82,7 @@ class ImageTilerUniform:
         self.num_workers = num_workers
         self.int2str_len = int2str_len
         self.tile_3d = tile_3d
+        self.mask_depth = None
 
         self.str_tile_step = 'tiles_{}_step_{}'.format(
             '-'.join([str(val) for val in tile_size]),
@@ -107,20 +107,10 @@ class ImageTilerUniform:
 
         self.flat_field_dir = flat_field_dir
         self.frames_metadata = aux_utils.read_meta(self.input_dir)
-        # Get metadata indices
-        metadata_ids, _ = aux_utils.validate_metadata_indices(
-            frames_metadata=self.frames_metadata,
-            time_ids=time_ids,
-            channel_ids=channel_ids,
-            slice_ids=slice_ids,
-            pos_ids=pos_ids,
-            uniform_structure=True
-        )
-
-        self.channel_ids = metadata_ids['channel_ids']
-        self.time_ids = metadata_ids['time_ids']
-        self.slice_ids = metadata_ids['slice_ids']
-        self.pos_ids = metadata_ids['pos_ids']
+        self.channel_ids = channel_ids
+        self.time_ids = time_ids
+        self.slice_ids = slice_ids
+        self.pos_ids = pos_ids
         self.min_fraction = min_fraction
 
         if isinstance(self.depths, list):
@@ -153,21 +143,9 @@ class ImageTilerUniform:
             pos_ids=self.pos_ids)
 
         # Determine which channels should be normalized in tiling
-        if normalize_channels == -1:
-            self.normalize_channels = \
-                dict(zip(self.channel_ids, [normalize_im] * len(self.channel_ids)))
-        else:
-            assert len(normalize_channels) == len(self.channel_ids),\
-                "Channel ids {} and normalization list {} mismatch".format(
-                    self.channel_ids,
-                    normalize_channels,
-                )
-
-            normalize_channels = [normalize_im if flag else None for flag in normalize_channels]
-
-            self.normalize_channels = \
-                dict(zip(self.channel_ids, normalize_channels))
-                # If more than one depth is specified, length must match channel ids
+        normalize_channels = [normalize_im if flag else None for flag in normalize_channels]
+        # If more than one depth is specified, length must match channel ids
+        self.normalize_channels = dict(zip(self.channel_ids, normalize_channels))
 
     def get_tile_dir(self):
         """
@@ -187,7 +165,7 @@ class ImageTilerUniform:
         This is one of the functions that will have to be adapted once tested on
         3D data.
 
-        :return dataframe tiled_metadata
+        :return pd.DataFrame tiled_metadata: Metadata for tiles
         """
         return pd.DataFrame(columns=[
             "channel_idx",
@@ -196,27 +174,9 @@ class ImageTilerUniform:
             "file_name",
             "pos_idx",
             "row_start",
-            "col_start"])
-
-    def _get_flat_field(self, channel_idx):
-        """
-        Get flat field image for a given channel index
-
-        :param int channel_idx: Channel index
-        :return np.array flat_field_im: flat field image for channel
-        """
-        flat_field_im = None
-        if self.flat_field_dir is not None:
-            try:
-                flat_field_im = np.load(
-                    os.path.join(
-                        self.flat_field_dir,
-                        'flat-field_channel-{}.npy'.format(channel_idx),
-                    )
-                )
-            except FileNotFoundError:
-                print("Flatfield not found for channel {}, returning None".format(channel_idx))
-        return flat_field_im
+            "col_start",
+            "dir_name",
+        ])
 
     def _get_tile_indices(self, tiled_meta,
                           time_idx,
@@ -265,9 +225,9 @@ class ImageTilerUniform:
         If tile directory already exists, check which channels have been
         processed and only tile new channels.
 
-        :return dataframe tiled_meta: Metadata with previously tiled channels
-        :return list of lists tile_indices: Nbr tiles x 4 indices with row
-        start + stop and column start + stop indices
+        :return pd.DataFrame tiled_meta: Metadata with previously tiled channels
+        :return list[lists] tile_indices: Nbr tiles x 4 indices with row
+            start + stop and column start + stop indices
         """
         if self.tiles_exist:
             tiled_meta = aux_utils.read_meta(self.tile_dir)
@@ -291,13 +251,14 @@ class ImageTilerUniform:
             tile_indices = None
         return tiled_meta, tile_indices
 
-    def _get_input_fnames(self,
-                          time_idx,
-                          channel_idx,
-                          slice_idx,
-                          pos_idx,
-                          mask_dir=None):
-        """Get input_fnames
+    def _get_meta_rows(self,
+                       time_idx,
+                       channel_idx,
+                       slice_idx,
+                       pos_idx,
+                       mask_dir=None):
+        """
+        Get a sub meta containing rows for tiling
 
         :param int time_idx: Time index
         :param int channel_idx: Channel index
@@ -306,41 +267,28 @@ class ImageTilerUniform:
         :param str mask_dir: Directory containing masks
         :return: list of input fnames
         """
+        temp_meta = self.frames_metadata
         if mask_dir is None:
             depth = self.channel_depth[channel_idx]
         else:
             depth = self.mask_depth
+            temp_meta = aux_utils.read_meta(mask_dir)
+
         margin = 0 if depth == 1 else depth // 2
-        im_fnames = []
+        meta_sub = aux_utils.make_dataframe()
         for z in range(slice_idx - margin, slice_idx + margin + 1):
-            if mask_dir is not None:
-                mask_meta = aux_utils.read_meta(mask_dir)
-                meta_idx = aux_utils.get_meta_idx(
-                    mask_meta,
-                    time_idx,
-                    channel_idx,
-                    z,
-                    pos_idx,
-                )
-                file_path = os.path.join(
-                    mask_dir,
-                    mask_meta.loc[meta_idx, 'file_name'],
-                )
-            else:
-                meta_idx = aux_utils.get_meta_idx(
-                    self.frames_metadata,
-                    time_idx,
-                    channel_idx,
-                    z,
-                    pos_idx,
-                )
-                file_path = os.path.join(
-                    self.input_dir,
-                    self.frames_metadata.loc[meta_idx, 'file_name'],
-                )
-            # check if file_path exists
-            im_fnames.append(file_path)
-        return im_fnames
+            meta_idx = aux_utils.get_meta_idx(
+                temp_meta,
+                time_idx,
+                channel_idx,
+                z,
+                pos_idx,
+            )
+            meta_sub = meta_sub.append(
+                temp_meta.loc[meta_idx],
+                ignore_index=True,
+            )
+        return meta_sub
 
     def get_crop_tile_args(self,
                            channel_idx,
@@ -363,57 +311,59 @@ class ImageTilerUniform:
         :return list cur_args: tuple of arguments for tiling
                 list tile_indices: tile indices for current image
         """
-        input_fnames = self._get_input_fnames(
+        meta_sub = self._get_meta_rows(
             time_idx=time_idx,
             channel_idx=channel_idx,
             slice_idx=slice_idx,
             pos_idx=pos_idx,
-            mask_dir=mask_dir
+            mask_dir=mask_dir,
         )
         # no flat field correction and normalization for masks
-        flat_field_fname = None
+        flat_field_path = None
         hist_clip_limits = None
         zscore_median = None
         zscore_iqr = None
         is_mask = False
         normalize_im = None
+        dir_name = self.input_dir
         if mask_dir is None:
             normalize_im = self.normalize_channels[channel_idx]
-            if self.flat_field_dir is not None:
-                flat_field_fname = os.path.join(
-                    self.flat_field_dir,
-                    'flat-field_channel-{}.npy'.format(channel_idx)
-                )
+            flat_field_path = image_utils.get_flat_field_path(
+                self.flat_field_dir,
+                channel_idx,
+                self.channel_ids,
+            )
             # no hist_clipping for mask as mask is bool
             if self.hist_clip_limits is not None:
                 hist_clip_limits = tuple(
                     self.hist_clip_limits
                 )
-            frame_idx = aux_utils.get_meta_idx(
-                self.frames_metadata,
-                time_idx,
-                channel_idx,
-                slice_idx,
-                pos_idx,
-            )
             if normalize_im in ['dataset', 'volume', 'slice']:
-                zscore_median, zscore_iqr = \
-                    self.frames_metadata.loc[frame_idx, ['zscore_median', 'zscore_iqr']].tolist()
+                frame_idx = aux_utils.get_meta_idx(
+                    self.frames_metadata,
+                    time_idx,
+                    channel_idx,
+                    slice_idx,
+                    pos_idx,
+                )
+                zscore_median, zscore_iqr = self.frames_metadata.loc[
+                    frame_idx, ['zscore_median', 'zscore_iqr'],
+                ].tolist()
         else:
             # Using masks, need to make sure they're bool
             is_mask = True
+            dir_name = mask_dir
 
+        cur_args = ()
         if task_type == 'crop':
-            cur_args = (tuple(input_fnames),
-                        flat_field_fname,
+            cur_args = (meta_sub,
+                        flat_field_path,
                         hist_clip_limits,
-                        time_idx,
-                        channel_idx,
-                        pos_idx,
                         slice_idx,
                         tuple(tile_indices),
                         self.image_format,
                         self.tile_dir,
+                        dir_name,
                         self.int2str_len,
                         is_mask,
                         self.tile_3d,
@@ -421,18 +371,16 @@ class ImageTilerUniform:
                         zscore_median,
                         zscore_iqr)
         elif task_type == 'tile':
-            cur_args = (tuple(input_fnames),
-                        flat_field_fname,
+            cur_args = (meta_sub,
+                        flat_field_path,
                         hist_clip_limits,
-                        time_idx,
-                        channel_idx,
-                        pos_idx,
                         slice_idx,
                         self.tile_size,
                         self.step_size,
                         self.min_fraction,
                         self.image_format,
                         self.tile_dir,
+                        dir_name,
                         self.int2str_len,
                         is_mask,
                         normalize_im,
@@ -458,7 +406,11 @@ class ImageTilerUniform:
         fn_args = []
         for channel_idx in self.channel_ids:
             # Perform flatfield correction if flatfield dir is specified
-            flat_field_im = self._get_flat_field(channel_idx=channel_idx)
+            flat_field_path = image_utils.get_flat_field_path(
+                self.flat_field_dir,
+                channel_idx,
+                self.channel_ids,
+            )
             for slice_idx in self.slice_ids:
                 for time_idx in self.time_ids:
                     for pos_idx in self.pos_ids:
@@ -467,13 +419,13 @@ class ImageTilerUniform:
                             # get meta data and tile_indices
                             im = image_utils.preprocess_imstack(
                                 frames_metadata=self.frames_metadata,
-                                input_dir=self.input_dir,
                                 depth=self.channel_depth[channel_idx],
                                 time_idx=time_idx,
                                 channel_idx=channel_idx,
                                 slice_idx=slice_idx,
                                 pos_idx=pos_idx,
-                                flat_field_im=flat_field_im,
+                                dir_name=self.input_dir,
+                                flat_field_path=flat_field_path,
                                 hist_clip_limits=self.hist_clip_limits,
                                 normalize_im=self.normalize_channels[channel_idx],
                             )
@@ -518,6 +470,7 @@ class ImageTilerUniform:
             )
         # Finally, save all the metadata
         tiled_metadata = tiled_metadata.sort_values(by=['file_name'])
+        tiled_metadata['dir_name'] = self.tile_dir
         tiled_metadata.to_csv(
             os.path.join(self.tile_dir, "frames_meta.csv"),
             sep=",",
@@ -611,6 +564,7 @@ class ImageTilerUniform:
             workers=self.num_workers,
         )
         tiled_metadata = pd.concat(tiled_meta_df_list, ignore_index=True)
+        tiled_metadata['dir_name'] = self.tile_dir
         # If there's been tiling done already, add to existing metadata
         prev_tiled_metadata = aux_utils.read_meta(self.tile_dir)
         tiled_metadata = pd.concat(

@@ -12,6 +12,7 @@ from micro_dl.inference.evaluation_metrics import MetricsEstimator
 from micro_dl.inference.stitch_predictions import ImageStitcher
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.image_utils as image_utils
+import micro_dl.utils.meta_utils as meta_utils
 import micro_dl.utils.tile_utils as tile_utils
 from micro_dl.utils.train_utils import set_keras_session
 import micro_dl.utils.normalize as normalize
@@ -117,6 +118,25 @@ class ImagePredictor:
         self.config = train_config
         self.model_dir = model_dir
         self.image_dir = inference_config['image_dir']
+
+        try:
+            # Check if metadata is present
+            self.frames_meta = aux_utils.read_meta(self.image_dir)
+        except AssertionError as e:
+            print(e, "Generating metadata.")
+            file_format = 'zarr'
+            if 'file_format' in preprocess_config:
+                file_format = preprocess_config['file_format']
+            name_parser = 'parse_sms_name'
+            if 'metadata' in preprocess_config:
+                if 'name_parser' in preprocess_config['metadata']:
+                    name_parser = preprocess_config['metadata']['name_parser']
+            # Create metadata from file names instead
+            self.frames_meta = meta_utils.frames_meta_generator(
+                input_dir=self.image_dir,
+                file_format=file_format,
+                name_parser=name_parser,
+            )
 
         # Set default for data split, determine column name and indices
         data_split = 'test'
@@ -299,8 +319,7 @@ class ImagePredictor:
         :return str split_col: Dataframe column name, which was split in training
         """
         split_col = self.config['dataset']['split_by_column']
-        frames_meta = aux_utils.read_meta(self.image_dir)
-        inference_ids = np.unique(frames_meta[split_col]).tolist()
+        inference_ids = np.unique(self.frames_meta[split_col]).tolist()
         if data_split == 'all':
             return split_col, inference_ids
 

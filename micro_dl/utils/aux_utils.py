@@ -52,11 +52,91 @@ def read_config(config_fname):
     :param str config_fname: fname of config yaml with its full path
     :return: dict config: Configuration parameters
     """
-
     with open(config_fname, 'r') as f:
         config = yaml.safe_load(f)
-
     return config
+
+
+def get_channels(frames_meta):
+    """
+    Load frames metadata from directory, find channel names and their
+    corresponding indices.
+
+    :param pd.DataFrame frames_meta: Metadata for frames
+    :return dict channel_map: Channel name and corresponding index
+    :raises AssertionError: if channel name column is incompletely populated
+    """
+    # Get all channel names
+    channel_names = frames_meta['channel_name'].unique()
+    assert not pd.isna(channel_names).any(), \
+        "Channel names are missing, please check frames_meta.csv." \
+        " Channel names found: {}".format(channel_names.tolist())
+
+    channel_map = {}
+    for c in range(len(channel_names)):
+        channel_name = channel_names[c]
+        sub_meta = frames_meta[frames_meta['channel_name'] == channel_name]
+        channel_idx = sub_meta['channel_idx'].unique()
+        assert len(channel_idx) == 1, "More than one idx for channel " \
+                                      "{}".format(channel_name)
+        channel_map[channel_name] = int(channel_idx)
+    return channel_map
+
+
+def convert_channel_names_to_ids(channel_map, channel_list):
+    """
+    Assuming you have a dict from get_channels and a list of channel
+    names, you get a list of channel indices.
+
+    :param dict channel_map: Channel names with indices
+    :param list channel_list: List of channel names (subset of channel_map)
+        if containing ints, return as is.
+    :return list channel_ids: List of (int) channel indices
+    :raises AssertionError: if any channel in list is not in channel_map
+    """
+    if all(isinstance(val, int) for val in channel_list):
+        # Check that indices exist in metadata
+        assert set(channel_list).issubset(set(channel_map.values())), \
+            "Channel list {} is not subset of frames meta channels:" \
+            " {}".format(channel_list, channel_map.values())
+        return channel_list
+    channel_ids = []
+    existing_channels = list(channel_map)
+    for channel_name in channel_list:
+        assert channel_name in existing_channels, \
+            "{} not in mapped values from frames_meta:" \
+            " {}".format(channel_name, existing_channels)
+        channel_ids.append(channel_map[channel_name])
+    return channel_ids
+
+
+def validate_indices(frames_meta, preprocess_config, idx_type):
+    """
+    Helper function to check if a list of position, time or slice
+    indices in the preprocessing config exist in the frames metadata.
+    If not, use all indices in metadata.
+
+    :param pd.DataFrame frames_meta: Metadata for all images
+    :param dict preprocess_config: Preprocessing config
+    :param str idx_type: Type of index: 'pos', 'time', 'slice'
+    :return list use_ids: Indices to be used in preprocessing
+    :raises AssertionError: If indices in preprocess config is not
+        a subset of those found in frames metadata
+    """
+    assert idx_type in {'pos', 'time', 'slice'}, \
+        "Idx type: {} not present in metadata".format(idx_type)
+    meta_name = idx_type + '_idx'
+    all_ids = list(frames_meta[meta_name].unique())
+    config_name = idx_type + '_ids'
+    if config_name in preprocess_config:
+        use_ids = preprocess_config[config_name]
+        assert set(use_ids).issubset(set(all_ids)), \
+            "{} indices: {} are not a subset of frames meta indices: " \
+            "{}.".format(idx_type, use_ids, all_ids)
+    else:
+        use_ids = all_ids
+    use_ids.sort()
+    return use_ids
 
 
 def get_row_idx(frames_metadata,
@@ -103,7 +183,7 @@ def get_meta_idx(frames_metadata,
     :param dataframe frames_metadata: Dataframe with column names given below
     :param int time_idx: Timepoint index
     :param int channel_idx: Channel index
-    :param int slice_idx: Slize (z) index
+    :param int slice_idx: Slice (z) index
     :param int pos_idx: Position (FOV) index
     :return: int pos_idx: Row position matching indices above
     """
@@ -124,17 +204,25 @@ def get_sub_meta(frames_metadata,
     Get sliced metadata dataframe given variable indices
 
     :param dataframe frames_metadata: Dataframe with column names given below
-    :param int time_ids: Timepoint indices
-    :param int channel_ids: Channel indices
-    :param int slice_ids: Slize (z) indices
-    :param int pos_ids: Position (FOV) indices
+    :param int/list time_ids: Timepoint indices
+    :param int/list channel_ids: Channel indices
+    :param int/list slice_ids: Slize (z) indices
+    :param int/list pos_ids: Position (FOV) indices
     :return: int pos_ids: Row positions matching indices above
     """
+    if isinstance(channel_ids, (int, np.integer)):
+        channel_ids = [channel_ids]
+    if isinstance(time_ids, (int, np.integer)):
+        time_ids = [time_ids]
+    if isinstance(slice_ids, (int, np.integer)):
+        slice_ids = [slice_ids]
+    if isinstance(pos_ids, (int, np.integer)):
+        pos_ids = [pos_ids]
     frames_meta_sub = frames_metadata[
         (frames_metadata['channel_idx'].isin(channel_ids)) &
         (frames_metadata['time_idx'].isin(time_ids)) &
         (frames_metadata["slice_idx"].isin(slice_ids)) &
-        (frames_metadata["pos_idx"].isin(pos_ids))]
+        (frames_metadata["pos_idx"].isin(pos_ids))].copy()
     return frames_meta_sub
 
 
@@ -177,7 +265,7 @@ def get_sms_im_name(time_idx=None,
                     slice_idx=None,
                     pos_idx=None,
                     extra_field=None,
-                    ext='.npy',
+                    ext='.tiff',
                     int2str_len=3):
     """
     Create an image name given parameters and extension
@@ -192,11 +280,12 @@ def get_sms_im_name(time_idx=None,
     :param int slice_idx: Slice (z) index
     :param int pos_idx: Position (FOV) index
     :param str extra_field: Any extra string you want to include in the name
-    :param str ext: Extension, e.g. '.png'
+    :param str ext: Extension starting with period, default '.tiff'
     :param int int2str_len: Length of string of the converted integers
     :return str im_name: Image file name
     """
-
+    if ext[0] is not '.':
+        ext = '.' + ext
     im_name = "img"
     if not pd.isnull(channel_name):
         im_name += "_" + str(channel_name)
@@ -222,7 +311,6 @@ def sort_meta_by_channel(frames_metadata):
     :return dataframe sorted_metadata: Metadata with separate file_name_X for
         channel X.
     """
-
     metadata_ids, tp_dict = validate_metadata_indices(
         frames_metadata,
         time_ids=-1,
@@ -540,15 +628,15 @@ def get_sorted_names(dir_name):
     return natsort.natsorted(im_names)
 
 
-def parse_idx_from_name(im_name, df_names=DF_NAMES, order="cztp"):
+def parse_idx_from_name(im_name, df_names=DF_NAMES, dir_name=None, order="cztp"):
     """
     Assumes im_name is e.g. im_c***_z***_p***_t***.png,
     It doesn't care about the extension or the number of digits each index is
     represented by, it extracts all integers from the image file name and assigns
     them by order. By default it assumes that the order is c, z, t, p.
-
     :param str im_name: Image name without path
     :param list of strs df_names: Dataframe col names
+    :param str dir_name: Directory path
     :param str order: Order in which c, z, t, p are given in the image (4 chars)
     :return dict meta_row: One row of metadata given image file name
     """
@@ -559,6 +647,8 @@ def parse_idx_from_name(im_name, df_names=DF_NAMES, order="cztp"):
     # Channel name can't be retrieved from image name
     meta_row["channel_name"] = np.nan
     meta_row["file_name"] = im_name
+    if dir_name is not None:
+        meta_row['dir_name'] = dir_name
     # Find all integers in name string
     ints = re.findall(r'\d+', im_name)
     assert len(ints) == 4, "Expected 4 integers, found {}".format(len(ints))
@@ -575,17 +665,19 @@ def parse_idx_from_name(im_name, df_names=DF_NAMES, order="cztp"):
     return meta_row
 
 
-def parse_sms_name(im_name, df_names=DF_NAMES, channel_names=[]):
+def parse_sms_name(im_name, df_names=DF_NAMES, dir_name=None, channel_names=[]):
     """
     Parse metadata from file name or file path.
     This function is custom for the computational microscopy (SMS)
     group, who has the following file naming convention:
     File naming convention is assumed to be:
         img_channelname_t***_p***_z***.tif
+    The order of t, p, and z is arbitrary.
     This function will alter list and dict in place.
 
     :param str im_name: File name or path
     :param list of strs df_names: Dataframe col names
+    :param str dir_name: Directory path
     :param list[str] channel_names: Expanding list of channel names
     :return dict meta_row: One row of metadata given image file name
     """
@@ -593,8 +685,14 @@ def parse_sms_name(im_name, df_names=DF_NAMES, channel_names=[]):
     # Get rid of path if present
     im_name = os.path.basename(im_name)
     meta_row["file_name"] = im_name
-    im_name = im_name[:-4]
+    if dir_name is not None:
+        meta_row['dir_name'] = dir_name
+    # Remove extension
+    im_name = im_name.split('.')[0]
     str_split = im_name.split("_")[1:]
+    assert len(str_split) >= 4, \
+        "Image name must contain channel name and t, p, z indices (e.g. " \
+        "img_channelname_t***_p***_z***.tif), not {}".format(im_name)
 
     if len(str_split) > 4:
         # this means they have introduced additional _ in the file name

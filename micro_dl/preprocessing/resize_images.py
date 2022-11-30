@@ -5,6 +5,7 @@ import os
 import pandas as pd
 
 import micro_dl.utils.aux_utils as aux_utils
+import micro_dl.utils.image_utils as im_utils
 import micro_dl.utils.mp_utils as mp_utils
 
 
@@ -15,10 +16,10 @@ class ImageResizer:
                  input_dir,
                  output_dir,
                  scale_factor,
-                 channel_ids=-1,
-                 time_ids=-1,
-                 slice_ids=-1,
-                 pos_ids=-1,
+                 channel_ids,
+                 time_ids,
+                 slice_ids,
+                 pos_ids,
                  int2str_len=3,
                  num_workers=4,
                  flat_field_dir=None,
@@ -29,9 +30,9 @@ class ImageResizer:
         :param float/list scale_factor: Scale factor for resizing frames.
         :param int/list channel_ids: Channel indices to resize
             (default -1 includes all slices)
-        :param int/list time_ids: timepoints to use
-        :param int/list slice_ids: Index of slice (z) indices to use
-        :param int/list pos_ids: Position (FOV) indices to use
+        :param list time_ids: timepoints to use
+        :param list slice_ids: Index of slice (z) indices to use
+        :param list pos_ids: Position (FOV) indices to use
         :param int int2str_len: Length of str when converting ints
         :param int num_workers: number of workers for multiprocessing
         :param str flat_field_dir: dir with flat field images
@@ -46,17 +47,10 @@ class ImageResizer:
         self.scale_factor = scale_factor
 
         self.frames_metadata = aux_utils.read_meta(self.input_dir)
-        metadata_ids, _ = aux_utils.validate_metadata_indices(
-            frames_metadata=self.frames_metadata,
-            time_ids=time_ids,
-            channel_ids=channel_ids,
-            slice_ids=slice_ids,
-            pos_ids=pos_ids,
-        )
-        self.time_ids = metadata_ids['time_ids']
-        self.channel_ids = metadata_ids['channel_ids']
-        self.slice_ids = metadata_ids['slice_ids']
-        self.pos_ids = metadata_ids['pos_ids']
+        self.time_ids = time_ids
+        self.channel_ids = channel_ids
+        self.slice_ids = slice_ids
+        self.pos_ids = pos_ids
         self.flat_field_channels = flat_field_channels
 
         # Create resize_dir as a subdirectory of output_dir
@@ -81,49 +75,34 @@ class ImageResizer:
         """
         Resize frames for given indices.
         """
-
         assert isinstance(self.scale_factor, (float, int)), \
             'different scale factors provided for x and y'
         mp_args = []
-        resized_metadata = aux_utils.make_dataframe()
-        # Loop through all the indices and resize images
-        for slice_idx in self.slice_ids:
-            for time_idx in self.time_ids:
-                for pos_idx in self.pos_ids:
-                    for channel_idx in self.channel_ids:
-                        frame_idx = aux_utils.get_meta_idx(
-                            self.frames_metadata,
-                            time_idx,
-                            channel_idx,
-                            slice_idx,
-                            pos_idx,
-                        )
-                        file_name = self.frames_metadata.loc[frame_idx,
-                                                             "file_name"]
-                        file_path = os.path.join(self.input_dir, file_name)
-                        write_path = os.path.join(self.resize_dir, file_name)
-                        ff_path = None
-                        if self.flat_field_dir is not None and \
-                            channel_idx in self.flat_field_channels:
-                            ff_name = 'flat-field_channel-{}.npy'.format(channel_idx)
-                            if ff_name in os.listdir(self.flat_field_dir):
-                                ff_path = os.path.join(
-                                    self.flat_field_dir,
-                                    ff_name,
-                                )
-                        kwargs = {
-                            'file_path': file_path,
-                            'write_path': write_path,
-                            'scale_factor': self.scale_factor,
-                            'ff_path': ff_path,
-                        }
-                        mp_args.append(kwargs)
-                        resized_metadata = resized_metadata.append(
-                            self.frames_metadata.iloc[frame_idx],
-                            ignore_index=True,
-                        )
+        # Loop through all the given indices and resize images
+        resized_metadata = aux_utils.get_sub_meta(
+            self.frames_metadata,
+            self.time_ids,
+            self.channel_ids,
+            self.slice_ids,
+            self.pos_ids,
+        )
+        for i, meta_row in resized_metadata.iterrows():
+            ff_path = im_utils.get_flat_field_path(
+                self.flat_field_dir,
+                meta_row['channel_idx'],
+                self.flat_field_channels,
+            )
+            kwargs = {
+                'meta_row': meta_row,
+                'dir_name': self.input_dir,
+                'output_dir': self.resize_dir,
+                'scale_factor': self.scale_factor,
+                'ff_path': ff_path,
+            }
+            mp_args.append(kwargs)
         # Multiprocessing of kwargs
         mp_utils.mp_resize_save(mp_args, self.num_workers)
+        resized_metadata['dir_name'] = self.resize_dir
         resized_metadata = resized_metadata.sort_values(by=['file_name'])
         resized_metadata.to_csv(
             os.path.join(self.resize_dir, "frames_meta.csv"),
@@ -155,26 +134,23 @@ class ImageResizer:
         for time_idx in self.time_ids:
             for pos_idx in self.pos_ids:
                 for channel_idx in self.channel_ids:
-                    ff_path = None
-                    if self.flat_field_dir is not None:
-                        ff_name = 'flat-field_channel-{}.npy'.format(channel_idx)
-                        if ff_name in os.listdir(self.flat_field_dir):
-                            ff_path = os.path.join(
-                                self.flat_field_dir,
-                                ff_name,
-                            )
+                    ff_path = im_utils.get_flat_field_path(
+                        self.flat_field_dir,
+                        channel_idx,
+                        self.flat_field_channels,
+                    )
                     for block_idx in range(num_blocks):
                         idx = self.slice_ids[0] + \
                               block_idx * (num_slices_subvolume - 1)
-                        start_idx = np.maximum(self.slice_ids[0], idx)
-                        end_idx = start_idx + num_slices_subvolume
-                        if end_idx > self.slice_ids[-1]:
-                            end_idx = self.slice_ids[-1] + 1
-                            start_idx = end_idx - num_slices_subvolume
+                        slice_start_idx = np.maximum(self.slice_ids[0], idx)
+                        slice_end_idx = slice_start_idx + num_slices_subvolume
+                        if slice_end_idx > self.slice_ids[-1]:
+                            slice_end_idx = self.slice_ids[-1] + 1
+                            slice_start_idx = slice_end_idx - num_slices_subvolume
                         op_fname = aux_utils.get_im_name(
                             time_idx,
                             channel_idx,
-                            start_idx,
+                            slice_start_idx,
                             pos_idx,
                             extra_field=sc_str,
                             ext='.npy',
@@ -183,17 +159,18 @@ class ImageResizer:
                         mp_args.append((time_idx,
                                         pos_idx,
                                         channel_idx,
-                                        start_idx,
-                                        end_idx,
+                                        slice_start_idx,
+                                        slice_end_idx,
                                         self.frames_metadata,
+                                        self.input_dir,
                                         write_fpath,
                                         self.scale_factor,
-                                        self.input_dir,
                                         ff_path))
 
         # Multiprocessing of kwargs
         resized_metadata_list = mp_utils.mp_rescale_vol(mp_args, self.num_workers)
         resized_metadata_df = pd.DataFrame.from_dict(resized_metadata_list)
+        resized_metadata_df['dir_name'] = self.resize_dir
         resized_metadata_df.to_csv(
             os.path.join(self.resize_dir, 'frames_meta.csv'),
             sep=',',

@@ -8,7 +8,6 @@ import unittest
 
 import micro_dl.preprocessing.tile_uniform_images as tile_images
 import micro_dl.utils.aux_utils as aux_utils
-import micro_dl.utils.normalize as norm_util
 
 
 class TestImageTilerUniform(unittest.TestCase):
@@ -18,6 +17,10 @@ class TestImageTilerUniform(unittest.TestCase):
 
         self.tempdir = TempDirectory()
         self.temp_path = self.tempdir.path
+        self.flat_field_dir = os.path.join(self.temp_path, 'ff_dir')
+        self.mask_dir = os.path.join(self.temp_path, 'mask_dir')
+        self.tempdir.makedir(self.flat_field_dir)
+        self.tempdir.makedir(self.mask_dir)
         # Start frames meta file
         self.meta_name = 'frames_meta.csv'
         frames_meta = aux_utils.make_dataframe()
@@ -26,53 +29,37 @@ class TestImageTilerUniform(unittest.TestCase):
         self.im2 = 234 * np.ones((15, 11), dtype=np.uint8)
         self.channel_idx = 1
         self.time_idx = 5
-        self.pos_idx1 = 7
-        self.pos_idx2 = 8
+        self.pos_ids = [7, 8]
+        self.slice_ids = list(range(15, 20))
         self.int2str_len = 3
         self.normalize_im = None
 
         # Write test images with 4 z and 2 pos idx
-        for z in range(15, 20):
-            im_name = aux_utils.get_im_name(
-                channel_idx=self.channel_idx,
-                slice_idx=z,
-                time_idx=self.time_idx,
-                pos_idx=self.pos_idx1,
-            )
-
-            meta_row = aux_utils.parse_idx_from_name(
-                im_name)
-            meta_row['mean'] = np.nanmean(self.im)
-            meta_row['std'] = np.nanstd(self.im)
-            cv2.imwrite(
-                os.path.join(self.temp_path, im_name),
-                self.im,
-            )
-            frames_meta = frames_meta.append(
-                meta_row,
-                ignore_index=True
-            )
-
-        for z in range(15, 20):
-            im_name = aux_utils.get_im_name(
-                channel_idx=self.channel_idx,
-                slice_idx=z,
-                time_idx=self.time_idx,
-                pos_idx=self.pos_idx2,
-            )
-
-            meta_row = aux_utils.parse_idx_from_name(
-                im_name)
-            meta_row['mean'] = np.nanmean(self.im2)
-            meta_row['std'] = np.nanstd(self.im2)
-            cv2.imwrite(
-                os.path.join(self.temp_path, im_name),
-                self.im2,
-            )
-            frames_meta = frames_meta.append(
-                meta_row,
-                ignore_index=True
-            )
+        for z in self.slice_ids:
+            for p in self.pos_ids:
+                im = self.im
+                if p == 8:
+                    im = self.im2
+                im_name = aux_utils.get_im_name(
+                    channel_idx=self.channel_idx,
+                    slice_idx=z,
+                    time_idx=self.time_idx,
+                    pos_idx=p,
+                )
+                meta_row = aux_utils.parse_idx_from_name(
+                    im_name=im_name,
+                    dir_name=self.temp_path,
+                )
+                meta_row['mean'] = np.nanmean(self.im)
+                meta_row['std'] = np.nanstd(self.im)
+                cv2.imwrite(
+                    os.path.join(self.temp_path, im_name),
+                    im,
+                )
+                frames_meta = frames_meta.append(
+                    meta_row,
+                    ignore_index=True,
+                )
 
         # Write metadata
         frames_meta.to_csv(
@@ -80,8 +67,6 @@ class TestImageTilerUniform(unittest.TestCase):
             sep=',',
         )
         # Add flatfield
-        self.flat_field_dir = os.path.join(self.temp_path, 'ff_dir')
-        self.tempdir.makedir('ff_dir')
         self.ff_im = 4. * np.ones((15, 11))
         self.ff_name = os.path.join(
             self.flat_field_dir,
@@ -102,15 +87,18 @@ class TestImageTilerUniform(unittest.TestCase):
             step_size=[4, 4],
             depths=3,
             channel_ids=[1],
+            time_ids=[self.time_idx],
+            pos_ids=self.pos_ids,
+            slice_ids=self.slice_ids,
             normalize_channels=[True],
             flat_field_dir=self.flat_field_dir,
             normalize_im=self.normalize_im,
         )
-        exp_fnames = ['im_c001_z015_t005_p007.png',
-                      'im_c001_z016_t005_p007.png',
-                      'im_c001_z017_t005_p007.png']
-        self.exp_fnames = [os.path.join(self.temp_path, fname)
-                           for fname in exp_fnames]
+        self.exp_fnames = [
+            'im_c001_z015_t005_p007.png',
+            'im_c001_z016_t005_p007.png',
+            'im_c001_z017_t005_p007.png',
+        ]
         self.exp_tile_indices = [
             [0, 5, 0, 5], [0, 5, 4, 9], [0, 5, 6, 11],
             [10, 15, 0, 5], [10, 15, 4, 9], [10, 15, 6, 11],
@@ -119,8 +107,6 @@ class TestImageTilerUniform(unittest.TestCase):
         ]
 
         # create a mask
-        mask_dir = os.path.join(self.temp_path, 'mask_dir')
-        os.makedirs(mask_dir, exist_ok=True)
         mask_images = np.zeros((15, 11, 5), dtype='bool')
         mask_images[4:12, 4:9, 2:4] = 1
 
@@ -133,19 +119,17 @@ class TestImageTilerUniform(unittest.TestCase):
                 channel_idx=3,
                 slice_idx=z + 15,
                 time_idx=self.time_idx,
-                pos_idx=self.pos_idx1,
+                pos_idx=self.pos_ids[0],
                 ext='.npy',
             )
-            np.save(os.path.join(mask_dir, im_name), cur_im)
-            cur_meta = {'channel_idx': 3,
-                        'slice_idx': z + 15,
-                        'time_idx': self.time_idx,
-                        'pos_idx': self.pos_idx1,
-                        'file_name': im_name}
-            mask_meta.append(cur_meta)
+            np.save(os.path.join(self.mask_dir, im_name), cur_im)
+            meta_row = aux_utils.parse_idx_from_name(
+                im_name=im_name,
+                dir_name=self.mask_dir,
+            )
+            mask_meta.append(meta_row)
         mask_meta_df = pd.DataFrame.from_dict(mask_meta)
-        mask_meta_df.to_csv(os.path.join(mask_dir, 'frames_meta.csv'), sep=',')
-        self.mask_dir = mask_dir
+        mask_meta_df.to_csv(os.path.join(self.mask_dir, 'frames_meta.csv'), sep=',')
 
         exp_tile_indices = [[0, 5, 0, 5], [0, 5, 4, 9], [0, 5, 6, 11],
                             [10, 15, 0, 5], [10, 15, 4, 9], [10, 15, 6, 11],
@@ -173,21 +157,19 @@ class TestImageTilerUniform(unittest.TestCase):
         nose.tools.assert_equal(self.tile_inst.channel_ids, [self.channel_idx])
         nose.tools.assert_equal(self.tile_inst.time_ids, [self.time_idx])
         nose.tools.assert_equal(self.tile_inst.flat_field_dir,
-                                self.flat_field_dir,)
+                                self.flat_field_dir)
         # Depth is 3 so first and last frame will not be used
-        np.testing.assert_array_equal(self.tile_inst.slice_ids,
-                                      np.asarray([16, 17, 18]),)
-        np.testing.assert_array_equal(self.tile_inst.pos_ids,
-                                      np.asarray([7, 8]),)
+        self.assertListEqual(self.tile_inst.slice_ids, [16, 17, 18])
+        self.assertListEqual(self.tile_inst.pos_ids, self.pos_ids)
         # channel_depth should be a dict containing depths for each channel
         self.assertListEqual(list(self.tile_inst.channel_depth),
-                             [self.channel_idx],)
+                             [self.channel_idx])
         nose.tools.assert_equal(
             self.tile_inst.channel_depth[self.channel_idx],
             3,
         )
 
-    def test_tile_dir(self):
+    def test_get_tile_dir(self):
         nose.tools.assert_equal(
             self.tile_inst.get_tile_dir(),
             os.path.join(self.output_dir, "tiles_5-5_step_4-4"),
@@ -203,11 +185,8 @@ class TestImageTilerUniform(unittest.TestCase):
              'file_name',
              'pos_idx',
              'row_start',
-             'col_start'])
-
-    def test_get_flat_field(self):
-        flat_field_im = self.tile_inst._get_flat_field(channel_idx=1)
-        np.testing.assert_array_equal(flat_field_im, self.ff_im)
+             'col_start',
+             'dir_name'])
 
     def test_get_tile_indices(self):
         """Test get_tiled_indices"""
@@ -222,7 +201,7 @@ class TestImageTilerUniform(unittest.TestCase):
             time_idx=self.time_idx,
             channel_idx=self.channel_idx,
             pos_idx=7,
-            slice_idx=16
+            slice_idx=16,
         )
         exp_tile_indices = np.asarray(self.exp_tile_indices, dtype='uint8')
         row_ids = list(range(len(exp_tile_indices)))
@@ -245,7 +224,8 @@ class TestImageTilerUniform(unittest.TestCase):
                                         'file_name',
                                         'pos_idx',
                                         'row_start',
-                                        'col_start'])
+                                        'col_start',
+                                        'dir_name'])
         pd.testing.assert_frame_equal(tile_meta, init_df)
         # tile exists
         self.tile_inst.tile_stack()
@@ -263,7 +243,7 @@ class TestImageTilerUniform(unittest.TestCase):
                     time_idx=self.time_idx,
                     channel_idx=self.channel_idx,
                     slice_idx=z,
-                    pos_idx=self.pos_idx1,
+                    pos_idx=self.pos_ids[0],
                     extra_field=cur_img_id,
                     ext='.npy',
                 )
@@ -271,15 +251,17 @@ class TestImageTilerUniform(unittest.TestCase):
                              'slice_idx': z,
                              'time_idx': self.time_idx,
                              'file_name': pos1_fname,
-                             'pos_idx': self.pos_idx1,
+                             'pos_idx': self.pos_ids[0],
                              'row_start': exp_idx[0],
-                             'col_start': exp_idx[2]}
+                             'col_start': exp_idx[2],
+                             'dir_name': self.tile_inst.get_tile_dir(),
+                             }
                 exp_tile_meta.append(pos1_meta)
                 pos2_fname = aux_utils.get_im_name(
                     time_idx=self.time_idx,
                     channel_idx=self.channel_idx,
                     slice_idx=z,
-                    pos_idx=self.pos_idx2,
+                    pos_idx=self.pos_ids[1],
                     extra_field=cur_img_id,
                     ext='.npy',
                 )
@@ -287,9 +269,11 @@ class TestImageTilerUniform(unittest.TestCase):
                              'slice_idx': z,
                              'time_idx': self.time_idx,
                              'file_name': pos2_fname,
-                             'pos_idx': self.pos_idx2,
+                             'pos_idx': self.pos_ids[1],
                              'row_start': exp_idx[0],
-                             'col_start': exp_idx[2]}
+                             'col_start': exp_idx[2],
+                             'dir_name': self.tile_inst.get_tile_dir(),
+                             }
                 exp_tile_meta.append(pos2_meta)
         exp_tile_meta_df = pd.DataFrame.from_dict(exp_tile_meta)
         exp_tile_meta_df = exp_tile_meta_df.sort_values(by=['file_name'])
@@ -298,16 +282,18 @@ class TestImageTilerUniform(unittest.TestCase):
         tile_meta.reset_index(drop=True, inplace=True)
         pd.testing.assert_frame_equal(tile_meta, exp_tile_meta_df)
 
-    def test_get_input_fnames(self):
-        """Test get_input_fnames"""
-
-        im_fnames = self.tile_inst._get_input_fnames(
+    def test_get_meta_rows(self):
+        meta_sub = self.tile_inst._get_meta_rows(
             time_idx=self.time_idx,
             channel_idx=self.channel_idx,
-            slice_idx=16,
-            pos_idx=self.pos_idx1
+            slice_idx=18,
+            pos_idx=self.pos_ids[0],
         )
-        nose.tools.assert_list_equal(self.exp_fnames, im_fnames)
+        # Depth is 3 so indices will be 17, 18, 19
+        self.assertListEqual(list(meta_sub['slice_idx']), [17, 18, 19])
+        self.assertListEqual(list(meta_sub['channel_idx']), 3 * [self.channel_idx])
+        self.assertListEqual(list(meta_sub['pos_idx']), 3 * [self.pos_ids[0]])
+        self.assertListEqual(list(meta_sub['time_idx']), 3 * [self.time_idx])
 
     def test_get_crop_args(self):
         """Test get_crop_tile_args with task_type=crop"""
@@ -318,18 +304,120 @@ class TestImageTilerUniform(unittest.TestCase):
             slice_idx=16,
             pos_idx=7,
             task_type='crop',
-            tile_indices=self.exp_tile_indices
+            tile_indices=self.exp_tile_indices,
         )
-        nose.tools.assert_list_equal(list(cur_args[0]), self.exp_fnames)
+        nose.tools.assert_list_equal(
+            list(cur_args[0]['file_name']),
+            self.exp_fnames,
+        )
         nose.tools.assert_equal(cur_args[1], self.ff_name)
         nose.tools.assert_equal(cur_args[2], None)
-        nose.tools.assert_equal(cur_args[3], self.time_idx)
-        nose.tools.assert_equal(cur_args[4], self.channel_idx)
-        nose.tools.assert_equal(cur_args[5], 7)
-        nose.tools.assert_equal(cur_args[6], 16)
-        nose.tools.assert_equal(cur_args[8], 'zyx')
-        nose.tools.assert_equal(cur_args[9], self.tile_inst.tile_dir)
-        nose.tools.assert_equal(cur_args[10], self.int2str_len)
+        nose.tools.assert_equal(cur_args[3], 16)
+        # nose.tools.assert_equal(cur_args[5], self.exp_tile_indices)
+        nose.tools.assert_equal(cur_args[5], 'zyx')
+        nose.tools.assert_equal(cur_args[6], self.tile_inst.get_tile_dir())
+        nose.tools.assert_equal(cur_args[7], self.temp_path)
+        nose.tools.assert_equal(cur_args[8], 3)
+        self.assertFalse(cur_args[9])
+        self.assertFalse(cur_args[10])
+        self.assertIsNone(cur_args[11])
+        self.assertIsNone(cur_args[12])
+        self.assertIsNone(cur_args[13])
+
+    def test_get_tile_args(self):
+        """Test get_crop_tile_args with task_type=tile"""
+
+        self.tile_inst.mask_depth = 3
+        cur_args = self.tile_inst.get_crop_tile_args(
+            channel_idx=self.mask_channel,
+            time_idx=self.time_idx,
+            slice_idx=16,
+            pos_idx=7,
+            task_type='tile',
+            mask_dir=self.mask_dir,
+        )
+        arg_df = cur_args[0]
+        exp_fnames = ['im_c003_z015_t005_p007.npy',
+                      'im_c003_z016_t005_p007.npy',
+                      'im_c003_z017_t005_p007.npy']
+
+        nose.tools.assert_equal(
+            arg_df.loc[0, 'dir_name'],
+            self.mask_dir,
+        )
+        nose.tools.assert_list_equal(list(arg_df['file_name']), exp_fnames)
+        # flat field fname is None
+        nose.tools.assert_equal(cur_args[1], None)
+        # hist clip limits
+        self.assertIsNone(cur_args[2])
+        # slice idx
+        self.assertEqual(cur_args[3], 16)
+        # tile size
+        self.assertListEqual(cur_args[4], [5, 5])
+        # step size
+        self.assertListEqual(cur_args[5], [4, 4])
+        # min fraction
+        self.assertIsNone(cur_args[6])
+        # image format
+        self.assertEqual(cur_args[7], 'zyx')
+        # tile dir
+        self.assertEqual(cur_args[8], self.tile_inst.get_tile_dir())
+        # dir name
+        self.assertEqual(cur_args[9], self.mask_dir)
+        # int2strlen
+        self.assertEqual(cur_args[10], 3)
+        # is_mask
+        self.assertTrue(cur_args[11])
+        # normalize_im
+        self.assertIsNone(cur_args[12])
+        # zscore median
+        self.assertIsNone(cur_args[13])
+        # zscore iqr
+        self.assertIsNone(cur_args[14])
+
+    def test_get_tile_args_not_mask(self):
+        cur_args = self.tile_inst.get_crop_tile_args(
+            channel_idx=self.channel_idx,
+            time_idx=self.time_idx,
+            slice_idx=16,
+            pos_idx=7,
+            task_type='tile',
+        )
+        self.assertListEqual(
+            list(cur_args[0]['file_name']),
+            self.exp_fnames,
+        )
+        exp_ff_fname = os.path.join(
+            self.flat_field_dir,
+            'flat-field_channel-{}.npy'.format(self.channel_idx),
+        )
+        self.assertEqual(cur_args[1], exp_ff_fname)
+        # hist clip limits
+        self.assertIsNone(cur_args[2])
+        # slice idx
+        self.assertEqual(cur_args[3], 16)
+        # tile size
+        self.assertListEqual(cur_args[4], [5, 5])
+        # step size
+        self.assertListEqual(cur_args[5], [4, 4])
+        # min fraction
+        self.assertIsNone(cur_args[6])
+        # image format
+        self.assertEqual(cur_args[7], 'zyx')
+        # tile dir
+        self.assertEqual(cur_args[8], self.tile_inst.get_tile_dir())
+        # dir name
+        self.assertEqual(cur_args[9], self.temp_path)
+        # int2strlen
+        self.assertEqual(cur_args[10], 3)
+        # is_mask
+        self.assertFalse(cur_args[11])
+        # normalize_im
+        self.assertIsNone(cur_args[12])
+        # zscore median
+        self.assertIsNone(cur_args[13])
+        # zscore iqr
+        self.assertIsNone(cur_args[14])
 
     def test_tile_stack(self):
         """Test tile_stack"""
@@ -353,64 +441,13 @@ class TestImageTilerUniform(unittest.TestCase):
         im_norm = im_val * np.ones((3, 5, 5))
         im_val = np.mean(self.im2 / self.ff_im)
         im2_norm = im_val * np.ones((3, 5, 5))
+        print(frames_meta)
         for i, row in frames_meta.iterrows():
             tile = np.load(os.path.join(tile_dir, row.file_name))
             if row.pos_idx == 7:
                 np.testing.assert_array_equal(tile, im_norm)
             else:
                 np.testing.assert_array_equal(tile, im2_norm)
-
-    def test_get_tile_args(self):
-        """Test get_crop_tile_args with task_type=tile"""
-
-        self.tile_inst.mask_depth = 3
-        cur_args = self.tile_inst.get_crop_tile_args(
-            channel_idx=self.mask_channel,
-            time_idx=self.time_idx,
-            slice_idx=16,
-            pos_idx=7,
-            task_type='tile',
-            mask_dir=self.mask_dir,
-        )
-
-        exp_fnames = ['im_c003_z015_t005_p007.npy',
-                      'im_c003_z016_t005_p007.npy',
-                      'im_c003_z017_t005_p007.npy']
-        exp_fnames = [os.path.join(self.mask_dir, fname)
-                      for fname in exp_fnames]
-
-        nose.tools.assert_list_equal(list(cur_args[0]), exp_fnames)
-        # flat field fname is None
-        nose.tools.assert_equal(cur_args[1], None)
-        # hist clip limits is None
-        nose.tools.assert_equal(cur_args[2], None)
-        nose.tools.assert_equal(cur_args[3], self.time_idx)
-        nose.tools.assert_equal(cur_args[4], self.mask_channel)
-        nose.tools.assert_equal(cur_args[5], 7)
-        nose.tools.assert_equal(cur_args[6], 16)
-        nose.tools.assert_list_equal(cur_args[7], self.tile_inst.tile_size)
-        nose.tools.assert_list_equal(cur_args[8], self.tile_inst.step_size)
-        nose.tools.assert_equal(cur_args[9], None)
-        nose.tools.assert_equal(cur_args[10], 'zyx')
-        nose.tools.assert_equal(cur_args[11], self.tile_inst.tile_dir)
-        nose.tools.assert_equal(cur_args[12], self.int2str_len)
-
-        # not a mask channel
-        cur_args = self.tile_inst.get_crop_tile_args(
-            channel_idx=self.channel_idx,
-            time_idx=self.time_idx,
-            slice_idx=16,
-            pos_idx=7,
-            task_type='tile',
-        )
-        nose.tools.assert_list_equal(list(cur_args[0]), self.exp_fnames)
-
-        exp_ff_fname = os.path.join(
-            self.flat_field_dir,
-            'flat-field_channel-{}.npy'.format(self.channel_idx),
-        )
-        nose.tools.assert_equal(cur_args[1], exp_ff_fname)
-        nose.tools.assert_equal(cur_args[9], None)
 
     def test_tile_mask_stack(self):
         """Test tile_mask_stack"""
@@ -421,8 +458,10 @@ class TestImageTilerUniform(unittest.TestCase):
             tile_size=[5, 5],
             step_size=[4, 4],
             depths=3,
-            channel_ids=[1],
-            pos_ids=[7],
+            channel_ids=[self.channel_idx],
+            pos_ids=[self.pos_ids[0]],
+            time_ids=[self.time_idx],
+            slice_ids=self.slice_ids,
             normalize_channels=[True],
             flat_field_dir=self.flat_field_dir,
             normalize_im=self.normalize_im,
@@ -443,7 +482,7 @@ class TestImageTilerUniform(unittest.TestCase):
         self.assertSetEqual(set(frames_meta.channel_idx.tolist()), {1, 3})
         self.assertSetEqual(set(frames_meta.slice_idx.tolist()), {17, 18})
         self.assertSetEqual(set(frames_meta.time_idx.tolist()), {5})
-        self.assertSetEqual(set(frames_meta.pos_idx.tolist()), {self.pos_idx1})
+        self.assertSetEqual(set(frames_meta.pos_idx.tolist()), {self.pos_ids[0]})
 
         # with vf >= 0.5, 4 tiles will be saved for mask channel & [1]
         # [4,9,4,9,17], [8,13,4,9,17], [4,9,4,9,18], [8,13,4,9,18]

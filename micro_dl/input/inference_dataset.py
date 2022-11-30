@@ -2,8 +2,6 @@
 
 import keras
 import numpy as np
-import os
-import pandas as pd
 
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.image_utils as image_utils
@@ -36,6 +34,7 @@ class InferenceDataSet(keras.utils.Sequence):
          a frames_meta.csv containing mask channels (which will be target channels
           in the inference config) z, t, p indices matching the ones in image_dir
         :param str flat_field_dir: Directory with flat field images
+        :param bool crop2base: Crop option (not for 3D)
         """
         self.image_dir = image_dir
         self.target_dir = image_dir
@@ -176,44 +175,44 @@ class InferenceDataSet(keras.utils.Sequence):
         return self.num_samples
 
     def _get_image(self,
-                   input_dir,
                    cur_row,
                    channel_ids,
                    depth,
                    normalize_im,
+                   dir_name=None,
                    is_mask=False):
         """
         Assemble one input or target tensor
 
-        :param str input_dir: Directory containing images or targets
         :param pd.Series cur_row: Current row in frames_meta
         :param int/list channel_ids: Channel indices
         :param int depth: Stack depth
-        :param str normalize: normalization options for images
+        :param str/None normalize_im: normalization options for images
+        :param str/None dir_name: Image directory
         :return np.array (3D / 4D) im_stack: Image stack
         """
         im_stack = []
         for channel_idx in channel_ids:
-            flat_field_im = None
+            flat_field_path = None
             if self.flat_field_dir is not None:
                 assert normalize_im in [None, 'stack'],\
                     "flat field correction currently only supports " \
                     "None or 'stack' option for 'normalize_im'"
-                flat_field_fname = os.path.join(
+                flat_field_path = image_utils.get_flat_field_path(
                     self.flat_field_dir,
-                    'flat-field_channel-{}.npy'.format(channel_idx)
+                    channel_idx,
+                    channel_ids,
                 )
-                flat_field_im = np.load(flat_field_fname)
             # Load image with given indices
             im = image_utils.preprocess_imstack(
                 frames_metadata=self.frames_meta,
-                input_dir=input_dir,
                 depth=depth,
                 time_idx=cur_row['time_idx'],
                 channel_idx=channel_idx,
                 slice_idx=cur_row['slice_idx'],
                 pos_idx=cur_row['pos_idx'],
-                flat_field_im=flat_field_im,
+                dir_name=dir_name,
+                flat_field_path=flat_field_path,
                 normalize_im=normalize_im,
             )
             # Crop image to nearest factor of two in xy
@@ -254,18 +253,18 @@ class InferenceDataSet(keras.utils.Sequence):
         #     is_mask = True
         # Get input and target stacks for inference
         input_stack = self._get_image(
-            input_dir=self.image_dir,
             cur_row=cur_row,
             channel_ids=self.input_channels,
             depth=self.depth,
             normalize_im=self.normalize_im,
+            dir_name=self.image_dir,
         )
         target_stack = self._get_image(
-            input_dir=self.target_dir,
             cur_row=cur_row,
             channel_ids=self.target_channels,
             depth=self.target_depth,
             normalize_im=None,
+            dir_name=self.target_dir,
             is_mask=is_mask,
         )
         # Add batch dimension

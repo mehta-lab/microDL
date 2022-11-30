@@ -57,8 +57,7 @@ def pool_dataset(config):
                 name_parser=pool_config['name_parser'],
             )
             ints_meta_src = meta_utils.ints_meta_generator(
-                src_dir,
-                name_parser=pool_config['name_parser'],
+                input_dir=src_dir,
                 num_workers=num_workers,
             )
             if src_pos_ids == 'all':

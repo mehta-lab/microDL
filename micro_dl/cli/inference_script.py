@@ -6,6 +6,7 @@ import os
 import yaml
 
 from micro_dl.inference import image_inference as image_inf
+import micro_dl.utils.image_utils as im_utils
 import micro_dl.utils.train_utils as train_utils
 import micro_dl.utils.preprocess_utils as preprocess_utils
 
@@ -53,7 +54,6 @@ def run_inference(config_fname,
     :param int gpu_ids: gpu id to use
     :param float/None gpu_mem_frac: gpu memory fraction to use
     """
-
     with open(config_fname, 'r') as f:
         inference_config = yaml.safe_load(f)
     # Load train config from model dir
@@ -66,21 +66,19 @@ def run_inference(config_fname,
         train_config = yaml.safe_load(f)
     preprocess_config = None
     if 'preprocess_dir' in inference_config:
-        preprocess_config = preprocess_utils.get_preprocess_config(inference_config['preprocess_dir'])
-    if 'image_dirs' in inference_config:
-        # batch mode if more than 1 image_dir is given
-        image_dirs = inference_config['image_dirs']
-        for image_dir in image_dirs:
-            inference_config['image_dir'] = image_dir
-            inference_inst = image_inf.ImagePredictor(
-                train_config=train_config,
-                inference_config=inference_config,
-                preprocess_config=preprocess_config,
-                gpu_id=gpu_ids,
-                gpu_mem_frac=gpu_mem_frac,
-            )
-            inference_inst.run_prediction()
-    else:
+        preprocess_config = preprocess_utils.get_preprocess_config(
+            inference_config['preprocess_dir'],
+        )
+    assert 'image_dir' in inference_config, \
+        "Image dir must be present in inference config (can be list of dirs)"
+    image_dirs = inference_config['image_dir']
+    if isinstance(image_dirs, str):
+        image_dirs = [image_dirs]
+    assert isinstance(image_dirs, list),\
+        "Image dir must be string or list of strings"
+
+    for image_dir in image_dirs:
+        inference_config['image_dir'] = image_dir
         inference_inst = image_inf.ImagePredictor(
             train_config=train_config,
             inference_config=inference_config,
