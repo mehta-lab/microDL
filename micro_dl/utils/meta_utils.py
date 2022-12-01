@@ -1,6 +1,7 @@
 import glob
 import itertools
 import os
+import numpy as np
 import pandas as pd
 import sys
 import zarr.hierarchy
@@ -127,10 +128,11 @@ def frames_meta_from_zarr(input_dir, file_names):
     return frames_meta
 
 
-def ints_meta_generator(
+def generate_normalization_metadata(
     zarr_dir,
     num_workers=4,
     channel_ids=-1,
+    grid_spacing=32,
 ):
     """
     Generate pixel intensity metadata to be later used in on-the-fly normalization
@@ -142,18 +144,19 @@ def ints_meta_generator(
     position of each zarr_dir store. Format of metadata is as follows:
     {
         channel_idx : {
-            dataset_norm_val: dataset level normalization value (positive float),
-            FOV_norm_val: field-of-view level normalization value (positive float)
+            dataset_statistics: dataset level normalization values (positive float),
+            fov_statistics: field-of-view level normalization values (positive float)
         },
         .
         .
         .
     }
 
-    :param str zarr_dir: directory to zarr store containing dataset.
+    :param str zarr_dir: path to zarr store directory containing dataset.
     :param int num_workers: number of cpu workers for multiprocessing, defaults to 4
     :param list/int channel_ids: indices of channels to process in dataset arrays,
-                                    defaults to -1
+                                    by default calculates all
+    :param int grid_spacing: distance between points in sampling grid
     """
     modifier = io_utils.HCSZarrModifier(
         zarr_file=zarr_dir,
@@ -166,85 +169,42 @@ def ints_meta_generator(
     elif isinstance(channel_ids, int):
         channel_ids = [channel_ids]
 
-    mp_fn_args = []
+    mp_grid_sampler_args = []
     for position in modifier.position_map:
-        modifier.get_image
+        ff_name = None
 
-    mp_fn_args = []
-    # Fill dataframe with rows from image names
-    for i, meta_row in frames_metadata.iterrows():
-        channel_idx = meta_row["channel_idx"]
-        ff_path = im_utils.get_flat_field_path(
-            flat_field_dir,
-            channel_idx,
-            channel_ids,
+        position_metadata = modifier.get_position_meta(position)
+        if "flat_field" in position_metadata:
+            ff_name = position_metadata["flat_field"]["array_name"]
+
+        mp_grid_sampler_args.append((position, ff_name, zarr_dir, grid_spacing))
+
+    for channel in channel_ids:
+        # NOTE: Doing sequential mp with pool execution creates synchronization
+        #      points between each step. This could be detrimental to performance
+        fov_sample_values = mp_utils.mp_sample_im_pixels(
+            mp_grid_sampler_args, num_workers
         )
-        mp_fn_args.append((meta_row, ff_path, block_size))
+        dataset_sample_values = np.stack(fov_sample_values, 0)
 
-    im_ints_list = mp_utils.mp_sample_im_pixels(mp_fn_args, num_workers)
-    im_ints_list = list(itertools.chain.from_iterable(im_ints_list))
-    ints_meta = pd.DataFrame.from_dict(im_ints_list)
+        # get statistics
+        fov_level_statistics = mp_utils.mp_get_val_stats(fov_sample_values, num_workers)
+        dataset_level_statistiscs = mp_utils.get_val_stats(dataset_sample_values)
 
-    ints_meta.to_csv(ints_meta_filename, sep=",")
+        for position in modifier.position_map:
+            position_statistics = {
+                "fov_statistics": fov_level_statistics[position],
+                "dataset_statistics": dataset_level_statistiscs[position],
+            }
+            channel_position_statistics = {
+                channel: position_statistics,
+            }
 
-
-def ints_meta_generator(
-    input_dir, num_workers=4, block_size=256, flat_field_dir=None, channel_ids=-1
-):
-    """
-    Generate pixel intensity metadata for estimating image normalization
-    parameters during preprocessing step. Pixels are sub-sampled from the image
-    following a grid pattern defined by block_size to for efficient estimation of
-    median and interquatile range. Grid sampling is preferred over random sampling
-    in the case due to the spatial correlation in images.
-    Will write found data in ints_meta.csv in input directory.
-    Assumed default file naming convention is:
-    dir_name
-    |
-    |- im_c***_z***_t***_p***.png
-    |- im_c***_z***_t***_p***.png
-
-    c is channel
-    z is slice in stack (z)
-    t is time
-    p is position (FOV)
-
-    Other naming convention is:
-    img_channelname_t***_p***_z***.tif for parse_sms_name
-
-    :param str input_dir: path to input directory containing images
-    :param int num_workers: number of workers for multiprocessing
-    :param int block_size: block size for the grid sampling pattern. Default value works
-        well for 2048 X 2048 images.
-    :param str flat_field_dir: Directory containing flatfield images
-    :param list/int channel_ids: Channel indices to process
-    """
-    ints_meta_filename = os.path.join(input_dir, "intensity_meta.csv")
-    # Remove old file if exists first
-    if os.path.exists(ints_meta_filename):
-        os.remove(ints_meta_filename)
-    if block_size is None:
-        block_size = 256
-    frames_metadata = aux_utils.read_meta(input_dir)
-    if not isinstance(channel_ids, list):
-        # Use all channels
-        channel_ids = frames_metadata["channel_idx"].unique()
-    mp_fn_args = []
-    # Fill dataframe with rows from image names
-    for i, meta_row in frames_metadata.iterrows():
-        channel_idx = meta_row["channel_idx"]
-        ff_path = im_utils.get_flat_field_path(
-            flat_field_dir,
-            channel_idx,
-            channel_ids,
-        )
-        mp_fn_args.append((meta_row, ff_path, block_size))
-
-    im_ints_list = mp_utils.mp_sample_im_pixels(mp_fn_args, num_workers)
-    im_ints_list = list(itertools.chain.from_iterable(im_ints_list))
-    ints_meta = pd.DataFrame.from_dict(im_ints_list)
-
-    ints_meta.to_csv(ints_meta_filename, sep=",")
+            modifier.write_meta_field(
+                position=position,
+                metadata=channel_position_statistics,
+                field_name="normalization",
+            )
 
 
 def mask_meta_generator(

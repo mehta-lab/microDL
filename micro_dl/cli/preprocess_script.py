@@ -124,8 +124,7 @@ def flat_field_correct(required_params, block_size, flat_field_channels):
      images
     """
     flat_field_inst = FlatFieldEstimator2D(
-        input_dir=required_params["input_dir"],
-        output_dir=required_params["output_dir"],
+        input_dir=required_params["zarr_dir"],
         channel_ids=flat_field_channels,
         slice_ids=required_params["slice_ids"],
         block_size=block_size,
@@ -270,15 +269,15 @@ def pre_process(preprocess_config):
     Preprocess data. Possible options are:
 
     correct_flat_field: Perform flatfield correction (2D only currently)
-    resample: Resize 2D images (xy-plane) according to a scale factor,
-        e.g. to match resolution in z. Resize 3d images
+    normalize: Calculate values for on-the-fly normalization on a FOV &
+                dataset level
     create_masks: Generate binary masks from given input channels
-    do_tiling: Split frames (stacked frames if generating 3D tiles) into
-    smaller tiles with tile_size and step_size.
 
-    This script will preprocess your dataset, save tiles and associated
-    metadata. Then in the train_script, a dataframe for training data
-    will be assembled based on the inputs and target you specify.
+    This script will preprocess your dataset, save auxilary data and
+    associated metadata for on-the-fly processing during training. Masks
+    will be saved both as an additional channel and as an array tracked in
+    custom metadata. Flatfields will be saved as an array tracked in custom
+    metadata.
 
     :param dict preprocess_config: dict with key options:
     [input_dir, output_dir, slice_ids, time_ids, pos_ids
@@ -314,31 +313,36 @@ def pre_process(preprocess_config):
     flat_field_dir = None
     flat_field_channels = []
     if "flat_field" in preprocess_config:
-        # If flat_field_channels aren't specified, correct all channel_ids
+        # collect params
+        flat_field_config = preprocess_config["flat_field"]
+
         flat_field_channels = required_params["channel_ids"]
-        if "flat_field_channels" in preprocess_config["flat_field"]:
-            flat_field_channels = preprocess_config["flat_field"]["flat_field_channels"]
-        # Check that flatfield channels is subset of channel_ids
+        if "flat_field_channels" in flat_field_config:
+            flat_field_channels = flat_field_config["flat_field_channels"]
+
+        flat_field_method = "estimate"
+        if "method" in flat_field_config:
+            flat_field_method = flat_field_config["method"]
+
+        # check valid
         assert set(flat_field_channels).issubset(
             required_params["channel_ids"]
         ), "Flatfield channels {} is not a subset of channel_ids".format(
             flat_field_channels
         )
-        #  Method options: 'estimate' (from input) or 'from_file' (load pre-saved)
-        flat_field_method = "estimate"
-        if "method" in preprocess_config["flat_field"]:
-            flat_field_method = preprocess_config["flat_field"]["method"]
         assert flat_field_method in {
             "estimate",
             "from_file",
         }, "Method should be estimate or from_file (use existing)"
+
+        # estimate/write array
         if flat_field_method is "estimate":
             assert (
-                "flat_field_dir" not in preprocess_config["flat_field"]
+                "flat_field_dir" not in flat_field_config
             ), "estimate_flat_field or use images in flat_field_dir."
             block_size = None
-            if "block_size" in preprocess_config["flat_field"]:
-                block_size = preprocess_config["flat_field"]["block_size"]
+            if "block_size" in flat_field_config:
+                block_size = flat_field_config["block_size"]
             flat_field_dir = flat_field_correct(
                 required_params,
                 block_size,
@@ -364,17 +368,22 @@ def pre_process(preprocess_config):
 
     # ----------------- Generate normalization values -----------------
     if required_params["normalize_im"] in ["dataset", "volume", "slice"]:
-        block_size = None
+        block_size = 32
         if "metadata" in preprocess_config:
             if "block_size" in preprocess_config["metadata"]:
                 block_size = preprocess_config["metadata"]["block_size"]
-            meta_utils.ints_meta_generator(
-                input_dir=required_params["input_dir"],
-                num_workers=required_params["num_workers"],
-                block_size=block_size,
-                flat_field_dir=flat_field_dir,
-                channel_ids=required_params["channel_ids"],
-            )
+
+        meta_utils.generate_normalization_metadata(
+            zarr_dir=required_params["zarr_dir"],
+            num_workers=required_params["num_workers"],
+            channel_ids=required_params["channel_ids"],
+            grid_spacing=block_size,
+        )
+    else:
+        raise ValueError(
+            f"Normalization scheme {required_params['normalize_im']}",
+            f" must be one of {['dataset', 'volume', 'slice']}",
+        )
 
     # ------------------------Generate masks-------------------------
     mask_dir = None

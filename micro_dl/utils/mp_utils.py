@@ -3,9 +3,11 @@ from concurrent.futures import ProcessPoolExecutor
 import numpy as np
 import os
 import sys
+import scipy.stats
 
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.image_utils as image_utils
+import micro_dl.utils.io_utils as io_utils
 import micro_dl.utils.masks as mask_utils
 import micro_dl.utils.tile_utils as tile_utils
 from micro_dl.utils.normalize import hist_clipping
@@ -37,16 +39,18 @@ def mp_create_save_mask(fn_args, workers):
     return list(res)
 
 
-def create_save_mask(channels_meta_sub,
-                     flat_field_fnames,
-                     str_elem_radius,
-                     mask_dir,
-                     mask_channel_idx,
-                     int2str_len,
-                     mask_type,
-                     mask_ext,
-                     dir_name=None,
-                     channel_thrs=None):
+def create_save_mask(
+    channels_meta_sub,
+    flat_field_fnames,
+    str_elem_radius,
+    mask_dir,
+    mask_channel_idx,
+    int2str_len,
+    mask_type,
+    mask_ext,
+    dir_name=None,
+    channel_thrs=None,
+):
 
     """
     Create and save mask.
@@ -81,28 +85,35 @@ def create_save_mask(channels_meta_sub,
         flat_field_fnames=flat_field_fnames,
         normalize_im=None,
     )
-    if mask_type == 'dataset otsu':
-        assert channel_thrs is not None, \
-            'channel threshold is required for mask_type="dataset otsu"'
-        assert len(channel_thrs) == range(im_stack.shape[-1]), \
-            "Mismatch between channel thrs {} and im_stack {}".format(
-                len(channel_thrs), im_stack.shape[-1])
+    if mask_type == "dataset otsu":
+        assert (
+            channel_thrs is not None
+        ), 'channel threshold is required for mask_type="dataset otsu"'
+        assert len(channel_thrs) == range(
+            im_stack.shape[-1]
+        ), "Mismatch between channel thrs {} and im_stack {}".format(
+            len(channel_thrs), im_stack.shape[-1]
+        )
     masks = []
     for idx in range(im_stack.shape[-1]):
         im = im_stack[..., idx]
-        if mask_type == 'otsu':
-            mask = mask_utils.create_otsu_mask(im.astype('float32'), str_elem_radius)
-        elif mask_type == 'unimodal':
-            mask = mask_utils.create_unimodal_mask(im.astype('float32'),  str_elem_radius)
-        elif mask_type == 'dataset otsu':
-            mask = mask_utils.create_otsu_mask(im.astype('float32'), str_elem_radius, channel_thrs[idx])
-        elif mask_type == 'borders_weight_loss_map':
+        if mask_type == "otsu":
+            mask = mask_utils.create_otsu_mask(im.astype("float32"), str_elem_radius)
+        elif mask_type == "unimodal":
+            mask = mask_utils.create_unimodal_mask(
+                im.astype("float32"), str_elem_radius
+            )
+        elif mask_type == "dataset otsu":
+            mask = mask_utils.create_otsu_mask(
+                im.astype("float32"), str_elem_radius, channel_thrs[idx]
+            )
+        elif mask_type == "borders_weight_loss_map":
             mask = mask_utils.get_unet_border_weight_map(im)
         masks += [mask]
     # Border weight map mask is a float mask not binary like otsu or unimodal,
     # so keep it as is (assumes only one image in stack)
     fg_frac = None
-    if mask_type == 'borders_weight_loss_map':
+    if mask_type == "borders_weight_loss_map":
         mask = masks[0]
     else:
         masks = np.stack(masks, axis=-1)
@@ -111,9 +122,9 @@ def create_save_mask(channels_meta_sub,
         fg_frac = np.mean(mask)
 
     # Create mask name for given slice, time and position
-    time_idx = int(channels_meta_sub['time_idx'].iloc[0])
-    slice_idx = int(channels_meta_sub['slice_idx'].iloc[0])
-    pos_idx = int(channels_meta_sub['pos_idx'].iloc[0])
+    time_idx = int(channels_meta_sub["time_idx"].iloc[0])
+    slice_idx = int(channels_meta_sub["slice_idx"].iloc[0])
+    pos_idx = int(channels_meta_sub["pos_idx"].iloc[0])
     file_name = aux_utils.get_im_name(
         time_idx=time_idx,
         channel_idx=mask_channel_idx,
@@ -128,20 +139,19 @@ def create_save_mask(channels_meta_sub,
         slice_idx=slice_idx,
         pos_idx=pos_idx,
         int2str_len=int2str_len,
-        extra_field='overlay',
+        extra_field="overlay",
         ext=mask_ext,
     )
-    if mask_ext == '.npy':
+    if mask_ext == ".npy":
         # Save mask for given channels, mask is 2D
-        np.save(os.path.join(mask_dir, file_name),
-                mask,
-                allow_pickle=True,
-                fix_imports=True)
-    elif mask_ext == '.png':
+        np.save(
+            os.path.join(mask_dir, file_name), mask, allow_pickle=True, fix_imports=True
+        )
+    elif mask_ext == ".png":
         # Covert mask to uint8
         # Border weight map mask is a float mask not binary like otsu or unimodal,
         # so keep it as is
-        if mask_type == 'borders_weight_loss_map':
+        if mask_type == "borders_weight_loss_map":
             assert im_stack.shape[-1] == 1
             # Note: Border weight map mask should only be generated from one binary image
         else:
@@ -149,31 +159,34 @@ def create_save_mask(channels_meta_sub,
             mask = image_utils.im_adjust(mask)
             im_mean = np.mean(im_stack, axis=-1)
             im_mean = hist_clipping(im_mean, 1, 99)
-            im_alpha = 255 / (np.max(im_mean) - np.min(im_mean) + sys.float_info.epsilon)
+            im_alpha = 255 / (
+                np.max(im_mean) - np.min(im_mean) + sys.float_info.epsilon
+            )
             im_mean = cv2.convertScaleAbs(
                 im_mean - np.min(im_mean),
                 alpha=im_alpha,
-                )
+            )
             im_mask_overlay = np.stack([mask, im_mean, mask], axis=2)
             cv2.imwrite(os.path.join(mask_dir, overlay_name), im_mask_overlay)
 
         cv2.imwrite(os.path.join(mask_dir, file_name), mask)
     else:
         raise ValueError("mask_ext can be '.npy' or '.png', not {}".format(mask_ext))
-    cur_meta = {'channel_idx': mask_channel_idx,
-                'slice_idx': slice_idx,
-                'time_idx': time_idx,
-                'pos_idx': pos_idx,
-                'file_name': file_name,
-                'fg_frac': fg_frac,
-                }
+    cur_meta = {
+        "channel_idx": mask_channel_idx,
+        "slice_idx": slice_idx,
+        "time_idx": time_idx,
+        "pos_idx": pos_idx,
+        "file_name": file_name,
+        "fg_frac": fg_frac,
+    }
     return cur_meta
 
 
 def get_mask_meta_row(file_path, meta_row):
     mask = image_utils.read_image(file_path)
     fg_frac = np.sum(mask > 0) / mask.size
-    meta_row = {**meta_row, 'fg_frac': fg_frac}
+    meta_row = {**meta_row, "fg_frac": fg_frac}
     return meta_row
 
 
@@ -190,22 +203,23 @@ def mp_tile_save(fn_args, workers):
     return list(res)
 
 
-def tile_and_save(meta_sub,
-                  flat_field_fname,
-                  hist_clip_limits,
-                  slice_idx,
-                  tile_size,
-                  step_size,
-                  min_fraction,
-                  image_format,
-                  save_dir,
-                  dir_name=None,
-                  int2str_len=3,
-                  is_mask=False,
-                  normalize_im=None,
-                  zscore_mean=None,
-                  zscore_std=None,
-                  ):
+def tile_and_save(
+    meta_sub,
+    flat_field_fname,
+    hist_clip_limits,
+    slice_idx,
+    tile_size,
+    step_size,
+    min_fraction,
+    image_format,
+    save_dir,
+    dir_name=None,
+    int2str_len=3,
+    is_mask=False,
+    normalize_im=None,
+    zscore_mean=None,
+    zscore_std=None,
+):
     """
     Crop image into tiles at given indices and save
 
@@ -226,9 +240,9 @@ def tile_and_save(meta_sub,
     :param float/None zscore_std: Std for normalization
     :return: pd.DataFrame from a list of dicts with metadata
     """
-    time_idx = meta_sub.loc[0, 'time_idx']
-    channel_idx = meta_sub.loc[0, 'channel_idx']
-    pos_idx = meta_sub.loc[0, 'pos_idx']
+    time_idx = meta_sub.loc[0, "time_idx"]
+    channel_idx = meta_sub.loc[0, "channel_idx"]
+    pos_idx = meta_sub.loc[0, "pos_idx"]
     try:
         input_image = image_utils.read_imstack_from_meta(
             frames_meta_sub=meta_sub,
@@ -240,13 +254,15 @@ def tile_and_save(meta_sub,
             zscore_mean=zscore_mean,
             zscore_std=zscore_std,
         )
-        save_dict = {'time_idx': time_idx,
-                     'channel_idx': channel_idx,
-                     'pos_idx': pos_idx,
-                     'slice_idx': slice_idx,
-                     'save_dir': save_dir,
-                     'image_format': image_format,
-                     'int2str_len': int2str_len}
+        save_dict = {
+            "time_idx": time_idx,
+            "channel_idx": channel_idx,
+            "pos_idx": pos_idx,
+            "slice_idx": slice_idx,
+            "save_dir": save_dir,
+            "image_format": image_format,
+            "int2str_len": int2str_len,
+        }
 
         tile_meta_df = tile_utils.tile_image(
             input_image=input_image,
@@ -256,7 +272,7 @@ def tile_and_save(meta_sub,
             save_dict=save_dict,
         )
     except Exception as e:
-        err_msg = 'error in t_{}, c_{}, pos_{}, sl_{}'.format(
+        err_msg = "error in t_{}, c_{}, pos_{}, sl_{}".format(
             time_idx, channel_idx, pos_idx, slice_idx
         )
         err_msg = err_msg + str(e)
@@ -280,21 +296,22 @@ def mp_crop_save(fn_args, workers):
     return list(res)
 
 
-def crop_at_indices_save(meta_sub,
-                         flat_field_fname,
-                         hist_clip_limits,
-                         slice_idx,
-                         crop_indices,
-                         image_format,
-                         save_dir,
-                         dir_name=None,
-                         int2str_len=3,
-                         is_mask=False,
-                         tile_3d=False,
-                         normalize_im=True,
-                         zscore_mean=None,
-                         zscore_std=None
-                         ):
+def crop_at_indices_save(
+    meta_sub,
+    flat_field_fname,
+    hist_clip_limits,
+    slice_idx,
+    crop_indices,
+    image_format,
+    save_dir,
+    dir_name=None,
+    int2str_len=3,
+    is_mask=False,
+    tile_3d=False,
+    normalize_im=True,
+    zscore_mean=None,
+    zscore_std=None,
+):
     """Crop image into tiles at given indices and save
 
     :param pd.DataFrame meta_sub: Subset of metadata for images to be cropped
@@ -313,9 +330,9 @@ def crop_at_indices_save(meta_sub,
     :param bool tile_3d: indicator for tiling in 3D
     :return: pd.DataFrame from a list of dicts with metadata
     """
-    time_idx = meta_sub.loc[0, 'time_idx']
-    channel_idx = meta_sub.loc[0, 'channel_idx']
-    pos_idx = meta_sub.loc[0, 'pos_idx']
+    time_idx = meta_sub.loc[0, "time_idx"]
+    channel_idx = meta_sub.loc[0, "channel_idx"]
+    pos_idx = meta_sub.loc[0, "pos_idx"]
     try:
         input_image = image_utils.read_imstack_from_meta(
             frames_meta_sub=meta_sub,
@@ -325,15 +342,17 @@ def crop_at_indices_save(meta_sub,
             is_mask=is_mask,
             normalize_im=normalize_im,
             zscore_mean=zscore_mean,
-            zscore_std=zscore_std
+            zscore_std=zscore_std,
         )
-        save_dict = {'time_idx': time_idx,
-                     'channel_idx': channel_idx,
-                     'pos_idx': pos_idx,
-                     'slice_idx': slice_idx,
-                     'save_dir': save_dir,
-                     'image_format': image_format,
-                     'int2str_len': int2str_len}
+        save_dict = {
+            "time_idx": time_idx,
+            "channel_idx": channel_idx,
+            "pos_idx": pos_idx,
+            "slice_idx": slice_idx,
+            "save_dir": save_dir,
+            "image_format": image_format,
+            "int2str_len": int2str_len,
+        }
 
         tile_meta_df = tile_utils.crop_at_indices(
             input_image=input_image,
@@ -342,7 +361,7 @@ def crop_at_indices_save(meta_sub,
             tile_3d=tile_3d,
         )
     except Exception as e:
-        err_msg = 'error in t_{}, c_{}, pos_{}, sl_{}'.format(
+        err_msg = "error in t_{}, c_{}, pos_{}, sl_{}".format(
             time_idx, channel_idx, pos_idx, slice_idx
         )
         err_msg = err_msg + str(e)
@@ -375,32 +394,32 @@ def resize_and_save(**kwargs):
     :param float scale_factor: Scale factor for resizing
     :param str ff_path: Path to flatfield image
     """
-    meta_row = kwargs['meta_row']
-    im = image_utils.read_image_from_row(meta_row, kwargs['dir_name'])
+    meta_row = kwargs["meta_row"]
+    im = image_utils.read_image_from_row(meta_row, kwargs["dir_name"])
 
-    if kwargs['ff_path'] is not None:
+    if kwargs["ff_path"] is not None:
         im = image_utils.apply_flat_field_correction(
             im,
-            flat_field_path=kwargs['ff_path'],
+            flat_field_path=kwargs["ff_path"],
         )
     im_resized = image_utils.rescale_image(
         im=im,
-        scale_factor=kwargs['scale_factor'],
+        scale_factor=kwargs["scale_factor"],
     )
     # Write image
     # TODO: will we keep this functionality and thus write to zarr?
     # If so, should I create a zarr roots before mp?
     # Where to do init_array for each position?
-    if 'zarr' in meta_row['file_name'][-5:]:
+    if "zarr" in meta_row["file_name"][-5:]:
         im_name = aux_utils.get_im_name(
-                        channel_idx=meta_row['channel_idx'],
-                        slice_idx=meta_row['slice_idx'],
-                        time_idx=meta_row['time_idx'],
-                        pos_idx=meta_row['pos_idx'],
-                    )
-        write_path = os.path.join(kwargs['output_dir'], im_name)
+            channel_idx=meta_row["channel_idx"],
+            slice_idx=meta_row["slice_idx"],
+            time_idx=meta_row["time_idx"],
+            pos_idx=meta_row["pos_idx"],
+        )
+        write_path = os.path.join(kwargs["output_dir"], im_name)
     else:
-        write_path = os.path.join(kwargs['output_dir'], meta_row['file_name'])
+        write_path = os.path.join(kwargs["output_dir"], meta_row["file_name"])
     cv2.imwrite(write_path, im_resized)
 
 
@@ -416,16 +435,18 @@ def mp_rescale_vol(fn_args, workers):
     return list(res)
 
 
-def rescale_vol_and_save(time_idx,
-                         pos_idx,
-                         channel_idx,
-                         slice_start_idx,
-                         slice_end_idx,
-                         frames_metadata,
-                         dir_name,
-                         output_fname,
-                         scale_factor,
-                         ff_path):
+def rescale_vol_and_save(
+    time_idx,
+    pos_idx,
+    channel_idx,
+    slice_start_idx,
+    slice_end_idx,
+    frames_metadata,
+    dir_name,
+    output_fname,
+    scale_factor,
+    ff_path,
+):
     """Rescale volumes and save
 
     :param int time_idx: time point of input image
@@ -450,7 +471,7 @@ def rescale_vol_and_save(time_idx,
         )
         meta_row = frames_metadata.loc[meta_idx]
         if dir_name is None:
-            dir_name = meta_row['dir_name']
+            dir_name = meta_row["dir_name"]
         cur_img = image_utils.read_image_from_row(meta_row, dir_name)
         if ff_path is not None:
             cur_img = image_utils.apply_flat_field_correction(
@@ -461,13 +482,15 @@ def rescale_vol_and_save(time_idx,
     input_stack = np.stack(input_stack, axis=2)
     resc_vol = image_utils.rescale_nd_image(input_stack, scale_factor)
     np.save(output_fname, resc_vol, allow_pickle=True, fix_imports=True)
-    cur_metadata = {'time_idx': time_idx,
-                    'pos_idx': pos_idx,
-                    'channel_idx': channel_idx,
-                    'slice_idx': slice_start_idx,
-                    'file_name': os.path.basename(output_fname),
-                    'mean': np.mean(resc_vol),
-                    'std': np.std(resc_vol)}
+    cur_metadata = {
+        "time_idx": time_idx,
+        "pos_idx": pos_idx,
+        "channel_idx": channel_idx,
+        "slice_idx": slice_start_idx,
+        "file_name": os.path.basename(output_fname),
+        "mean": np.mean(resc_vol),
+        "std": np.std(resc_vol),
+    }
     return cur_metadata
 
 
@@ -494,10 +517,40 @@ def get_im_stats(im_path):
     :return dict meta_row: Dict with intensity data for image
     """
     im = image_utils.read_image(im_path)
+    meta_row = {"mean": np.nanmean(im), "std": np.nanstd(im)}
+    return meta_row
+
+
+def mp_get_val_stats(fn_args, workers):
+    """
+    Computes statistics of numpy arrays with multiprocessing
+
+    :param list of tuple fn_args: list with tuples of function arguments
+    :param int workers: max number of workers
+    :return: list of returned df from get_im_stats
+    """
+    with ProcessPoolExecutor(workers) as ex:
+        # can't use map directly as it works only with single arg functions
+        res = ex.map(get_val_stats, fn_args)
+    return list(res)
+
+
+def get_val_stats(sample_values):
+    """
+    Computes the statistics of a numpy array and returns a dictionary
+    of metadata corresponding to input sample values.
+
+    :param list(float) sample_values: List of sample values at respective
+                                        indices
+    :return dict meta_row: Dict with intensity data for image
+    """
+
     meta_row = {
-        'mean': np.nanmean(im),
-        'std': np.nanstd(im)
-        }
+        "mean": np.nanmean(sample_values),
+        "std": np.nanstd(sample_values),
+        "median": np.nanmedian(sample_values),
+        "iqr": scipy.stats.iqr(sample_values),
+    }
     return meta_row
 
 
@@ -515,7 +568,8 @@ def mp_sample_im_pixels(fn_args, workers):
     return list(res)
 
 
-def sample_im_pixels(meta_row, ff_path, grid_spacing, dir_name=None):
+def sample_im_pixels(position, ff_name, zarr_dir, grid_spacing):
+    # TODO move out of mp utils into normalization utils
     """
     Read and computes statistics of images for each point in a grid.
     Grid spacing determines distance in pixels between grid points
@@ -523,28 +577,23 @@ def sample_im_pixels(meta_row, ff_path, grid_spacing, dir_name=None):
     Applies flatfield correction prior to intensity sampling if flatfield
     path is specified.
 
-    :param dict meta_row: Metadata row for image
-    :param str ff_path: Full path to flatfield image corresponding to image
-    :param int grid_spacing: Distance in pixels between sampling points
-    :param str/None dir_name: Image directory (none if using dir_name from frames_meta)
+    :param int position: position currently being processed
+    :param str ff_name: name of 'untracked' flatfield array
+    :param str zarr_dir: path to zarr directory
+    :param int grid_spacing: spacing of sampling grid in x and y
+
     :return list meta_rows: Dicts with intensity data for each grid point
     """
-    if dir_name is None:
-        dir_name = meta_row['dir_name']
-    im = image_utils.read_image_from_row(meta_row, dir_name)
-    if ff_path is not None:
+    modifier = io_utils.HCSZarrModifier(zarrfile=zarr_dir)
+    im = modifier.get_array(position=position)
+
+    if ff_name is not None:
+        ff_image = modifier.get_untracked_array(position=position, name=ff_name)
         im = image_utils.apply_flat_field_correction(
             input_image=im,
-            flat_field_path=ff_path,
+            flat_field_image=ff_image,
         )
-    row_ids, col_ids, sample_values = \
-        image_utils.grid_sample_pixel_values(im, grid_spacing)
-
-    meta_rows = \
-        [{**meta_row,
-          'row_idx': row_idx,
-          'col_idx': col_idx,
-          'intensity': sample_value}
-         for row_idx, col_idx, sample_value
-         in zip(row_ids, col_ids, sample_values)]
-    return meta_rows
+    row_indices, col_indices, sample_values = image_utils.grid_sample_pixel_values(
+        im, grid_spacing
+    )
+    return sample_values

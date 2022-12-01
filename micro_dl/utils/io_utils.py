@@ -958,6 +958,16 @@ class HCSZarrModifier(ZarrReader):
         pos = pos_info["name"]
         return self.store[well][pos]
 
+    def get_position_meta(self, position):
+        """
+        Return the well-level metadata at at this position from .zattrs
+
+        :param int position: position to retrieve metadata from
+        :return dict metadata: .zattrs metadata at this position
+        """
+        position_group = self.get_position_group(position)
+        return position_group.attrs.asdict()
+
     def init_untracked_array(self, data_array, position, name):
         """
         Write an array to a given position without updating the HCS metadata.
@@ -979,9 +989,19 @@ class HCSZarrModifier(ZarrReader):
             overwrite=self.overwrite_ok,
         )
 
+    def get_untracked_array(self, position, name):
+        """
+        Gets the untracked array with name 'name' at the given position
+
+        :param int position: Position index
+        :return np.array pos: Array of name 'name', size can vary
+        """
+        pos = self.get_position_group(position)
+        return pos[name][:]
+
     def write_meta_field(self, position, metadata, field_name):
         """
-        Writes 'metadata' to position's image-level .zattrs metadata by either
+        Writes 'metadata' to position's well-level .zattrs metadata by either
         creating a new field according to 'metadata', or concatenating the
         given metadata to an existing field if found.
 
