@@ -4,7 +4,7 @@ from numcodecs import Blosc
 import numpy as np
 import zarr
 
-ARRAY_NAME = 'arr_0'
+ARRAY_NAME = "arr_0"
 
 
 class ReaderBase:
@@ -15,6 +15,7 @@ class ReaderBase:
     This will be updated if the io parts of waveorder is moved to a stand alone
     python package.
     """
+
     def __init__(self):
         self.frames = None
         self.channels = None
@@ -53,6 +54,7 @@ class WriterBase:
     python package.
     ABC for all writer types
     """
+
     def __init__(self, store, root_path):
 
         # init common attributes
@@ -65,7 +67,7 @@ class WriterBase:
         self.dtype = None
 
         # set hardcoded compressor
-        self.__compressor = Blosc(cname='zstd', clevel=1, shuffle=Blosc.BITSHUFFLE)
+        self.__compressor = Blosc(cname="zstd", clevel=1, shuffle=Blosc.BITSHUFFLE)
 
         # maps to keep track of hierarchies
         self.rows = dict()
@@ -77,7 +79,9 @@ class WriterBase:
         self.verbose = verbose
 
     # Initialize zero array
-    def init_array(self, data_shape, chunk_size, dtype, chan_names, clims, overwrite=False):
+    def init_array(
+        self, data_shape, chunk_size, dtype, chan_names, clims, overwrite=False
+    ):
         """
         Initializes the zarr array under the current position subgroup.
         array level is called 'arr_0' in the hierarchy.  Sets omero/multiscales metadata based upon
@@ -117,21 +121,21 @@ class WriterBase:
         shape = np.shape(data)
 
         if self.current_pos_group.__len__() == 0:
-            raise ValueError('Array not initialized')
+            raise ValueError("Array not initialized")
 
         if not isinstance(t, int) and not isinstance(t, slice):
-            raise TypeError('t specification must be either int or slice')
+            raise TypeError("t specification must be either int or slice")
 
         if not isinstance(c, int) and not isinstance(c, slice):
-            raise TypeError('c specification must be either int or slice')
+            raise TypeError("c specification must be either int or slice")
 
         if not isinstance(z, int) and not isinstance(z, slice):
-            raise TypeError('z specification must be either int or slice')
+            raise TypeError("z specification must be either int or slice")
 
         if isinstance(t, int) and isinstance(c, int) and isinstance(z, int):
 
             if len(shape) > 2:
-                raise ValueError('Index dimensions exceed data dimensions')
+                raise ValueError("Index dimensions exceed data dimensions")
             else:
                 self.current_pos_group[ARRAY_NAME][t, c, z] = data
 
@@ -151,48 +155,48 @@ class WriterBase:
         -------
         dict_:              (dict) dictionary adherent to ome-zarr standards
         """
-        if chan_name == 'Retardance':
+        if chan_name == "Retardance":
             min = clim[2] if clim else 0.0
             max = clim[3] if clim else 1000.0
             start = clim[0] if clim else 0.0
             end = clim[1] if clim else 100.0
-        elif chan_name == 'Orientation':
+        elif chan_name == "Orientation":
             min = clim[2] if clim else 0.0
             max = clim[3] if clim else np.pi
             start = clim[0] if clim else 0.0
             end = clim[1] if clim else np.pi
 
-        elif chan_name == 'Phase3D':
+        elif chan_name == "Phase3D":
             min = clim[2] if clim else -10.0
             max = clim[3] if clim else 10.0
             start = clim[0] if clim else -0.2
             end = clim[1] if clim else 0.2
 
-        elif chan_name == 'BF':
+        elif chan_name == "BF":
             min = clim[2] if clim else 0.0
             max = clim[3] if clim else 65535.0
             start = clim[0] if clim else 0.0
             end = clim[1] if clim else 5.0
 
-        elif chan_name == 'S0':
+        elif chan_name == "S0":
             min = clim[2] if clim else 0.0
             max = clim[3] if clim else 65535.0
             start = clim[0] if clim else 0.0
             end = clim[1] if clim else 1.0
 
-        elif chan_name == 'S1':
+        elif chan_name == "S1":
             min = clim[2] if clim else 10.0
             max = clim[3] if clim else -10.0
             start = clim[0] if clim else -0.5
             end = clim[1] if clim else 0.5
 
-        elif chan_name == 'S2':
+        elif chan_name == "S2":
             min = clim[2] if clim else -10.0
             max = clim[3] if clim else 10.0
             start = clim[0] if clim else -0.5
             end = clim[1] if clim else 0.5
 
-        elif chan_name == 'S3':
+        elif chan_name == "S3":
             min = clim[2] if clim else -10
             max = clim[3] if clim else 10
             start = clim[0] if clim else -1.0
@@ -204,14 +208,15 @@ class WriterBase:
             start = clim[0] if clim else 0.0
             end = clim[1] if clim else 65535.0
 
-        dict_ = {'active': first_chan,
-                 'coefficient': 1.0,
-                 'color': 'FFFFFF',
-                 'family': 'linear',
-                 'inverted': False,
-                 'label': chan_name,
-                 'window': {'end': end, 'max': max, 'min': min, 'start': start}
-                 }
+        dict_ = {
+            "active": first_chan,
+            "coefficient": 1.0,
+            "color": "FFFFFF",
+            "family": "linear",
+            "inverted": False,
+            "label": chan_name,
+            "window": {"end": end, "max": max, "min": min, "start": start},
+        }
 
         return dict_
 
@@ -227,12 +232,14 @@ class WriterBase:
         Returns
         -------
         """
-        row_name = f'Row_{idx}' if not name else name
+        row_name = f"Row_{idx}" if not name else name
         row_path = os.path.join(self.root_path, row_name)
 
         # check if the user is trying to create a row that already exsits
         if os.path.exists(row_path):
-            raise FileExistsError(f'A row subgroup with the name {row_name} already exists')
+            raise FileExistsError(
+                f"A row subgroup with the name {row_name} already exists"
+            )
         else:
             self.store.create_group(row_name)
             self.rows[idx] = row_name
@@ -250,13 +257,15 @@ class WriterBase:
         Returns
         -------
         """
-        col_name = f'Col_{idx}' if not name else name
+        col_name = f"Col_{idx}" if not name else name
         row_name = self.rows[row_idx]
         col_path = os.path.join(os.path.join(self.root_path, row_name), col_name)
 
         # check to see if the user is trying to create a row that already exists
         if os.path.exists(col_path):
-            raise FileExistsError(f'A column subgroup with the name {col_name} already exists')
+            raise FileExistsError(
+                f"A column subgroup with the name {col_name} already exists"
+            )
         else:
             self.store[self.rows[row_idx]].create_group(col_name)
             self.columns[idx] = col_name
@@ -273,19 +282,20 @@ class WriterBase:
         -------
         """
         # get row, column, and path to the well
-        row_name = self.positions[position]['row']
-        col_name = self.positions[position]['col']
+        row_name = self.positions[position]["row"]
+        col_name = self.positions[position]["col"]
         well_path = os.path.join(os.path.join(self.root_path, row_name), col_name)
 
         # check to see if this well exists (row/column)
         if os.path.exists(well_path):
-            pos_name = self.positions[position]['name']
+            pos_name = self.positions[position]["name"]
             pos_path = os.path.join(well_path, pos_name)
 
             # check to see if the position exists
             if os.path.exists(pos_path):
 
-                if self.verbose: print(f'Opening subgroup {row_name}/{col_name}/{pos_name}')
+                if self.verbose:
+                    print(f"Opening subgroup {row_name}/{col_name}/{pos_name}")
 
                 # update trackers to note the current status of the writer
                 self.current_pos_group = self.store[row_name][col_name][pos_name]
@@ -293,11 +303,15 @@ class WriterBase:
                 self.current_position = position
 
             else:
-                raise FileNotFoundError(f'Could not find zarr position subgroup at {row_name}/{col_name}/{pos_name}\
-                                                    Check spelling or create position subgroup with create_position')
+                raise FileNotFoundError(
+                    f"Could not find zarr position subgroup at {row_name}/{col_name}/{pos_name}\
+                                                    Check spelling or create position subgroup with create_position"
+                )
         else:
-            raise FileNotFoundError(f'Could not find zarr position subgroup at {row_name}/{col_name}/\
-                                                Check spelling or create column/position subgroup with create_position')
+            raise FileNotFoundError(
+                f"Could not find zarr position subgroup at {row_name}/{col_name}/\
+                                                Check spelling or create column/position subgroup with create_position"
+            )
 
     def set_root(self, root):
         """
@@ -336,43 +350,53 @@ class WriterBase:
         clims:          (list of tuples) contrast limits to display for every channel
         """
 
-        rdefs = {'defaultT': 0,
-                 'model': 'color',
-                 'projection': 'normal',
-                 'defaultZ': 0}
+        rdefs = {"defaultT": 0, "model": "color", "projection": "normal", "defaultZ": 0}
 
-        multiscale_dict = [{'datasets': [{'path': ARRAY_NAME}],
-                            'version': '0.1'}]
+        multiscale_dict = [{"datasets": [{"path": ARRAY_NAME}], "version": "0.1"}]
         dict_list = []
 
         if clims and len(chan_names) < len(clims):
-            raise ValueError('Contrast Limits specified exceed the number of channels given')
+            raise ValueError(
+                "Contrast Limits specified exceed the number of channels given"
+            )
 
         for i in range(len(chan_names)):
             if clims:
                 if len(clims[i]) == 2:
-                    if 'float' in self.dtype.name:
+                    if "float" in self.dtype.name:
                         clim = (float(clims[i][0]), float(clims[i][1]), -1000, 1000)
                     else:
                         info = np.iinfo(self.dtype)
-                        clim = (float(clims[i][0]), float(clims[i][1]), info.min, info.max)
+                        clim = (
+                            float(clims[i][0]),
+                            float(clims[i][1]),
+                            info.min,
+                            info.max,
+                        )
                 elif len(clims[i]) == 4:
-                    clim = (float(clims[i][0]), float(clims[i][1]), float(clims[i][2]), float(clims[i][3]))
+                    clim = (
+                        float(clims[i][0]),
+                        float(clims[i][1]),
+                        float(clims[i][2]),
+                        float(clims[i][3]),
+                    )
                 else:
-                    raise ValueError('clim specification must a tuple of length 2 or 4')
+                    raise ValueError("clim specification must a tuple of length 2 or 4")
 
             first_chan = True if i == 0 else False
             if not clims or i >= len(clims):
-                dict_list.append(self.create_channel_dict(chan_names[i], first_chan=first_chan))
+                dict_list.append(
+                    self.create_channel_dict(chan_names[i], first_chan=first_chan)
+                )
             else:
-                dict_list.append(self.create_channel_dict(chan_names[i], clim, first_chan=first_chan))
+                dict_list.append(
+                    self.create_channel_dict(chan_names[i], clim, first_chan=first_chan)
+                )
 
-        full_dict = {'multiscales': multiscale_dict,
-                     'omero': {
-                         'channels': dict_list,
-                         'rdefs': rdefs,
-                         'version': 0.1}
-                     }
+        full_dict = {
+            "multiscales": multiscale_dict,
+            "omero": {"channels": dict_list, "rdefs": rdefs, "version": 0.1},
+        }
 
         self.current_pos_group.attrs.put(full_dict)
 
@@ -399,9 +423,11 @@ class ZarrReader(ReaderBase):
         if not os.path.isdir(zarrfile):
             raise ValueError("file does not exist")
         try:
-            self.store = zarr.open(zarrfile, 'r')
+            self.store = zarr.open(zarrfile, "r")
         except:
-            raise FileNotFoundError('Path: {} is not a valid zarr store'.format(zarrfile))
+            raise FileNotFoundError(
+                "Path: {} is not a valid zarr store".format(zarrfile)
+            )
 
         try:
             row = self.store[list(self.store.group_keys())[0]]
@@ -409,20 +435,18 @@ class ZarrReader(ReaderBase):
             pos = col[list(col.group_keys())[0]]
             self.arr_name = list(pos.array_keys())[0]
         except IndexError:
-            raise IndexError('Incompatible zarr format')
+            raise IndexError("Incompatible zarr format")
 
-        self.plate_meta = self.store.attrs.get('plate')
+        self.plate_meta = self.store.attrs.get("plate")
         self._get_rows()
         self._get_columns()
         self._get_wells()
         self.position_map = self._get_positions()
 
         # structure of zarr array
-        (self.frames,
-         self.channels,
-         self.slices,
-         self.height,
-         self.width) = self.store[self.position_map[0]['well']][self.position_map[0]['name']][self.arr_name].shape
+        (self.frames, self.channels, self.slices, self.height, self.width) = self.store[
+            self.position_map[0]["well"]
+        ][self.position_map[0]["name"]][self.arr_name].shape
         self.positions = len(self.position_map)
         self.channel_names = []
         self.stage_positions = 0
@@ -447,8 +471,8 @@ class ZarrReader(ReaderBase):
         Function to get the rows of the zarr hierarchy from HCS metadata
         """
         rows = []
-        for row in self.plate_meta['rows']:
-            rows.append(row['name'])
+        for row in self.plate_meta["rows"]:
+            rows.append(row["name"])
         self.rows = rows
 
     def _get_columns(self):
@@ -456,8 +480,8 @@ class ZarrReader(ReaderBase):
         Function to get the columns of the zarr hierarchy from HCS metadata
         """
         columns = []
-        for column in self.plate_meta['columns']:
-            columns.append(column['name'])
+        for column in self.plate_meta["columns"]:
+            columns.append(column["name"])
         self.columns = columns
 
     def _get_wells(self):
@@ -465,8 +489,8 @@ class ZarrReader(ReaderBase):
         Function to get the wells (Row/Col) of the zarr hierarchy from HCS metadata
         """
         wells = []
-        for well in self.plate_meta['wells']:
-            wells.append(well['path'])
+        for well in self.plate_meta["wells"]:
+            wells.append(well["path"])
         self.wells = wells
 
     def _get_positions(self):
@@ -477,9 +501,9 @@ class ZarrReader(ReaderBase):
         idx = 0
         # Assumes that the positions are indexed in the order of Row-->Well-->FOV
         for well in self.wells:
-            for pos in self.store[well].attrs.get('well').get('images'):
-                name = pos['path']
-                position_map[idx] = {'name': name, 'well': well}
+            for pos in self.store[well].attrs.get("well").get("images"):
+                name = pos["path"]
+                position_map[idx] = {"name": name, "well": well}
                 idx += 1
         return position_map
 
@@ -489,50 +513,54 @@ class ZarrReader(ReaderBase):
         that can be easily read by the WaveorderWriter.
         """
         self.hcs_meta = dict()
-        self.hcs_meta['plate'] = self.plate_meta
+        self.hcs_meta["plate"] = self.plate_meta
 
         well_metas = []
         for well in self.wells:
-            meta = self.store[well].attrs.get('well')
+            meta = self.store[well].attrs.get("well")
             well_metas.append(meta)
 
-        self.hcs_meta['well'] = well_metas
+        self.hcs_meta["well"] = well_metas
 
     def _set_mm_meta(self):
         """
         Sets the micromanager summary metadata based on MM version
         """
-        self.mm_meta = self.store.attrs.get('Summary')
-        mm_version = self.mm_meta['MicroManagerVersion']
+        self.mm_meta = self.store.attrs.get("Summary")
+        mm_version = self.mm_meta["MicroManagerVersion"]
 
-        if mm_version != 'pycromanager':
-            if 'beta' in mm_version:
-                if self.mm_meta['Positions'] > 1:
+        if mm_version != "pycromanager":
+            if "beta" in mm_version:
+                if self.mm_meta["Positions"] > 1:
                     self.stage_positions = []
 
-                    for p in range(len(self.mm_meta['StagePositions'])):
-                        pos = self._simplify_stage_position_beta(self.mm_meta['StagePositions'][p])
+                    for p in range(len(self.mm_meta["StagePositions"])):
+                        pos = self._simplify_stage_position_beta(
+                            self.mm_meta["StagePositions"][p]
+                        )
                         self.stage_positions.append(pos)
 
             else:
-                if self.mm_meta['Positions'] > 1:
+                if self.mm_meta["Positions"] > 1:
                     self.stage_positions = []
 
-                    for p in range(self.mm_meta['Positions']):
-                        pos = self._simplify_stage_position(self.mm_meta['StagePositions'][p])
+                    for p in range(self.mm_meta["Positions"]):
+                        pos = self._simplify_stage_position(
+                            self.mm_meta["StagePositions"][p]
+                        )
                         self.stage_positions.append(pos)
 
-        self.z_step_size = self.mm_meta['z-step_um']
+        self.z_step_size = self.mm_meta["z-step_um"]
 
     def _get_channel_names(self):
 
-        well = self.hcs_meta['plate']['wells'][0]['path']
-        pos = self.hcs_meta['well'][0]['images'][0]['path']
+        well = self.hcs_meta["plate"]["wells"][0]["path"]
+        pos = self.hcs_meta["well"][0]["images"][0]["path"]
 
-        omero_meta = self.store[well][pos].attrs.asdict()['omero']
+        omero_meta = self.store[well][pos].attrs.asdict()["omero"]
 
-        for chan in omero_meta['channels']:
-            self.channel_names.append(chan['label'])
+        for chan in omero_meta["channels"]:
+            self.channel_names.append(chan["label"])
 
     def _simplify_stage_position(self, stage_pos: dict):
         """
@@ -542,9 +570,9 @@ class ZarrReader(ReaderBase):
         :return dict out: Flattened dictionary
         """
         out = copy(stage_pos)
-        out.pop('DevicePositions')
-        for dev_pos in stage_pos['DevicePositions']:
-            out.update({dev_pos['Device']: dev_pos['Position_um']})
+        out.pop("DevicePositions")
+        for dev_pos in stage_pos["DevicePositions"]:
+            out.update({dev_pos["Device"]: dev_pos["Position_um"]})
         return out
 
     def _simplify_stage_position_beta(self, stage_pos: dict):
@@ -556,19 +584,19 @@ class ZarrReader(ReaderBase):
         :return dict new_dict: Flattened dictionary
         """
         new_dict = {}
-        new_dict['Label'] = stage_pos['label']
-        new_dict['GridRow'] = stage_pos['gridRow']
-        new_dict['GridCol'] = stage_pos['gridCol']
+        new_dict["Label"] = stage_pos["label"]
+        new_dict["GridRow"] = stage_pos["gridRow"]
+        new_dict["GridCol"] = stage_pos["gridCol"]
 
-        for sub in stage_pos['subpositions']:
+        for sub in stage_pos["subpositions"]:
             values = []
-            for field in ['x', 'y', 'z']:
+            for field in ["x", "y", "z"]:
                 if sub[field] != 0:
                     values.append(sub[field])
             if len(values) == 1:
-                new_dict[sub['stageName']] = values[0]
+                new_dict[sub["stageName"]] = values[0]
             else:
-                new_dict[sub['stageName']] = values
+                new_dict[sub["stageName"]] = values
 
         return new_dict
 
@@ -583,8 +611,8 @@ class ZarrReader(ReaderBase):
         :param int z: Z-slice index
         :return dict metadata: Image Plane Metadata at given coordinate w/ T = 0
         """
-        coord_str = f'({p}, 0, {c}, {z})'
-        return self.store.attrs.get('ImagePlaneMetadata').get(coord_str)
+        coord_str = f"({p}, 0, {c}, {z})"
+        return self.store.attrs.get("ImagePlaneMetadata").get(coord_str)
 
     def get_zarr(self, position):
         """
@@ -594,8 +622,8 @@ class ZarrReader(ReaderBase):
         :return ZarrArray Zarr array containing the (T, C, Z, Y, X) array at given position
         """
         pos_info = self.position_map[position]
-        well = pos_info['well']
-        pos = pos_info['name']
+        well = pos_info["well"]
+        pos = pos_info["name"]
         return self.store[well][pos][self.arr_name]
 
     def get_array(self, position):
@@ -636,6 +664,7 @@ class ZarrWriter:
     given stokes or physical data, construct a standard hierarchy in zarr for output
         should conform to the ome-zarr standard as much as possible
     """
+
     __builder = None
     __save_dir = None
     __root_store_path = None
@@ -646,16 +675,15 @@ class ZarrWriter:
     current_group_name = None
     current_position = None
 
-    def __init__(self,
-                 save_dir: str = None,
-                 hcs_meta: dict = None,
-                 verbose: bool = False):
+    def __init__(
+        self, save_dir: str = None, hcs_meta: dict = None, verbose: bool = False
+    ):
 
         self.verbose = verbose
         self.hcs_meta = hcs_meta
 
-        if os.path.exists(save_dir) and save_dir.endswith('.zarr'):
-            print(f'Opening existing store at {save_dir}')
+        if os.path.exists(save_dir) and save_dir.endswith(".zarr"):
+            print(f"Opening existing store at {save_dir}")
             self._open_zarr_root(save_dir)
         else:
             self._check_is_dir(save_dir)
@@ -676,12 +704,12 @@ class ZarrWriter:
         if os.path.isdir(path) and os.path.exists(path):
             self.__save_dir = path
         else:
-            print(f'No existing directory found. Creating new directory at {path}')
+            print(f"No existing directory found. Creating new directory at {path}")
             os.mkdir(path)
             self.__save_dir = path
 
     def _open_zarr_root(self, path):
-        #TODO: Use case where user opens an already HCS-store?
+        # TODO: Use case where user opens an already HCS-store?
         """
         Change current zarr to an existing store
         if zarr doesn't exist, raise error
@@ -689,15 +717,20 @@ class ZarrWriter:
         :param str path: Path to store. Must end in .zarr
         """
         if os.path.exists(path):
-            assert path.endswith('.zarr'), \
-                "Path must en in .zarr. Current path: {}".format(path)
+            assert path.endswith(
+                ".zarr"
+            ), "Path must en in .zarr. Current path: {}".format(path)
             try:
                 self.store = zarr.open(path)
                 self.__root_store_path = path
             except:
-                raise FileNotFoundError('Path: {} is not a valid zarr store'.format(path))
+                raise FileNotFoundError(
+                    "Path: {} is not a valid zarr store".format(path)
+                )
         else:
-            raise FileNotFoundError(f'No store found at {path}, check spelling or create new store with create_zarr')
+            raise FileNotFoundError(
+                f"No store found at {path}, check spelling or create new store with create_zarr"
+            )
 
     def create_zarr_root(self, name):
         """
@@ -707,12 +740,12 @@ class ZarrWriter:
 
         :param str name: Name of the zarr store.
         """
-        if not name.endswith('.zarr'):
-            name = name + '.zarr'
+        if not name.endswith(".zarr"):
+            name = name + ".zarr"
 
         zarr_path = os.path.join(self.__save_dir, name)
         if os.path.exists(zarr_path):
-            raise FileExistsError('A zarr store with this name already exists')
+            raise FileExistsError("A zarr store with this name already exists")
 
         # Creating new zarr store
         self.store = zarr.open(zarr_path)
@@ -721,15 +754,17 @@ class ZarrWriter:
         self.sub_writer.set_root(self.__root_store_path)
         self.sub_writer.init_hierarchy()
 
-    def init_array(self,
-                   position,
-                   data_shape,
-                   chunk_size,
-                   chan_names,
-                   dtype='float32',
-                   clims=None,
-                   position_name=None,
-                   overwrite=False):
+    def init_array(
+        self,
+        position,
+        data_shape,
+        chunk_size,
+        chan_names,
+        dtype="float32",
+        clims=None,
+        position_name=None,
+        overwrite=False,
+    ):
         """
         Creates a subgroup structure based on position index.  Then initializes the zarr array under the
         current position subgroup.  Array level is called 'array' in the hierarchy.
@@ -742,14 +777,18 @@ class ZarrWriter:
         :param list clims: List of tuples corresponding to contrast limtis for channel.  OME-Zarr metadata
         :param bool overwrite: Whether or not to overwrite the existing data that may be present.
         """
-        pos_name = position_name if position_name else f'Pos_{position:03d}'
+        pos_name = position_name if position_name else f"Pos_{position:03d}"
 
         # Make sure data matches OME zarr structure
         if len(data_shape) != 5:
-            raise ValueError('Data shape must be (T, C, Z, Y, X), not {}'.format(data_shape))
+            raise ValueError(
+                "Data shape must be (T, C, Z, Y, X), not {}".format(data_shape)
+            )
 
         self.sub_writer.create_position(position, pos_name)
-        self.sub_writer.init_array(data_shape, chunk_size, dtype, chan_names, clims, overwrite)
+        self.sub_writer.init_array(
+            data_shape, chunk_size, dtype, chan_names, clims, overwrite
+        )
 
     def write(self, data, p, t=None, c=None, z=None):
         """
@@ -791,6 +830,7 @@ class DefaultZarr(WriterBase):
                 ---> Pos_N
     We assume this structure in the metadata updating/position creation
     """
+
     def __init__(self, store, root_path):
 
         super().__init__(store, root_path)
@@ -805,22 +845,23 @@ class DefaultZarr(WriterBase):
         Will create the first row and initialize metadata fields
         """
         self.create_row(0)
-        self.dataset_name = os.path.basename(self.root_path).strip('.zarr')
+        self.dataset_name = os.path.basename(self.root_path).strip(".zarr")
 
-        self.plate_meta['plate'] = {'acquisitions': [{'id': 1,
-                                                      'maximumfieldcount': 1,
-                                                      'name': 'Dataset',
-                                                      'starttime': 0}],
-                                    'columns': [],
-                                    'field_count': 1,
-                                    'name': self.dataset_name,
-                                    'rows': [],
-                                    'version': '0.1',
-                                    'wells': []}
+        self.plate_meta["plate"] = {
+            "acquisitions": [
+                {"id": 1, "maximumfieldcount": 1, "name": "Dataset", "starttime": 0}
+            ],
+            "columns": [],
+            "field_count": 1,
+            "name": self.dataset_name,
+            "rows": [],
+            "version": "0.1",
+            "wells": [],
+        }
 
-        self.plate_meta['plate']['rows'].append({'name': self.rows[0]})
+        self.plate_meta["plate"]["rows"].append({"name": self.rows[0]})
 
-        self.well_meta['well'] = {'images': [], 'version': '0.1'}
+        self.well_meta["well"] = {"images": [], "version": "0.1"}
         self.well_meta = dict(self.well_meta)
 
     def create_position(self, position, name):
@@ -837,7 +878,7 @@ class DefaultZarr(WriterBase):
         col_name = self.columns[position]
 
         if self.verbose:
-            print(f'Creating and opening subgroup {row_name}/{col_name}/{name}')
+            print(f"Creating and opening subgroup {row_name}/{col_name}/{name}")
 
         # create position subgroup
         self.store[row_name][col_name].create_group(name)
@@ -848,7 +889,7 @@ class DefaultZarr(WriterBase):
         self.current_position = position
 
         # update ome-metadata
-        self.positions[position] = {'name': name, 'row': row_name, 'col': col_name}
+        self.positions[position] = {"name": name, "row": row_name, "col": col_name}
         self._update_plate_meta(position)
         self._update_well_meta(position)
 
@@ -859,8 +900,10 @@ class DefaultZarr(WriterBase):
 
         :param int pos: Position index to update the metadata
         """
-        self.plate_meta['plate']['columns'].append({'name': self.columns[pos]})
-        self.plate_meta['plate']['wells'].append({'path': f'{self.rows[0]}/{self.columns[pos]}'})
+        self.plate_meta["plate"]["columns"].append({"name": self.columns[pos]})
+        self.plate_meta["plate"]["wells"].append(
+            {"path": f"{self.rows[0]}/{self.columns[pos]}"}
+        )
         self.store.attrs.put(self.plate_meta)
 
     def _update_well_meta(self, pos):
@@ -871,5 +914,107 @@ class DefaultZarr(WriterBase):
 
         :param intpos: Index of the position to update
         """
-        self.well_meta['well']['images'] = [{'path': self.positions[pos]['name']}]
+        self.well_meta["well"]["images"] = [{"path": self.positions[pos]["name"]}]
         self.store[self.rows[0]][self.columns[pos]].attrs.put(self.well_meta)
+
+
+class HCSZarrModifier(ZarrReader):
+    """
+    Interacts with an HCS zarr store to provide abstract array writing and metadata
+    mutation.
+
+    Warning: Although this class inherits ZarrReader, it is NOT read only, and therefore
+    can make dangerous writes to the zarr store.
+
+    :param str zarr_file: root zarr file containing the desired dataset
+                            Note: assumes OME-NGFF HCS format compatibility
+    :param bool enable_overwrite: whether to allow overwriting of already written data
+    """
+
+    def __init__(self, zarr_file, enable_creation=True, overwrite_ok=True):
+        super().__init__(zarrfile=zarr_file)
+
+        if not os.path.isdir(zarr_file):
+            raise ValueError("file does not exist")
+        try:
+            creation = "a" if enable_creation else "r+"
+            self.store = zarr.open(zarr_file, mode=creation)
+        except:
+            raise FileNotFoundError(
+                "Path: {} is not a valid zarr store".format(zarr_file)
+            )
+
+        self.overwrite_ok = overwrite_ok
+
+    def get_position_group(self, position):
+        """
+        Return the group at this position.
+
+        :param int position: position of the group requested
+        :return zarr.hierarchy.group group: group at this position
+        """
+        pos_info = self.position_map[position]
+        well = pos_info["well"]
+        pos = pos_info["name"]
+        return self.store[well][pos]
+
+    def init_untracked_array(self, data_array, position, name):
+        """
+        Write an array to a given position without updating the HCS metadata.
+        Array will be stored under the given name, with chunk sizes equal to
+        one x-y slice (where xy is assumed to be the last dimension).
+
+        :param np.ndarray data_array: data of array.
+        :param int position: position to write array to
+        :param str name: name of array in storage
+        """
+        store = self.get_position_group(position=position)
+
+        chunk_size = [1] * len(data_array.shape[:-2]) + list(data_array.shape[-2:])
+        store.array(
+            name=name,
+            data=data_array,
+            shape=data_array.shape,
+            chunks=chunk_size,
+            overwrite=self.overwrite_ok,
+        )
+
+    def write_meta_field(self, position, metadata, field_name):
+        """
+        Writes 'metadata' to position's image-level .zattrs metadata by either
+        creating a new field according to 'metadata', or concatenating the
+        given metadata to an existing field if found.
+
+        Assumes that the zarr store group given follows the OMG-NGFF HCS
+        format as specified here:
+                https://ngff.openmicroscopy.org/latest/#hcs-layout
+
+        Warning: Dangerous. Writing metadata fields above the image-level of
+                an HCS hierarchy can break HCS compatibility
+
+        :param zarr.heirarchy.grp zarr_group: zarr heirarchy group whose
+                                            attributes to mutate
+        :param dict metadata: metadata dictionary to write to JSON .zattrs
+        :param str field_name: name of new/existing field to write to
+        """
+        store = self.get_position_group(position=position)
+
+        assert isinstance(store, zarr.hierarchy.Group), (
+            f"current_pos_group of type {type(store)}" " must be zarr.heirarchy.group"
+        )
+
+        # get existing metadata
+        current_metadata = store.attrs.asdict()
+
+        assert "multiscales" in current_metadata, (
+            "Current position must reference"
+            "image-level store and have metadata currently tracking images"
+        )
+
+        # alter depending on whether field is new or existing
+        if field_name in current_metadata:
+            current_metadata[field_name].update(metadata)
+        else:
+            current_metadata[field_name] = metadata
+
+        store.attrs.update(current_metadata)

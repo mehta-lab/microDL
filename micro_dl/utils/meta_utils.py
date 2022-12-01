@@ -3,6 +3,7 @@ import itertools
 import os
 import pandas as pd
 import sys
+import zarr.hierarchy
 
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.image_utils as im_utils
@@ -11,11 +12,11 @@ import micro_dl.utils.mp_utils as mp_utils
 
 
 def frames_meta_generator(
-        input_dir,
-        file_format='zarr',
-        order='cztp',
-        name_parser='parse_sms_name',
-        ):
+    input_dir,
+    file_format="zarr",
+    order="cztp",
+    name_parser="parse_sms_name",
+):
     """
     Generate metadata from file names, or metadata in the case of zarr files,
     for preprocessing.
@@ -43,13 +44,14 @@ def frames_meta_generator(
     :param str name_parser: Function in aux_utils for parsing indices from tiff/png file name
     :return pd.DataFrame frames_meta: Metadata for all frames in dataset
     """
-    if 'zarr' in file_format:
-        zarr_files = glob.glob(os.path.join(input_dir, '*.zarr'))
-        assert len(zarr_files) > 0, \
-            "file_format specified as zarr, but no zarr files found"
+    if "zarr" in file_format:
+        zarr_files = glob.glob(os.path.join(input_dir, "*.zarr"))
+        assert (
+            len(zarr_files) > 0
+        ), "file_format specified as zarr, but no zarr files found"
         # Generate frames_meta from zarr metadata
         frames_meta = frames_meta_from_zarr(input_dir, zarr_files)
-    elif 'tif' in file_format or 'png' in file_format:
+    elif "tif" in file_format or "png" in file_format:
         frames_meta = frames_meta_from_filenames(
             input_dir,
             name_parser,
@@ -59,7 +61,7 @@ def frames_meta_generator(
         raise FileNotFoundError("Check that file_format matches image files")
 
     # Write metadata
-    frames_meta_filename = os.path.join(input_dir, 'frames_meta.csv')
+    frames_meta_filename = os.path.join(input_dir, "frames_meta.csv")
     frames_meta.to_csv(frames_meta_filename, sep=",")
     return frames_meta
 
@@ -71,16 +73,16 @@ def frames_meta_from_filenames(input_dir, name_parser, order):
     :return pd.DataFrame frames_meta: Metadata for all frames in dataset
     :param str order: Order in which file name encodes cztp (for tiff/png)
     """
-    parse_func = aux_utils.import_object('utils.aux_utils', name_parser, 'function')
+    parse_func = aux_utils.import_object("utils.aux_utils", name_parser, "function")
     im_names = aux_utils.get_sorted_names(input_dir)
     frames_meta = aux_utils.make_dataframe(nbr_rows=len(im_names))
     channel_names = []
     # Fill dataframe with rows from image names
     for i in range(len(im_names)):
         kwargs = {"im_name": im_names[i], "dir_name": input_dir}
-        if name_parser == 'parse_idx_from_name':
+        if name_parser == "parse_idx_from_name":
             kwargs["order"] = order
-        elif name_parser == 'parse_sms_name':
+        elif name_parser == "parse_sms_name":
             kwargs["channel_names"] = channel_names
         meta_row = parse_func(**kwargs)
         frames_meta.loc[i] = meta_row
@@ -106,31 +108,89 @@ def frames_meta_from_zarr(input_dir, file_names):
     nbr_rows = len(file_names) * nbr_channels * nbr_slices * nbr_times
     frames_meta = aux_utils.make_dataframe(nbr_rows=nbr_rows)
     meta_row = dict.fromkeys(list(frames_meta))
-    meta_row['dir_name'] = input_dir
+    meta_row["dir_name"] = input_dir
     idx = 0
     for pos_idx in range(len(file_names)):
         zarr_reader = io_utils.ZarrReader(file_names[pos_idx])
-        meta_row['file_name'] = os.path.basename(file_names[pos_idx])
+        meta_row["file_name"] = os.path.basename(file_names[pos_idx])
         # Get position index from name
-        meta_row['pos_idx'] = int(zarr_reader.columns[0].split('_')[-1])
+        meta_row["pos_idx"] = int(zarr_reader.columns[0].split("_")[-1])
         for channel_idx in range(nbr_channels):
             for slice_idx in range(nbr_slices):
                 for time_idx in range(nbr_times):
-                    meta_row['channel_idx'] = channel_idx
-                    meta_row['slice_idx'] = slice_idx
-                    meta_row['time_idx'] = time_idx
-                    meta_row['channel_name'] = channel_names[channel_idx]
+                    meta_row["channel_idx"] = channel_idx
+                    meta_row["slice_idx"] = slice_idx
+                    meta_row["time_idx"] = time_idx
+                    meta_row["channel_name"] = channel_names[channel_idx]
                     frames_meta.loc[idx] = meta_row
                     idx += 1
     return frames_meta
 
 
 def ints_meta_generator(
-        input_dir,
-        num_workers=4,
-        block_size=256,
-        flat_field_dir=None,
-        channel_ids=-1):
+    zarr_dir,
+    num_workers=4,
+    channel_ids=-1,
+):
+    """
+    Generate pixel intensity metadata to be later used in on-the-fly normalization
+    during training and inference. Sampling is used for efficient estimation of median
+    and interquartile range for intensity values on both a dataset and field-of-view
+    level.
+
+    Normalization values are recorded in the image-level metadata in the corresponding
+    position of each zarr_dir store. Format of metadata is as follows:
+    {
+        channel_idx : {
+            dataset_norm_val: dataset level normalization value (positive float),
+            FOV_norm_val: field-of-view level normalization value (positive float)
+        },
+        .
+        .
+        .
+    }
+
+    :param str zarr_dir: directory to zarr store containing dataset.
+    :param int num_workers: number of cpu workers for multiprocessing, defaults to 4
+    :param list/int channel_ids: indices of channels to process in dataset arrays,
+                                    defaults to -1
+    """
+    modifier = io_utils.HCSZarrModifier(
+        zarr_file=zarr_dir,
+        enable_creation=True,
+        overwrite_ok=True,
+    )
+
+    if channel_ids == -1:
+        channel_ids = range(modifier.channels)
+    elif isinstance(channel_ids, int):
+        channel_ids = [channel_ids]
+
+    mp_fn_args = []
+    for position in modifier.position_map:
+        modifier.get_image
+
+    mp_fn_args = []
+    # Fill dataframe with rows from image names
+    for i, meta_row in frames_metadata.iterrows():
+        channel_idx = meta_row["channel_idx"]
+        ff_path = im_utils.get_flat_field_path(
+            flat_field_dir,
+            channel_idx,
+            channel_ids,
+        )
+        mp_fn_args.append((meta_row, ff_path, block_size))
+
+    im_ints_list = mp_utils.mp_sample_im_pixels(mp_fn_args, num_workers)
+    im_ints_list = list(itertools.chain.from_iterable(im_ints_list))
+    ints_meta = pd.DataFrame.from_dict(im_ints_list)
+
+    ints_meta.to_csv(ints_meta_filename, sep=",")
+
+
+def ints_meta_generator(
+    input_dir, num_workers=4, block_size=256, flat_field_dir=None, channel_ids=-1
+):
     """
     Generate pixel intensity metadata for estimating image normalization
     parameters during preprocessing step. Pixels are sub-sampled from the image
@@ -159,7 +219,7 @@ def ints_meta_generator(
     :param str flat_field_dir: Directory containing flatfield images
     :param list/int channel_ids: Channel indices to process
     """
-    ints_meta_filename = os.path.join(input_dir, 'intensity_meta.csv')
+    ints_meta_filename = os.path.join(input_dir, "intensity_meta.csv")
     # Remove old file if exists first
     if os.path.exists(ints_meta_filename):
         os.remove(ints_meta_filename)
@@ -168,11 +228,11 @@ def ints_meta_generator(
     frames_metadata = aux_utils.read_meta(input_dir)
     if not isinstance(channel_ids, list):
         # Use all channels
-        channel_ids = frames_metadata['channel_idx'].unique()
+        channel_ids = frames_metadata["channel_idx"].unique()
     mp_fn_args = []
     # Fill dataframe with rows from image names
     for i, meta_row in frames_metadata.iterrows():
-        channel_idx = meta_row['channel_idx']
+        channel_idx = meta_row["channel_idx"]
         ff_path = im_utils.get_flat_field_path(
             flat_field_dir,
             channel_idx,
@@ -188,9 +248,9 @@ def ints_meta_generator(
 
 
 def mask_meta_generator(
-        input_dir,
-        num_workers=4,
-        ):
+    input_dir,
+    num_workers=4,
+):
     """
     Generate pixel intensity metadata for estimating image normalization
     parameters during preprocessing step. Pixels are sub-sampled from the image
@@ -222,8 +282,8 @@ def mask_meta_generator(
     mp_fn_args = []
     # Fill dataframe with rows from image names
     for i, meta_row in frames_metadata.iterrows():
-        meta_row['dir_name'] = input_dir
-        im_path = os.path.join(input_dir, meta_row['file_name'])
+        meta_row["dir_name"] = input_dir
+        im_path = os.path.join(input_dir, meta_row["file_name"])
         mp_fn_args.append((im_path, meta_row))
 
     meta_row_list = mp_utils.mp_wrapper(
@@ -233,16 +293,14 @@ def mask_meta_generator(
     )
     mask_meta = pd.DataFrame.from_dict(meta_row_list)
 
-    mask_meta_filename = os.path.join(input_dir, 'mask_meta.csv')
+    mask_meta_filename = os.path.join(input_dir, "mask_meta.csv")
     mask_meta.to_csv(mask_meta_filename, sep=",")
     return mask_meta
 
 
-def compute_zscore_params(frames_meta,
-                          ints_meta,
-                          input_dir,
-                          normalize_im,
-                          min_fraction=0.99):
+def compute_zscore_params(
+    frames_meta, ints_meta, input_dir, normalize_im, min_fraction=0.99
+):
     """
     Get zscore median and interquartile range
 
@@ -259,62 +317,66 @@ def compute_zscore_params(frames_meta,
         each z-slice
     """
 
-    assert normalize_im in [None, 'slice', 'volume', 'dataset'], \
-        'normalize_im must be None or "slice" or "volume" or "dataset"'
+    assert normalize_im in [
+        None,
+        "slice",
+        "volume",
+        "dataset",
+    ], 'normalize_im must be None or "slice" or "volume" or "dataset"'
 
     if normalize_im is None:
         # No normalization
-        frames_meta['zscore_median'] = 0
-        frames_meta['zscore_iqr'] = 1
+        frames_meta["zscore_median"] = 0
+        frames_meta["zscore_iqr"] = 1
         return frames_meta
-    elif normalize_im == 'dataset':
-        agg_cols = ['time_idx', 'channel_idx', 'dir_name']
-    elif normalize_im == 'volume':
-        agg_cols = ['time_idx', 'channel_idx', 'dir_name', 'pos_idx']
+    elif normalize_im == "dataset":
+        agg_cols = ["time_idx", "channel_idx", "dir_name"]
+    elif normalize_im == "volume":
+        agg_cols = ["time_idx", "channel_idx", "dir_name", "pos_idx"]
     else:
-        agg_cols = ['time_idx', 'channel_idx', 'dir_name', 'pos_idx', 'slice_idx']
+        agg_cols = ["time_idx", "channel_idx", "dir_name", "pos_idx", "slice_idx"]
     # median and inter-quartile range are more robust than mean and std
-    ints_meta_sub = ints_meta[ints_meta['fg_frac'] >= min_fraction]
-    ints_agg_median = \
-        ints_meta_sub[agg_cols + ['intensity']].groupby(agg_cols).median()
-    ints_agg_hq = \
-        ints_meta_sub[agg_cols + ['intensity']].groupby(agg_cols).quantile(0.75)
-    ints_agg_lq = \
-        ints_meta_sub[agg_cols + ['intensity']].groupby(agg_cols).quantile(0.25)
+    ints_meta_sub = ints_meta[ints_meta["fg_frac"] >= min_fraction]
+    ints_agg_median = ints_meta_sub[agg_cols + ["intensity"]].groupby(agg_cols).median()
+    ints_agg_hq = (
+        ints_meta_sub[agg_cols + ["intensity"]].groupby(agg_cols).quantile(0.75)
+    )
+    ints_agg_lq = (
+        ints_meta_sub[agg_cols + ["intensity"]].groupby(agg_cols).quantile(0.25)
+    )
     ints_agg = ints_agg_median
-    ints_agg.columns = ['zscore_median']
-    ints_agg['zscore_iqr'] = ints_agg_hq['intensity'] - ints_agg_lq['intensity']
+    ints_agg.columns = ["zscore_median"]
+    ints_agg["zscore_iqr"] = ints_agg_hq["intensity"] - ints_agg_lq["intensity"]
     ints_agg.reset_index(inplace=True)
 
-    cols_to_merge = frames_meta.columns[[
-            col not in ['zscore_median', 'zscore_iqr']
-            for col in frames_meta.columns]]
+    cols_to_merge = frames_meta.columns[
+        [col not in ["zscore_median", "zscore_iqr"] for col in frames_meta.columns]
+    ]
     frames_meta = pd.merge(
         frames_meta[cols_to_merge],
         ints_agg,
-        how='left',
+        how="left",
         on=agg_cols,
     )
-    if frames_meta['zscore_median'].isnull().values.any():
-        raise ValueError('Found NaN in normalization parameters. \
-        min_fraction might be too low or images might be corrupted.')
-    frames_meta_filename = os.path.join(input_dir, 'frames_meta.csv')
+    if frames_meta["zscore_median"].isnull().values.any():
+        raise ValueError(
+            "Found NaN in normalization parameters. \
+        min_fraction might be too low or images might be corrupted."
+        )
+    frames_meta_filename = os.path.join(input_dir, "frames_meta.csv")
     frames_meta.to_csv(frames_meta_filename, sep=",")
 
-    cols_to_merge = ints_meta.columns[[
-            col not in ['zscore_median', 'zscore_iqr']
-            for col in ints_meta.columns]]
+    cols_to_merge = ints_meta.columns[
+        [col not in ["zscore_median", "zscore_iqr"] for col in ints_meta.columns]
+    ]
     ints_meta = pd.merge(
         ints_meta[cols_to_merge],
         ints_agg,
-        how='left',
+        how="left",
         on=agg_cols,
     )
-    ints_meta['intensity_norm'] = \
-        (ints_meta['intensity'] - ints_meta['zscore_median']) / \
-        (ints_meta['zscore_iqr'] + sys.float_info.epsilon)
+    ints_meta["intensity_norm"] = (
+        ints_meta["intensity"] - ints_meta["zscore_median"]
+    ) / (ints_meta["zscore_iqr"] + sys.float_info.epsilon)
 
     return frames_meta, ints_meta
-
-
-

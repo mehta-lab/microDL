@@ -1,3 +1,4 @@
+# %%
 import collections
 import glob
 import shutil
@@ -279,4 +280,11 @@ class TestDataset(unittest.TestCase):
         """
         self.SetUp()
         self._all_test_configurations(self._test_basic_functionality)
-        self.tearDown()
+        # self.tearDown()
+
+
+# %%
+tester = TestDataset()
+# %%
+tester.test_functionality()
+# %%

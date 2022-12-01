@@ -2,63 +2,96 @@
 
 import numpy as np
 import os
+import zarr
 
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.image_utils as im_utils
+import micro_dl.utils.io_utils as io_utils
 
 
 class FlatFieldEstimator2D:
     """Estimates flat field image"""
 
-    def __init__(self,
-                 input_dir,
-                 output_dir,
-                 channel_ids,
-                 slice_ids,
-                 block_size=32):
+    def __init__(
+        self,
+        zarr_dir,
+        channel_ids,
+        slice_ids,
+        block_size=32,
+        flat_field_array_name="flatfield",
+    ):
         """
-        Flatfield images are estimated once per channel for 2D data
+        Flatfield images are estimated once per channel for 2D data.
 
-        :param str input_dir: Directory with 2D image frames from dataset
-        :param str output_dir: Base output directory
+        Flatfields are estimated by averaging over all dataset positions to capture
+        static perturbations. Flatfields are stored in an additional array at the
+        image-level of the input HCS compatible zarr store.
+
+        Images can be corrected by dividing by their channel's flatfield on the fly.
+
+        :param str zarr_dir: HCS Compatible zarr directory
         :param int/list channel_ids: channel ids for flat field_correction
         :param int/list slice_ids: Z slice indices for flatfield correction
         :param int block_size: Size of blocks image will be divided into
         """
-        self.input_dir = input_dir
-        self.output_dir = output_dir
-        # Create flat_field_dir as a subdirectory of output_dir
-        self.flat_field_dir = os.path.join(self.output_dir,
-                                           'flat_field_images')
-        os.makedirs(self.flat_field_dir, exist_ok=True)
+        self.zarr_dir = zarr_dir
+        self.flat_field_array_name = flat_field_array_name
         self.slice_ids = slice_ids
         self.frames_metadata = aux_utils.read_meta(self.input_dir)
 
+        # get meta
         metadata_ids, _ = aux_utils.validate_metadata_indices(
             frames_metadata=self.frames_metadata,
             channel_ids=channel_ids,
             slice_ids=slice_ids,
         )
-        self.channels_ids = metadata_ids['channel_ids']
-        self.slice_ids = metadata_ids['slice_ids']
+        self.channels_ids = metadata_ids["channel_ids"]
+        self.slice_ids = metadata_ids["slice_ids"]
         if block_size is None:
             block_size = 32
         self.block_size = block_size
+
+        # initate modifier
+        self.modifier = io_utils.HCSZarrModifier(zarrfile=zarr_dir)
 
     def get_flat_field_dir(self):
         """
         Return flatfield directory
         :return str flat_field_dir: Flatfield directory
         """
-        return self.flat_field_dir
+        return self.zarr_dir
+
+    def get_flat_field_name(self):
+        """
+        Return name of flat field array in each well
+        :return str flat_field_name: see name
+        """
+        return self.flat_field_array_name
+
+    def get_hyperparameters(self):
+        """
+        Group hyperparameters from this flatfield estimator and return as a dictionary
+        """
+        metadata = {
+            "array_name": self.flat_field_array_name,
+            "channel_ids": self.channels_ids,
+            "slice_ids": self.slice_ids,
+            "block_size": self.block_size,
+        }
+        return metadata
 
     def estimate_flat_field(self):
         """
-        Estimates flat field correction image.
+        Estimates flat field correction image and stores in zarr store at the image level
+        as a new array.
+
+        Records hyperparameters used in estimation in .zattrs metadata.
         """
         # flat_field constant over time, so use first time idx. And use only first
         # slice if multiple are present
-        time_idx = self.frames_metadata['time_idx'].unique()[0]
+        time_idx = self.frames_metadata["time_idx"].unique()[0]
+        all_channels_array = None
+
         for channel_idx in self.channels_ids:
             row_idx = aux_utils.get_row_idx(
                 frames_metadata=self.frames_metadata,
@@ -74,7 +107,7 @@ class FlatFieldEstimator2D:
                 if len(im.shape) == 3:
                     im = np.mean(im, axis=2)
                 if summed_image is None:
-                    summed_image = im.astype('float64')
+                    summed_image = im.astype("float64")
                 else:
                     summed_image += im
             mean_image = summed_image / len(row_idx)
@@ -82,9 +115,20 @@ class FlatFieldEstimator2D:
             # images, not very statistically meaningful but easier than
             # computing median of image stack
             flatfield = self.get_flatfield(mean_image)
-            fname = 'flat-field_channel-{}.npy'.format(channel_idx)
-            cur_fname = os.path.join(self.flat_field_dir, fname)
-            np.save(cur_fname, flatfield, allow_pickle=True, fix_imports=True)
+            all_channels_array[channel_idx] = flatfield
+
+        # record flat_field inside zarr store.
+        for position in self.modifier.reader.position_map:
+            self.modifier.init_untracked_array(
+                data_array=all_channels_array,
+                position=position,
+                name=self.flat_field_array_name,
+            )
+            self.modifier.write_meta_field(
+                position=position,
+                metadata=self.get_hyperparameters(),
+                field_name="flatfield",
+            )
 
     def sample_block_medians(self, im):
         """Subdivide a 2D image in smaller blocks of size block_size and
@@ -104,18 +148,20 @@ class FlatFieldEstimator2D:
 
         nbr_blocks_x = im_shape[0] // self.block_size
         nbr_blocks_y = im_shape[1] // self.block_size
-        sample_coords = np.zeros((nbr_blocks_x * nbr_blocks_y, 2),
-                                 dtype=np.float64)
-        sample_values = np.zeros((nbr_blocks_x * nbr_blocks_y, ),
-                                 dtype=np.float64)
+        sample_coords = np.zeros((nbr_blocks_x * nbr_blocks_y, 2), dtype=np.float64)
+        sample_values = np.zeros((nbr_blocks_x * nbr_blocks_y,), dtype=np.float64)
         for x in range(nbr_blocks_x):
             for y in range(nbr_blocks_y):
                 idx = y * nbr_blocks_x + x
-                sample_coords[idx, :] = [x * self.block_size + (self.block_size - 1) / 2,
-                                         y * self.block_size + (self.block_size - 1) / 2]
+                sample_coords[idx, :] = [
+                    x * self.block_size + (self.block_size - 1) / 2,
+                    y * self.block_size + (self.block_size - 1) / 2,
+                ]
                 sample_values[idx] = np.median(
-                    im[x * self.block_size:(x + 1) * self.block_size,
-                       y * self.block_size:(y + 1) * self.block_size]
+                    im[
+                        x * self.block_size : (x + 1) * self.block_size,
+                        y * self.block_size : (y + 1) * self.block_size,
+                    ]
                 )
         return sample_coords, sample_values
 
@@ -144,6 +190,7 @@ class FlatFieldEstimator2D:
         if flatfield.min() <= 0:
             raise ValueError(
                 "The generated flatfield was not strictly positive {}.".format(
-                    flatfield.min()),
+                    flatfield.min()
+                ),
             )
         return flatfield

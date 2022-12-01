@@ -49,7 +49,7 @@ class ShearAugment(gp.BatchFilter):
         array=None,
         angle_range=(0, 0),
         prob=0.1,
-        shear_middle_slice_only=None,
+        shear_middle_slice_channels=None,
     ):
         """
         Custom gunpowder augmentation node for applying shear in xy.
@@ -67,7 +67,7 @@ class ShearAugment(gp.BatchFilter):
         :param tuple(float, float) angle_range: range of angles in degrees of shear. To prevent
                                             data corruption, angle must be within (0,30)
         :param float prob: probability of applying shear
-        :param tuple(int)/None shear_middle_slice_only: shear only the middle z-slice of these
+        :param tuple(int)/None shear_middle_slice_channels: shear only the middle z-slice of these
                                                     channel indices. Used when target plucked
                                                     from stack. By default None.
         """
@@ -79,7 +79,7 @@ class ShearAugment(gp.BatchFilter):
         self.array_keys = array
         self.angle_range = angle_range
         self.prob = prob
-        self.shear_middle_slice_only = shear_middle_slice_only
+        self.shear_middle_slice_channels = shear_middle_slice_channels
 
     def prepare(self, request: gp.BatchRequest):
         """
@@ -149,8 +149,8 @@ class ShearAugment(gp.BatchFilter):
                 batch_data = batch[key].data
                 roi = request[key].roi
 
-                if self.shear_middle_slice_only == None:
-                    self.shear_middle_slice_only = ()
+                if self.shear_middle_slice_channels == None:
+                    self.shear_middle_slice_channels = ()
 
                 output_shape = list(batch_data.shape[:-3]) + list(
                     request[key].roi.get_shape()
@@ -161,7 +161,7 @@ class ShearAugment(gp.BatchFilter):
                 #      break in loops. Can be safely implemented with dynamic recursion.
                 for batch_idx in range(batch_data.shape[0]):
                     for channel_idx in range(batch_data.shape[1]):
-                        middle_only = channel_idx in self.shear_middle_slice_only
+                        middle_only = channel_idx in self.shear_middle_slice_channels
                         data = batch_data[batch_idx, channel_idx]
 
                         if roi.dims() == 2:

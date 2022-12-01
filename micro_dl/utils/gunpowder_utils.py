@@ -95,11 +95,10 @@ def build_sources(zarr_store_dir, store_well_paths, arr_spec):
     return sources, keys
 
 
-def multi_zarr_source(zarr_dir, array_name="*", array_spec=None, data_split=None):
+def multi_zarr_source(zarr_dir, array_name="*", array_spec=None, data_split={}):
     """
     Generates a tuple of source nodes for for each dataset type (train, test, val),
     containing one source node for every well in the zarr_dir specified.
-    Applies same specification to all source datasets.
 
     Applies same specification to all source datasets. Note that all source datasets of the
     same name exhibit **key sharing**. That is, the source key will be the same for all datasets
@@ -159,7 +158,6 @@ def multi_zarr_source(zarr_dir, array_name="*", array_spec=None, data_split=None
     ]
 
     zarr_stores = {}
-    # collections.defaultdict(lambda: collections.defaultdict(lambda: []))
     most_recent_array_types = {}
     most_recent_fname = ""
     for zarr_fname in zarr_files:
@@ -170,8 +168,8 @@ def multi_zarr_source(zarr_dir, array_name="*", array_spec=None, data_split=None
             )
         )
 
-        array_types = {}  # collections.defaultdict(lambda: [])
-        well_paths = {}  # collections.defaultdict(lambda: [])
+        array_types = {}
+        well_paths = {}
 
         for path in zarr_array_paths:
             array_type = os.path.basename(os.path.normpath(path))
@@ -225,7 +223,7 @@ def multi_zarr_source(zarr_dir, array_name="*", array_spec=None, data_split=None
             ), f"Found different array types in zarr store {zarr_fname}"
 
     if len(data_split) > 0:
-        assert "train" in data_split and "test" in data_split, (
+        assert "train" in data_split and "test" in data_split and "val" in data_split, (
             f"Incorrect format for data_split: {data_split}."
             " \n Must contain 'train', 'test', and 'val' "
         )
