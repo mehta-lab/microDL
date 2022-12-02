@@ -308,10 +308,13 @@ def validate_metadata_indices(
             Throws error if unique elements of subset are not a subset of
             unique elements of superset.
 
-        Returns unique elements of subset
+        Returns unique elements of subset if given a list. If subset is -1,
+        returns all unique elements of superset
         """
+        if subset == -1:
+            subset = superset
         if not (isinstance(subset, list) or isinstance(subset, tuple)):
-            subset = [subset]
+            subset = list(subset)
         unique_subset = set(subset)
         unique_superset = set(superset)
         assert unique_subset.issubset(unique_superset), (
@@ -323,8 +326,10 @@ def validate_metadata_indices(
     reader = io_utils.ZarrReader(zarr_dir)
 
     # read available channel indices from zarr store
-    available_time_ids = reader.get_array(list(reader.position_map)[0]).shape[0]
-    if isinstance(channel_ids[0], int):
+    available_time_ids = range(reader.shape[0])
+    if isinstance(channel_ids, int):
+        available_channel_ids = range(reader.channels)
+    elif isinstance(channel_ids[0], int):
         available_channel_ids = range(reader.channels)
     else:
         available_channel_ids = reader.channel_names
@@ -338,10 +343,10 @@ def validate_metadata_indices(
     pos_ids = assert_unique_subset(pos_ids, available_pos_ids, "positions")
 
     indices_metadata = {
-        "time_ids": time_ids,
-        "channel_ids": channel_ids,
-        "slice_ids": slice_ids,
-        "pos_ids": pos_ids,
+        "time_ids": list(time_ids),
+        "channel_ids": list(channel_ids),
+        "slice_ids": list(slice_ids),
+        "pos_ids": list(pos_ids),
     }
     return indices_metadata
 

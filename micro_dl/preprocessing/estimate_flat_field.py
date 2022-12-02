@@ -39,8 +39,6 @@ class FlatFieldEstimator2D:
         self.slice_ids = slice_ids
         self.channels_ids = channel_ids
 
-        self.frames_metadata = aux_utils.read_meta(self.input_dir)
-
         # get meta
         metadata_ids = aux_utils.validate_metadata_indices(
             zarr_dir=self.zarr_dir,
@@ -55,7 +53,7 @@ class FlatFieldEstimator2D:
         self.block_size = block_size
 
         # initate modifier
-        self.modifier = io_utils.HCSZarrModifier(zarrfile=zarr_dir)
+        self.modifier = io_utils.HCSZarrModifier(zarr_file=zarr_dir)
 
     def get_flat_field_dir(self):
         """
@@ -92,36 +90,38 @@ class FlatFieldEstimator2D:
         """
         # flat_field constant over time, so use first time idx. And use only first
         # slice if multiple are present
-        time_idx = self.frames_metadata["time_idx"].unique()[0]
-        all_channels_array = None
+        time_idx = 0
+        slice_idx = 0
+        all_channels_array = []
 
         for channel_idx in self.channels_ids:
-            row_idx = aux_utils.get_row_idx(
-                frames_metadata=self.frames_metadata,
-                time_idx=time_idx,
-                channel_idx=channel_idx,
-                slice_idx=self.slice_ids[0],
-            )
-            channel_metadata = self.frames_metadata[row_idx]
             summed_image = None
+
             # Average over all positions
-            for idx, row in channel_metadata.iterrows():
-                im = im_utils.read_image_from_row(row, self.input_dir)
-                if len(im.shape) == 3:
-                    im = np.mean(im, axis=2)
-                if summed_image is None:
-                    summed_image = im.astype("float64")
-                else:
-                    summed_image += im
-            mean_image = summed_image / len(row_idx)
+            for position in list(self.modifier.position_map):
+                for slice_idx in self.slice_ids:
+                    position_zarr = self.modifier.get_zarr(position)
+                    im = position_zarr[time_idx, channel_idx, slice_idx]
+
+                    if len(im.shape) == 3:
+                        im = np.mean(im, axis=2)
+                    if summed_image is None:
+                        summed_image = im.astype("float64")
+                    else:
+                        summed_image += im
+
+            mean_image = summed_image / len(list(self.modifier.position_map))
             # TODO (Jenny): it currently samples median values from a mean
             # images, not very statistically meaningful but easier than
             # computing median of image stack
             flatfield = self.get_flatfield(mean_image)
-            all_channels_array[channel_idx] = flatfield
+            all_channels_array.append(flatfield)
+
+        all_channels_array = np.stack(all_channels_array, 0)
+        all_channels_array = np.expand_dims(all_channels_array, (0, 1))
 
         # record flat_field inside zarr store.
-        for position in self.modifier.reader.position_map:
+        for position in self.modifier.position_map:
             self.modifier.init_untracked_array(
                 data_array=all_channels_array,
                 position=position,
