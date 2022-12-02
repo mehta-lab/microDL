@@ -37,16 +37,19 @@ class FlatFieldEstimator2D:
         self.zarr_dir = zarr_dir
         self.flat_field_array_name = flat_field_array_name
         self.slice_ids = slice_ids
+        self.channels_ids = channel_ids
+
         self.frames_metadata = aux_utils.read_meta(self.input_dir)
 
         # get meta
-        metadata_ids, _ = aux_utils.validate_metadata_indices(
-            frames_metadata=self.frames_metadata,
+        metadata_ids = aux_utils.validate_metadata_indices(
+            zarr_dir=self.zarr_dir,
             channel_ids=channel_ids,
             slice_ids=slice_ids,
         )
         self.channels_ids = metadata_ids["channel_ids"]
         self.slice_ids = metadata_ids["slice_ids"]
+
         if block_size is None:
             block_size = 32
         self.block_size = block_size

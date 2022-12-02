@@ -198,15 +198,6 @@ class MaskProcessor:
                 ff_fnames = self._get_ff_paths(
                     channel_ids=self.channel_ids,
                 )
-                ff_fnames = self._get_ff_paths(
-                    channel_ids=self.channel_ids,
-                )
-                ff_fnames = self._get_ff_paths(
-                    channel_ids=self.channel_ids,
-                )
-                ff_fnames = self._get_ff_paths(
-                    channel_ids=self.channel_ids,
-                )
                 if self.mask_type == "dataset otsu":
                     channel_thrs = self.channel_thr_df.loc[
                         self.channel_thr_df["dir_name"] == dir_name, "intensity"
