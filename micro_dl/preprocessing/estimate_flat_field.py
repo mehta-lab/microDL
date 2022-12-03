@@ -7,6 +7,7 @@ import zarr
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.image_utils as im_utils
 import micro_dl.utils.io_utils as io_utils
+from micro_dl.torch_unet.utils.io import show_progress_bar
 
 
 class FlatFieldEstimator2D:
@@ -81,7 +82,7 @@ class FlatFieldEstimator2D:
         }
         return metadata
 
-    def estimate_flat_field(self):
+    def estimate_flat_field(self, verbose=False):
         """
         Estimates flat field correction image and stores in zarr store at the image level
         as a new array.
@@ -95,6 +96,11 @@ class FlatFieldEstimator2D:
         all_channels_array = []
 
         for channel_idx in self.channels_ids:
+            show_progress_bar(
+                dataloader=self.channels_ids,
+                current=channel_idx,
+                process="estimating channel flatfield",
+            )
             summed_image = None
 
             # Average over all positions
@@ -111,6 +117,7 @@ class FlatFieldEstimator2D:
                         summed_image += im
 
             mean_image = summed_image / len(list(self.modifier.position_map))
+
             # TODO (Jenny): it currently samples median values from a mean
             # images, not very statistically meaningful but easier than
             # computing median of image stack
@@ -122,6 +129,11 @@ class FlatFieldEstimator2D:
 
         # record flat_field inside zarr store.
         for position in self.modifier.position_map:
+            show_progress_bar(
+                dataloader=self.modifier.position_map,
+                current=position,
+                process="saving flatfield position",
+            )
             self.modifier.init_untracked_array(
                 data_array=all_channels_array,
                 position=position,

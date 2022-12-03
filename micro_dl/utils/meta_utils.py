@@ -10,6 +10,7 @@ import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.image_utils as im_utils
 import micro_dl.utils.io_utils as io_utils
 import micro_dl.utils.mp_utils as mp_utils
+from micro_dl.torch_unet.utils.io import show_progress_bar
 
 
 def frames_meta_generator(
@@ -186,6 +187,11 @@ def generate_normalization_metadata(
 
     # sample values and use them to get normalization statistics
     for channel in channel_ids:
+        show_progress_bar(
+            dataloader=channel_ids,
+            current=channel,
+            process="sampling channel values",
+        )
         channel_name = modifier.channel_names[channel]
         this_channels_args = tuple([args + [channel] for args in mp_grid_sampler_args])
 
@@ -200,6 +206,11 @@ def generate_normalization_metadata(
         dataset_level_statistics = mp_utils.get_val_stats(dataset_sample_values)
 
         for position in modifier.position_map:
+            show_progress_bar(
+                dataloader=channel_ids,
+                current=channel,
+                process="calculating statistics",
+            )
             position_statistics = {
                 "fov_statistics": fov_level_statistics[position],
                 "dataset_statistics": dataset_level_statistics,

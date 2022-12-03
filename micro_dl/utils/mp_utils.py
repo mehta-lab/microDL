@@ -546,10 +546,10 @@ def get_val_stats(sample_values):
     """
 
     meta_row = {
-        "mean": np.nanmean(sample_values),
-        "std": np.nanstd(sample_values),
-        "median": np.nanmedian(sample_values),
-        "iqr": scipy.stats.iqr(sample_values),
+        "mean": float(np.nanmean(sample_values)),
+        "std": float(np.nanstd(sample_values)),
+        "median": float(np.nanmedian(sample_values)),
+        "iqr": float(scipy.stats.iqr(sample_values)),
     }
     return meta_row
 
