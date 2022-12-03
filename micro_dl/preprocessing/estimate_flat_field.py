@@ -118,7 +118,7 @@ class FlatFieldEstimator2D:
             all_channels_array.append(flatfield)
 
         all_channels_array = np.stack(all_channels_array, 0)
-        all_channels_array = np.expand_dims(all_channels_array, (0, 1))
+        all_channels_array = np.expand_dims(all_channels_array, (0, 2))
 
         # record flat_field inside zarr store.
         for position in self.modifier.position_map:

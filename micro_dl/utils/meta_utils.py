@@ -169,35 +169,43 @@ def generate_normalization_metadata(
     elif isinstance(channel_ids, int):
         channel_ids = [channel_ids]
 
+    # get arguments for multiprocessed grid sampling
     mp_grid_sampler_args = []
     for position in modifier.position_map:
         ff_name = None
+        ff_channels = None
 
         position_metadata = modifier.get_position_meta(position)
-        if "flat_field" in position_metadata:
-            ff_name = position_metadata["flat_field"]["array_name"]
+        if "flatfield" in position_metadata:
+            ff_name = position_metadata["flatfield"]["array_name"]
+            ff_channels = position_metadata["flatfield"]["channel_ids"]
 
-        mp_grid_sampler_args.append((position, ff_name, zarr_dir, grid_spacing))
+        mp_grid_sampler_args.append(
+            [position, ff_name, ff_channels, zarr_dir, grid_spacing]
+        )
 
+    # sample values and use them to get normalization statistics
     for channel in channel_ids:
+        channel_name = modifier.channel_names[channel]
+        this_channels_args = tuple([args + [channel] for args in mp_grid_sampler_args])
+
         # NOTE: Doing sequential mp with pool execution creates synchronization
         #      points between each step. This could be detrimental to performance
         fov_sample_values = mp_utils.mp_sample_im_pixels(
-            mp_grid_sampler_args, num_workers
+            this_channels_args, num_workers
         )
         dataset_sample_values = np.stack(fov_sample_values, 0)
 
-        # get statistics
         fov_level_statistics = mp_utils.mp_get_val_stats(fov_sample_values, num_workers)
-        dataset_level_statistiscs = mp_utils.get_val_stats(dataset_sample_values)
+        dataset_level_statistics = mp_utils.get_val_stats(dataset_sample_values)
 
         for position in modifier.position_map:
             position_statistics = {
                 "fov_statistics": fov_level_statistics[position],
-                "dataset_statistics": dataset_level_statistiscs[position],
+                "dataset_statistics": dataset_level_statistics,
             }
             channel_position_statistics = {
-                channel: position_statistics,
+                channel_name: position_statistics,
             }
 
             modifier.write_meta_field(

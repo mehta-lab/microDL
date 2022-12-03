@@ -149,7 +149,8 @@ def resize_mask(input_image, target_size):
 
 
 def apply_flat_field_correction(input_image, **kwargs):
-    """Apply flat field correction.
+    """Apply flat field correction. Input image and flatfield must be
+    provided as 2d images.
 
     :param np.array input_image: image to be corrected
     Kwargs, either:
@@ -157,6 +158,7 @@ def apply_flat_field_correction(input_image, **kwargs):
         flat_field_path (str): Full path to flatfield image
     :return: np.array (float) corrected image
     """
+
     corrected_image = input_image.astype("float")
     if "flat_field_image" in kwargs:
         flat_field_im = kwargs["flat_field_image"]

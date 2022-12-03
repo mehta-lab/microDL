@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 import micro_dl.utils.io_utils as io_utils
 from micro_dl.preprocessing.estimate_flat_field import FlatFieldEstimator2D
-
+from micro_dl.utils.meta_utils import generate_normalization_metadata
 
 zarr_dir = "/home/christian.foley/virtual_staining/data_visualization/A549PhaseFLDeconvolution_63X_pos0.zarr"
 field_name = "preprocessing"
@@ -56,8 +56,8 @@ estimator = FlatFieldEstimator2D(
 estimator.estimate_flat_field()
 
 # %%
-indices = [1, 2, 3]
-
-zarr_array = modifier.get_zarr(0)
-zarr_array[:, :, indices, :, :].shape
+generate_normalization_metadata(
+    zarr_dir=zarr_dir,
+    channel_ids=-1,
+)
 # %%

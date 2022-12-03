@@ -568,7 +568,14 @@ def mp_sample_im_pixels(fn_args, workers):
     return list(res)
 
 
-def sample_im_pixels(position, ff_name, zarr_dir, grid_spacing):
+def sample_im_pixels(
+    position,
+    ff_name,
+    ff_channels,
+    zarr_dir,
+    grid_spacing,
+    channel,
+):
     # TODO move out of mp utils into normalization utils
     """
     Read and computes statistics of images for each point in a grid.
@@ -576,24 +583,48 @@ def sample_im_pixels(position, ff_name, zarr_dir, grid_spacing):
     for rows and cols.
     Applies flatfield correction prior to intensity sampling if flatfield
     path is specified.
+    By default, samples from every time position and every z-depth, and
+    assumes that the data in the zarr store is stored in [T,C,Z,Y,X] format,
+    for time, channel, z, y, x.
 
     :param int position: position currently being processed
     :param str ff_name: name of 'untracked' flatfield array
-    :param str zarr_dir: path to zarr directory
+    :param list ff_channels: list of channels with flatfield channel IDs,
+                                only used if a flatfield name is provided
+    :param str zarr_dir: path to HCS-compatible zarr directory
     :param int grid_spacing: spacing of sampling grid in x and y
+    :param int channel: channel to sample from
 
     :return list meta_rows: Dicts with intensity data for each grid point
     """
-    modifier = io_utils.HCSZarrModifier(zarrfile=zarr_dir)
-    im = modifier.get_array(position=position)
+    modifier = io_utils.HCSZarrModifier(zarr_file=zarr_dir)
+    image_zarr = modifier.get_zarr(position=position)
 
-    if ff_name is not None:
-        ff_image = modifier.get_untracked_array(position=position, name=ff_name)
-        im = image_utils.apply_flat_field_correction(
-            input_image=im,
-            flat_field_image=ff_image,
-        )
-    row_indices, col_indices, sample_values = image_utils.grid_sample_pixel_values(
-        im, grid_spacing
-    )
+    flatfield = None
+    if ff_name is not None and channel in ff_channels:
+        flatfield = modifier.get_untracked_array(position=position, name=ff_name)
+
+    all_sample_values = []
+    all_time_indices = list(range(modifier.shape[0]))
+    all_z_indices = list(range(modifier.shape[2]))
+
+    for time_index in all_time_indices:
+        if flatfield is not None:
+            # flatfield array might have collapsed indices
+            ff_channel_pos = ff_channels.index(channel)
+            flatfield_slice = flatfield[time_index, ff_channel_pos, 0, :, :]
+
+        for z_index in all_z_indices:
+            image_slice = image_zarr[time_index, channel, z_index, :, :]
+            if flatfield is not None:
+                image_slice = image_utils.apply_flat_field_correction(
+                    input_image=image_slice,
+                    flat_field_image=flatfield_slice,
+                )
+            _, _, sample_values = image_utils.grid_sample_pixel_values(
+                image_slice, grid_spacing
+            )
+            all_sample_values.append(sample_values)
+    sample_values = np.stack(all_sample_values, 0).flatten()
+
     return sample_values

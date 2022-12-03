@@ -921,7 +921,8 @@ class DefaultZarr(WriterBase):
 class HCSZarrModifier(ZarrReader):
     """
     Interacts with an HCS zarr store to provide abstract array writing and metadata
-    mutation.
+    mutation. Written to support modifications on existing HCS-compatible stores
+    necessary for microDL.
 
     Warning: Although this class inherits ZarrReader, it is NOT read only, and therefore
     can make dangerous writes to the zarr store.
