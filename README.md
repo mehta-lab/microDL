@@ -112,9 +112,9 @@ should have the following structure:
 ```buildoutcfg
 dir_name
     |
-    |- frames_meta.csv
-    |- im_c***_z***_t***_p***.png
-    |- im_c***_z***_t***_p***.png
+    ├─ frames_meta.csv
+    ├─ im_c***_z***_t***_p***.png
+    ├─ im_c***_z***_t***_p***.png
     |- ...
 ```
 
