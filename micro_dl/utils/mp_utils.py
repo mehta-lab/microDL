@@ -384,12 +384,11 @@ def resize_and_save(**kwargs):
     Resizes images and saving them. Performs flatfield correction
     prior to resizing if flatfield images are present.
 
-    Keyword arguments:
-    :param pd.DataFrame meta_row: Row of metadata
-    :param str/None dir_name: Image directory (none if using dir_name from frames_meta)
-    :param str output_dir: Path to output directory
-    :param float scale_factor: Scale factor for resizing
-    :param str ff_path: Path to flatfield image
+    :param kwargs: Keyword arguments:
+    str file_path: Path to input image
+    str write_path: Path to image to be written
+    float scale_factor: Scale factor for resizing
+    str ff_path: path to flat field correction image
     """
     meta_row = kwargs['meta_row']
     im = image_utils.read_image_from_row(meta_row, kwargs['dir_name'])

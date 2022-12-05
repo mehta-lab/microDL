@@ -24,6 +24,7 @@ def frames_meta_generator(
     img_channelname_t***_p***_z***.tif for parse_sms_name
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     The file structure for ome-zarr files is described here:
     https://ngff.openmicroscopy.org/0.1/
 
@@ -62,6 +63,8 @@ def frames_meta_from_filenames(input_dir, name_parser):
 
     :param str input_dir:   path to input directory containing images
 =======
+=======
+>>>>>>> 588a8949670b76a068678d6e0b7bd38d9b61a1b0
     :param str input_dir: Path to input directory containing images
     :param str order: Order in which file name encodes cztp
 >>>>>>> 588a894... Updated sphinx autodoc and fixes some warnings
@@ -127,6 +130,7 @@ def ints_meta_generator(
         block_size=256,
         flat_field_dir=None):
     """
+<<<<<<< HEAD
     Generate pixel intensity metadata for estimating image normalization
     parameters during preprocessing step. Pixels are sub-sampled from the image
     following a grid pattern defined by block_size to for efficient estimation of
@@ -134,14 +138,32 @@ def ints_meta_generator(
     in the case due to the spatial correlation in images.
     Will write found data in ints_meta.csv in input directory.
     Assumed default naming convention for tiff files is:
+=======
+    Generate pixel intensity metadata which will later be used for estimating
+    image normalization parameters.
+    Pixels are sub-sampled from the image following a grid pattern defined by
+    block_size to for efficient estimation of median and interquatile range.
+    Grid sampling is preferred over random sampling in this case due to the
+    spatial correlation in images.
+    Block intensities will be written in intensity_meta.csv in input directory.
+
+    File naming convention is:
+>>>>>>> 588a8949670b76a068678d6e0b7bd38d9b61a1b0
     img_channelname_t***_p***_z***.tif for parse_sms_name
 
     :param str input_dir: path to input directory containing images
     :param list channel_ids: Channel indices to process
     :param int num_workers: number of workers for multiprocessing
+<<<<<<< HEAD
     :param int block_size: block size for the grid sampling pattern. Default value works
         well for 2048 X 2048 images.
     :param str flat_field_dir: Directory containing flatfield images
+=======
+    :param int block_size: block size for the grid sampling pattern. Default value
+        of 256 works well for 2048 X 2048 images.
+    :param str/None flat_field_dir: Directory containing flatfield images
+    :param list/int channel_ids: Channel indices to process
+>>>>>>> 588a8949670b76a068678d6e0b7bd38d9b61a1b0
     """
     ints_meta_filename = os.path.join(input_dir, 'intensity_meta.csv')
     # Remove old file if exists first
