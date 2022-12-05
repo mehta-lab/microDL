@@ -2,9 +2,6 @@
 
 ## Format input data for preprocessing
 
-Single page tiff files are used as input data for preprocessing. If you use zarr files, you can convert
-them to single page tiff files using the [zarr to single page tiff conversion script](https://github.com/mehta-lab/microDL/blob/microDL-documentation/scripts/hcszarr2single_tif_mp.py).
-
 Before preprocessing make sure the z stacked images are aligned to be centered at the focal plane at all positions. If the focal plane in image stacks imaged
 at different positions in a plate are at different z levels, align them using the [z alignment script](https://github.com/mehta-lab/microDL/blob/master/scripts/align_z_focus.py).
 

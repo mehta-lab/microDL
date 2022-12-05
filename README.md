@@ -103,35 +103,31 @@ You will need to copy/paste the token generated in your Docker container.
 
 ### Data Format
 
-Input data should be in the format of single page tiff files. If you use zarr files, you can convert
-them to single page tiff files using the [zarr to single page tiff conversion script](https://github.com/mehta-lab/microDL/blob/master/scripts/hcszarr2single_tif_mp.py).
+Datasets should be in zarr stores compatible with the [OME - HCS format.](https://ngff.openmicroscopy.org/latest/#hcs-layout).
 
-To train directly on datasets that have already been split into 2D frames, the dataset
-should have the following structure:
+The hierarchy of the zarr store should be:
 
 ```buildoutcfg
-dir_name
-    |
-    ├─ frames_meta.csv
-    ├─ im_c***_z***_t***_p***.png
-    ├─ im_c***_z***_t***_p***.png
-    |- ...
+│
+├── Row_0
+    ├── Col_0
+    │   └── Pos_0
+    │       └── arr_0
+    │
+    ├── Col_1
+    │   └── Pos_1
+    │       └── arr_0
+    .
+    .
+    ├── Col_10
+    │   └── Pos_10
+    │       └── arr_0
+    .
+    .
+
 ```
-
-The image naming convention is (parenthesis is their name in frames_meta.csv)
-
-* **c** = channel index     (channel_idx)
-* **z** = slice index in z stack (slice_idx)
-* **t** = timepoint index   (time_idx)
-* **p** = position (field of view) index (pos_idx)
-
-If your data is not in the zarr or tiff format supported by the preprocessing module, write a script that converts your your data to image files that adhere to the naming convention above, then run
-
-```sh
-python micro_dl/cli/generate_meta.py --input <directory name>
-```
-
-That will generate the frames_meta.csv file you will need for data preprocessing.
+Within each array (arr_0), the shape of the data should be 5-dimensional with order: (T, C, Z, Y, X),
+where T is time, C is channel, and Z, Y, X being the 3D spatial coordinates.
 
 Before preprocessing make sure the z stacked images are aligned to be centered at the focal plane at all positions. If the focal plane in image stacks imaged
 at different positions in a plate are at different z levels, align them using the [z alignment script](https://github.com/mehta-lab/microDL/blob/master/scripts/align_z_focus.py).
