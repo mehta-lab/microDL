@@ -76,7 +76,9 @@ class FlatFieldEstimator2D:
         """
         metadata = {
             "array_name": self.flat_field_array_name,
-            "channel_ids": self.channels_ids,
+            "channel_ids": [
+                id for id in self.channels_ids if id not in self.skipped_channels
+            ],
             "slice_ids": self.slice_ids,
             "block_size": self.block_size,
         }
@@ -94,6 +96,7 @@ class FlatFieldEstimator2D:
         time_idx = 0
         slice_idx = 0
         all_channels_array = []
+        self.skipped_channels = []
 
         for channel_idx in self.channels_ids:
             show_progress_bar(
@@ -104,6 +107,7 @@ class FlatFieldEstimator2D:
             summed_image = None
 
             # Average over all positions
+            num_slices_used = 0
             for position in list(self.modifier.position_map):
                 for slice_idx in self.slice_ids:
                     position_zarr = self.modifier.get_zarr(position)
@@ -116,13 +120,23 @@ class FlatFieldEstimator2D:
                     else:
                         summed_image += im
 
-            mean_image = summed_image / len(list(self.modifier.position_map))
+                    num_slices_used += 1
+
+            mean_image = summed_image / num_slices_used
 
             # TODO (Jenny): it currently samples median values from a mean
             # images, not very statistically meaningful but easier than
             # computing median of image stack
-            flatfield = self.get_flatfield(mean_image)
-            all_channels_array.append(flatfield)
+            try:
+                flatfield = self.get_flatfield(mean_image)
+                all_channels_array.append(flatfield)
+            except Exception as e:
+                print(
+                    f"\n Skipping channel: {self.modifier.channel_names[channel_idx]}.",
+                    "\n",
+                    e.args,
+                )
+                self.skipped_channels.append(channel_idx)
 
         all_channels_array = np.stack(all_channels_array, 0)
         all_channels_array = np.expand_dims(all_channels_array, (0, 2))
@@ -192,6 +206,9 @@ class FlatFieldEstimator2D:
 
         :return np.array flatfield:    Flatfield image
         """
+        assert (
+            np.min(im) > 0
+        ), "Image for flatfield correction cannot contain negative values."
 
         coords, values = self.sample_block_medians(im=im)
         flatfield = im_utils.fit_polynomial_surface_2D(

@@ -4,6 +4,7 @@ import pandas as pd
 
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.image_utils as im_utils
+import micro_dl.utils.io_utils as io_utils
 from micro_dl.utils.mp_utils import mp_create_save_mask
 from skimage.filters import threshold_otsu
 
@@ -15,10 +16,9 @@ class MaskProcessor:
 
     def __init__(
         self,
-        input_dir,
-        output_dir,
+        zarr_dir,
         channel_ids,
-        flat_field_dir=None,
+        flatfield_name=None,
         time_ids=-1,
         slice_ids=-1,
         pos_ids=-1,
@@ -26,12 +26,14 @@ class MaskProcessor:
         uniform_struct=True,
         num_workers=4,
         mask_type="otsu",
-        mask_channel=None,
-        mask_ext=".npy",
     ):
         """
-        :param str input_dir: Directory with image frames
-        :param str output_dir: Base output directory
+        :param str zarr_dir: directory of HCS zarr store to pull data from.
+                            Note: data in store is assumed to be stored in
+                            (time, channel, z, y, x) format.
+        :param int mask_channel: channel number assigned to generated masks. Masks
+                                appended to data array and and stored in unique arrays
+                                under this name. By default, mask_name is
         :param list[int] channel_ids: Channel indices to be masked (typically
             just one)
         :param str flat_field_dir: Directory with flatfield images if
@@ -48,52 +50,23 @@ class MaskProcessor:
         :param int num_workers: number of workers for multiprocessing
         :param str mask_type: method to use for generating mask. Needed for
             mapping to the masking function
-        :param int mask_channel: channel number assigned to to be generated masks.
-            If resizing images on a subset of channels, frames_meta is from resize
-            dir, which could lead to wrong mask channel being assigned.
-        :param str mask_ext: '.npy' or 'png'. Save the mask as uint8 PNG or
-            NPY files
         """
-        self.input_dir = input_dir
-        self.output_dir = output_dir
-        self.flat_field_dir = flat_field_dir
+        self.zarr_dir = zarr_dir
+        self.flatfield_name = flatfield_name
         self.num_workers = num_workers
 
-        self.frames_metadata = aux_utils.read_meta(self.input_dir)
-        if "dir_name" not in self.frames_metadata.keys():
-            self.frames_metadata["dir_name"] = self.input_dir
         # Create a unique mask channel number so masks can be treated
         # as a new channel
-        if mask_channel is None:
-            self.mask_channel = int(self.frames_metadata["channel_idx"].max() + 1)
-        else:
-            self.mask_channel = int(mask_channel)
 
         metadata_ids, nested_id_dict = aux_utils.validate_metadata_indices(
-            frames_metadata=self.frames_metadata,
+            zarr_dir=zarr_dir,
             time_ids=time_ids,
             channel_ids=channel_ids,
             slice_ids=slice_ids,
             pos_ids=pos_ids,
-            uniform_structure=uniform_struct,
         )
-        self.frames_meta_sub = aux_utils.get_sub_meta(
-            frames_metadata=self.frames_metadata,
-            time_ids=metadata_ids["time_ids"],
-            channel_ids=metadata_ids["channel_ids"],
-            slice_ids=metadata_ids["slice_ids"],
-            pos_ids=metadata_ids["pos_ids"],
-        )
+
         self.channel_ids = metadata_ids["channel_ids"]
-        output_channels = "-".join(map(str, self.channel_ids))
-        if mask_type is "borders_weight_loss_map":
-            output_channels = str(mask_channel)
-        # Create mask_dir as a subdirectory of output_dir
-        self.mask_dir = os.path.join(
-            self.output_dir,
-            "mask_channels_" + output_channels,
-        )
-        os.makedirs(self.mask_dir, exist_ok=True)
 
         self.int2str_len = int2str_len
         self.uniform_struct = uniform_struct
@@ -103,7 +76,7 @@ class MaskProcessor:
             "otsu",
             "unimodal",
             "dataset otsu",
-            "borders_weight_loss_map",
+            "borders_weight_loss_map",  # not sure if we want to support this one
         ], "Masking method invalid, 'otsu', 'unimodal', 'dataset otsu', 'borders_weight_loss_map'\
              are currently supported"
         self.mask_type = mask_type
@@ -114,14 +87,8 @@ class MaskProcessor:
                 self.input_dir, "intensity_meta.csv"
             )
             self.channel_thr_df = self.get_channel_thr_df()
-        # for channel_idx in channel_ids:
-        #     row_idxs = self.ints_metadata['channel_idx'] == channel_idx
-        #     pix_ints = self.ints_metadata.loc[row_idxs, 'intensity'].values
-        #     self.channel_thr = threshold_otsu(pix_ints, nbins=32)
-        #     # self.channel_thr = get_unimodal_threshold(pix_ints)
-        #     self.channel_thr_df.append(0.3 * self.channel_thr)
-        #     # self.channel_thr_df.append(1 * self.channel_thr)
-        self.mask_ext = mask_ext
+
+        self.modifier = io_utils.HCSZarrModifier(zarr_file=zarr_dir)
 
     def get_channel_thr_df(self):
         ints_meta_sub = self.ints_metadata.loc[
@@ -151,39 +118,70 @@ class MaskProcessor:
         """
         return self.mask_channel
 
-    def _get_ff_paths(self, channel_ids):
+    def _get_flatfield_slice(self, time_index, channel_index, position_index, z_index):
         """
-        Get flatfield paths for channels.
+        Get slice of flatfield image given a position and a channel.
+        Channel must be
 
-        :param list channel_ids: channel ids to use for generating mask
-        :return list flat_field_fnames: Paths to flatfields
+        Note: flatfields do not vary between channels, but they are stored
+        separately in each channel to accommodate gunpowder.
+
+        :param int time_index: time id to use for selecting flatfield slice
+        :param int channel_index: channel id to use for selecting flatfield slice
+        :param int position_index: position id to use for selecting flatfield slice
+        :param int z_index: z-stack depth id to use for selecting flatfield slice
+
+        :return np.ndarray slice: 2D flatfield
         """
-        flat_field_fnames = []
-        if not isinstance(channel_ids, list):
-            channel_ids = [channel_ids]
-        for channel_idx in channel_ids:
-            ff_path = im_utils.get_flat_field_path(
-                self.flat_field_dir,
-                channel_idx,
-                channel_ids,
-            )
-            flat_field_fnames.append(ff_path)
-        return flat_field_fnames
+        # TODO: normalization duplicates this code. fix duplication by moving this
+        #       into the zarr modifier class
 
-    def generate_masks(self, str_elem_radius=5):
+        position_metadata = self.modifier.get_position_meta(position_index)
+        if "flatfield" in position_metadata:
+            ff_name = position_metadata["flatfield"]["array_name"]
+            ff_channels = position_metadata["flatfield"]["channel_ids"]
+        else:
+            return None
+
+        flatfield = self.modifier.get_untracked_array(
+            position=position_index, name=ff_name
+        )
+
+        # flatfield array might have collapsed indices
+        ff_channel_pos = ff_channels.index(channel_index)
+        flatfield_slice = flatfield[time_index, ff_channel_pos, 0, :, :]
+
+        return flatfield_slice
+
+    def generate_masks(self, structure_elem_radius=5):
         """
         Generate masks from flat-field corrected flurophore images.
         The sum of flurophore channels is thresholded to generate a foreground
         mask.
 
-        :param int str_elem_radius: Radius of structuring element for
+        Masks are saved as an additional channel in each data array for each
+        specified position. If certain channels are not specified, gaps are
+        filled with arrays of zeros.
+
+        Masks are also saved as an additional untracked array named "mask" and
+        tracked in the "mask" metadata field.
+
+        :param int structure_elem_radius: Radius of structuring element for
          morphological operations
         """
-        # Loop through all the indices and create masks
         fn_args = []
-        id_df = self.frames_meta_sub[
-            ["dir_name", "time_idx", "pos_idx", "slice_idx"]
-        ].drop_duplicates()
+
+        # Gather function arguments for each index pair at each position
+        shape = self.modifier.shape
+
+        all_times = list(range(shape[0]))
+        all_positions = list(self.modifier.position_map)
+        all_channels = list(range(shape[2]))
+        all_z_indices = list(range(shape[3]))
+        
+        for time in all_times:
+            for channel 
+
         channel_thrs = None
         if self.uniform_struct:
             for id_row in id_df.to_numpy():
@@ -205,7 +203,7 @@ class MaskProcessor:
                 cur_args = (
                     channels_meta_sub,
                     ff_fnames,
-                    str_elem_radius,
+                    structure_elem_radius,
                     self.mask_dir,
                     self.mask_channel,
                     self.int2str_len,
@@ -233,7 +231,7 @@ class MaskProcessor:
                         cur_args = (
                             channels_meta_sub,
                             ff_fnames,
-                            str_elem_radius,
+                            structure_elem_radius,
                             self.mask_dir,
                             self.mask_channel,
                             self.int2str_len,

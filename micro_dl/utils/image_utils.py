@@ -40,8 +40,8 @@ def im_bit_convert(im, bit=16, norm=False, limit=[]):
 
 def im_adjust(img, tol=1, bit=8):
     """
-    Adjust contrast of the image
-
+    Stretches contrast of the image and converts to 'bit'-bit.
+    Useful for weight-maps in masking
     """
     limit = np.percentile(img, [tol, 100 - tol])
     im_adjusted = im_bit_convert(img, bit=bit, norm=True, limit=limit.tolist())

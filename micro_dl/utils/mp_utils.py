@@ -35,25 +35,23 @@ def mp_create_save_mask(fn_args, workers):
     """
     with ProcessPoolExecutor(workers) as ex:
         # can't use map directly as it works only with single arg functions
-        res = ex.map(create_save_mask, *zip(*fn_args))
+        res = ex.map(create_and_write_mask, *zip(*fn_args))
     return list(res)
 
 
-def create_save_mask(
-    channels_meta_sub,
-    flat_field_fnames,
+def create_and_write_mask(
+    zarr_dir,
+    position,
+    time_indices,
+    channel_indices,
     str_elem_radius,
-    mask_dir,
-    mask_channel_idx,
     int2str_len,
     mask_type,
-    mask_ext,
-    dir_name=None,
-    channel_thrs=None,
+    mask_name,
 ):
-
+    # TODO: rewrite docstring
     """
-    Create and save mask.
+    Create and save mask./home/christian.foley/virtual_staining/workspaces/microDL/micro_dl/utils
     When >1 channel are used to generate the mask, mask of each channel is
     generated then added together.
 
@@ -79,108 +77,88 @@ def create_save_mask(
     :return dict cur_meta: One for each mask. fg_frac is added to metadata
             - how is it used?
     """
-    im_stack = image_utils.read_imstack_from_meta(
-        frames_meta_sub=channels_meta_sub,
-        dir_name=dir_name,
-        flat_field_fnames=flat_field_fnames,
-        normalize_im=None,
-    )
-    if mask_type == "dataset otsu":
-        assert (
-            channel_thrs is not None
-        ), 'channel threshold is required for mask_type="dataset otsu"'
-        assert len(channel_thrs) == range(
-            im_stack.shape[-1]
-        ), "Mismatch between channel thrs {} and im_stack {}".format(
-            len(channel_thrs), im_stack.shape[-1]
-        )
-    masks = []
-    for idx in range(im_stack.shape[-1]):
-        im = im_stack[..., idx]
-        if mask_type == "otsu":
-            mask = mask_utils.create_otsu_mask(im.astype("float32"), str_elem_radius)
-        elif mask_type == "unimodal":
-            mask = mask_utils.create_unimodal_mask(
-                im.astype("float32"), str_elem_radius
-            )
-        elif mask_type == "dataset otsu":
-            mask = mask_utils.create_otsu_mask(
-                im.astype("float32"), str_elem_radius, channel_thrs[idx]
-            )
-        elif mask_type == "borders_weight_loss_map":
-            mask = mask_utils.get_unet_border_weight_map(im)
-        masks += [mask]
-    # Border weight map mask is a float mask not binary like otsu or unimodal,
-    # so keep it as is (assumes only one image in stack)
-    fg_frac = None
-    if mask_type == "borders_weight_loss_map":
-        mask = masks[0]
-    else:
-        masks = np.stack(masks, axis=-1)
-        # mask = np.any(masks, axis=-1)
-        mask = np.mean(masks, axis=-1)
-        fg_frac = np.mean(mask)
+    # read in stack
+    modifier = io_utils.HCSZarrModifier(zarr_file=zarr_dir)
+    position_zarr = modifier.get_zarr(position=position)
+    position_masks_shape = tuple([modifier.shape[0], 1, *modifier.shape[2:]])
 
-    # Create mask name for given slice, time and position
-    time_idx = int(channels_meta_sub["time_idx"].iloc[0])
-    slice_idx = int(channels_meta_sub["slice_idx"].iloc[0])
-    pos_idx = int(channels_meta_sub["pos_idx"].iloc[0])
-    file_name = aux_utils.get_im_name(
-        time_idx=time_idx,
-        channel_idx=mask_channel_idx,
-        slice_idx=slice_idx,
-        pos_idx=pos_idx,
-        int2str_len=int2str_len,
-        ext=mask_ext,
-    )
-    overlay_name = aux_utils.get_im_name(
-        time_idx=time_idx,
-        channel_idx=mask_channel_idx,
-        slice_idx=slice_idx,
-        pos_idx=pos_idx,
-        int2str_len=int2str_len,
-        extra_field="overlay",
-        ext=mask_ext,
-    )
-    if mask_ext == ".npy":
-        # Save mask for given channels, mask is 2D
-        np.save(
-            os.path.join(mask_dir, file_name), mask, allow_pickle=True, fix_imports=True
-        )
-    elif mask_ext == ".png":
-        # Covert mask to uint8
-        # Border weight map mask is a float mask not binary like otsu or unimodal,
-        # so keep it as is
-        if mask_type == "borders_weight_loss_map":
-            assert im_stack.shape[-1] == 1
-            # Note: Border weight map mask should only be generated from one binary image
-        else:
-            mask = image_utils.im_bit_convert(mask, bit=8, norm=True)
-            mask = image_utils.im_adjust(mask)
-            im_mean = np.mean(im_stack, axis=-1)
-            im_mean = hist_clipping(im_mean, 1, 99)
-            im_alpha = 255 / (
-                np.max(im_mean) - np.min(im_mean) + sys.float_info.epsilon
-            )
-            im_mean = cv2.convertScaleAbs(
-                im_mean - np.min(im_mean),
-                alpha=im_alpha,
-            )
-            im_mask_overlay = np.stack([mask, im_mean, mask], axis=2)
-            cv2.imwrite(os.path.join(mask_dir, overlay_name), im_mask_overlay)
+    # calculate masks over every time index and channel slice
+    position_masks = np.zeros(position_masks_shape).astype("float32")
+    position_foreground_fractions = {}
 
-        cv2.imwrite(os.path.join(mask_dir, file_name), mask)
-    else:
-        raise ValueError("mask_ext can be '.npy' or '.png', not {}".format(mask_ext))
-    cur_meta = {
-        "channel_idx": mask_channel_idx,
-        "slice_idx": slice_idx,
-        "time_idx": time_idx,
-        "pos_idx": pos_idx,
-        "file_name": file_name,
-        "fg_frac": fg_frac,
+    for time_index in time_indices:
+        timepoint_foreground_fraction = {}
+
+        for channel_index in channel_indices:
+            im_stack = position_zarr[time_index, channel_index, ...]
+
+            # compute mask for each slice in stack
+            for slice_idx in range(im_stack.shape[0]):
+                im = im_stack[slice_idx]
+                if mask_type == "otsu":
+                    mask = mask_utils.create_otsu_mask(
+                        im.astype("float32"), str_elem_radius
+                    )
+                elif mask_type == "unimodal":
+                    mask = mask_utils.create_unimodal_mask(
+                        im.astype("float32"), str_elem_radius
+                    )
+                elif mask_type == "borders_weight_loss_map":
+                    mask = mask_utils.get_unet_border_weight_map(im)
+
+                mask = image_utils.im_adjust(mask).astype(position_zarr.dtype)
+                position_masks[time_index, channel_index, slice_idx] = mask
+
+            # compute & record the foreground fraction for this channel
+            channel_foreground_fraction = np.mean(
+                position_masks[time_index, channel_index]
+            ).item()
+            channel_name = modifier.channel_names[channel_index]
+            timepoint_foreground_fraction[channel_name] = channel_foreground_fraction
+
+        # aggregate all channel-wise foreground fractions
+        position_foreground_fractions[time_index] = timepoint_foreground_fraction
+
+    # save masks as additional channel
+    position_masks = position_masks.astype(position_zarr.dtype)
+    contrast_limits = [
+        0,
+        np.shape(position_masks)[-1],
+        np.min(position_masks),
+        np.max(position_masks),
+    ]
+    modifier.add_channel(
+        new_channel_array=position_masks,
+        position=position,
+        metadata=modifier.generate_omero_channel_meta(
+            channel_name=channel_name,
+            contrast_limits=contrast_limits,
+        ),
+    )
+
+    # save masks as an 'untracked' array
+    if mask_type in {"otsu", "unimodal"}:
+        position_masks = position_masks.astype("bool")
+
+    modifier.init_untracked_array(
+        array=position_masks,
+        position=position,
+        name=mask_name,
+    )
+
+    # save custom tracking metadata
+    metadata = {
+        "array_name": mask_name,
+        "masking_type": mask_type,
+        "channel_ids": channel_indices,
+        "time_idx": time_indices,
+        "foreground_fractions_by_timepoint": position_foreground_fractions,
     }
-    return cur_meta
+    modifier.write_meta_field(
+        position=position,
+        metadata=metadata,
+        field_name="mask",
+    )
 
 
 def get_mask_meta_row(file_path, meta_row):

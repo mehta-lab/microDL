@@ -949,7 +949,7 @@ class HCSZarrModifier(ZarrReader):
 
     def get_position_group(self, position):
         """
-        Return the group at this position.
+        Return the position-level zarr group. (one level above array)
 
         :param int position: position of the group requested
         :return zarr.hierarchy.group group: group at this position
@@ -968,6 +968,16 @@ class HCSZarrModifier(ZarrReader):
         """
         position_group = self.get_position_group(position)
         return position_group.attrs.asdict()
+
+    def get_untracked_array(self, position, name):
+        """
+        Gets the untracked array with name 'name' at the given position
+
+        :param int position: Position index
+        :return np.array pos: Array of name 'name', size can vary
+        """
+        pos = self.get_position_group(position)
+        return pos[name][:]
 
     def init_untracked_array(self, data_array, position, name):
         """
@@ -989,16 +999,6 @@ class HCSZarrModifier(ZarrReader):
             chunks=chunk_size,
             overwrite=self.overwrite_ok,
         )
-
-    def get_untracked_array(self, position, name):
-        """
-        Gets the untracked array with name 'name' at the given position
-
-        :param int position: Position index
-        :return np.array pos: Array of name 'name', size can vary
-        """
-        pos = self.get_position_group(position)
-        return pos[name][:]
 
     def write_meta_field(self, position, metadata, field_name):
         """
@@ -1039,3 +1039,106 @@ class HCSZarrModifier(ZarrReader):
             current_metadata[field_name] = metadata
 
         store.attrs.update(current_metadata)
+
+    def add_channel(
+        self,
+        new_channel_array,
+        position,
+        omero_metadata,
+        channel_index=None,
+    ):
+        """
+        Adds a channels to the data array at position "position". Note that there is
+        only one 'tracked' data array in current HCS spec at each position. Also
+        updates the 'omero' channel-tracking metadata to track the new channel.
+
+        The 'new_channel_array" must match the dimensions of the current array in
+        all positions but the channel position (1) and have the same datatype
+
+        The "omero_metadata" dictionary must implement the 'omero' spec here:
+            https://ngff.openmicroscopy.org/latest/#omero-md
+
+        Note: to maintain HCS compatibility of the zarr store, all positions (wells)
+        must maintain arrays with congruent channels. That is, if you add a channel
+        to one position of an HCS compatible zarr store, an additional channel must
+        be added to every position in that store to maintain HCS compatibility.
+
+        :param np.ndarray new_channel_array: array to add as new channel with matching
+                                            dimensions (except channel dim) and dtype
+        :param int position: position to add channel array to
+        :param dict omero_metadata: metadata about new channel implementing 'omero'
+        :param int/None channel_index: If specified, will replace the data at channel index
+                                 with new_channel_array instead of appending, as is default
+
+        :returns int write_channel_index: index of channel new data was appended to
+        """
+        assert new_channel_array.shape[1] == 1, (
+            "Can only add one channel at a time; ",
+            f"currently trying to add {new_channel_array.shape[1]} new channels",
+        )
+        position_array_zarr = self.get_zarr(position=position)
+        position_meta = self.get_position_meta(position=position)
+        position_omero_meta = position_meta["omero"]
+
+        if isinstance(channel_index, int):
+            # replace channel data with data and meta field with metadata
+            position_array_zarr[:, channel_index, ...] = new_channel_array[:, 0]
+
+            position_omero_meta["channels"][channel_index] = omero_metadata
+            self.write_meta_field(position, position_omero_meta, field_name="omero")
+
+            write_channel_index = channel_index
+        else:
+            # append channel data to data and meta field to metadata
+            position_array_zarr.append(new_channel_array, axis=1)
+
+            position_omero_meta["channels"].append(omero_metadata)
+            self.write_meta_field(position, position_omero_meta, field_name="omero")
+            self.channels += 1
+
+            write_channel_index = self.shape[1]
+
+        return write_channel_index
+
+    def generate_omero_channel_meta(
+        self,
+        channel_name,
+        active=False,
+        coefficient=1.0,
+        color="FFFFFF",
+        family="linear",
+        inverted=False,
+        contrast_limits=[0, 65535.0, 0, 65535.0],
+    ):
+        """
+        Generates omero metadata for a given channel.
+        Metadata fields follow the HCS omero spec:
+            https://ngff.openmicroscopy.org/latest/#omero-md
+
+        :param str channel_name: name of channel image type
+        :param bool active: active bool accoring to spec
+        :param float coefficient: coefficient according to spec
+        :param str color: color according to spec
+        :param str family: family according to spec
+        :param bool inverted: inverted bool according to spec
+        :param str contrast_limits: contrast lims according to spec [start, end, min, max]
+
+        return dict omero_data: formatted omero channel metadata
+        """
+        # TODO improve docstring... I can't find the documentation for field meanings.
+
+        omero_meta = {
+            "active": active,
+            "coefficient": coefficient,
+            "color": color,
+            "family": family,
+            "inverted": inverted,
+            "label": channel_name,
+            "window": {
+                "end": contrast_limits[1],
+                "max": contrast_limits[3],
+                "min": contrast_limits[2],
+                "start": contrast_limits[0],
+            },
+        }
+        return omero_meta
