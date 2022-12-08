@@ -282,7 +282,9 @@ def validate_metadata_indices(
 ):
     """
     Check the availability of indices provided timepoints, channels, positions
-    and slices for all data.
+    and slices for all data, and returns only the available of the specified
+    indices.
+
     If input ids are None, the indices for that parameter will not be
     evaluated. If input ids are -1, all indices for that parameter will
     be returned.

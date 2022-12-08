@@ -154,21 +154,21 @@ def apply_flat_field_correction(input_image, **kwargs):
 
     :param np.array input_image: image to be corrected
     Kwargs, either:
-        flat_field_image (np.float): flat_field_image for correction
-        flat_field_path (str): Full path to flatfield image
+        flatfield_image (np.float): flatfield_image for correction
+        flatfield_path (str): Full path to flatfield image
     :return: np.array (float) corrected image
     """
 
     corrected_image = input_image.astype("float")
-    if "flat_field_image" in kwargs:
-        flat_field_im = kwargs["flat_field_image"]
+    if "flatfield_image" in kwargs:
+        flat_field_im = kwargs["flatfield_image"]
         if flat_field_im is not None:
             corrected_image = input_image.astype("float") / flat_field_im
-    elif "flat_field_path" in kwargs:
-        flat_field_path = kwargs["flat_field_path"]
-        if flat_field_path is not None:
-            flat_field_image = np.load(flat_field_path)
-            corrected_image = input_image.astype("float") / flat_field_image
+    elif "flatfield_path" in kwargs:
+        flatfield_path = kwargs["flatfield_path"]
+        if flatfield_path is not None:
+            flatfield_image = np.load(flatfield_path)
+            corrected_image = input_image.astype("float") / flatfield_image
     else:
         print("Incorrect kwargs: {}, returning input image".format(kwargs))
     return corrected_image

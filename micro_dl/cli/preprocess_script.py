@@ -145,8 +145,8 @@ def generate_masks(
     """
     Generate masks per image or volume
 
-    :param dict required_params: dict with keys: input_dir, output_dir, time_ids,
-        channel_ids, pos_ids, slice_ids, int2strlen, uniform_struct, num_workers
+    :param dict required_params: dict with keys: zarr_dir, time_ids, channel_ids,
+         pos_ids, slice_ids, int2strlen, num_workers
     :param int/list mask_from_channel: generate masks from sum of these
         channels
     :param int str_elem_radius: structuring element size for morphological
@@ -177,6 +177,14 @@ def generate_masks(
     if mask_dir is not None:
         input_dir = mask_dir
     # Instantiate channel to mask processor
+    mask_processor_inst = MaskProcessor(
+        zarr_dir=required_params["zarr_dir"],
+        channel_ids=required_params["channel_ids"],
+        time_ids=required_params["time_ids"],
+        slice_ids=required_params["slice_ids"],
+        pos_ids=-1,
+        flatfield_name="flatfield",
+    )
     mask_processor_inst = MaskProcessor(
         input_dir=input_dir,
         output_dir=required_params["output_dir"],

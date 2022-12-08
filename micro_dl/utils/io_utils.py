@@ -974,10 +974,43 @@ class HCSZarrModifier(ZarrReader):
         Gets the untracked array with name 'name' at the given position
 
         :param int position: Position index
+        :param str name: name of untracked array (in file name and meta 'array_name')
         :return np.array pos: Array of name 'name', size can vary
         """
         pos = self.get_position_group(position)
         return pos[name][:]
+
+    def get_untracked_array_slice(
+        self, position, meta_field_name, time_index, channel_index, z_index
+    ):
+        """
+        Get z-slice of untracked array given a position and a channel.
+
+        :param int position: position id to use for selecting slice
+        :param int time_index: time id to use for selecting slice
+        :param int channel_index: channel id to use for selecting slice
+        :param int z_index: z-stack depth id to use for selecting slice
+        :param str meta_field_name: name of untracked array's metadata field
+
+        :return np.ndarray slice: 2D slice as numpy array
+        """
+
+        position_metadata = self.get_position_meta(position)
+        if meta_field_name in position_metadata:
+            ff_name = position_metadata[meta_field_name]["array_name"]
+            ff_channels = position_metadata[meta_field_name]["channel_ids"]
+        else:
+            raise AttributeError(f"No metadata field found for {meta_field_name}.")
+
+        untracked_array = self.get_untracked_array(position=position, name=ff_name)
+
+        # untracked array might have collapsed indices
+        ff_channel_pos = ff_channels.index(channel_index)
+        untracked_array_slice = untracked_array[
+            time_index, ff_channel_pos, z_index, :, :
+        ]
+
+        return untracked_array_slice
 
     def init_untracked_array(self, data_array, position, name):
         """
@@ -1097,6 +1130,9 @@ class HCSZarrModifier(ZarrReader):
             self.channels += 1
 
             write_channel_index = self.shape[1]
+
+        # need to requery channel names
+        self.channel_names = self._get_channel_names()
 
         return write_channel_index
 

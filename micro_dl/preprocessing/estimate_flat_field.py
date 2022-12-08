@@ -132,8 +132,8 @@ class FlatFieldEstimator2D:
                 all_channels_array.append(flatfield)
             except Exception as e:
                 print(
-                    f"\n Skipping channel: {self.modifier.channel_names[channel_idx]}.",
-                    "\n",
+                    f"\n Skipping channel {self.modifier.channel_names[channel_idx]}:",
+                    "\n\t",
                     e.args,
                 )
                 self.skipped_channels.append(channel_idx)
