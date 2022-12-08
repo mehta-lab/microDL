@@ -20,6 +20,14 @@ micro\_dl.utils.image\_utils module
    :undoc-members:
    :show-inheritance:
 
+micro\_dl.utils.io\_utils module
+--------------------------------
+
+.. automodule:: micro_dl.utils.io_utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 micro\_dl.utils.masks module
 ----------------------------
 

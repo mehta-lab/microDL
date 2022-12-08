@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>micro_dl.cli package &mdash; microDL_docs 1.0.0 documentation</title>
+  <title>micro_dl.cli package &mdash; microDL 1.0.0 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -29,7 +29,7 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="index.html" class="icon icon-home"> microDL_docs
+            <a href="index.html" class="icon icon-home"> microDL
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -67,7 +67,7 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">microDL_docs</a>
+          <a href="index.html">microDL</a>
       </nav>
 
       <div class="wy-nav-content">
@@ -112,43 +112,6 @@
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p></p>
-</dd>
-</dl>
-</dd></dl>
-
-</section>
-<section id="module-micro_dl.cli.generate_meta">
-<span id="micro-dl-cli-generate-meta-module"></span><h2>micro_dl.cli.generate_meta module<a class="headerlink" href="#module-micro_dl.cli.generate_meta" title="Permalink to this heading"></a></h2>
-<dl class="py function">
-<dt class="sig sig-object py" id="micro_dl.cli.generate_meta.main">
-<span class="sig-prename descclassname"><span class="pre">micro_dl.cli.generate_meta.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parsed_args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.cli.generate_meta.main" title="Permalink to this definition"></a></dt>
-<dd><p>Generate metadata for each file by interpreting the file name.
-Writes found data in frames_metadata.csv in input directory.
-Assumed default file naming convention is:
-dir_name
-|
-<a href="#id1"><span class="problematic" id="id2">|</span></a>- im_c***_z***_t***_p***.png
-<a href="#id3"><span class="problematic" id="id4">|</span></a>- im_c***_z***_t***_p***.png</p>
-<p>c is channel
-z is slice in stack (z)
-t is time
-p is position (FOV)</p>
-<p>Other naming convention is:
-img_channelname_t***_p***_z***.tif for parse_sms_name</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>parsed_args</strong> (<em>argparse</em>) – Input arguments</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="micro_dl.cli.generate_meta.parse_args">
-<span class="sig-prename descclassname"><span class="pre">micro_dl.cli.generate_meta.</span></span><span class="sig-name descname"><span class="pre">parse_args</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.cli.generate_meta.parse_args" title="Permalink to this definition"></a></dt>
-<dd><p>Parse command line arguments for directory containing files.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>namespace containing the arguments passed.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -300,15 +263,16 @@ from the preprocessing config. Required parameters are:</p>
 ‘slice_ids’: Slice indices
 ‘time_ids’: Time indices
 ‘pos_ids’: Position indices
-‘channel_ids’: Channel indices
+‘channel_ids’ or ‘channel_names’: Channel indices or names (default).
 ‘uniform_struct’: (bool) If images are uniform
 ‘int2strlen’: (int) How long of a string to convert integers to
-‘normalize_channels’: (list) Containing bools the length of channels
+‘normalize_channels’: (list) Containing channel names or bools the length of channels
 ‘num_workers’: Number of workers for multiprocessing
 ‘normalize_im’: (str) Normalization scheme</p>
 <blockquote>
 <div><p>(stack, dataset, slice, volume)</p>
 </div></blockquote>
+<p>‘zarr_file’: Zarr file name in case of zarr file (as opposed to tiffs)</p>
 </div></blockquote>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>

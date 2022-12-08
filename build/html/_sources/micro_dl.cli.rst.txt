@@ -12,14 +12,6 @@ micro\_dl.cli.dataset\_pooling module
    :undoc-members:
    :show-inheritance:
 
-micro\_dl.cli.generate\_meta module
------------------------------------
-
-.. automodule:: micro_dl.cli.generate_meta
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 micro\_dl.cli.inference\_script module
 --------------------------------------
 

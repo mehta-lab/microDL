@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.abspath('../micro_dl'))
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'microDL_docs'
+project = 'microDL'
 copyright = '2022, mehta-lab'
 author = 'mehta-lab'
 release = '1.0.0'

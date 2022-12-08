@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Index &mdash; microDL_docs 1.0.0 documentation</title>
+  <title>Index &mdash; microDL 1.0.0 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -26,7 +26,7 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="index.html" class="icon icon-home"> microDL_docs
+            <a href="index.html" class="icon icon-home"> microDL
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -47,7 +47,7 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">microDL_docs</a>
+          <a href="index.html">microDL</a>
       </nav>
 
       <div class="wy-nav-content">
@@ -190,9 +190,9 @@
       </ul></li>
       <li><a href="micro_dl.utils.html#micro_dl.utils.meta_utils.compute_zscore_params">compute_zscore_params() (in module micro_dl.utils.meta_utils)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="micro_dl.networks.html#micro_dl.networks.conv_blocks.conv_block">conv_block() (in module micro_dl.networks.conv_blocks)</a>
+</li>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.aux_utils.convert_channel_names_to_ids">convert_channel_names_to_ids() (in module micro_dl.utils.aux_utils)</a>
 </li>
       <li><a href="micro_dl.plotting.html#micro_dl.plotting.plot_utils.convert_to_8bit">convert_to_8bit() (in module micro_dl.plotting.plot_utils)</a>
 </li>
@@ -200,21 +200,41 @@
 </li>
       <li><a href="micro_dl.utils.html#micro_dl.utils.network_utils.create_activation_layer">create_activation_layer() (in module micro_dl.utils.network_utils)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.WriterBase.create_channel_dict">create_channel_dict() (micro_dl.utils.io_utils.WriterBase method)</a>
+</li>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.WriterBase.create_column">create_column() (micro_dl.utils.io_utils.WriterBase method)</a>
+</li>
       <li><a href="micro_dl.cli.html#micro_dl.cli.train_script.create_datasets">create_datasets() (in module micro_dl.cli.train_script)</a>
 </li>
       <li><a href="micro_dl.cli.html#micro_dl.cli.train_script.create_network">create_network() (in module micro_dl.cli.train_script)</a>
 </li>
       <li><a href="micro_dl.utils.html#micro_dl.utils.masks.create_otsu_mask">create_otsu_mask() (in module micro_dl.utils.masks)</a>
 </li>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.DefaultZarr.create_position">create_position() (micro_dl.utils.io_utils.DefaultZarr method)</a>
+
+      <ul>
+        <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.WriterBase.create_position">(micro_dl.utils.io_utils.WriterBase method)</a>
+</li>
+      </ul></li>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.WriterBase.create_row">create_row() (micro_dl.utils.io_utils.WriterBase method)</a>
+</li>
       <li><a href="micro_dl.utils.html#micro_dl.utils.mp_utils.create_save_mask">create_save_mask() (in module micro_dl.utils.mp_utils)</a>
 </li>
       <li><a href="micro_dl.utils.html#micro_dl.utils.masks.create_unimodal_mask">create_unimodal_mask() (in module micro_dl.utils.masks)</a>
+</li>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.ZarrWriter.create_zarr_root">create_zarr_root() (micro_dl.utils.io_utils.ZarrWriter method)</a>
 </li>
       <li><a href="micro_dl.utils.html#micro_dl.utils.image_utils.crop2base">crop2base() (in module micro_dl.utils.image_utils)</a>
 </li>
       <li><a href="micro_dl.utils.html#micro_dl.utils.tile_utils.crop_at_indices">crop_at_indices() (in module micro_dl.utils.tile_utils)</a>
 </li>
       <li><a href="micro_dl.utils.html#micro_dl.utils.mp_utils.crop_at_indices_save">crop_at_indices_save() (in module micro_dl.utils.mp_utils)</a>
+</li>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.ZarrWriter.current_group_name">current_group_name (micro_dl.utils.io_utils.ZarrWriter attribute)</a>
+</li>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.ZarrWriter.current_position">current_position (micro_dl.utils.io_utils.ZarrWriter attribute)</a>
 </li>
       <li><a href="micro_dl.train.html#micro_dl.train.learning_rates.CyclicLearning">CyclicLearning (class in micro_dl.train.learning_rates)</a>
 </li>
@@ -227,6 +247,8 @@
       <li><a href="micro_dl.input.html#micro_dl.input.dataset_with_mask.DataSetWithMask">DataSetWithMask (class in micro_dl.input.dataset_with_mask)</a>
 </li>
       <li><a href="micro_dl.networks.html#micro_dl.networks.vqnet.VQVAE.decoder_pass">decoder_pass() (micro_dl.networks.vqnet.VQVAE method)</a>
+</li>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.DefaultZarr">DefaultZarr (class in micro_dl.utils.io_utils)</a>
 </li>
       <li><a href="micro_dl.train.html#micro_dl.train.metrics.dice_coef">dice_coef() (in module micro_dl.train.metrics)</a>
 </li>
@@ -272,11 +294,15 @@
 </li>
       <li><a href="micro_dl.cli.html#micro_dl.cli.preprocess_script.flat_field_correct">flat_field_correct() (in module micro_dl.cli.preprocess_script)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="micro_dl.preprocessing.html#micro_dl.preprocessing.estimate_flat_field.FlatFieldEstimator2D">FlatFieldEstimator2D (class in micro_dl.preprocessing.estimate_flat_field)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="micro_dl.train.html#micro_dl.train.metrics.flip_dimensions">flip_dimensions() (in module micro_dl.train.metrics)</a>
+</li>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.meta_utils.frames_meta_from_filenames">frames_meta_from_filenames() (in module micro_dl.utils.meta_utils)</a>
+</li>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.meta_utils.frames_meta_from_zarr">frames_meta_from_zarr() (in module micro_dl.utils.meta_utils)</a>
 </li>
       <li><a href="micro_dl.utils.html#micro_dl.utils.meta_utils.frames_meta_generator">frames_meta_generator() (in module micro_dl.utils.meta_utils)</a>
 </li>
@@ -294,9 +320,17 @@
       </ul></li>
       <li><a href="micro_dl.cli.html#micro_dl.cli.preprocess_script.generate_zscore_table">generate_zscore_table() (in module micro_dl.cli.preprocess_script)</a>
 </li>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.ReaderBase.get_array">get_array() (micro_dl.utils.io_utils.ReaderBase method)</a>
+
+      <ul>
+        <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.ZarrReader.get_array">(micro_dl.utils.io_utils.ZarrReader method)</a>
+</li>
+      </ul></li>
       <li><a href="micro_dl.utils.html#micro_dl.utils.aux_utils.get_channel_axis">get_channel_axis() (in module micro_dl.utils.aux_utils)</a>
 </li>
       <li><a href="micro_dl.preprocessing.html#micro_dl.preprocessing.generate_masks.MaskProcessor.get_channel_thr_df">get_channel_thr_df() (micro_dl.preprocessing.generate_masks.MaskProcessor method)</a>
+</li>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.aux_utils.get_channels">get_channels() (in module micro_dl.utils.aux_utils)</a>
 </li>
       <li><a href="micro_dl.networks.layers.html#micro_dl.networks.layers.interp_upsampling2D.InterpUpSampling2D.get_config">get_config() (micro_dl.networks.layers.interp_upsampling2D.InterpUpSampling2D method)</a>
 
@@ -308,13 +342,23 @@
 </li>
       <li><a href="micro_dl.preprocessing.html#micro_dl.preprocessing.estimate_flat_field.FlatFieldEstimator2D.get_flat_field_dir">get_flat_field_dir() (micro_dl.preprocessing.estimate_flat_field.FlatFieldEstimator2D method)</a>
 </li>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.image_utils.get_flat_field_path">get_flat_field_path() (in module micro_dl.utils.image_utils)</a>
+</li>
       <li><a href="micro_dl.preprocessing.html#micro_dl.preprocessing.estimate_flat_field.FlatFieldEstimator2D.get_flatfield">get_flatfield() (micro_dl.preprocessing.estimate_flat_field.FlatFieldEstimator2D method)</a>
 </li>
       <li><a href="micro_dl.utils.html#micro_dl.utils.aux_utils.get_im_name">get_im_name() (in module micro_dl.utils.aux_utils)</a>
 </li>
       <li><a href="micro_dl.utils.html#micro_dl.utils.mp_utils.get_im_stats">get_im_stats() (in module micro_dl.utils.mp_utils)</a>
 </li>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.ReaderBase.get_image">get_image() (micro_dl.utils.io_utils.ReaderBase method)</a>
+
+      <ul>
+        <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.ZarrReader.get_image">(micro_dl.utils.io_utils.ZarrReader method)</a>
+</li>
+      </ul></li>
       <li><a href="micro_dl.cli.html#micro_dl.cli.train_script.get_image_dir_format">get_image_dir_format() (in module micro_dl.cli.train_script)</a>
+</li>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.ZarrReader.get_image_plane_metadata">get_image_plane_metadata() (micro_dl.utils.io_utils.ZarrReader method)</a>
 </li>
       <li><a href="micro_dl.input.html#micro_dl.input.inference_dataset.InferenceDataSet.get_iteration_meta">get_iteration_meta() (micro_dl.input.inference_dataset.InferenceDataSet method)</a>
 </li>
@@ -326,10 +370,10 @@
 </li>
       <li><a href="micro_dl.inference.html#micro_dl.inference.image_inference.ImagePredictor.get_mask">get_mask() (micro_dl.inference.image_inference.ImagePredictor method)</a>
 </li>
-      <li><a href="micro_dl.preprocessing.html#micro_dl.preprocessing.generate_masks.MaskProcessor.get_mask_channel">get_mask_channel() (micro_dl.preprocessing.generate_masks.MaskProcessor method)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="micro_dl.preprocessing.html#micro_dl.preprocessing.generate_masks.MaskProcessor.get_mask_channel">get_mask_channel() (micro_dl.preprocessing.generate_masks.MaskProcessor method)</a>
+</li>
       <li><a href="micro_dl.preprocessing.html#micro_dl.preprocessing.generate_masks.MaskProcessor.get_mask_dir">get_mask_dir() (micro_dl.preprocessing.generate_masks.MaskProcessor method)</a>
 </li>
       <li><a href="micro_dl.utils.html#micro_dl.utils.mp_utils.get_mask_meta_row">get_mask_meta_row() (in module micro_dl.utils.mp_utils)</a>
@@ -346,6 +390,12 @@
 </li>
       <li><a href="micro_dl.inference.html#micro_dl.inference.evaluation_metrics.MetricsEstimator.get_metrics_yz">get_metrics_yz() (micro_dl.inference.evaluation_metrics.MetricsEstimator method)</a>
 </li>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.ReaderBase.get_num_positions">get_num_positions() (micro_dl.utils.io_utils.ReaderBase method)</a>
+
+      <ul>
+        <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.ZarrReader.get_num_positions">(micro_dl.utils.io_utils.ZarrReader method)</a>
+</li>
+      </ul></li>
       <li><a href="micro_dl.utils.html#micro_dl.utils.preprocess_utils.get_preprocess_config">get_preprocess_config() (in module micro_dl.utils.preprocess_utils)</a>
 </li>
       <li><a href="micro_dl.cli.html#micro_dl.cli.preprocess_script.get_required_params">get_required_params() (in module micro_dl.cli.preprocess_script)</a>
@@ -368,6 +418,14 @@
 </li>
       <li><a href="micro_dl.utils.html#micro_dl.utils.masks.get_unimodal_threshold">get_unimodal_threshold() (in module micro_dl.utils.masks)</a>
 </li>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.ReaderBase.get_zarr">get_zarr() (micro_dl.utils.io_utils.ReaderBase method)</a>
+
+      <ul>
+        <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.WriterBase.get_zarr">(micro_dl.utils.io_utils.WriterBase method)</a>
+</li>
+        <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.ZarrReader.get_zarr">(micro_dl.utils.io_utils.ZarrReader method)</a>
+</li>
+      </ul></li>
       <li><a href="micro_dl.utils.html#micro_dl.utils.image_utils.grid_sample_pixel_values">grid_sample_pixel_values() (in module micro_dl.utils.image_utils)</a>
 </li>
   </ul></td>
@@ -404,16 +462,28 @@
 </li>
       <li><a href="micro_dl.preprocessing.html#micro_dl.preprocessing.tile_nonuniform_images.ImageTilerNonUniform">ImageTilerNonUniform (class in micro_dl.preprocessing.tile_nonuniform_images)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="micro_dl.preprocessing.html#micro_dl.preprocessing.tile_uniform_images.ImageTilerUniform">ImageTilerUniform (class in micro_dl.preprocessing.tile_uniform_images)</a>
 </li>
       <li><a href="micro_dl.preprocessing.html#micro_dl.preprocessing.tile_3d.ImageTilerUniform3D">ImageTilerUniform3D (class in micro_dl.preprocessing.tile_3d)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="micro_dl.utils.html#micro_dl.utils.aux_utils.import_object">import_object() (in module micro_dl.utils.aux_utils)</a>
 </li>
       <li><a href="micro_dl.input.html#micro_dl.input.inference_dataset.InferenceDataSet">InferenceDataSet (class in micro_dl.input.inference_dataset)</a>
 </li>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.WriterBase.init_array">init_array() (micro_dl.utils.io_utils.WriterBase method)</a>
+
+      <ul>
+        <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.ZarrWriter.init_array">(micro_dl.utils.io_utils.ZarrWriter method)</a>
+</li>
+      </ul></li>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.DefaultZarr.init_hierarchy">init_hierarchy() (micro_dl.utils.io_utils.DefaultZarr method)</a>
+
+      <ul>
+        <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.WriterBase.init_hierarchy">(micro_dl.utils.io_utils.WriterBase method)</a>
+</li>
+      </ul></li>
       <li><a href="micro_dl.utils.html#micro_dl.utils.aux_utils.init_logger">init_logger() (in module micro_dl.utils.aux_utils)</a>
 </li>
       <li><a href="micro_dl.networks.layers.html#micro_dl.networks.layers.interp_upsampling2D.InterpUpSampling2D">InterpUpSampling2D (class in micro_dl.networks.layers.interp_upsampling2D)</a>
@@ -454,8 +524,6 @@
 </li>
       <li><a href="micro_dl.inference.html#micro_dl.inference.evaluation_metrics.mae_metric">mae_metric() (in module micro_dl.inference.evaluation_metrics)</a>
 </li>
-      <li><a href="micro_dl.cli.html#micro_dl.cli.generate_meta.main">main() (in module micro_dl.cli.generate_meta)</a>
-</li>
       <li><a href="micro_dl.utils.html#micro_dl.utils.aux_utils.make_dataframe">make_dataframe() (in module micro_dl.utils.aux_utils)</a>
 </li>
       <li><a href="micro_dl.train.html#micro_dl.train.metrics.mask_accuracy">mask_accuracy() (in module micro_dl.train.metrics)</a>
@@ -493,13 +561,6 @@
 
       <ul>
         <li><a href="micro_dl.cli.html#module-micro_dl.cli.dataset_pooling">module</a>
-</li>
-      </ul></li>
-      <li>
-    micro_dl.cli.generate_meta
-
-      <ul>
-        <li><a href="micro_dl.cli.html#module-micro_dl.cli.generate_meta">module</a>
 </li>
       </ul></li>
       <li>
@@ -789,8 +850,6 @@
         <li><a href="micro_dl.train.html#module-micro_dl.train.losses">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     micro_dl.train.lr_finder
 
@@ -798,6 +857,8 @@
         <li><a href="micro_dl.train.html#module-micro_dl.train.lr_finder">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     micro_dl.train.metrics
 
@@ -831,6 +892,13 @@
 
       <ul>
         <li><a href="micro_dl.utils.html#module-micro_dl.utils.image_utils">module</a>
+</li>
+      </ul></li>
+      <li>
+    micro_dl.utils.io_utils
+
+      <ul>
+        <li><a href="micro_dl.utils.html#module-micro_dl.utils.io_utils">module</a>
 </li>
       </ul></li>
       <li>
@@ -898,8 +966,6 @@
         <li><a href="micro_dl.cli.html#module-micro_dl.cli">micro_dl.cli</a>
 </li>
         <li><a href="micro_dl.cli.html#module-micro_dl.cli.dataset_pooling">micro_dl.cli.dataset_pooling</a>
-</li>
-        <li><a href="micro_dl.cli.html#module-micro_dl.cli.generate_meta">micro_dl.cli.generate_meta</a>
 </li>
         <li><a href="micro_dl.cli.html#module-micro_dl.cli.inference_script">micro_dl.cli.inference_script</a>
 </li>
@@ -995,6 +1061,8 @@
 </li>
         <li><a href="micro_dl.utils.html#module-micro_dl.utils.image_utils">micro_dl.utils.image_utils</a>
 </li>
+        <li><a href="micro_dl.utils.html#module-micro_dl.utils.io_utils">micro_dl.utils.io_utils</a>
+</li>
         <li><a href="micro_dl.utils.html#module-micro_dl.utils.masks">micro_dl.utils.masks</a>
 </li>
         <li><a href="micro_dl.utils.html#module-micro_dl.utils.meta_utils">micro_dl.utils.meta_utils</a>
@@ -1064,6 +1132,8 @@
       </ul></li>
       <li><a href="micro_dl.train.html#micro_dl.train.lr_finder.LRFinder.on_train_end">on_train_end() (micro_dl.train.lr_finder.LRFinder method)</a>
 </li>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.WriterBase.open_position">open_position() (micro_dl.utils.io_utils.WriterBase method)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -1075,8 +1145,6 @@
       <li><a href="micro_dl.cli.html#micro_dl.cli.dataset_pooling.parse_args">parse_args() (in module micro_dl.cli.dataset_pooling)</a>
 
       <ul>
-        <li><a href="micro_dl.cli.html#micro_dl.cli.generate_meta.parse_args">(in module micro_dl.cli.generate_meta)</a>
-</li>
         <li><a href="micro_dl.cli.html#micro_dl.cli.inference_script.parse_args">(in module micro_dl.cli.inference_script)</a>
 </li>
         <li><a href="micro_dl.cli.html#micro_dl.cli.metrics_script.parse_args">(in module micro_dl.cli.metrics_script)</a>
@@ -1088,10 +1156,10 @@
       </ul></li>
       <li><a href="micro_dl.utils.html#micro_dl.utils.aux_utils.parse_idx_from_name">parse_idx_from_name() (in module micro_dl.utils.aux_utils)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="micro_dl.utils.html#micro_dl.utils.aux_utils.parse_sms_name">parse_sms_name() (in module micro_dl.utils.aux_utils)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="micro_dl.train.html#micro_dl.train.metrics.pearson_corr">pearson_corr() (in module micro_dl.train.metrics)</a>
 </li>
       <li><a href="micro_dl.cli.html#micro_dl.cli.dataset_pooling.pool_dataset">pool_dataset() (in module micro_dl.cli.dataset_pooling)</a>
@@ -1103,6 +1171,8 @@
       <li><a href="micro_dl.inference.html#micro_dl.inference.image_inference.ImagePredictor.predict_3d">predict_3d() (micro_dl.inference.image_inference.ImagePredictor method)</a>
 </li>
       <li><a href="micro_dl.inference.html#micro_dl.inference.model_inference.predict_large_image">predict_large_image() (in module micro_dl.inference.model_inference)</a>
+</li>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.image_utils.preprocess_image">preprocess_image() (in module micro_dl.utils.image_utils)</a>
 </li>
       <li><a href="micro_dl.utils.html#micro_dl.utils.image_utils.preprocess_imstack">preprocess_imstack() (in module micro_dl.utils.image_utils)</a>
 </li>
@@ -1118,22 +1188,28 @@
 </li>
       <li><a href="micro_dl.utils.html#micro_dl.utils.image_utils.read_image">read_image() (in module micro_dl.utils.image_utils)</a>
 </li>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.image_utils.read_image_from_row">read_image_from_row() (in module micro_dl.utils.image_utils)</a>
+</li>
       <li><a href="micro_dl.utils.html#micro_dl.utils.image_utils.read_imstack">read_imstack() (in module micro_dl.utils.image_utils)</a>
+</li>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.image_utils.read_imstack_from_meta">read_imstack_from_meta() (in module micro_dl.utils.image_utils)</a>
 </li>
       <li><a href="micro_dl.utils.html#micro_dl.utils.aux_utils.read_json">read_json() (in module micro_dl.utils.aux_utils)</a>
 </li>
       <li><a href="micro_dl.utils.html#micro_dl.utils.aux_utils.read_meta">read_meta() (in module micro_dl.utils.aux_utils)</a>
 </li>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.ReaderBase">ReaderBase (class in micro_dl.utils.io_utils)</a>
+</li>
       <li><a href="micro_dl.utils.html#micro_dl.utils.image_utils.rescale_image">rescale_image() (in module micro_dl.utils.image_utils)</a>
 </li>
       <li><a href="micro_dl.utils.html#micro_dl.utils.image_utils.rescale_nd_image">rescale_nd_image() (in module micro_dl.utils.image_utils)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="micro_dl.utils.html#micro_dl.utils.mp_utils.rescale_vol_and_save">rescale_vol_and_save() (in module micro_dl.utils.mp_utils)</a>
 </li>
       <li><a href="micro_dl.networks.html#micro_dl.networks.conv_blocks.residual_conv_block">residual_conv_block() (in module micro_dl.networks.conv_blocks)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="micro_dl.networks.html#micro_dl.networks.conv_blocks.residual_downsample_conv_block">residual_downsample_conv_block() (in module micro_dl.networks.conv_blocks)</a>
 </li>
       <li><a href="micro_dl.utils.html#micro_dl.utils.mp_utils.resize_and_save">resize_and_save() (in module micro_dl.utils.mp_utils)</a>
@@ -1178,13 +1254,23 @@
 </li>
       <li><a href="micro_dl.plotting.html#micro_dl.plotting.plot_utils.save_predicted_images">save_predicted_images() (in module micro_dl.plotting.plot_utils)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="micro_dl.utils.html#micro_dl.utils.aux_utils.save_tile_meta">save_tile_meta() (in module micro_dl.utils.aux_utils)</a>
 </li>
       <li><a href="micro_dl.utils.html#micro_dl.utils.train_utils.select_gpu">select_gpu() (in module micro_dl.utils.train_utils)</a>
 </li>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.WriterBase.set_channel_attributes">set_channel_attributes() (micro_dl.utils.io_utils.WriterBase method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="micro_dl.utils.html#micro_dl.utils.train_utils.set_keras_session">set_keras_session() (in module micro_dl.utils.train_utils)</a>
+</li>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.WriterBase.set_root">set_root() (micro_dl.utils.io_utils.WriterBase method)</a>
+</li>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.WriterBase.set_store">set_store() (micro_dl.utils.io_utils.WriterBase method)</a>
+</li>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.WriterBase.set_verbosity">set_verbosity() (micro_dl.utils.io_utils.WriterBase method)</a>
+</li>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.ReaderBase.shape">shape (micro_dl.utils.io_utils.ReaderBase property)</a>
 </li>
       <li><a href="micro_dl.networks.html#micro_dl.networks.conv_blocks.skip_merge">skip_merge() (in module micro_dl.networks.conv_blocks)</a>
 </li>
@@ -1197,6 +1283,8 @@
       <li><a href="micro_dl.inference.html#micro_dl.inference.evaluation_metrics.ssim_metric">ssim_metric() (in module micro_dl.inference.evaluation_metrics)</a>
 </li>
       <li><a href="micro_dl.inference.html#micro_dl.inference.stitch_predictions.ImageStitcher.stitch_predictions">stitch_predictions() (micro_dl.inference.stitch_predictions.ImageStitcher method)</a>
+</li>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.ZarrWriter.store">store (micro_dl.utils.io_utils.ZarrWriter attribute)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -1264,6 +1352,8 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="micro_dl.utils.html#micro_dl.utils.aux_utils.validate_config">validate_config() (in module micro_dl.utils.aux_utils)</a>
 </li>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.aux_utils.validate_indices">validate_indices() (in module micro_dl.utils.aux_utils)</a>
+</li>
       <li><a href="micro_dl.utils.html#micro_dl.utils.preprocess_utils.validate_mask_meta">validate_mask_meta() (in module micro_dl.utils.preprocess_utils)</a>
 </li>
   </ul></td>
@@ -1280,6 +1370,12 @@
 <h2 id="W">W</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.WriterBase.write">write() (micro_dl.utils.io_utils.WriterBase method)</a>
+
+      <ul>
+        <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.ZarrWriter.write">(micro_dl.utils.io_utils.ZarrWriter method)</a>
+</li>
+      </ul></li>
       <li><a href="micro_dl.utils.html#micro_dl.utils.aux_utils.write_json">write_json() (in module micro_dl.utils.aux_utils)</a>
 </li>
   </ul></td>
@@ -1288,12 +1384,20 @@
 </li>
       <li><a href="micro_dl.utils.html#micro_dl.utils.tile_utils.write_tile">write_tile() (in module micro_dl.utils.tile_utils)</a>
 </li>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.WriterBase">WriterBase (class in micro_dl.utils.io_utils)</a>
+</li>
   </ul></td>
 </tr></table>
 
 <h2 id="Z">Z</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.ZarrReader">ZarrReader (class in micro_dl.utils.io_utils)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="micro_dl.utils.html#micro_dl.utils.io_utils.ZarrWriter">ZarrWriter (class in micro_dl.utils.io_utils)</a>
+</li>
       <li><a href="micro_dl.utils.html#micro_dl.utils.normalize.zscore">zscore() (in module micro_dl.utils.normalize)</a>
 </li>
   </ul></td>
