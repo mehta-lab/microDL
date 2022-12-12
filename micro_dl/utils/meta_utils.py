@@ -81,9 +81,9 @@ def generate_normalization_metadata(
 
         for position in modifier.position_map:
             show_progress_bar(
-                dataloader=channel_ids,
-                current=channel,
-                process="calculating statistics",
+                dataloader=modifier.position_map,
+                current=position,
+                process=f"calculating statistics channel {channel}/{list(channel_ids)}",
             )
             position_statistics = {
                 "fov_statistics": fov_level_statistics[position],

@@ -32,6 +32,21 @@ def unique_tags(directory):
     return tags
 
 
+class MultiProcessProgressBar(object):
+    """
+    Provides the ability to create & update a single progress bar for multi-depth
+    multi-processed tasks by calling updates on a single object
+    """
+
+    def __init__(self, total_updates):
+        self.dataloader = list(range(total_updates))
+        self.current = 0
+
+    def tick(self, process):
+        self.current += 1
+        show_progress_bar(self.dataloader, self.current, process)
+
+
 def show_progress_bar(dataloader, current, process="training", interval=1):
     """
     Utility function to print tensorflow-like progress bar.

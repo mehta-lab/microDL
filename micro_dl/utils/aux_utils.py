@@ -24,6 +24,15 @@ DF_NAMES = [
 ]
 
 
+class MultiProcessProgressTracker(object):
+    """
+    Provides the ability to update progress
+
+    :param object: _description_
+    :type object: _type_
+    """
+
+
 def import_object(module_name, obj_name, obj_type="class"):
     """Imports a class or function dynamically
 

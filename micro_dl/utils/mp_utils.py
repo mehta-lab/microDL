@@ -50,6 +50,7 @@ def create_and_write_mask(
     mask_type,
     mask_name,
     output_channel_index=None,
+    verbose=False,
 ):
     # TODO: rewrite docstring
     """
@@ -85,8 +86,8 @@ def create_and_write_mask(
     :param int/None output_channel_index: if specified will overwrite data in this
                             channel with computed masks. By default does not
                             overwrite
+    :param bool verbose: whether this process should send updates to stdout
     """
-    pid = os.getpid()
 
     # read in stack
     modifier = io_utils.HCSZarrModifier(zarr_file=zarr_dir)
@@ -104,6 +105,8 @@ def create_and_write_mask(
 
         for channel_index in channel_indices:
             channel_name = modifier.channel_names[channel_index]
+            mask_array_chan_idx = channel_indices.index(channel_index)
+
             if "mask" in channel_name:
                 print("\n")
                 if mask_type in channel_name:
@@ -113,10 +116,16 @@ def create_and_write_mask(
             else:
                 for slice_index in range(modifier.slices):
                     # print pyrimidal progress bar
-                    time_progress = f"time {time_index+1}/{modifier.frames}"
-                    channel_progress = f"chan {channel_index+1}/{len(channel_indices)}"
-                    p = f"Process {pid}: computing masks [{time_progress}, {channel_progress}]"
-                    show_progress_bar(range(modifier.slices), slice_index, process=p)
+                    if verbose:
+                        time_progress = f"time {time_index+1}/{modifier.frames}"
+                        channel_progress = f"chan {channel_index}/{channel_indices}"
+                        position_progress = f"pos {position}/{modifier.positions}"
+                        slice_progress = f"slice {slice_index}/{modifier.slices}"
+                        p = (
+                            f"Computing masks slice [{position_progress}, {time_progress},"
+                            f" {channel_progress}, {slice_progress}]"
+                        )
+                        print(p)
 
                     # get mask for image slice or populate with zeros
                     if time_index in time_indices:
@@ -143,11 +152,11 @@ def create_and_write_mask(
                     else:
                         mask = np.zeros(modifier.shape[-2:])
 
-                    position_masks[time_index, channel_index, slice_index] = mask
+                    position_masks[time_index, mask_array_chan_idx, slice_index] = mask
 
                 # compute & record channel-wise foreground fractions
                 frame_foreground_fraction = float(
-                    np.mean(position_masks[time_index, channel_index]).item()
+                    np.mean(position_masks[time_index, mask_array_chan_idx]).item()
                 )
                 timepoint_foreground_fraction[channel_name] = frame_foreground_fraction
         position_foreground_fractions[time_index] = timepoint_foreground_fraction
@@ -230,12 +239,15 @@ def get_mask_slice(
     :param np.ndarray flatfield_array: flatfield to correct image
     :return np.ndarray mask: 2d mask for this slice
     """
+    # read and correct/preprocess slice
     im = position_zarr[time_index, channel_index, slice_index]
     if isinstance(flatfield_array, np.ndarray):
         im = image_utils.apply_flat_field_correction(
             input_image=im,
             flatfield_image=flatfield_array,
         )
+    im = image_utils.preprocess_image(im, hist_clip_limits=(1, 99))
+    # generate mask for slice
     if mask_type == "otsu":
         mask = mask_utils.create_otsu_mask(im.astype("float32"), structure_elem_radius)
     elif mask_type == "unimodal":

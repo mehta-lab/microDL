@@ -7,6 +7,7 @@ import micro_dl.utils.image_utils as im_utils
 import micro_dl.utils.io_utils as io_utils
 from micro_dl.utils.mp_utils import mp_create_and_write_mask
 from skimage.filters import threshold_otsu
+from micro_dl.torch_unet.utils.io import MultiProcessProgressBar
 
 
 class MaskProcessor:
@@ -67,16 +68,32 @@ class MaskProcessor:
 
         self.modifier = io_utils.HCSZarrModifier(zarr_file=zarr_dir)
 
-        if output_channel_index > self.modifier.channels:
-            print("Mask output channel beyond channel range, appending instead")
-            output_channel_index = None
-        elif output_channel_index < self.modifier.channels:
-            channel_name = self.modifier.channel_names[output_channel_index]
-            print(
-                f"Received mask output_channel_index is {output_channel_index}. "
-                f"This channel is currently populated by {channel_name}. Overwriting "
-                "after mask computation completes."
-            )
+        # deal with output channel selection/overwriting messages
+        if isinstance(output_channel_index, int):
+            if output_channel_index > self.modifier.channels:
+                print("Mask output channel beyond channel range, appending instead")
+                output_channel_index = None
+            elif output_channel_index < self.modifier.channels:
+                channel_name = self.modifier.channel_names[output_channel_index]
+                if channel_name in {
+                    "mask_unimodal",
+                    "mask_otsu",
+                    "mask_borders_weight_loss_map",
+                    "flatfield",
+                }:
+                    print(
+                        f"WARNING:\n"
+                        f"Received mask output_channel_index is {output_channel_index}. "
+                        f"This channel is currently populated by {channel_name}."
+                        " Overwriting after mask computation completes."
+                    )
+                else:
+                    raise PermissionError(
+                        f"ERROR:\n"
+                        f"Trying to overwrite data channel {channel_name}"
+                        f" at index {output_channel_index}, only generated channel "
+                        "overwriting is permitted in mask creation."
+                    )
         self.output_channel_index = output_channel_index
 
     def generate_masks(self, structure_elem_radius=5):
@@ -101,6 +118,8 @@ class MaskProcessor:
         mp_mask_creator_args = []
 
         for position in all_positions:
+            # TODO: make a better progress bar for mask generation
+            verbose = position % 4 == 0
             mp_mask_creator_args.append(
                 tuple(
                     [
@@ -112,6 +131,7 @@ class MaskProcessor:
                         self.mask_type,
                         "_".join(["mask", self.mask_type]),
                         self.output_channel_index,
+                        verbose,
                     ]
                 )
             )
