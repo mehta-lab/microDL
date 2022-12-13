@@ -18,9 +18,14 @@ import micro_dl.utils.meta_utils as meta_utils
 
 
 def parse_args():
-    """Parse command line arguments
-
+    """
+    Parse command line arguments
     In python namespaces are implemented as dictionaries
+    The preprocess_cli script takes as input a path to a configuration yaml file.
+    For examples of preprocessing config files in 2.5D and 2D, see:
+    https://github.com/mehta-lab/microDL/blob/main/config_files/Preprocessing-config_2.5DUnet_regression_phase2membrane.yml
+    https://github.com/mehta-lab/microDL/blob/main/config_files/Preprocessing-config_2DUnet_regression_phase2nucleus.yml
+
     :return: namespace containing the arguments passed.
     """
     parser = argparse.ArgumentParser()
