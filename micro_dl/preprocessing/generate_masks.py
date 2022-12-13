@@ -39,9 +39,9 @@ class MaskProcessor:
         :param int/list channel_ids: generate mask from the sum of these
             (flurophore) channel indices
         :param list/int time_ids: timepoints to consider
-        :param int slice_ids: Index of which focal plane (z)
+        :param list/int slice_ids: Index of which focal plane (z)
             acquisition to use (default -1 includes all slices)
-        :param int pos_ids: Position (FOV) indices to use
+        :param list/int pos_ids: Position (FOV) indices to use
         :param int int2str_len: Length of str when converting ints
         :param bool uniform_struct: bool indicator for same structure across
             pos and time points
