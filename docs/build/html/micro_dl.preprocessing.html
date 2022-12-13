@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>micro_dl.preprocessing module &mdash; microDL 1.0.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="micro_dl.train module" href="micro_dl.train.html" />
+    <link rel="prev" title="micro_dl.plotting module" href="micro_dl.plotting.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> microDL
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">micro_dl</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="micro_dl.html">micro_dl module</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="micro_dl.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.cli.html">micro_dl.cli module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.inference.html">micro_dl.inference module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.input.html">micro_dl.input module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.networks.html">micro_dl.networks module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.plotting.html">micro_dl.plotting module</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">micro_dl.preprocessing module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.train.html">micro_dl.train module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.utils.html">micro_dl.utils module</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="micro_dl.html#module-micro_dl">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">microDL</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">micro_dl</a></li>
+          <li class="breadcrumb-item"><a href="micro_dl.html">micro_dl module</a></li>
+      <li class="breadcrumb-item active">micro_dl.preprocessing module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/micro_dl.preprocessing.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="micro-dl-preprocessing-module">
+<h1>micro_dl.preprocessing module<a class="headerlink" href="#micro-dl-preprocessing-module" title="Permalink to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
+</section>
+<section id="module-micro_dl.preprocessing.estimate_flat_field">
+<span id="micro-dl-preprocessing-estimate-flat-field-module"></span><h2>micro_dl.preprocessing.estimate_flat_field module<a class="headerlink" href="#module-micro_dl.preprocessing.estimate_flat_field" title="Permalink to this heading"></a></h2>
+<p>Estimate flat field images</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="micro_dl.preprocessing.estimate_flat_field.FlatFieldEstimator2D">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">micro_dl.preprocessing.estimate_flat_field.</span></span><span class="sig-name descname"><span class="pre">FlatFieldEstimator2D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slice_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">block_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">32</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.preprocessing.estimate_flat_field.FlatFieldEstimator2D" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Estimates flat field image</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.preprocessing.estimate_flat_field.FlatFieldEstimator2D.estimate_flat_field">
+<span class="sig-name descname"><span class="pre">estimate_flat_field</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.preprocessing.estimate_flat_field.FlatFieldEstimator2D.estimate_flat_field" title="Permalink to this definition"></a></dt>
+<dd><p>Estimates flat field image for given channel indices using a
+polynomial fit of sampled intensity medians from blocks/tiles across
+the image, assuming a smoothly varying flat field.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.preprocessing.estimate_flat_field.FlatFieldEstimator2D.get_flat_field_dir">
+<span class="sig-name descname"><span class="pre">get_flat_field_dir</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.preprocessing.estimate_flat_field.FlatFieldEstimator2D.get_flat_field_dir" title="Permalink to this definition"></a></dt>
+<dd><p>Return flatfield directory
+:return str flat_field_dir: Flatfield directory</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.preprocessing.estimate_flat_field.FlatFieldEstimator2D.get_flatfield">
+<span class="sig-name descname"><span class="pre">get_flatfield</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">im</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.preprocessing.estimate_flat_field.FlatFieldEstimator2D.get_flatfield" title="Permalink to this definition"></a></dt>
+<dd><p>Combine sampling and polynomial surface fit for flatfield estimation.
+To flatfield correct an image, divide it by flatfield.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>im</strong> (<em>np.array</em>) – 2D image</p></li>
+<li><p><strong>order</strong> (<em>int</em>) – Order of polynomial (default 2)</p></li>
+<li><p><strong>normalize</strong> (<em>bool</em>) – Normalize surface by dividing by its mean
+for flatfield correction (default True)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return np.array flatfield</dt>
+<dd class="field-even"><p>Flatfield image</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.preprocessing.estimate_flat_field.FlatFieldEstimator2D.sample_block_medians">
+<span class="sig-name descname"><span class="pre">sample_block_medians</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">im</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.preprocessing.estimate_flat_field.FlatFieldEstimator2D.sample_block_medians" title="Permalink to this definition"></a></dt>
+<dd><p>Subdivide a 2D image in smaller blocks of size block_size and
+compute the median intensity value for each block. Any incomplete
+blocks (remainders of modulo operation) will be ignored.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>im</strong> (<em>np.array</em>) – 2D image</p>
+</dd>
+<dt class="field-even">Return np.array(float) sample_coords</dt>
+<dd class="field-even"><p>Image coordinates for block
+centers</p>
+</dd>
+<dt class="field-odd">Return np.array(float) sample_values</dt>
+<dd class="field-odd"><p>Median intensity values for
+blocks</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-micro_dl.preprocessing.generate_masks">
+<span id="micro-dl-preprocessing-generate-masks-module"></span><h2>micro_dl.preprocessing.generate_masks module<a class="headerlink" href="#module-micro_dl.preprocessing.generate_masks" title="Permalink to this heading"></a></h2>
+<p>Generate masks from sum of flurophore channels</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="micro_dl.preprocessing.generate_masks.MaskProcessor">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">micro_dl.preprocessing.generate_masks.</span></span><span class="sig-name descname"><span class="pre">MaskProcessor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flat_field_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slice_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int2str_len</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uniform_struct</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_workers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'otsu'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_channel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_ext</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'.npy'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.preprocessing.generate_masks.MaskProcessor" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Appends Masks to zarr directories</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.preprocessing.generate_masks.MaskProcessor.generate_masks">
+<span class="sig-name descname"><span class="pre">generate_masks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">str_elem_radius</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.preprocessing.generate_masks.MaskProcessor.generate_masks" title="Permalink to this definition"></a></dt>
+<dd><p>Generate masks from flat-field corrected flurophore images.
+The sum of flurophore channels is thresholded to generate a foreground
+mask.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>str_elem_radius</strong> (<em>int</em>) – Radius of structuring element for
+morphological operations</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.preprocessing.generate_masks.MaskProcessor.get_channel_thr_df">
+<span class="sig-name descname"><span class="pre">get_channel_thr_df</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.preprocessing.generate_masks.MaskProcessor.get_channel_thr_df" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.preprocessing.generate_masks.MaskProcessor.get_mask_channel">
+<span class="sig-name descname"><span class="pre">get_mask_channel</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.preprocessing.generate_masks.MaskProcessor.get_mask_channel" title="Permalink to this definition"></a></dt>
+<dd><p>Return mask channel
+:return int mask_channel: Assigned channel number for mask</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.preprocessing.generate_masks.MaskProcessor.get_mask_dir">
+<span class="sig-name descname"><span class="pre">get_mask_dir</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.preprocessing.generate_masks.MaskProcessor.get_mask_dir" title="Permalink to this definition"></a></dt>
+<dd><p>Return mask directory
+:return str mask_dir: Directory where masks are stored</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-micro_dl.preprocessing.resize_images">
+<span id="micro-dl-preprocessing-resize-images-module"></span><h2>micro_dl.preprocessing.resize_images module<a class="headerlink" href="#module-micro_dl.preprocessing.resize_images" title="Permalink to this heading"></a></h2>
+<p>Generate masks from sum of flurophore channels</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="micro_dl.preprocessing.resize_images.ImageResizer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">micro_dl.preprocessing.resize_images.</span></span><span class="sig-name descname"><span class="pre">ImageResizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_factor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slice_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int2str_len</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_workers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flat_field_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flat_field_channels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.preprocessing.resize_images.ImageResizer" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Resize images for given indices</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.preprocessing.resize_images.ImageResizer.get_resize_dir">
+<span class="sig-name descname"><span class="pre">get_resize_dir</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.preprocessing.resize_images.ImageResizer.get_resize_dir" title="Permalink to this definition"></a></dt>
+<dd><p>Return directory with resized images
+:return str resize_dir: Directory where resized images are stored</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.preprocessing.resize_images.ImageResizer.resize_frames">
+<span class="sig-name descname"><span class="pre">resize_frames</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.preprocessing.resize_images.ImageResizer.resize_frames" title="Permalink to this definition"></a></dt>
+<dd><p>Resize frames for given indices.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.preprocessing.resize_images.ImageResizer.resize_volumes">
+<span class="sig-name descname"><span class="pre">resize_volumes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_slices_subvolume</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.preprocessing.resize_images.ImageResizer.resize_volumes" title="Permalink to this definition"></a></dt>
+<dd><p>Down or up sample volumes</p>
+<p>Overlap of one slice across subvolumes</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>num_slices_subvolume</strong> (<em>int</em>) – num of 2D slices to include in each
+volume. if -1, include all slices</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-micro_dl.preprocessing.tile_3d">
+<span id="micro-dl-preprocessing-tile-3d-module"></span><h2>micro_dl.preprocessing.tile_3d module<a class="headerlink" href="#module-micro_dl.preprocessing.tile_3d" title="Permalink to this heading"></a></h2>
+<p>Tile 3D</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="micro_dl.preprocessing.tile_3d.ImageTilerUniform3D">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">micro_dl.preprocessing.tile_3d.</span></span><span class="sig-name descname"><span class="pre">ImageTilerUniform3D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slice_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize_channels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tile_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[64,</span> <span class="pre">64,</span> <span class="pre">64]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[32,</span> <span class="pre">32,</span> <span class="pre">32]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">depths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[1]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hist_clip_limits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flat_field_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'zyx'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_workers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int2str_len</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize_im</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'stack'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_fraction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tile_3d</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.preprocessing.tile_3d.ImageTilerUniform3D" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#micro_dl.preprocessing.tile_uniform_images.ImageTilerUniform" title="micro_dl.preprocessing.tile_uniform_images.ImageTilerUniform"><code class="xref py py-class docutils literal notranslate"><span class="pre">ImageTilerUniform</span></code></a></p>
+<p>Tiles all volumes in a dataset</p>
+</dd></dl>
+
+</section>
+<section id="module-micro_dl.preprocessing.tile_nonuniform_images">
+<span id="micro-dl-preprocessing-tile-nonuniform-images-module"></span><h2>micro_dl.preprocessing.tile_nonuniform_images module<a class="headerlink" href="#module-micro_dl.preprocessing.tile_nonuniform_images" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="micro_dl.preprocessing.tile_nonuniform_images.ImageTilerNonUniform">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">micro_dl.preprocessing.tile_nonuniform_images.</span></span><span class="sig-name descname"><span class="pre">ImageTilerNonUniform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slice_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize_channels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tile_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[256,</span> <span class="pre">256]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[64,</span> <span class="pre">64]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">depths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hist_clip_limits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flat_field_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'zyx'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_workers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int2str_len</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tile_3d</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tiles_exist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.preprocessing.tile_nonuniform_images.ImageTilerNonUniform" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#micro_dl.preprocessing.tile_uniform_images.ImageTilerUniform" title="micro_dl.preprocessing.tile_uniform_images.ImageTilerUniform"><code class="xref py py-class docutils literal notranslate"><span class="pre">ImageTilerUniform</span></code></a></p>
+<p>Tiles all images images in a dataset</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.preprocessing.tile_nonuniform_images.ImageTilerNonUniform.tile_first_channel">
+<span class="sig-name descname"><span class="pre">tile_first_channel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">channel0_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel0_depth</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cur_mask_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.preprocessing.tile_nonuniform_images.ImageTilerNonUniform.tile_first_channel" title="Permalink to this definition"></a></dt>
+<dd><p>Tile first channel or mask and use the tile indices for the rest</p>
+<p>Tiles and saves the tiles, meta_df for each image in
+self.tile_dir/meta_dir. The list of meta_df for all images gets saved
+as frames_meta.csv</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>channel0_ids</strong> (<em>dict</em>) – [tp_idx][ch_idx][ch_dict] for first channel
+or mask channel</p></li>
+<li><p><strong>channel0_depth</strong> (<em>int</em>) – image depth for first channel or mask</p></li>
+<li><p><strong>cur_mask_dir</strong> (<em>str</em>) – mask dir if tiling mask channel else none</p></li>
+<li><p><strong>is_mask</strong> (<em>bool</em>) – Is mask channel</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return pd.DataFrame ch0_meta_df</dt>
+<dd class="field-even"><p>pd.Dataframe with ids, row_start
+and col_start</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.preprocessing.tile_nonuniform_images.ImageTilerNonUniform.tile_mask_stack">
+<span class="sig-name descname"><span class="pre">tile_mask_stack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mask_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_channel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_depth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.preprocessing.tile_nonuniform_images.ImageTilerNonUniform.tile_mask_stack" title="Permalink to this definition"></a></dt>
+<dd><p>Tiles images in the specified channels assuming there are masks
+already created in mask_dir. Only tiles above a certain fraction
+of foreground in mask tile will be saved and added to metadata.</p>
+<p>Saves a csv with columns [‘time_idx’, ‘channel_idx’, ‘pos_idx’,
+‘slice_idx’, ‘file_name’] for all the tiles</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mask_dir</strong> (<em>str</em>) – Directory containing masks</p></li>
+<li><p><strong>mask_channel</strong> (<em>int</em>) – Channel number assigned to mask</p></li>
+<li><p><strong>mask_depth</strong> (<em>int</em>) – Depth for mask channel</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.preprocessing.tile_nonuniform_images.ImageTilerNonUniform.tile_remaining_channels">
+<span class="sig-name descname"><span class="pre">tile_remaining_channels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nested_id_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tiled_ch_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cur_meta_df</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.preprocessing.tile_nonuniform_images.ImageTilerNonUniform.tile_remaining_channels" title="Permalink to this definition"></a></dt>
+<dd><p>Tile remaining channels using tile indices of 1st channel / mask</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>nested_id_dict</strong> (<em>dict</em>) – nested dict with time, channel, pos and
+slice indices</p></li>
+<li><p><strong>tiled_ch_id</strong> (<em>int</em>) – self.channel_ids[0] or mask_channel</p></li>
+<li><p><strong>cur_meta_df</strong> (<em>pd.DataFrame</em>) – DF with meta for the already tiled
+channel</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.preprocessing.tile_nonuniform_images.ImageTilerNonUniform.tile_stack">
+<span class="sig-name descname"><span class="pre">tile_stack</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.preprocessing.tile_nonuniform_images.ImageTilerNonUniform.tile_stack" title="Permalink to this definition"></a></dt>
+<dd><p>Tiles images in the specified channels.</p>
+<p>Assuming mask channel is not included in frames_meta in self.input_dir.
+Else this will cause an error as the filename = self.input_dir +
+file_name from frames_meta.csv. Masks are generally stored in a
+different folder.</p>
+<p>Saves a csv with columns
+[‘time_idx’, ‘channel_idx’, ‘pos_idx’,’slice_idx’, ‘file_name’]
+for all the tiles</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-micro_dl.preprocessing.tile_uniform_images">
+<span id="micro-dl-preprocessing-tile-uniform-images-module"></span><h2>micro_dl.preprocessing.tile_uniform_images module<a class="headerlink" href="#module-micro_dl.preprocessing.tile_uniform_images" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="micro_dl.preprocessing.tile_uniform_images.ImageTilerUniform">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">micro_dl.preprocessing.tile_uniform_images.</span></span><span class="sig-name descname"><span class="pre">ImageTilerUniform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slice_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize_channels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tile_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[256,</span> <span class="pre">256]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[64,</span> <span class="pre">64]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">depths</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hist_clip_limits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flat_field_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'zyx'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_workers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int2str_len</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize_im</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'stack'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_fraction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tile_3d</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tiles_exist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.preprocessing.tile_uniform_images.ImageTilerUniform" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Tiles all images in a dataset</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.preprocessing.tile_uniform_images.ImageTilerUniform.get_crop_tile_args">
+<span class="sig-name descname"><span class="pre">get_crop_tile_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">channel_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slice_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">task_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tile_indices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.preprocessing.tile_uniform_images.ImageTilerUniform.get_crop_tile_args" title="Permalink to this definition"></a></dt>
+<dd><p>Gather arguments for cropping or tiling</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>channel_idx</strong> (<em>int</em>) – channel index for current image</p></li>
+<li><p><strong>time_idx</strong> (<em>int</em>) – time index for current image</p></li>
+<li><p><strong>slice_idx</strong> (<em>int</em>) – slice index for current image</p></li>
+<li><p><strong>pos_idx</strong> (<em>int</em>) – position / sample index for current image</p></li>
+<li><p><strong>task_type</strong> (<em>str</em>) – crop or tile</p></li>
+<li><p><strong>tile_indices</strong> (<em>list</em>) – list of tile indices</p></li>
+<li><p><strong>mask_dir</strong> (<em>str</em>) – dir containing image level masks</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return list cur_args</dt>
+<dd class="field-even"><p>tuple of arguments for tiling
+list tile_indices: tile indices for current image</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.preprocessing.tile_uniform_images.ImageTilerUniform.get_tile_dir">
+<span class="sig-name descname"><span class="pre">get_tile_dir</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.preprocessing.tile_uniform_images.ImageTilerUniform.get_tile_dir" title="Permalink to this definition"></a></dt>
+<dd><p>Return directory containing tiles
+:return str tile_dir: Directory with tiles</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.preprocessing.tile_uniform_images.ImageTilerUniform.tile_mask_stack">
+<span class="sig-name descname"><span class="pre">tile_mask_stack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mask_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_channel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_depth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.preprocessing.tile_uniform_images.ImageTilerUniform.tile_mask_stack" title="Permalink to this definition"></a></dt>
+<dd><p>Tiles images in the specified channels assuming there are masks
+already created in mask_dir. Only tiles above a certain fraction
+of foreground in mask tile will be saved and added to metadata.</p>
+<p>Saves a csv with columns [‘time_idx’, ‘channel_idx’, ‘pos_idx’,
+‘slice_idx’, ‘file_name’] for all the tiles</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mask_dir</strong> (<em>str</em>) – Directory containing masks</p></li>
+<li><p><strong>mask_channel</strong> (<em>int</em>) – Channel number assigned to mask</p></li>
+<li><p><strong>mask_depth</strong> (<em>int</em>) – Depth for mask channel</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.preprocessing.tile_uniform_images.ImageTilerUniform.tile_stack">
+<span class="sig-name descname"><span class="pre">tile_stack</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.preprocessing.tile_uniform_images.ImageTilerUniform.tile_stack" title="Permalink to this definition"></a></dt>
+<dd><p>Tiles images in the specified channels.</p>
+<p><a class="reference external" href="https://research.wmz.ninja/articles/2018/03/">https://research.wmz.ninja/articles/2018/03/</a>
+on-sharing-large-arrays-when-using-pythons-multiprocessing.html</p>
+<p>Saves a csv with columns
+[‘time_idx’, ‘channel_idx’, ‘pos_idx’,’slice_idx’, ‘file_name’]
+for all the tiles</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-micro_dl.preprocessing">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-micro_dl.preprocessing" title="Permalink to this heading"></a></h2>
+<p>Module for preprocessing</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="micro_dl.plotting.html" class="btn btn-neutral float-left" title="micro_dl.plotting module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="micro_dl.train.html" class="btn btn-neutral float-right" title="micro_dl.train module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, mehta-lab.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

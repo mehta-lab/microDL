@@ -1,0 +1,2204 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>micro_dl.utils module &mdash; microDL 1.0.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="micro_dl.train module" href="micro_dl.train.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> microDL
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">micro_dl</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="micro_dl.html">micro_dl module</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="micro_dl.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.cli.html">micro_dl.cli module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.inference.html">micro_dl.inference module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.input.html">micro_dl.input module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.networks.html">micro_dl.networks module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.plotting.html">micro_dl.plotting module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.preprocessing.html">micro_dl.preprocessing module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.train.html">micro_dl.train module</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">micro_dl.utils module</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="micro_dl.html#module-micro_dl">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">microDL</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">micro_dl</a></li>
+          <li class="breadcrumb-item"><a href="micro_dl.html">micro_dl module</a></li>
+      <li class="breadcrumb-item active">micro_dl.utils module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/micro_dl.utils.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="micro-dl-utils-module">
+<h1>micro_dl.utils module<a class="headerlink" href="#micro-dl-utils-module" title="Permalink to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
+</section>
+<section id="module-micro_dl.utils.aux_utils">
+<span id="micro-dl-utils-aux-utils-module"></span><h2>micro_dl.utils.aux_utils module<a class="headerlink" href="#module-micro_dl.utils.aux_utils" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.aux_utils.adjust_slice_margins">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.aux_utils.</span></span><span class="sig-name descname"><span class="pre">adjust_slice_margins</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">slice_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">depth</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.aux_utils.adjust_slice_margins" title="Permalink to this definition"></a></dt>
+<dd><p>Adjusts slice indices to given z depth by removing indices too close
+to boundaries. Assumes that slice indices are contiguous.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>slice_ids</strong> (<em>list</em><em> of </em><em>ints</em>) – Slice (z) indices</p></li>
+<li><p><strong>depth</strong> (<em>int</em>) – Number of z slices</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return list slice_ids</dt>
+<dd class="field-even"><p>Slice indices with adjusted margins</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p>AssertionError: if depth is even</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p>AssertionError: if there aren’t enough slice ids for given depth</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p>AssertionError: if slices aren’t contiguous</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.aux_utils.convert_channel_names_to_ids">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.aux_utils.</span></span><span class="sig-name descname"><span class="pre">convert_channel_names_to_ids</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">channel_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel_list</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.aux_utils.convert_channel_names_to_ids" title="Permalink to this definition"></a></dt>
+<dd><p>Assuming you have a dict from get_channels and a list of channel
+names, you get a list of channel indices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>channel_map</strong> (<em>dict</em>) – Channel names with indices</p></li>
+<li><p><strong>channel_list</strong> (<em>list</em>) – List of channel names (subset of channel_map)
+if containing ints, return as is.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return list channel_ids</dt>
+<dd class="field-even"><p>List of (int) channel indices</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><strong>AssertionError</strong> – if any channel in list is not in channel_map</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.aux_utils.get_channel_axis">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.aux_utils.</span></span><span class="sig-name descname"><span class="pre">get_channel_axis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_format</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.aux_utils.get_channel_axis" title="Permalink to this definition"></a></dt>
+<dd><p>Get the channel axis given the data format</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>data_format</strong> (<em>str</em>) – as named. [channels_last, channel_first]</p>
+</dd>
+</dl>
+<p>:return int channel_axis</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.aux_utils.get_channels">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.aux_utils.</span></span><span class="sig-name descname"><span class="pre">get_channels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frames_meta</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.aux_utils.get_channels" title="Permalink to this definition"></a></dt>
+<dd><p>Load frames metadata from directory, find channel names and their
+corresponding indices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>frames_meta</strong> (<em>pd.DataFrame</em>) – Metadata for frames</p>
+</dd>
+<dt class="field-even">Return dict channel_map</dt>
+<dd class="field-even"><p>Channel name and corresponding index</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><strong>AssertionError</strong> – if channel name column is incompletely populated</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.aux_utils.get_im_name">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.aux_utils.</span></span><span class="sig-name descname"><span class="pre">get_im_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">time_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slice_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_field</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ext</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'.png'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int2str_len</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.aux_utils.get_im_name" title="Permalink to this definition"></a></dt>
+<dd><p>Create an image name given parameters and extension</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>time_idx</strong> (<em>int</em>) – Time index</p></li>
+<li><p><strong>channel_idx</strong> (<em>int</em>) – Channel index</p></li>
+<li><p><strong>slice_idx</strong> (<em>int</em>) – Slice (z) index</p></li>
+<li><p><strong>pos_idx</strong> (<em>int</em>) – Position (FOV) index</p></li>
+<li><p><strong>extra_field</strong> (<em>str</em>) – Any extra string you want to include in the name</p></li>
+<li><p><strong>ext</strong> (<em>str</em>) – Extension, e.g. ‘.png’ or ‘.npy’</p></li>
+<li><p><strong>int2str_len</strong> (<em>int</em>) – Length of string of the converted integers</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return st im_name</dt>
+<dd class="field-even"><p>Image file name</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.aux_utils.get_meta_idx">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.aux_utils.</span></span><span class="sig-name descname"><span class="pre">get_meta_idx</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frames_metadata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slice_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_idx</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.aux_utils.get_meta_idx" title="Permalink to this definition"></a></dt>
+<dd><p>Get row index in metadata dataframe given variable indices</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>frames_metadata</strong> (<em>dataframe</em>) – Dataframe with column names given below</p></li>
+<li><p><strong>time_idx</strong> (<em>int</em>) – Timepoint index</p></li>
+<li><p><strong>channel_idx</strong> (<em>int</em>) – Channel index</p></li>
+<li><p><strong>slice_idx</strong> (<em>int</em>) – Slice (z) index</p></li>
+<li><p><strong>pos_idx</strong> (<em>int</em>) – Position (FOV) index</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>int pos_idx: Row position matching indices above</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.aux_utils.get_row_idx">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.aux_utils.</span></span><span class="sig-name descname"><span class="pre">get_row_idx</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frames_metadata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slice_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dir_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.aux_utils.get_row_idx" title="Permalink to this definition"></a></dt>
+<dd><p>Get the indices for images with timepoint_idx and channel_idx</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>frames_metadata</strong> (<em>pd.DataFrame</em>) – DF with columns time_idx,     channel_idx, slice_idx, file_name]</p></li>
+<li><p><strong>time_idx</strong> (<em>int</em>) – get info for this timepoint</p></li>
+<li><p><strong>channel_idx</strong> (<em>int</em>) – get info for this channel</p></li>
+<li><p><strong>slice_idx</strong> (<em>int</em>) – get info for this focal plane (2D)</p></li>
+<li><p><strong>pos_idx</strong> (<em>int</em>) – Specify FOV (default to all if -1)</p></li>
+<li><p><strong>dir_names</strong> (<em>str</em>) – Directory names if not in dataframe?</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return row_idx</dt>
+<dd class="field-even"><p>Row index in dataframe</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.aux_utils.get_sms_im_name">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.aux_utils.</span></span><span class="sig-name descname"><span class="pre">get_sms_im_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">time_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">nan</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slice_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_idx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_field</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ext</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'.tiff'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int2str_len</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.aux_utils.get_sms_im_name" title="Permalink to this definition"></a></dt>
+<dd><p>Create an image name given parameters and extension
+This function is custom for the computational microscopy (SMS)
+group, who has the following file naming convention:    File naming convention is assumed to be:        img_channelname_t***_p***_z***_extrafield.tif
+This function will alter list and dict in place.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>time_idx</strong> (<em>int</em>) – Time index</p></li>
+<li><p><strong>channel_name</strong> (<em>str/NaN</em>) – Channel name</p></li>
+<li><p><strong>slice_idx</strong> (<em>int</em>) – Slice (z) index</p></li>
+<li><p><strong>pos_idx</strong> (<em>int</em>) – Position (FOV) index</p></li>
+<li><p><strong>extra_field</strong> (<em>str</em>) – Any extra string you want to include in the name</p></li>
+<li><p><strong>ext</strong> (<em>str</em>) – Extension starting with period, default ‘.tiff’</p></li>
+<li><p><strong>int2str_len</strong> (<em>int</em>) – Length of string of the converted integers</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return str im_name</dt>
+<dd class="field-even"><p>Image file name</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.aux_utils.get_sorted_names">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.aux_utils.</span></span><span class="sig-name descname"><span class="pre">get_sorted_names</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dir_name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.aux_utils.get_sorted_names" title="Permalink to this definition"></a></dt>
+<dd><p>Get image names in directory and sort them by their indices</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>dir_name</strong> (<em>str</em>) – Image directory name</p>
+</dd>
+<dt class="field-even">Return list of strs im_names</dt>
+<dd class="field-even"><p>Image names sorted according to indices</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.aux_utils.get_sub_meta">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.aux_utils.</span></span><span class="sig-name descname"><span class="pre">get_sub_meta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frames_metadata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slice_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_ids</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.aux_utils.get_sub_meta" title="Permalink to this definition"></a></dt>
+<dd><p>Get sliced metadata dataframe given variable indices</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>frames_metadata</strong> (<em>dataframe</em>) – Dataframe with column names given below</p></li>
+<li><p><strong>time_ids</strong> (<em>int/list</em>) – Timepoint indices</p></li>
+<li><p><strong>channel_ids</strong> (<em>int/list</em>) – Channel indices</p></li>
+<li><p><strong>slice_ids</strong> (<em>int/list</em>) – Slize (z) indices</p></li>
+<li><p><strong>pos_ids</strong> (<em>int/list</em>) – Position (FOV) indices</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>int pos_ids: Row positions matching indices above</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.aux_utils.import_object">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.aux_utils.</span></span><span class="sig-name descname"><span class="pre">import_object</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">module_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">obj_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">obj_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'class'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.aux_utils.import_object" title="Permalink to this definition"></a></dt>
+<dd><p>Imports a class or function dynamically</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>module_name</strong> (<em>str</em>) – modules such as input, utils, train etc</p></li>
+<li><p><strong>obj_name</strong> (<em>str</em>) – Object to find</p></li>
+<li><p><strong>obj_type</strong> (<em>str</em>) – Object type (class or function)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.aux_utils.init_logger">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.aux_utils.</span></span><span class="sig-name descname"><span class="pre">init_logger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logger_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_level</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.aux_utils.init_logger" title="Permalink to this definition"></a></dt>
+<dd><p>Creates a logger instance</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>logger_name</strong> (<em>str</em>) – name of the logger instance</p></li>
+<li><p><strong>log_fname</strong> (<em>str</em>) – fname with full path of the log file</p></li>
+<li><p><strong>log_level</strong> (<em>int</em>) – specifies the logging level: NOTSET:0, DEBUG:10,</p></li>
+</ul>
+</dd>
+</dl>
+<p><a class="reference external" href="INFO:20">INFO:20</a>, WARNING:30, ERROR:40, CRITICAL:50</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.aux_utils.make_dataframe">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.aux_utils.</span></span><span class="sig-name descname"><span class="pre">make_dataframe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nbr_rows</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">df_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['channel_idx',</span> <span class="pre">'pos_idx',</span> <span class="pre">'slice_idx',</span> <span class="pre">'time_idx',</span> <span class="pre">'channel_name',</span> <span class="pre">'dir_name',</span> <span class="pre">'file_name']</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.aux_utils.make_dataframe" title="Permalink to this definition"></a></dt>
+<dd><p>Create empty frames metadata pandas dataframe given number of rows
+and standard column names defined below</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>nbr_rows</strong> (<em>[</em><em>None</em><em>, </em><em>int</em><em>]</em>) – The number of rows in the dataframe</p></li>
+<li><p><strong>df_names</strong> (<em>list</em>) – Dataframe column names</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return dataframe frames_meta</dt>
+<dd class="field-even"><p>Empty dataframe with given        indices and column names</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.aux_utils.parse_idx_from_name">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.aux_utils.</span></span><span class="sig-name descname"><span class="pre">parse_idx_from_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">im_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">df_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['channel_idx',</span> <span class="pre">'pos_idx',</span> <span class="pre">'slice_idx',</span> <span class="pre">'time_idx',</span> <span class="pre">'channel_name',</span> <span class="pre">'dir_name',</span> <span class="pre">'file_name']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dir_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cztp'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.aux_utils.parse_idx_from_name" title="Permalink to this definition"></a></dt>
+<dd><p>Assumes im_name is e.g. im_c***_z***_p***_t***.png,
+It doesn’t care about the extension or the number of digits each index is
+represented by, it extracts all integers from the image file name and assigns
+them by order. By default it assumes that the order is c, z, t, p.
+:param str im_name: Image name without path
+:param list of strs df_names: Dataframe col names
+:param str dir_name: Directory path
+:param str order: Order in which c, z, t, p are given in the image (4 chars)
+:return dict meta_row: One row of metadata given image file name</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.aux_utils.parse_sms_name">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.aux_utils.</span></span><span class="sig-name descname"><span class="pre">parse_sms_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">im_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">df_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['channel_idx',</span> <span class="pre">'pos_idx',</span> <span class="pre">'slice_idx',</span> <span class="pre">'time_idx',</span> <span class="pre">'channel_name',</span> <span class="pre">'dir_name',</span> <span class="pre">'file_name']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dir_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.aux_utils.parse_sms_name" title="Permalink to this definition"></a></dt>
+<dd><p>Parse metadata from file name or file path.
+This function is custom for the computational microscopy (SMS)
+group, who has the following file naming convention:
+File naming convention is assumed to be:
+img_channelname_t***_p***_z***.tif
+This function will alter list and dict in place.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>im_name</strong> (<em>str</em>) – File name or path</p></li>
+<li><p><strong>df_names</strong> (<em>list</em><em> of </em><em>strs</em>) – Dataframe col names</p></li>
+<li><p><strong>dir_name</strong> (<em>str</em>) – Directory path</p></li>
+<li><p><strong>channel_names</strong> (<em>list</em><em>[</em><em>str</em><em>]</em>) – Expanding list of channel names</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return dict meta_row</dt>
+<dd class="field-even"><p>One row of metadata given image file name</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.aux_utils.read_config">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.aux_utils.</span></span><span class="sig-name descname"><span class="pre">read_config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config_fname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.aux_utils.read_config" title="Permalink to this definition"></a></dt>
+<dd><p>Read the config file in yml format.
+TODO: validate config!</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>config_fname</strong> (<em>str</em>) – fname of config yaml with its full path</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>dict config: Configuration parameters</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.aux_utils.read_json">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.aux_utils.</span></span><span class="sig-name descname"><span class="pre">read_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">json_filename</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.aux_utils.read_json" title="Permalink to this definition"></a></dt>
+<dd><p>Read  JSON file and validate schema</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>json_filename</strong> (<em>str</em>) – json file name</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>dict json_object: JSON object</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p>FileNotFoundError: if file can’t be read</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p>JSONDecodeError: if file is not in json format</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.aux_utils.read_meta">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.aux_utils.</span></span><span class="sig-name descname"><span class="pre">read_meta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">meta_fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'frames_meta.csv'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.aux_utils.read_meta" title="Permalink to this definition"></a></dt>
+<dd><p>Read metadata file, which is assumed to be named ‘frames_meta.csv’
+in given directory.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_dir</strong> (<em>str</em>) – Directory containing data and metadata</p></li>
+<li><p><strong>meta_fname</strong> (<em>str</em>) – Metadata file name</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return dataframe frames_metadata</dt>
+<dd class="field-even"><p>Metadata for all frames</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p>IOError: If metadata file isn’t present</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.aux_utils.save_tile_meta">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.aux_utils.</span></span><span class="sig-name descname"><span class="pre">save_tile_meta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tiles_meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cur_channel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tiled_dir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.aux_utils.save_tile_meta" title="Permalink to this definition"></a></dt>
+<dd><p>Save meta data for tiled images</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tiles_meta</strong> (<em>list</em>) – List of tuples holding meta info for tiled        images</p></li>
+<li><p><strong>cur_channel</strong> (<em>int</em>) – Channel being tiled</p></li>
+<li><p><strong>tiled_dir</strong> (<em>str</em>) – Directory to save meta data in</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.aux_utils.sort_meta_by_channel">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.aux_utils.</span></span><span class="sig-name descname"><span class="pre">sort_meta_by_channel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frames_metadata</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.aux_utils.sort_meta_by_channel" title="Permalink to this definition"></a></dt>
+<dd><p>Rearrange metadata dataframe from all channels being listed in the same column
+to moving file names for each channel to separate columns.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>frames_metadata</strong> (<em>dataframe</em>) – Metadata with one column named ‘file_name’</p>
+</dd>
+<dt class="field-even">Return dataframe sorted_metadata</dt>
+<dd class="field-even"><p>Metadata with separate file_name_X for        channel X.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.aux_utils.validate_config">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.aux_utils.</span></span><span class="sig-name descname"><span class="pre">validate_config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.aux_utils.validate_config" title="Permalink to this definition"></a></dt>
+<dd><p>Check if the required params are present in config</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>config_dict</strong> (<em>dict</em>) – dictionary with params as keys</p></li>
+<li><p><strong>params</strong> (<em>list</em>) – list of strings with expected params</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>list with bool values indicating if param is present or not</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.aux_utils.validate_indices">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.aux_utils.</span></span><span class="sig-name descname"><span class="pre">validate_indices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frames_meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preprocess_config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">idx_type</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.aux_utils.validate_indices" title="Permalink to this definition"></a></dt>
+<dd><p>Helper function to check if a list of position, time or slice
+indices in the preprocessing config exist in the frames metadata.
+If not, use all indices in metadata.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>frames_meta</strong> (<em>pd.DataFrame</em>) – Metadata for all images</p></li>
+<li><p><strong>preprocess_config</strong> (<em>dict</em>) – Preprocessing config</p></li>
+<li><p><strong>idx_type</strong> (<em>str</em>) – Type of index: ‘pos’, ‘time’, ‘slice’</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return list use_ids</dt>
+<dd class="field-even"><p>Indices to be used in preprocessing</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><strong>AssertionError</strong> – If indices in preprocess config is not
+a subset of those found in frames metadata</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.aux_utils.validate_metadata_indices">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.aux_utils.</span></span><span class="sig-name descname"><span class="pre">validate_metadata_indices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frames_metadata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slice_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uniform_structure</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.aux_utils.validate_metadata_indices" title="Permalink to this definition"></a></dt>
+<dd><p>Check the availability of indices provided timepoints, channels, positions
+and slices for all data.
+If input ids are None, the indices for that parameter will not be
+evaluated. If input ids are -1, all indices for that parameter will
+be returned.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>frames_metadata</strong> (<em>pd.DataFrame</em>) – DF with columns time_idx,     channel_idx, slice_idx, pos_idx, file_name]</p></li>
+<li><p><strong>time_ids</strong> (<em>int/list</em>) – check availability of these timepoints in     frames_metadata</p></li>
+<li><p><strong>channel_ids</strong> (<em>int/list</em>) – check availability of these channels in     frames_metadata</p></li>
+<li><p><strong>pos_ids</strong> (<em>int/list</em>) – Check availability of positions in metadata</p></li>
+<li><p><strong>slice_ids</strong> (<em>int/list</em>) – Check availability of z slices in metadata</p></li>
+<li><p><strong>uniform_structure</strong> (<em>bool</em>) – bool indicator if unequal quantities in any     of the ids (channel, time, slice, pos)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return dict metadata_ids</dt>
+<dd class="field-even"><p>All indices found given input</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p>AssertionError: If not all channels, timepoints, positions        or slices are present</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.aux_utils.write_json">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.aux_utils.</span></span><span class="sig-name descname"><span class="pre">write_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">json_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">json_filename</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.aux_utils.write_json" title="Permalink to this definition"></a></dt>
+<dd><p>Writes dict as json file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>json_dict</strong> (<em>dict</em>) – Dictionary to be written</p></li>
+<li><p><strong>json_filename</strong> (<em>str</em>) – Full path file name of json</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-micro_dl.utils.image_utils">
+<span id="micro-dl-utils-image-utils-module"></span><h2>micro_dl.utils.image_utils module<a class="headerlink" href="#module-micro_dl.utils.image_utils" title="Permalink to this heading"></a></h2>
+<p>Utility functions for processing images</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.image_utils.apply_flat_field_correction">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.image_utils.</span></span><span class="sig-name descname"><span class="pre">apply_flat_field_correction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_image</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.image_utils.apply_flat_field_correction" title="Permalink to this definition"></a></dt>
+<dd><p>Apply flat field correction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_image</strong> (<em>np.array</em>) – image to be corrected</p></li>
+<li><p><strong>**kwargs</strong> – See below</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>np.array (float) corrected image</p>
+</dd>
+<dt class="field-odd">Keyword arguments</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p>flat_field_image (np.float) – flat_field_image for correction OR</p></li>
+<li><p>flat_field_path (str) – Full path to flatfield image</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.image_utils.center_crop_to_shape">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.image_utils.</span></span><span class="sig-name descname"><span class="pre">center_crop_to_shape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'zyx'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.image_utils.center_crop_to_shape" title="Permalink to this definition"></a></dt>
+<dd><p>Center crop the image to a given shape</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_image</strong> (<em>np.array</em>) – input image to be cropped</p></li>
+<li><p><strong>output_shape</strong> (<em>list</em>) – desired crop shape</p></li>
+<li><p><strong>image_format</strong> (<em>str</em>) – Image format; zyx or xyz</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return np.array center_block</dt>
+<dd class="field-even"><p>Center of input image with output shape</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.image_utils.crop2base">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.image_utils.</span></span><span class="sig-name descname"><span class="pre">crop2base</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">im</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.image_utils.crop2base" title="Permalink to this definition"></a></dt>
+<dd><p>Crop image to nearest smaller factor of the base (usually 2), assumes xyz
+format, will work for zyx too but the x_shape, y_shape and z_shape will be
+z_shape, y_shape and x_shape respectively</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>im</strong> (<em>nd.array</em>) – Image</p></li>
+<li><p><strong>base</strong> (<em>int</em>) – Base to use, typically 2</p></li>
+<li><p><strong>crop_z</strong> (<em>bool</em>) – crop along z dim, only for UNet3D</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return nd.array im</dt>
+<dd class="field-even"><p>Cropped image</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p>AssertionError: if base is less than zero</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.image_utils.fit_polynomial_surface_2D">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.image_utils.</span></span><span class="sig-name descname"><span class="pre">fit_polynomial_surface_2D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sample_coords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">im_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.image_utils.fit_polynomial_surface_2D" title="Permalink to this definition"></a></dt>
+<dd><p>Given coordinates and corresponding values, this function will fit a
+2D polynomial of given order, then create a surface of given shape.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sample_coords</strong> (<em>np.array</em>) – 2D sample coords (nbr of points, 2)</p></li>
+<li><p><strong>sample_values</strong> (<em>np.array</em>) – Corresponding intensity values (nbr points,)</p></li>
+<li><p><strong>im_shape</strong> (<em>tuple</em>) – Shape of desired output surface (height, width)</p></li>
+<li><p><strong>order</strong> (<em>int</em>) – Order of polynomial (default 2)</p></li>
+<li><p><strong>normalize</strong> (<em>bool</em>) – Normalize surface by dividing by its mean
+for flatfield correction (default True)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return np.array poly_surface</dt>
+<dd class="field-even"><p>2D surface of shape im_shape</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.image_utils.get_flat_field_path">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.image_utils.</span></span><span class="sig-name descname"><span class="pre">get_flat_field_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flat_field_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel_ids</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.image_utils.get_flat_field_path" title="Permalink to this definition"></a></dt>
+<dd><p>Given channel and flatfield dir, check that corresponding flatfield
+is present and returns its path.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>flat_field_dir</strong> (<em>str</em>) – Flatfield directory</p></li>
+<li><p><strong>channel_idx</strong> (<em>int</em>) – Channel index for flatfield</p></li>
+<li><p><strong>channel_ids</strong> (<em>list</em>) – All channel indices being processed</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.image_utils.grid_sample_pixel_values">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.image_utils.</span></span><span class="sig-name descname"><span class="pre">grid_sample_pixel_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">im</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid_spacing</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.image_utils.grid_sample_pixel_values" title="Permalink to this definition"></a></dt>
+<dd><p>Sample pixel values in the input image at the grid. Any incomplete
+grids (remainders of modulus operation) will be ignored.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>im</strong> (<em>np.array</em>) – 2D image</p></li>
+<li><p><strong>grid_spacing</strong> (<em>int</em>) – spacing of the grid</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return int row_ids</dt>
+<dd class="field-even"><p>row indices of the grids</p>
+</dd>
+<dt class="field-odd">Return int col_ids</dt>
+<dd class="field-odd"><p>column indices of the grids</p>
+</dd>
+<dt class="field-even">Return np.array sample_values</dt>
+<dd class="field-even"><p>sampled pixel values</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.image_utils.im_adjust">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.image_utils.</span></span><span class="sig-name descname"><span class="pre">im_adjust</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">8</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.image_utils.im_adjust" title="Permalink to this definition"></a></dt>
+<dd><p>Adjust contrast of the image</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.image_utils.im_bit_convert">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.image_utils.</span></span><span class="sig-name descname"><span class="pre">im_bit_convert</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">im</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">16</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.image_utils.im_bit_convert" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.image_utils.preprocess_image">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.image_utils.</span></span><span class="sig-name descname"><span class="pre">preprocess_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">im</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hist_clip_limits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize_im</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zscore_mean</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zscore_std</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.image_utils.preprocess_image" title="Permalink to this definition"></a></dt>
+<dd><p>Do histogram clipping, z score normalization, and potentially binarization.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>im</strong> (<em>np.array</em>) – Image (stack)</p></li>
+<li><p><strong>hist_clip_limits</strong> (<em>tuple</em>) – Percentile histogram clipping limits</p></li>
+<li><p><strong>is_mask</strong> (<em>bool</em>) – True if mask</p></li>
+<li><p><strong>normalize_im</strong> (<em>str/None</em>) – Normalization, if any</p></li>
+<li><p><strong>zscore_mean</strong> (<em>float/None</em>) – Data mean</p></li>
+<li><p><strong>zscore_std</strong> (<em>float/None</em>) – Data std</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.image_utils.preprocess_imstack">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.image_utils.</span></span><span class="sig-name descname"><span class="pre">preprocess_imstack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frames_metadata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">depth</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slice_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dir_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flat_field_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hist_clip_limits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize_im</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'stack'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.image_utils.preprocess_imstack" title="Permalink to this definition"></a></dt>
+<dd><p>Preprocess image given by indices: flatfield correction, histogram
+clipping and z-score normalization is performed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>frames_metadata</strong> (<em>pd.DataFrame</em>) – DF with meta info for all images</p></li>
+<li><p><strong>depth</strong> (<em>int</em>) – num of slices in stack if 2.5D or depth for 3D</p></li>
+<li><p><strong>time_idx</strong> (<em>int</em>) – Time index</p></li>
+<li><p><strong>channel_idx</strong> (<em>int</em>) – Channel index</p></li>
+<li><p><strong>slice_idx</strong> (<em>int</em>) – Slice (z) index</p></li>
+<li><p><strong>pos_idx</strong> (<em>int</em>) – Position (FOV) index</p></li>
+<li><p><strong>dir_name</strong> (<em>str/None</em>) – Image directory (none if using the frames_meta dir_name)</p></li>
+<li><p><strong>flat_field_path</strong> (<em>np.array</em>) – Path to flat field image for channel</p></li>
+<li><p><strong>hist_clip_limits</strong> (<em>list</em>) – Limits for histogram clipping (size 2)</p></li>
+<li><p><strong>normalize_im</strong> (<em>str</em><em> or </em><em>None</em>) – options to z-score the image</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return np.array im</dt>
+<dd class="field-even"><p>3D preprocessed image</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.image_utils.read_image">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.image_utils.</span></span><span class="sig-name descname"><span class="pre">read_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.image_utils.read_image" title="Permalink to this definition"></a></dt>
+<dd><p>Read 2D grayscale image from file.
+Checks file extension for npy and load array if true. Otherwise
+reads regular image using OpenCV (png, tif, jpg, see OpenCV for supported
+files) of any bit depth.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>file_path</strong> (<em>str</em>) – Full path to image</p>
+</dd>
+<dt class="field-even">Return array im</dt>
+<dd class="field-even"><p>2D image</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p>IOError: if image can’t be opened</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.image_utils.read_image_from_row">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.image_utils.</span></span><span class="sig-name descname"><span class="pre">read_image_from_row</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">meta_row</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dir_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.image_utils.read_image_from_row" title="Permalink to this definition"></a></dt>
+<dd><p>Read 2D grayscale image from file.
+Checks file extension for npy and load array if true. Otherwise
+reads regular image using OpenCV (png, tif, jpg, see OpenCV for supported
+files) of any bit depth.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>meta_row</strong> (<em>pd.DataFrame</em>) – Row in metadata</p></li>
+<li><p><strong>dir_name</strong> (<em>str/None</em>) – Directory containing images (none if using frames meta dir_name)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return array im</dt>
+<dd class="field-even"><p>2D image</p>
+</dd>
+</dl>
+<p>:raise IOError if image can’t be opened</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.image_utils.read_imstack">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.image_utils.</span></span><span class="sig-name descname"><span class="pre">read_imstack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_fnames</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flat_field_fnames</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hist_clip_limits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize_im</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zscore_mean</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zscore_std</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.image_utils.read_imstack" title="Permalink to this definition"></a></dt>
+<dd><p>Read the images in the fnames and assembles a stack.
+If images are masks, make sure they’re boolean by setting &gt;0 to True</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_fnames</strong> (<em>tuple/list</em>) – Paths to input files</p></li>
+<li><p><strong>flat_field_fnames</strong> (<em>str/list</em>) – Path(s) to flat field image(s)</p></li>
+<li><p><strong>hist_clip_limits</strong> (<em>tuple</em>) – limits for histogram clipping</p></li>
+<li><p><strong>is_mask</strong> (<em>bool</em>) – Indicator for if files contain masks</p></li>
+<li><p><strong>normalize_im</strong> (<em>bool/None</em>) – Whether to zscore normalize im stack</p></li>
+<li><p><strong>zscore_mean</strong> (<em>float</em>) – mean for z-scoring the image</p></li>
+<li><p><strong>zscore_std</strong> (<em>float</em>) – std for z-scoring the image</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return np.array</dt>
+<dd class="field-even"><p>input stack flat_field correct and z-scored if regular
+images, booleans if they’re masks</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.image_utils.read_imstack_from_meta">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.image_utils.</span></span><span class="sig-name descname"><span class="pre">read_imstack_from_meta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frames_meta_sub</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dir_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flat_field_fnames</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hist_clip_limits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize_im</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zscore_mean</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zscore_std</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.image_utils.read_imstack_from_meta" title="Permalink to this definition"></a></dt>
+<dd><p>Read images (&gt;1) from metadata rows and assembles a stack.
+If images are masks, make sure they’re boolean by setting &gt;0 to True</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>frames_meta_sub</strong> (<em>pd.DataFrame</em>) – Selected subvolume to be read</p></li>
+<li><p><strong>dir_name</strong> (<em>str/None</em>) – Directory path (none if using dir in frames_meta)</p></li>
+<li><p><strong>flat_field_fnames</strong> (<em>str/list</em>) – Path(s) to flat field image(s)</p></li>
+<li><p><strong>hist_clip_limits</strong> (<em>tuple</em>) – Percentile limits for histogram clipping</p></li>
+<li><p><strong>is_mask</strong> (<em>bool</em>) – Indicator for if files contain masks</p></li>
+<li><p><strong>normalize_im</strong> (<em>bool/None</em>) – Whether to zscore normalize im stack</p></li>
+<li><p><strong>zscore_mean</strong> (<em>float</em>) – mean for z-scoring the image</p></li>
+<li><p><strong>zscore_std</strong> (<em>float</em>) – std for z-scoring the image</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return np.array</dt>
+<dd class="field-even"><p>input stack flat_field correct and z-scored if regular
+images, booleans if they’re masks</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.image_utils.rescale_image">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.image_utils.</span></span><span class="sig-name descname"><span class="pre">rescale_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">im</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_factor</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.image_utils.rescale_image" title="Permalink to this definition"></a></dt>
+<dd><p>Rescales a 2D image equally in x and y given a scale factor.
+Uses bilinear interpolation (the OpenCV default).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>im</strong> (<em>np.array</em>) – 2D image</p></li>
+<li><p><strong>scale_factor</strong> (<em>float</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Return np.array</dt>
+<dd class="field-even"><p>2D image resized by scale factor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.image_utils.rescale_nd_image">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.image_utils.</span></span><span class="sig-name descname"><span class="pre">rescale_nd_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_volume</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_factor</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.image_utils.rescale_nd_image" title="Permalink to this definition"></a></dt>
+<dd><p>Rescale a nd array, mainly used for 3D volume</p>
+<p>For non-int dims, the values are rounded off to closest int. 0.5 is iffy,
+when downsampling the value gets floored and upsampling it gets rounded to
+next int</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_volume</strong> (<em>np.array</em>) – 3D stack</p></li>
+<li><p><strong>scale_factor</strong> (<em>float/list</em>) – if scale_factor is a float, scale all
+dimensions by this. Else scale_factor has to be specified for each
+dimension in a list or tuple</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return np.array res_volume</dt>
+<dd class="field-even"><p>rescaled volume</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.image_utils.resize_image">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.image_utils.</span></span><span class="sig-name descname"><span class="pre">resize_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_shape</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.image_utils.resize_image" title="Permalink to this definition"></a></dt>
+<dd><p>Resize image to a specified shape</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_image</strong> (<em>np.ndarray</em>) – image to be resized</p></li>
+<li><p><strong>output_shape</strong> (<em>tuple/np.array</em>) – desired shape of the output image</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>np.array, resized image</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.image_utils.resize_mask">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.image_utils.</span></span><span class="sig-name descname"><span class="pre">resize_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_size</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.image_utils.resize_mask" title="Permalink to this definition"></a></dt>
+<dd><p>Resample label/bool images</p>
+</dd></dl>
+
+</section>
+<section id="module-micro_dl.utils.io_utils">
+<span id="micro-dl-utils-io-utils-module"></span><h2>micro_dl.utils.io_utils module<a class="headerlink" href="#module-micro_dl.utils.io_utils" title="Permalink to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.DefaultZarr">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">micro_dl.utils.io_utils.</span></span><span class="sig-name descname"><span class="pre">DefaultZarr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">root_path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.io_utils.DefaultZarr" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#micro_dl.utils.io_utils.WriterBase" title="micro_dl.utils.io_utils.WriterBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">WriterBase</span></code></a></p>
+<p>This writer is based off creating a default HCS hierarchy for non-hcs datasets.
+Currently, we decide that all positions will live under individual columns under
+a single row.  i.e. this produces the following structure:
+Dataset.zarr</p>
+<blockquote>
+<div><dl>
+<dt>____&gt; Row_0</dt><dd><dl class="simple">
+<dt>—&gt; Col_0</dt><dd><p>—&gt; Pos_000</p>
+</dd>
+</dl>
+<p>…
+–&gt; Col_N</p>
+<blockquote>
+<div><p>—&gt; Pos_N</p>
+</div></blockquote>
+</dd>
+</dl>
+</div></blockquote>
+<p>We assume this structure in the metadata updating/position creation</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.DefaultZarr.create_position">
+<span class="sig-name descname"><span class="pre">create_position</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.io_utils.DefaultZarr.create_position" title="Permalink to this definition"></a></dt>
+<dd><p>Creates a column and position subgroup given the index and name.  Name is
+provided by the main writer class</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>position</strong> (<em>int</em>) – Index of the position to create</p></li>
+<li><p><strong>name</strong> (<em>str</em>) – Name of the position subgroup</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.DefaultZarr.init_hierarchy">
+<span class="sig-name descname"><span class="pre">init_hierarchy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.io_utils.DefaultZarr.init_hierarchy" title="Permalink to this definition"></a></dt>
+<dd><p>method to init the default hierarchy.
+Will create the first row and initialize metadata fields</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.ReaderBase">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">micro_dl.utils.io_utils.</span></span><span class="sig-name descname"><span class="pre">ReaderBase</span></span><a class="headerlink" href="#micro_dl.utils.io_utils.ReaderBase" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>I/O classes for zarr data are directly copied from:
+<a class="reference external" href="https://github.com/mehta-lab/waveorder/tree/master/waveorder/io">https://github.com/mehta-lab/waveorder/tree/master/waveorder/io</a></p>
+<p>This will be updated if the io parts of waveorder is moved to a stand alone
+python package.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.ReaderBase.get_array">
+<span class="sig-name descname"><span class="pre">get_array</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#micro_dl.utils.io_utils.ReaderBase.get_array" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.ReaderBase.get_image">
+<span class="sig-name descname"><span class="pre">get_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#micro_dl.utils.io_utils.ReaderBase.get_image" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.ReaderBase.get_num_positions">
+<span class="sig-name descname"><span class="pre">get_num_positions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#micro_dl.utils.io_utils.ReaderBase.get_num_positions" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.ReaderBase.get_zarr">
+<span class="sig-name descname"><span class="pre">get_zarr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">array</span></span></span><a class="headerlink" href="#micro_dl.utils.io_utils.ReaderBase.get_zarr" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.ReaderBase.shape">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">shape</span></span><a class="headerlink" href="#micro_dl.utils.io_utils.ReaderBase.shape" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.WriterBase">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">micro_dl.utils.io_utils.</span></span><span class="sig-name descname"><span class="pre">WriterBase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">store</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">root_path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.io_utils.WriterBase" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>I/O classes for zarr data are directly copied from:
+<a class="reference external" href="https://github.com/mehta-lab/waveorder/tree/master/waveorder/io">https://github.com/mehta-lab/waveorder/tree/master/waveorder/io</a></p>
+<p>This will be updated if the io of waveorder is moved to a stand alone
+python package.
+ABC for all writer types</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.WriterBase.create_channel_dict">
+<span class="sig-name descname"><span class="pre">create_channel_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">chan_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">first_chan</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.io_utils.WriterBase.create_channel_dict" title="Permalink to this definition"></a></dt>
+<dd><p>This will create a dictionary used for OME-zarr metadata.  Allows custom contrast limits and channel
+names for display.  Defaults everything to grayscale.
+Parameters
+———-
+chan_name:          (str) Desired name of the channel for display
+clim:               (tuple) contrast limits (start, end, min, max)
+first_chan:         (bool) whether or not this is the first channel of the dataset (display will be set to active)
+Returns
+——-
+<a href="#id1"><span class="problematic" id="id2">dict_</span></a>:              (dict) dictionary adherent to ome-zarr standards</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.WriterBase.create_column">
+<span class="sig-name descname"><span class="pre">create_column</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">row_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.io_utils.WriterBase.create_column" title="Permalink to this definition"></a></dt>
+<dd><p>Creates a column in the hierarchy (second level below zarr store, one below row). Option to name
+this column.  Default is Col_{idx}.  Keeps track of the column name + column index for later
+metadata creation
+Parameters
+———-
+row_idx:        (int) Index of the row to place the column underneath
+idx:            (int) Index of the column (order in which it is placed)
+name:           (str) Optional name to replace default column name
+Returns
+——-</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.WriterBase.create_position">
+<span class="sig-name descname"><span class="pre">create_position</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.io_utils.WriterBase.create_position" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.WriterBase.create_row">
+<span class="sig-name descname"><span class="pre">create_row</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.io_utils.WriterBase.create_row" title="Permalink to this definition"></a></dt>
+<dd><p>Creates a row in the hierarchy (first level below zarr store). Option to name
+this row.  Default is Row_{idx}.  Keeps track of the row name + row index for later
+metadata creation
+Parameters
+———-
+idx:            (int) Index of the row (order in which it is placed)
+name:           (str) Optional name to replace default row name
+Returns
+——-</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.WriterBase.get_zarr">
+<span class="sig-name descname"><span class="pre">get_zarr</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.io_utils.WriterBase.get_zarr" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.WriterBase.init_array">
+<span class="sig-name descname"><span class="pre">init_array</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chunk_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chan_names</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clims</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.io_utils.WriterBase.init_array" title="Permalink to this definition"></a></dt>
+<dd><p>Initializes the zarr array under the current position subgroup.
+array level is called ‘arr_0’ in the hierarchy.  Sets omero/multiscales metadata based upon
+chan_names and clims
+Parameters
+———-
+data_shape:         (tuple)  Desired Shape of your data (T, C, Z, Y, X).  Must match data
+chunk_size:         (tuple) Desired Chunk Size (T, C, Z, Y, X).  Chunking each image would be (1, 1, 1, Y, X)
+dtype:              (str or np.dtype) Data Type, i.e. ‘uint16’ or np.uint16
+chan_names:         (list) List of strings corresponding to your channel names.  Used for OME-zarr metadata
+clims:              (list) list of tuples corresponding to contrast limtis for channel.  OME-Zarr metadata</p>
+<blockquote>
+<div><p>tuple can be of (start, end, min, max) or (start, end)</p>
+</div></blockquote>
+<p>overwrite:          (bool) Whether or not to overwrite the existing data that may be present.
+Returns
+——-</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.WriterBase.init_hierarchy">
+<span class="sig-name descname"><span class="pre">init_hierarchy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.io_utils.WriterBase.init_hierarchy" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.WriterBase.open_position">
+<span class="sig-name descname"><span class="pre">open_position</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.io_utils.WriterBase.open_position" title="Permalink to this definition"></a></dt>
+<dd><p>Opens a position based upon the position index.  It will navigate the rows/column to
+find where this position is based off of the generation position map which keeps track
+of this information.  It will set current_pos_group to this position for writing the data
+Parameters
+———-
+position:           (int) Index of the position you wish to open
+Returns
+——-</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.WriterBase.set_channel_attributes">
+<span class="sig-name descname"><span class="pre">set_channel_attributes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">chan_names</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.io_utils.WriterBase.set_channel_attributes" title="Permalink to this definition"></a></dt>
+<dd><p>A method for creating ome-zarr metadata dictionary.
+Channel names are defined by the user, everything else
+is pre-defined.
+Parameters
+———-
+chan_names:     (list) List of channel names in the order of the channel dimensions</p>
+<blockquote>
+<div><p>i.e. if 3D Phase is C = 0, list ‘3DPhase’ first.</p>
+</div></blockquote>
+<p>clims:          (list of tuples) contrast limits to display for every channel</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.WriterBase.set_root">
+<span class="sig-name descname"><span class="pre">set_root</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">root</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.io_utils.WriterBase.set_root" title="Permalink to this definition"></a></dt>
+<dd><p>set the root path of the zarr store.  Used in the main writer class.
+Parameters
+———-
+root:               (str) path to the zarr store (folder ending in .zarr)
+Returns
+——-</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.WriterBase.set_store">
+<span class="sig-name descname"><span class="pre">set_store</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">store</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.io_utils.WriterBase.set_store" title="Permalink to this definition"></a></dt>
+<dd><p>Sets the zarr store.  Used in the main writer class
+Parameters
+———-
+store:              (Zarr StoreObject) Opened zarr store at the highest level
+Returns
+——-</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.WriterBase.set_verbosity">
+<span class="sig-name descname"><span class="pre">set_verbosity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.io_utils.WriterBase.set_verbosity" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.WriterBase.write">
+<span class="sig-name descname"><span class="pre">write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.io_utils.WriterBase.write" title="Permalink to this definition"></a></dt>
+<dd><p>Write data to specified index of initialized zarr array
+:param data: (nd-array), data to be saved. Must be the shape that matches indices (T, C, Z, Y, X)
+:param t: (list), index or index slice of the time dimension
+:param c: (list), index or index slice of the channel dimension
+:param z: (list), index or index slice of the z dimension</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.ZarrReader">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">micro_dl.utils.io_utils.</span></span><span class="sig-name descname"><span class="pre">ZarrReader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">zarrfile</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.io_utils.ZarrReader" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#micro_dl.utils.io_utils.ReaderBase" title="micro_dl.utils.io_utils.ReaderBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">ReaderBase</span></code></a></p>
+<p>I/O classes for zarr data are directly copied from:
+<a class="reference external" href="https://github.com/mehta-lab/waveorder/tree/master/waveorder/io">https://github.com/mehta-lab/waveorder/tree/master/waveorder/io</a></p>
+<p>Reader for HCS ome-zarr arrays.  OME-zarr structure can be found here: <a class="reference external" href="https://ngff.openmicroscopy.org/0.1/">https://ngff.openmicroscopy.org/0.1/</a>
+Also collects the HCS metadata so it can be later copied.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.ZarrReader.get_array">
+<span class="sig-name descname"><span class="pre">get_array</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.io_utils.ZarrReader.get_array" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the (T, C, Z, Y, X) array at given position</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>position</strong> (<em>int</em>) – Position index</p>
+</dd>
+<dt class="field-even">Return np.array pos</dt>
+<dd class="field-even"><p>Array of size (T, C, Z, Y, X) at specified position</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.ZarrReader.get_image">
+<span class="sig-name descname"><span class="pre">get_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.io_utils.ZarrReader.get_image" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the image at dimension P, T, C, Z</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p</strong> (<em>int</em>) – Index of the position dimension</p></li>
+<li><p><strong>t</strong> (<em>int</em>) – Index of the time dimension</p></li>
+<li><p><strong>c</strong> (<em>int</em>) – Index of the channel dimension</p></li>
+<li><p><strong>z</strong> (<em>int</em>) – Index of the z dimension</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return np.array image</dt>
+<dd class="field-even"><p>Image at the given dimension of shape (Y, X)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.ZarrReader.get_image_plane_metadata">
+<span class="sig-name descname"><span class="pre">get_image_plane_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.io_utils.ZarrReader.get_image_plane_metadata" title="Permalink to this definition"></a></dt>
+<dd><p>For the sake of not keeping an enormous amount of metadata, only the microscope conditions
+for the first timepoint are kept in the zarr metadata during write.  User can only query image</p>
+<blockquote>
+<div><p>plane metadata at p, c, z</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p</strong> (<em>int</em>) – Position index</p></li>
+<li><p><strong>c</strong> (<em>int</em>) – Channel index</p></li>
+<li><p><strong>z</strong> (<em>int</em>) – Z-slice index</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return dict metadata</dt>
+<dd class="field-even"><p>Image Plane Metadata at given coordinate w/ T = 0</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.ZarrReader.get_num_positions">
+<span class="sig-name descname"><span class="pre">get_num_positions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#micro_dl.utils.io_utils.ZarrReader.get_num_positions" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.ZarrReader.get_zarr">
+<span class="sig-name descname"><span class="pre">get_zarr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.io_utils.ZarrReader.get_zarr" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the position-level zarr group array (not in memory)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>position</strong> (<em>int</em>) – Position index</p>
+</dd>
+</dl>
+<p>:return ZarrArray Zarr array containing the (T, C, Z, Y, X) array at given position</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.ZarrWriter">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">micro_dl.utils.io_utils.</span></span><span class="sig-name descname"><span class="pre">ZarrWriter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">save_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hcs_meta</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.io_utils.ZarrWriter" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>I/O classes for zarr data are directly copied from:
+<a class="reference external" href="https://github.com/mehta-lab/waveorder/tree/master/waveorder/io">https://github.com/mehta-lab/waveorder/tree/master/waveorder/io</a></p>
+<dl class="simple">
+<dt>given stokes or physical data, construct a standard hierarchy in zarr for output</dt><dd><p>should conform to the ome-zarr standard as much as possible</p>
+</dd>
+</dl>
+<p>TODO: Allow for writing multiple positions in same store</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.ZarrWriter.create_zarr_root">
+<span class="sig-name descname"><span class="pre">create_zarr_root</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.io_utils.ZarrWriter.create_zarr_root" title="Permalink to this definition"></a></dt>
+<dd><p>Method for creating the root zarr store.
+If the store already exists, it will raise an error.
+Name corresponds to the root directory name (highest level) zarr store.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>name</strong> (<em>str</em>) – Name of the zarr store.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.ZarrWriter.current_group_name">
+<span class="sig-name descname"><span class="pre">current_group_name</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#micro_dl.utils.io_utils.ZarrWriter.current_group_name" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.ZarrWriter.current_position">
+<span class="sig-name descname"><span class="pre">current_position</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#micro_dl.utils.io_utils.ZarrWriter.current_position" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.ZarrWriter.init_array">
+<span class="sig-name descname"><span class="pre">init_array</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chunk_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chan_names</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'float32'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">position_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.io_utils.ZarrWriter.init_array" title="Permalink to this definition"></a></dt>
+<dd><p>Creates a subgroup structure based on position index.  Then initializes the zarr array under the
+current position subgroup.  Array level is called ‘array’ in the hierarchy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>position</strong> (<em>int</em>) – Position index upon which to initialize array</p></li>
+<li><p><strong>data_shape</strong> (<em>tuple</em>) – Desired Shape of your data (T, C, Z, Y, X).  Must match data</p></li>
+<li><p><strong>chunk_size</strong> (<em>tuple</em>) – Desired Chunk Size (T, C, Z, Y, X).  Chunking each image would be (1, 1, 1, Y, X)</p></li>
+<li><p><strong>dtype</strong> (<em>str</em>) – Data Type, i.e. ‘uint16’</p></li>
+<li><p><strong>clims</strong> (<em>list</em>) – List of tuples corresponding to contrast limtis for channel.  OME-Zarr metadata</p></li>
+<li><p><strong>overwrite</strong> (<em>bool</em>) – Whether or not to overwrite the existing data that may be present.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Parm list chan_names</dt>
+<dd class="field-even"><p>List of strings corresponding to your channel names.  Used for OME-zarr metadata</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.ZarrWriter.store">
+<span class="sig-name descname"><span class="pre">store</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#micro_dl.utils.io_utils.ZarrWriter.store" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="micro_dl.utils.io_utils.ZarrWriter.write">
+<span class="sig-name descname"><span class="pre">write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.io_utils.ZarrWriter.write" title="Permalink to this definition"></a></dt>
+<dd><p>Wrapper that calls the builder’s write function.
+Will write to existing array of zeros and place
+data over the specified indicies.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>np.array</em>) – Data to be saved. Must be the shape that matches indices (T, C, Z, Y, X)</p></li>
+<li><p><strong>p</strong> (<em>int</em>) – Position index in which to write the data into</p></li>
+<li><p><strong>t</strong> (<em>int/slice</em>) – Time index or index range of the time dimension</p></li>
+<li><p><strong>c</strong> (<em>int/slice</em>) – Channel index or index range of the channel dimension</p></li>
+<li><p><strong>z</strong> (<em>int/slice</em>) – Slice index or index range of the Z-slice dimension</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-micro_dl.utils.masks">
+<span id="micro-dl-utils-masks-module"></span><h2>micro_dl.utils.masks module<a class="headerlink" href="#module-micro_dl.utils.masks" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.masks.create_otsu_mask">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.masks.</span></span><span class="sig-name descname"><span class="pre">create_otsu_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">str_elem_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_shed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.masks.create_otsu_mask" title="Permalink to this definition"></a></dt>
+<dd><p>Create a binary mask using morphological operations
+Opening removes small objects in the foreground.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_image</strong> (<em>np.array</em>) – generate masks from this image</p></li>
+<li><p><strong>str_elem_size</strong> (<em>int</em>) – size of the structuring element. typically 3, 5</p></li>
+<li><p><strong>thr</strong> (<em>float</em>) – Threshold</p></li>
+<li><p><strong>kernel_size</strong> (<em>int</em>) – Kernel size</p></li>
+<li><p><strong>w_shed</strong> (<em>bool</em>) – Whether to use watershed</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>mask of input_image, np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.masks.create_unimodal_mask">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.masks.</span></span><span class="sig-name descname"><span class="pre">create_unimodal_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">str_elem_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.masks.create_unimodal_mask" title="Permalink to this definition"></a></dt>
+<dd><p>Create a mask with unimodal thresholding and morphological operations.
+Unimodal thresholding seems to oversegment, erode it by a fraction</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_image</strong> (<em>np.array</em>) – generate masks from this image</p></li>
+<li><p><strong>str_elem_size</strong> (<em>int</em>) – size of the structuring element. typically 3, 5</p></li>
+</ul>
+</dd>
+</dl>
+<p>:return mask of input_image, np.array</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.masks.get_unet_border_weight_map">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.masks.</span></span><span class="sig-name descname"><span class="pre">get_unet_border_weight_map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annotation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.masks.get_unet_border_weight_map" title="Permalink to this definition"></a></dt>
+<dd><p>Return weight map for borders as specified in UNet paper.
+Note: The below method only works for UNet Segmentation only.
+TODO: Calculate boundaries directly and calculate distance
+from boundary of cells to another.</p>
+<p>:param annotation A 2D array of shape (image_height, image_width)     contains annotation with each class labeled as an integer.
+:param w0 multiplier to the exponential distance loss     default 10 as mentioned in UNet paper
+:param sigma standard deviation in the exponential distance term     e^(-d1 + d2) ** 2 / 2 (sigma ^ 2)     default 5 as mentioned in UNet paper
+:return weight map for borders as specified in UNet</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.masks.get_unimodal_threshold">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.masks.</span></span><span class="sig-name descname"><span class="pre">get_unimodal_threshold</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_image</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.masks.get_unimodal_threshold" title="Permalink to this definition"></a></dt>
+<dd><p>Determines optimal unimodal threshold</p>
+<p><a class="reference external" href="https://users.cs.cf.ac.uk/Paul.Rosin/resources/papers/unimodal2.pdf">https://users.cs.cf.ac.uk/Paul.Rosin/resources/papers/unimodal2.pdf</a>
+<a class="reference external" href="https://www.mathworks.com/matlabcentral/fileexchange/45443-rosin-thresholding">https://www.mathworks.com/matlabcentral/fileexchange/45443-rosin-thresholding</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>input_image</strong> (<em>np.array</em>) – generate mask for this image</p>
+</dd>
+<dt class="field-even">Return float best_threshold</dt>
+<dd class="field-even"><p>optimal lower threshold for the foreground
+hist</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-micro_dl.utils.meta_utils">
+<span id="micro-dl-utils-meta-utils-module"></span><h2>micro_dl.utils.meta_utils module<a class="headerlink" href="#module-micro_dl.utils.meta_utils" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.meta_utils.compute_zscore_params">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.meta_utils.</span></span><span class="sig-name descname"><span class="pre">compute_zscore_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frames_meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ints_meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize_im</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_fraction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.99</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.meta_utils.compute_zscore_params" title="Permalink to this definition"></a></dt>
+<dd><p>Compute median and interquartile range of intensities in blocks/tiles
+determined ints_meta_generator function (saved in intensity_meta.csv).
+Masks need to bee computed and only tiles with enough foreground given masks
+(determined by min_fraction) will be included in the analysis.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>frames_meta</strong> (<em>pd.DataFrame</em>) – Dataframe containing all metadata</p></li>
+<li><p><strong>ints_meta</strong> (<em>pd.DataFrame</em>) – Metadata containing intensity statistics        each z-slice and foreground fraction for masks</p></li>
+<li><p><strong>input_dir</strong> (<em>str</em>) – Directory containing images</p></li>
+<li><p><strong>normalize_im</strong> (<em>None/str</em>) – normalization scheme for input images</p></li>
+<li><p><strong>min_fraction</strong> (<em>float</em>) – Minimum foreground fraction of masks        for computing intensity statistics.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return pd.DataFrame frames_meta</dt>
+<dd class="field-even"><p>DataFrame containing all metadata</p>
+</dd>
+<dt class="field-odd">Return pd.DataFrame ints_meta</dt>
+<dd class="field-odd"><p>Metadata containing intensity statistics        each z-slice</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.meta_utils.frames_meta_from_filenames">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.meta_utils.</span></span><span class="sig-name descname"><span class="pre">frames_meta_from_filenames</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name_parser</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.meta_utils.frames_meta_from_filenames" title="Permalink to this definition"></a></dt>
+<dd><p>Extracts metadata (channel, position, time, slice) from file name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_dir</strong> (<em>str</em>) – path to input directory containing images</p></li>
+<li><p><strong>name_parser</strong> (<em>str</em>) – Function in aux_utils for parsing indices from file name</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return pd.DataFrame frames_meta</dt>
+<dd class="field-even"><p>Metadata for all frames in dataset</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.meta_utils.frames_meta_from_zarr">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.meta_utils.</span></span><span class="sig-name descname"><span class="pre">frames_meta_from_zarr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_names</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.meta_utils.frames_meta_from_zarr" title="Permalink to this definition"></a></dt>
+<dd><p>Reads ome-zarr file and creates frames_meta based on metadata and
+array information.
+Assumes one zarr store per position according to OME guidelines.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_dir</strong> (<em>str</em>) – Input directory</p></li>
+<li><p><strong>file_names</strong> (<em>list</em>) – List of full paths to all zarr files in dir</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return pd.DataFrame frames_meta</dt>
+<dd class="field-even"><p>Metadata for all frames in zarr</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.meta_utils.frames_meta_generator">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.meta_utils.</span></span><span class="sig-name descname"><span class="pre">frames_meta_generator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'zarr'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name_parser</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'parse_sms_name'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.meta_utils.frames_meta_generator" title="Permalink to this definition"></a></dt>
+<dd><p>Generate metadata from file names, or metadata in the case of zarr files,
+for preprocessing.
+Will write found data in frames_metadata.csv in input directory.</p>
+<p>Naming convention for default parser ‘parse_sms_name’:
+img_channelname_t***_p***_z***.tif for parse_sms_name</p>
+<p>The file structure for ome-zarr files is described here:
+<a class="reference external" href="https://ngff.openmicroscopy.org/0.1/">https://ngff.openmicroscopy.org/0.1/</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_dir</strong> (<em>str</em>) – path to input directory containing image data</p></li>
+<li><p><strong>file_format</strong> (<em>str</em>) – Image file format (‘zarr’ or ‘tiff’ or ‘png’)</p></li>
+<li><p><strong>name_parser</strong> (<em>str</em>) – Function in aux_utils for parsing indices from tiff/png file name</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return pd.DataFrame frames_meta</dt>
+<dd class="field-even"><p>Metadata for all frames in dataset</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.meta_utils.ints_meta_generator">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.meta_utils.</span></span><span class="sig-name descname"><span class="pre">ints_meta_generator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_workers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">block_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">256</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flat_field_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.meta_utils.ints_meta_generator" title="Permalink to this definition"></a></dt>
+<dd><p>Generate pixel intensity metadata for estimating image normalization
+parameters during preprocessing step. Pixels are sub-sampled from the image
+following a grid pattern defined by block_size to for efficient estimation of
+median and interquartile range. Grid sampling is preferred over random sampling
+in the case due to the spatial correlation in images.
+Will write found data in ints_meta.csv in input directory.
+Assumed default naming convention for tiff files is:
+img_channelname_t***_p***_z***.tif for parse_sms_name</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_dir</strong> (<em>str</em>) – path to input directory containing images</p></li>
+<li><p><strong>channel_ids</strong> (<em>list</em>) – Channel indices to process</p></li>
+<li><p><strong>num_workers</strong> (<em>int</em>) – number of workers for multiprocessing</p></li>
+<li><p><strong>block_size</strong> (<em>int</em>) – block size for the grid sampling pattern. Default value works
+well for 2048 X 2048 images.</p></li>
+<li><p><strong>flat_field_dir</strong> (<em>str</em>) – Directory containing flatfield images</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.meta_utils.mask_meta_generator">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.meta_utils.</span></span><span class="sig-name descname"><span class="pre">mask_meta_generator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_workers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.meta_utils.mask_meta_generator" title="Permalink to this definition"></a></dt>
+<dd><p>Generate pixel intensity metadata for estimating image normalization
+parameters during preprocessing step. Pixels are sub-sampled from the image
+following a grid pattern defined by block_size to for efficient estimation of
+median and interquatile range. Grid sampling is preferred over random sampling
+in the case due to the spatial correlation in images.
+Will write found data in intensity_meta.csv in input directory.
+Assumed default file naming convention is:</p>
+<p>img_channelname_t***_p***_z***.tif for parse_sms_name</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_dir</strong> (<em>str</em>) – path to input directory containing images</p></li>
+<li><p><strong>order</strong> (<em>str</em>) – Order in which file name encodes cztp</p></li>
+<li><p><strong>name_parser</strong> (<em>str</em>) – Function in aux_utils for parsing indices from file name</p></li>
+<li><p><strong>num_workers</strong> (<em>int</em>) – number of workers for multiprocessing</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return pd.DataFrame mask_meta</dt>
+<dd class="field-even"><p>Metadata with mask info</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-micro_dl.utils.mp_utils">
+<span id="micro-dl-utils-mp-utils-module"></span><h2>micro_dl.utils.mp_utils module<a class="headerlink" href="#module-micro_dl.utils.mp_utils" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.mp_utils.create_save_mask">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.mp_utils.</span></span><span class="sig-name descname"><span class="pre">create_save_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">channels_meta_sub</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flat_field_fnames</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">str_elem_radius</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_channel_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int2str_len</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_ext</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dir_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel_thrs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.mp_utils.create_save_mask" title="Permalink to this definition"></a></dt>
+<dd><p>Create and save mask.
+When more than one channel are used to generate the mask, mask of each
+channel is generated then added together.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>channels_meta_sub</strong> (<em>pd.DataFrame</em>) – Metadata for given PTCZ</p></li>
+<li><p><strong>flat_field_fnames</strong> (<em>list/None</em>) – Paths to corresponding flat field images</p></li>
+<li><p><strong>str_elem_radius</strong> (<em>int</em>) – size of structuring element used for binary     opening. str_elem: disk or ball</p></li>
+<li><p><strong>mask_dir</strong> (<em>str</em>) – dir to save masks</p></li>
+<li><p><strong>mask_channel_idx</strong> (<em>int</em>) – channel number of mask</p></li>
+<li><p><strong>time_idx</strong> (<em>int</em>) – time points to use for generating mask</p></li>
+<li><p><strong>pos_idx</strong> (<em>int</em>) – generate masks for given position / sample ids</p></li>
+<li><p><strong>slice_idx</strong> (<em>int</em>) – generate masks for given slice ids</p></li>
+<li><p><strong>int2str_len</strong> (<em>int</em>) – Length of str when converting ints</p></li>
+<li><p><strong>mask_type</strong> (<em>str</em>) – thresholding type used for masking or str to map to     masking function</p></li>
+<li><p><strong>mask_ext</strong> (<em>str</em>) – ‘.npy’ or ‘.png’. Save the mask as uint8 PNG or     NPY files for otsu, unimodal masks, recommended to save as npy     float64 for borders_weight_loss_map masks to avoid loss due to scaling it     to uint8.</p></li>
+<li><p><strong>dir_name</strong> (<em>str/None</em>) – Image directory (none if using frames_meta dir_name)</p></li>
+<li><p><strong>channel_thrs</strong> (<em>list</em>) – list of threshold for each channel to generate     binary masks. Only used when mask_type is ‘dataset_otsu’</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return dict cur_meta</dt>
+<dd class="field-even"><p>For each mask, fg_frac is added to metadata</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.mp_utils.crop_at_indices_save">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.mp_utils.</span></span><span class="sig-name descname"><span class="pre">crop_at_indices_save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">meta_sub</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flat_field_fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hist_clip_limits</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slice_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crop_indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_format</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dir_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int2str_len</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tile_3d</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize_im</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zscore_mean</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zscore_std</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.mp_utils.crop_at_indices_save" title="Permalink to this definition"></a></dt>
+<dd><p>Crop image into tiles at given indices and save.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>meta_sub</strong> (<em>pd.DataFrame</em>) – Subset of metadata for images to be cropped</p></li>
+<li><p><strong>flat_field_fname</strong> (<em>str</em>) – File nname of flat field image</p></li>
+<li><p><strong>hist_clip_limits</strong> (<em>tuple</em>) – limits for histogram clipping</p></li>
+<li><p><strong>time_idx</strong> (<em>int</em>) – time point of input image</p></li>
+<li><p><strong>channel_idx</strong> (<em>int</em>) – channel idx of input image</p></li>
+<li><p><strong>slice_idx</strong> (<em>int</em>) – slice idx of input image</p></li>
+<li><p><strong>pos_idx</strong> (<em>int</em>) – sample idx of input image</p></li>
+<li><p><strong>crop_indices</strong> (<em>tuple</em>) – tuple of indices for cropping</p></li>
+<li><p><strong>image_format</strong> (<em>str</em>) – zyx or xyz</p></li>
+<li><p><strong>save_dir</strong> (<em>str</em>) – output dir to save tiles</p></li>
+<li><p><strong>dir_name</strong> (<em>str/None</em>) – Input directory</p></li>
+<li><p><strong>int2str_len</strong> (<em>int</em>) – len of indices for creating file names</p></li>
+<li><p><strong>is_mask</strong> (<em>bool</em>) – Indicates if files are masks</p></li>
+<li><p><strong>tile_3d</strong> (<em>bool</em>) – indicator for tiling in 3D</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>pd.DataFrame from a list of dicts with metadata</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.mp_utils.get_im_stats">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.mp_utils.</span></span><span class="sig-name descname"><span class="pre">get_im_stats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">im_path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.mp_utils.get_im_stats" title="Permalink to this definition"></a></dt>
+<dd><p>Read and computes statistics of images.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>im_path</strong> (<em>str</em>) – Full path to image</p>
+</dd>
+<dt class="field-even">Return dict meta_row</dt>
+<dd class="field-even"><p>Dict with intensity data for image</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.mp_utils.get_mask_meta_row">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.mp_utils.</span></span><span class="sig-name descname"><span class="pre">get_mask_meta_row</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">meta_row</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.mp_utils.get_mask_meta_row" title="Permalink to this definition"></a></dt>
+<dd><p>Given path to mask, read mask, compute foreground fraction and fill
+in corresponding metadata row.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file_path</strong> (<em>str</em>) – Path to binary mask image</p></li>
+<li><p><strong>meta_row</strong> (<em>pd.DataFrame</em>) – Metadata row to fill in</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return pd.DataFrame meta_row</dt>
+<dd class="field-even"><p>Metadata row with foreground fraction        for mask</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.mp_utils.mp_create_save_mask">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.mp_utils.</span></span><span class="sig-name descname"><span class="pre">mp_create_save_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn_args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workers</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.mp_utils.mp_create_save_mask" title="Permalink to this definition"></a></dt>
+<dd><p>Create and save masks with multiprocessing</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fn_args</strong> (<em>list</em><em> of </em><em>tuple</em>) – list with tuples of function arguments</p></li>
+<li><p><strong>workers</strong> (<em>int</em>) – max number of workers</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>list of returned dicts from create_save_mask</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.mp_utils.mp_crop_save">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.mp_utils.</span></span><span class="sig-name descname"><span class="pre">mp_crop_save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn_args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workers</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.mp_utils.mp_crop_save" title="Permalink to this definition"></a></dt>
+<dd><p>Crop and save images with multiprocessing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fn_args</strong> (<em>list</em><em> of </em><em>tuple</em>) – list with tuples of function arguments</p></li>
+<li><p><strong>workers</strong> (<em>int</em>) – max number of workers</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>list of returned df from crop_at_indices_save</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.mp_utils.mp_get_im_stats">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.mp_utils.</span></span><span class="sig-name descname"><span class="pre">mp_get_im_stats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn_args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workers</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.mp_utils.mp_get_im_stats" title="Permalink to this definition"></a></dt>
+<dd><p>Read and computes statistics of images with multiprocessing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fn_args</strong> (<em>list</em><em> of </em><em>tuple</em>) – list with tuples of function arguments</p></li>
+<li><p><strong>workers</strong> (<em>int</em>) – max number of workers</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>list of returned df from get_im_stats</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.mp_utils.mp_rescale_vol">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.mp_utils.</span></span><span class="sig-name descname"><span class="pre">mp_rescale_vol</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn_args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workers</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.mp_utils.mp_rescale_vol" title="Permalink to this definition"></a></dt>
+<dd><p>Rescale and save image stacks with multiprocessing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fn_args</strong> (<em>list</em><em> of </em><em>tuple</em>) – list with tuples of function arguments</p></li>
+<li><p><strong>workers</strong> (<em>int</em>) – max number of workers</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.mp_utils.mp_resize_save">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.mp_utils.</span></span><span class="sig-name descname"><span class="pre">mp_resize_save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mp_args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workers</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.mp_utils.mp_resize_save" title="Permalink to this definition"></a></dt>
+<dd><p>Resize and save images with multiprocessing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mp_args</strong> (<em>list</em>) – Function keyword arguments</p></li>
+<li><p><strong>workers</strong> (<em>int</em>) – max number of workers</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.mp_utils.mp_sample_im_pixels">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.mp_utils.</span></span><span class="sig-name descname"><span class="pre">mp_sample_im_pixels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn_args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workers</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.mp_utils.mp_sample_im_pixels" title="Permalink to this definition"></a></dt>
+<dd><p>Read and computes statistics of images with multiprocessing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fn_args</strong> (<em>list</em><em> of </em><em>tuple</em>) – list with tuples of function arguments</p></li>
+<li><p><strong>workers</strong> (<em>int</em>) – max number of workers</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>list of returned df from get_im_stats</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.mp_utils.mp_tile_save">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.mp_utils.</span></span><span class="sig-name descname"><span class="pre">mp_tile_save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn_args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workers</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.mp_utils.mp_tile_save" title="Permalink to this definition"></a></dt>
+<dd><p>Tile and save with multiprocessing
+<a class="reference external" href="https://stackoverflow.com/questions/42074501/python-concurrent-futures-processpoolexecutor-performance-of-submit-vs-map">https://stackoverflow.com/questions/42074501/python-concurrent-futures-processpoolexecutor-performance-of-submit-vs-map</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fn_args</strong> (<em>list</em><em> of </em><em>tuple</em>) – list with tuples of function arguments</p></li>
+<li><p><strong>workers</strong> (<em>int</em>) – max number of workers</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>list of returned df from tile_and_save</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.mp_utils.mp_wrapper">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.mp_utils.</span></span><span class="sig-name descname"><span class="pre">mp_wrapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fn_args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">workers</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.mp_utils.mp_wrapper" title="Permalink to this definition"></a></dt>
+<dd><p>Create and save masks with multiprocessing</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fn_args</strong> (<em>list</em><em> of </em><em>tuple</em>) – list with tuples of function arguments</p></li>
+<li><p><strong>workers</strong> (<em>int</em>) – max number of workers</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>list of returned dicts from create_save_mask</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.mp_utils.rescale_vol_and_save">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.mp_utils.</span></span><span class="sig-name descname"><span class="pre">rescale_vol_and_save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">time_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slice_start_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slice_end_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frames_metadata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dir_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_factor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ff_path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.mp_utils.rescale_vol_and_save" title="Permalink to this definition"></a></dt>
+<dd><p>Rescale volumes and save.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>time_idx</strong> (<em>int</em>) – time point of input image</p></li>
+<li><p><strong>pos_idx</strong> (<em>int</em>) – sample idx of input image</p></li>
+<li><p><strong>channel_idx</strong> (<em>int</em>) – channel idx of input image</p></li>
+<li><p><strong>slice_start_idx</strong> (<em>int</em>) – start slice idx for the vol to be saved</p></li>
+<li><p><strong>slice_end_idx</strong> (<em>int</em>) – end slice idx for the vol to be saved</p></li>
+<li><p><strong>frames_metadata</strong> (<em>pd.Dataframe</em>) – metadata for the input slices</p></li>
+<li><p><strong>dir_name</strong> (<em>str/None</em>) – Image directory (none if using dir_name from frames_meta)</p></li>
+<li><p><strong>output_fname</strong> (<em>str</em>) – output_fname</p></li>
+<li><p><strong>scale_factor</strong> (<em>float/list</em>) – scale factor for resizing</p></li>
+<li><p><strong>ff_path</strong> (<em>str/None</em>) – path to flat field image</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.mp_utils.resize_and_save">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.mp_utils.</span></span><span class="sig-name descname"><span class="pre">resize_and_save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.mp_utils.resize_and_save" title="Permalink to this definition"></a></dt>
+<dd><p>Resizes images and saving them. Performs flatfield correction
+prior to resizing if flatfield images are present.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>kwargs</strong> – Keyword arguments:</p>
+</dd>
+</dl>
+<p>str file_path: Path to input image
+str write_path: Path to image to be written
+float scale_factor: Scale factor for resizing
+str ff_path: path to flat field correction image</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.mp_utils.sample_im_pixels">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.mp_utils.</span></span><span class="sig-name descname"><span class="pre">sample_im_pixels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">meta_row</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ff_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid_spacing</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dir_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.mp_utils.sample_im_pixels" title="Permalink to this definition"></a></dt>
+<dd><p>Read and computes statistics of images for each point in a grid.
+Grid spacing determines distance in pixels between grid points
+for rows and cols.
+Applies flatfield correction prior to intensity sampling if flatfield
+path is specified.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>meta_row</strong> (<em>dict</em>) – Metadata row for image</p></li>
+<li><p><strong>ff_path</strong> (<em>str</em>) – Full path to flatfield image corresponding to image</p></li>
+<li><p><strong>grid_spacing</strong> (<em>int</em>) – Distance in pixels between sampling points</p></li>
+<li><p><strong>dir_name</strong> (<em>str/None</em>) – Image directory (none if using dir_name from frames_meta)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return list meta_rows</dt>
+<dd class="field-even"><p>Dicts with intensity data for each grid point</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.mp_utils.tile_and_save">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.mp_utils.</span></span><span class="sig-name descname"><span class="pre">tile_and_save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">meta_sub</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flat_field_fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hist_clip_limits</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slice_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tile_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_fraction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_format</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dir_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int2str_len</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize_im</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zscore_mean</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zscore_std</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.mp_utils.tile_and_save" title="Permalink to this definition"></a></dt>
+<dd><p>Crop image into tiles at given indices and save.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>meta_sub</strong> (<em>pd.DataFrame</em>) – Subset of metadata for images to be tiled</p></li>
+<li><p><strong>flat_field_fname</strong> (<em>str</em>) – fname of flat field image</p></li>
+<li><p><strong>hist_clip_limits</strong> (<em>tuple</em>) – limits for histogram clipping</p></li>
+<li><p><strong>slice_idx</strong> (<em>int</em>) – slice idx of input image</p></li>
+<li><p><strong>tile_size</strong> (<em>list</em>) – size of tile along row, col (&amp; slices)</p></li>
+<li><p><strong>step_size</strong> (<em>list</em>) – step size along row, col (&amp; slices)</p></li>
+<li><p><strong>min_fraction</strong> (<em>float</em>) – min foreground volume fraction for keep tile</p></li>
+<li><p><strong>image_format</strong> (<em>str</em>) – zyx / xyz</p></li>
+<li><p><strong>save_dir</strong> (<em>str</em>) – output dir to save tiles</p></li>
+<li><p><strong>dir_name</strong> (<em>str/None</em>) – Image directory</p></li>
+<li><p><strong>int2str_len</strong> (<em>int</em>) – len of indices for creating file names</p></li>
+<li><p><strong>is_mask</strong> (<em>bool</em>) – Indicates if files are masks</p></li>
+<li><p><strong>normalize_im</strong> (<em>str/None</em>) – Normalization method</p></li>
+<li><p><strong>zscore_mean</strong> (<em>float/None</em>) – Mean for normalization</p></li>
+<li><p><strong>zscore_std</strong> (<em>float/None</em>) – Std for normalization</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>pd.DataFrame from a list of dicts with metadata</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-micro_dl.utils.network_utils">
+<span id="micro-dl-utils-network-utils-module"></span><h2>micro_dl.utils.network_utils module<a class="headerlink" href="#module-micro_dl.utils.network_utils" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.network_utils.create_activation_layer">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.network_utils.</span></span><span class="sig-name descname"><span class="pre">create_activation_layer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">activation_dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.network_utils.create_activation_layer" title="Permalink to this definition"></a></dt>
+<dd><p>Get the keras activation / advanced activation</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>activation_dict</strong> (<em>dict</em>) – Nested dict with keys: type -&gt; activation type     and params -&gt; dict activation related params such as alpha, theta,     alpha_initializer, alpha_regularizer etc from advanced activations</p>
+</dd>
+<dt class="field-even">Return keras.layer</dt>
+<dd class="field-even"><p>instance of activation layer</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.network_utils.get_keras_layer">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.network_utils.</span></span><span class="sig-name descname"><span class="pre">get_keras_layer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_dims</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.network_utils.get_keras_layer" title="Permalink to this definition"></a></dt>
+<dd><p>Get the 2D or 3D keras layer</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>stype</strong> (<em>str</em>) – type of layer [conv, pooling, upsampling]</p></li>
+<li><p><strong>num_dims</strong> (<em>int</em>) – dimensionality of the image [2 ,3]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>keras.layer</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.network_utils.get_layer_shape">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.network_utils.</span></span><span class="sig-name descname"><span class="pre">get_layer_shape</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">layer_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_format</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.network_utils.get_layer_shape" title="Permalink to this definition"></a></dt>
+<dd><p>Get the layer shape without the batch and channel dimensions</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>layer_shape</strong> (<em>list</em>) – output of layer.get_output_shape.as_list()</p></li>
+<li><p><strong>data_format</strong> (<em>str</em>) – in [channels_first, channels_last]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>np.array layer_shape_xyz - layer shape without batch and channel
+dimensions</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-micro_dl.utils.normalize">
+<span id="micro-dl-utils-normalize-module"></span><h2>micro_dl.utils.normalize module<a class="headerlink" href="#module-micro_dl.utils.normalize" title="Permalink to this heading"></a></h2>
+<p>Image normalization related functions</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.normalize.hist_adapteq_2D">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.normalize.</span></span><span class="sig-name descname"><span class="pre">hist_adapteq_2D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kernel_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clip_limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.normalize.hist_adapteq_2D" title="Permalink to this definition"></a></dt>
+<dd><p>CLAHE on 2D images</p>
+<p>skimage.exposure.equalize_adapthist works only for 2D. Extend to 3D or use
+openCV? Not ideal, as it enhances noise in homogeneous areas</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_image</strong> (<em>np.array</em>) – input image for intensity normalization</p></li>
+<li><p><strong>kernel_size</strong> (<em>int/list</em>) – Neighbourhood to be used for histogram
+equalization. If none, use default of 1/8th image size.</p></li>
+<li><p><strong>clip_limit</strong> (<em>float</em>) – Clipping limit, normalized between 0 and 1
+(higher values give more contrast, ~ max percent of voxels in any
+histogram bin, if &gt; this limit, the voxel intensities are redistributed).
+if None, default=0.01</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.normalize.hist_clipping">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.normalize.</span></span><span class="sig-name descname"><span class="pre">hist_clipping</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_percentile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_percentile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">98</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.normalize.hist_clipping" title="Permalink to this definition"></a></dt>
+<dd><p>Clips and rescales histogram from min to max intensity percentiles</p>
+<p>rescale_intensity with input check</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_image</strong> (<em>np.array</em>) – input image for intensity normalization</p></li>
+<li><p><strong>min_percentile</strong> (<em>int/float</em>) – min intensity percentile</p></li>
+<li><p><strong>max_percentile</strong> (<em>int/flaot</em>) – max intensity percentile</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>np.float, intensity clipped and rescaled image</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.normalize.unzscore">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.normalize.</span></span><span class="sig-name descname"><span class="pre">unzscore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">im_norm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zscore_median</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zscore_iqr</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.normalize.unzscore" title="Permalink to this definition"></a></dt>
+<dd><p>Revert z-score normalization applied during preprocessing. Necessary
+before computing SSIM</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>im_norm</strong> – Normalized image for un-zscore</p></li>
+<li><p><strong>zscore_median</strong> – Image median</p></li>
+<li><p><strong>zscore_iqr</strong> – Image interquartile range</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return im</dt>
+<dd class="field-even"><p>image at its original scale</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.normalize.zscore">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.normalize.</span></span><span class="sig-name descname"><span class="pre">zscore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">im_mean</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">im_std</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.normalize.zscore" title="Permalink to this definition"></a></dt>
+<dd><p>Performs z-score normalization. Adds epsilon in denominator for robustness</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_image</strong> (<em>np.array</em>) – input image for intensity normalization</p></li>
+<li><p><strong>im_mean</strong> (<em>float/None</em>) – Image mean</p></li>
+<li><p><strong>im_std</strong> (<em>float/None</em>) – Image std</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return np.array norm_img</dt>
+<dd class="field-even"><p>z score normalized image</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-micro_dl.utils.preprocess_utils">
+<span id="micro-dl-utils-preprocess-utils-module"></span><h2>micro_dl.utils.preprocess_utils module<a class="headerlink" href="#module-micro_dl.utils.preprocess_utils" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.preprocess_utils.get_preprocess_config">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.preprocess_utils.</span></span><span class="sig-name descname"><span class="pre">get_preprocess_config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_dir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.preprocess_utils.get_preprocess_config" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.preprocess_utils.validate_mask_meta">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.preprocess_utils.</span></span><span class="sig-name descname"><span class="pre">validate_mask_meta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mask_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">csv_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_channel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.preprocess_utils.validate_mask_meta" title="Permalink to this definition"></a></dt>
+<dd><p>If user provides existing masks, the mask directory should also contain
+a csv file (not named frames_meta.csv which is reserved for output) with
+two column names: mask_name and file_name. Each row should describe the
+mask name and the corresponding file name. Each file_name should exist in
+input_dir and belong to the same channel.
+This function checks that all file names exist in input_dir and writes a
+frames_meta csv containing mask names with indices corresponding to the
+matched file_name. It also assigns a mask channel number for future
+preprocessing steps like tiling.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mask_dir</strong> (<em>str</em>) – Mask directory</p></li>
+<li><p><strong>input_dir</strong> (<em>str</em>) – Input image directory, to match masks with images</p></li>
+<li><p><strong>mask_channel</strong> (<em>int/None</em>) – Channel idx assigned to masks</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return int mask_channel</dt>
+<dd class="field-even"><p>New channel index for masks for writing tiles</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p>IOError: If no csv file is present in mask_dir</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p>IOError: If more than one csv file exists in mask_dir        and no csv_name is provided to resolve ambiguity</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p>AssertionError: If csv doesn’t consist of two columns named        ‘mask_name’ and ‘file_name’</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p>IndexError: If unable to match file_name in mask_dir csv with        file_name in input_dir for any given mask row</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-micro_dl.utils.tile_utils">
+<span id="micro-dl-utils-tile-utils-module"></span><h2>micro_dl.utils.tile_utils module<a class="headerlink" href="#module-micro_dl.utils.tile_utils" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.tile_utils.crop_at_indices">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.tile_utils.</span></span><span class="sig-name descname"><span class="pre">crop_at_indices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">crop_indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_dict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tile_3d</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.tile_utils.crop_at_indices" title="Permalink to this definition"></a></dt>
+<dd><p>Crop image into tiles at given indices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_image</strong> (<em>np.array</em>) – input image for cropping</p></li>
+<li><p><strong>crop_indices</strong> (<em>list/tuple</em>) – list of indices for cropping</p></li>
+<li><p><strong>save_dict</strong> (<em>dict/None</em>) – dict with keys: time_idx, channel_idx, slice_idx,
+pos_idx, image_format and save_dir for generation output fname</p></li>
+<li><p><strong>tile_3d</strong> (<em>bool</em>) – boolean flag for adding slice_start_idx to meta</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>if not saving tiles: a list with tuples of cropped image id of
+the format rrmin-rmax_ccmin-cmax_slslmin-slmax and cropped image.     Else saves tiles in-place and returns a df with tile metadata</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.tile_utils.tile_image">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.tile_utils.</span></span><span class="sig-name descname"><span class="pre">tile_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tile_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_fraction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_dict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.tile_utils.tile_image" title="Permalink to this definition"></a></dt>
+<dd><p>Tiles the image based on given tile and step size.
+USE MIN_FRACTION WITH INPUT_IMAGE.DTYPE=bool / MASKS</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_image</strong> (<em>np.array</em>) – 3D input image to be tiled</p></li>
+<li><p><strong>tile_size</strong> (<em>list/tuple/np array</em>) – size of the blocks to be tiled
+from the image</p></li>
+<li><p><strong>step_size</strong> (<em>list/tuple/np array</em>) – size of the window shift. In case of
+no overlap, the step size is tile_size. If overlap, step_size &lt; tile_size</p></li>
+<li><p><strong>return_index</strong> (<em>bool</em>) – indicator for returning tile indices</p></li>
+<li><p><strong>min_fraction</strong> (<em>float</em>) – Minimum fraction of foreground in mask for
+including tile</p></li>
+<li><p><strong>save_dict</strong> (<em>dict</em>) – dict with keys: time_idx, channel_idx, slice_idx,
+pos_idx, image_format and save_dir for generation output fname</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>if not saving: a list with tuples of tiled image id of the format
+rrmin-rmax_ccmin-cmax_slslmin-slmax and tiled image
+Else: save tiles in-place and return a df with tile metadata
+if return_index=True: return a list with tuples of crop indices</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.tile_utils.write_meta">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.tile_utils.</span></span><span class="sig-name descname"><span class="pre">write_meta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tiled_metadata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.tile_utils.write_meta" title="Permalink to this definition"></a></dt>
+<dd><p>Write meta for tiles from an image as a csv</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tiled_metadata</strong> (<em>list</em>) – list of meta dicts</p></li>
+<li><p><strong>save_dict</strong> (<em>dict</em>) – dict with keys: time_idx, channel_idx, slice_idx,
+pos_idx, image_format and save_dir for generation output fname</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.tile_utils.write_tile">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.tile_utils.</span></span><span class="sig-name descname"><span class="pre">write_tile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.tile_utils.write_tile" title="Permalink to this definition"></a></dt>
+<dd><p>Write tile function that can be called using threading.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tile</strong> (<em>np.array</em>) – one tile</p></li>
+<li><p><strong>file_name</strong> (<em>str</em>) – File name for tile (must be .npy format)</p></li>
+<li><p><strong>save_dict</strong> (<em>dict</em>) – dict with keys: time_idx, channel_idx, slice_idx,</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return str op_fname</dt>
+<dd class="field-even"><p>filename used for saving the tile with entire path</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-micro_dl.utils.train_utils">
+<span id="micro-dl-utils-train-utils-module"></span><h2>micro_dl.utils.train_utils module<a class="headerlink" href="#module-micro_dl.utils.train_utils" title="Permalink to this heading"></a></h2>
+<p>Utility functions used for training</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.train_utils.check_gpu_availability">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.train_utils.</span></span><span class="sig-name descname"><span class="pre">check_gpu_availability</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gpu_id</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.train_utils.check_gpu_availability" title="Permalink to this definition"></a></dt>
+<dd><p>Check if mem_frac is available in given gpu_id</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>gpu_id</strong> (<em>int/list</em>) – id of the gpu to be used. Int for single GPU
+training, list for distributed training</p></li>
+<li><p><strong>gpu_mem_frac</strong> (<em>list</em>) – mem fraction for each GPU in gpu_id</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return bool gpu_availability</dt>
+<dd class="field-even"><p>True if all mem_fracs are greater than
+gpu_mem_frac</p>
+</dd>
+<dt class="field-odd">Return list curr_mem_frac</dt>
+<dd class="field-odd"><p>list of current memory fractions available
+for gpus in to gpu_id</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.train_utils.get_loss">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.train_utils.</span></span><span class="sig-name descname"><span class="pre">get_loss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">loss_str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.train_utils.get_loss" title="Permalink to this definition"></a></dt>
+<dd><p>Get loss type from config</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.train_utils.get_metrics">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.train_utils.</span></span><span class="sig-name descname"><span class="pre">get_metrics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metrics_list</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.train_utils.get_metrics" title="Permalink to this definition"></a></dt>
+<dd><p>Get the metrics from config</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.train_utils.select_gpu">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.train_utils.</span></span><span class="sig-name descname"><span class="pre">select_gpu</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gpu_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gpu_mem_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.train_utils.select_gpu" title="Permalink to this definition"></a></dt>
+<dd><p>Find the GPU ID with highest available memory fraction.
+If ID is given as input, set the gpu_mem_frac to maximum available,
+or if a memory fraction is given, make sure the given GPU has the desired
+memory fraction available.
+Currently only supports single GPU runs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>gpu_ids</strong> (<em>int</em>) – Desired GPU ID. If None, find GPU with the most memory
+available.</p></li>
+<li><p><strong>gpu_mem_frac</strong> (<em>float</em>) – Desired GPU memory fraction [0, 1]. If None,
+use maximum available amount of GPU.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return int gpu_ids</dt>
+<dd class="field-even"><p>GPU ID to use.</p>
+</dd>
+<dt class="field-odd">Return float cur_mem_frac</dt>
+<dd class="field-odd"><p>GPU memory fraction to use</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p>NotImplementedError: If gpu_ids is not int</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p>AssertionError: If requested memory fraction isn’t available</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.utils.train_utils.set_keras_session">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.utils.train_utils.</span></span><span class="sig-name descname"><span class="pre">set_keras_session</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gpu_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gpu_mem_frac</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.utils.train_utils.set_keras_session" title="Permalink to this definition"></a></dt>
+<dd><p>Set the Keras session</p>
+</dd></dl>
+
+</section>
+<section id="module-micro_dl.utils">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-micro_dl.utils" title="Permalink to this heading"></a></h2>
+<p>Module for utility functions</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="micro_dl.train.html" class="btn btn-neutral float-left" title="micro_dl.train module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, mehta-lab.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
