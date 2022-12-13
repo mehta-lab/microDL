@@ -1,7 +1,7 @@
 micro\_dl.networks module
 ==========================
 
-Subpackages
+Submodules
 -----------
 
 .. toctree::
