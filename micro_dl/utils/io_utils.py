@@ -997,17 +997,19 @@ class HCSZarrModifier(ZarrReader):
 
         position_metadata = self.get_position_meta(position)
         if meta_field_name in position_metadata:
-            ff_name = position_metadata[meta_field_name]["array_name"]
-            ff_channels = position_metadata[meta_field_name]["channel_ids"]
+            untracked_name = position_metadata[meta_field_name]["array_name"]
+            untracked_channels = position_metadata[meta_field_name]["channel_ids"]
         else:
             raise AttributeError(f"No metadata field found for {meta_field_name}.")
 
-        untracked_array = self.get_untracked_array(position=position, name=ff_name)
+        untracked_array = self.get_untracked_array(
+            position=position, name=untracked_name
+        )
 
         # untracked array might have collapsed indices
-        ff_channel_pos = ff_channels.index(channel_index)
+        untracked_channel_pos = untracked_channels.index(channel_index)
         untracked_array_slice = untracked_array[
-            time_index, ff_channel_pos, z_index, :, :
+            time_index, untracked_channel_pos, z_index, :, :
         ]
 
         return untracked_array_slice

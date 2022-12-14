@@ -200,7 +200,7 @@ def create_and_write_mask(
     metadata = {
         "array_name": mask_name,
         "masking_type": mask_type,
-        "input_channel_ids": channel_indices,
+        "channel_ids": channel_indices,
         "time_idx": time_indices,
         "foreground_fractions_by_timepoint": position_foreground_fractions,
     }

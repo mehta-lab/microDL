@@ -46,7 +46,7 @@ def flatfield_correct(zarr_dir, flatfield_channels, flatfield_slice_ids, block_s
     flatfield_inst.estimate_flat_field()
 
 
-def pre_process(preprocess_config):
+def pre_process(torch_config):
     """
     Preprocess data. Possible options are:
 
@@ -61,15 +61,14 @@ def pre_process(preprocess_config):
     custom metadata. Flatfields will be saved as an array tracked in custom
     metadata.
 
-    :param dict preprocess_config: dict with key options:
-    [input_dir, output_dir, slice_ids, time_ids, pos_ids
-    correct_flatfield, use_masks, masks, tile_stack, tile]
-    :param dict required_params: dict with commom params for all tasks
+    :param dict torch_config: 'master' torch config with subfields for all steps
+                            of data analysis
     :raises AssertionError: If 'masks' in preprocess_config contains both channels
      and mask_dir (the former is for generating masks from a channel)
     """
     time_start = time.time()
-    modifier = io_utils.HCSZarrModifier(zarr_file=preprocess_config["zarr_dir"])
+    modifier = io_utils.HCSZarrModifier(zarr_file=torch_config["zarr_dir"])
+    preprocess_config = torch_config["preprocessing"]
 
     # -----------------Estimate flat field images--------------------
 
@@ -101,7 +100,7 @@ def pre_process(preprocess_config):
 
         # estimate flatfields
         flatfield_correct(
-            zarr_dir=preprocess_config["zarr_dir"],
+            zarr_dir=torch_config["zarr_dir"],
             flatfield_channels=flatfield_channels,
             flatfield_slice_ids=flatfield_slices,
             block_size=flatfield_block_size,
@@ -126,14 +125,14 @@ def pre_process(preprocess_config):
             norm_block_size = normalize_config["block_size"]
 
         # validate
-        if normalize_config["scheme"] not in {"dataset", "fov", "tile"}:
+        if normalize_config["scheme"] not in {"dataset", "FOV", "tile"}:
             raise ValueError(
                 f"Normalization scheme {normalize_config['scheme']}",
-                f" must be one of {['dataset', 'fov', 'tile']}",
+                f" must be one of {['dataset', 'FOV', 'tile']}",
             )
 
         meta_utils.generate_normalization_metadata(
-            zarr_dir=preprocess_config["zarr_dir"],
+            zarr_dir=torch_config["zarr_dir"],
             num_workers=norm_num_workers,
             channel_ids=norm_channel_ids,
             grid_spacing=norm_block_size,
@@ -180,7 +179,7 @@ def pre_process(preprocess_config):
 
         # generate masks
         mask_generator = MaskProcessor(
-            zarr_dir=preprocess_config["zarr_dir"],
+            zarr_dir=torch_config["zarr_dir"],
             channel_ids=mask_channel_ids,
             time_ids=mask_time_ids,
             pos_ids=mask_pos_ids,
@@ -199,6 +198,6 @@ def pre_process(preprocess_config):
 
 if __name__ == "__main__":
     args = parse_args()
-    preprocess_config = aux_utils.read_config(args.config)
-    runtime = pre_process(preprocess_config)
+    torch_config = aux_utils.read_config(args.config)
+    runtime = pre_process(torch_config)
     print(f"Preprocessing complete. Runtime: {runtime:.2f} seconds")

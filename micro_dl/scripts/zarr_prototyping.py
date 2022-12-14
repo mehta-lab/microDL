@@ -26,7 +26,9 @@ from micro_dl.utils.meta_utils import generate_normalization_metadata
 # )
 # zarr_dir = "/hpc/projects/CompMicro/rawdata/hummingbird/Janie/2022_03_15_orgs_nuc_mem_63x_04NA/all_21_3.zarr"
 # zarr_dir = "/hpc/projects/CompMicro/projects/virtualstaining/torch_microDL/data/2022_11_01_VeroMemNuclStain/output.zarr"
-zarr_dir = "/home/christian.foley/virtual_staining/data_visualization/A549PhaseFLDeconvolution_63X_pos0.zarr"
+# zarr_dir = "/home/christian.foley/virtual_staining/data_visualization/A549PhaseFLDeconvolution_63X_pos0.zarr"
+zarr_dir = "/hpc/projects/CompMicro/projects/virtualstaining/torch_microDL/data/2022_11_01_VeroMemNuclStain/output.zarr"
+
 reader = io_utils.ZarrReader(zarrfile=zarr_dir)
 modifier = io_utils.HCSZarrModifier(zarr_file=zarr_dir, enable_creation=True)
 
@@ -44,7 +46,6 @@ modifier.get_position_meta(0)
 # %%
 print("\nCalculating normalization statistics:")
 generate_normalization_metadata(zarr_dir=zarr_dir, channel_ids=-1, num_workers=1)
-
 modifier.get_position_meta(0)
 
 # %%
@@ -59,10 +60,8 @@ mask_generator = MaskProcessor(
     output_channel_index=4,
 )
 mask_generator.generate_masks()
-modifier.get_position_meta(0)
-
-# %%
-modifier.channel_names
+print(modifier.get_position_meta(0))
+print(modifier.channel_names)
 # %%
 print("\nGenerating masks and calculating foreground fraction:")
 mask_generator = MaskProcessor(
@@ -75,37 +74,37 @@ mask_generator = MaskProcessor(
     output_channel_index=3,
 )
 mask_generator.generate_masks()
-modifier.get_position_meta(0)
-# %%
-modifier.channel_names
-#%%
-preprocess_config = {
-    "zarr_dir": "/hpc/projects/CompMicro/projects/virtualstaining/torch_microDL/data/ome_zarr_reference_dataset/2551.zarr",
-    # "flatfield": {
-    #     "channel_ids": -1,
-    #     "slice_ids": -1,
-    #     "block_size": 32,
-    # },
-    # "normalize": {
-    #     "num_workers": 4,
-    #     "channel_ids": -1,
-    #     "block_size": 32,
-    #     "scheme": "fov"
-    # },
-    "masks": {
-        "channel_ids": -1,
-        "time_ids": -1,
-        "slice_ids": -1,
-        "num_workers": 4,
-        "thresholding_type": "unimodal",
-        "output_channel": None,
-        "structure_element_radius": 5,
-    },
-}
+print(modifier.get_position_meta(0))
+print(modifier.channel_names)
 
 #%%
 import micro_dl.cli.preprocess_script as preprocess_script
 
-# %%
+preprocess_config = {
+    "zarr_dir": "/hpc/projects/CompMicro/projects/virtualstaining/torch_microDL/data/2022_11_01_VeroMemNuclStain/output.zarr",
+    "preprocessing": {
+        "flatfield": {
+            "channel_ids": -1,
+            "slice_ids": -1,
+            "block_size": 32,
+        },
+        "normalize": {
+            "num_workers": 4,
+            "channel_ids": -1,
+            "block_size": 32,
+            "scheme": "fov",
+        },
+        "masks": {
+            "channel_ids": -1,
+            "time_ids": -1,
+            "slice_ids": -1,
+            "num_workers": 4,
+            "thresholding_type": "unimodal",
+            "output_channel": None,
+            "structure_element_radius": 5,
+        },
+    },
+}
 preprocess_script.pre_process(preprocess_config=preprocess_config)
+
 # %%

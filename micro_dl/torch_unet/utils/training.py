@@ -34,6 +34,8 @@ class TorchTrainer:
 
     def __init__(self, torch_config):
         self.torch_config = torch_config
+
+        self.zarr_dir = self.torch_config["zarr_dir"]
         self.network_config = self.torch_config["model"]
         self.training_config = self.torch_config["training"]
         self.dataset_config = self.torch_config["dataset"]
@@ -133,6 +135,7 @@ class TorchTrainer:
             workers = self.training_config["num_workers"]
 
         torch_data_container = ds.TorchDatasetContainer(
+            zarr_dir=self.zarr_dir,
             train_config=self.training_config,
             network_config=self.network_config,
             dataset_config=self.dataset_config,
@@ -429,6 +432,7 @@ class EarlyStopping:
         verbose=False,
         delta=0,
         trace_func=print,
+        save_model = True
     ):
         """
         Early stops the training if validation loss doesn't improve after a given patience.
@@ -455,6 +459,7 @@ class EarlyStopping:
         self.delta = delta
         self.trace_func = trace_func
         self.path = path
+        self.save_model = save_model
 
     def __call__(self, val_loss, model, epoch):
         """

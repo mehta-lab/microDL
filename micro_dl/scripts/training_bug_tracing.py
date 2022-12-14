@@ -22,12 +22,10 @@ config_2D = (
     "torch_config_2D.yml"
 )
 config_test = (
-    "/hpc/projects/CompMicro/projects/virtualstaining/torch_microDL/"
-    "config_files/2019_02_15_KidneyTissue_full_dataset/"
-    "11_02_2022_parameter_tuning/25D_Unet/z5_ret_actin/"
-    "Stack5_fltr16_256_do20_otus_masked_MAE_1chan_ret_actin_pix_iqr_norm_tf10_pt20_torch_config.yml"
+    "/hpc/projects/CompMicro/projects/virtualstaining/torch_microDL/config_files/2022_11_01_VeroMemNuclStain/"
+    "torch_config_25D.yml"
 )
-torch_config = aux_utils.read_config(config_25D)
+torch_config = aux_utils.read_config(config_test)
 
 # Instantiate training object
 trainer = train.TorchTrainer(torch_config)

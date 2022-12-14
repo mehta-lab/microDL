@@ -162,12 +162,14 @@ def apply_flat_field_correction(input_image, **kwargs):
     corrected_image = input_image.astype("float")
     if "flatfield_image" in kwargs:
         flat_field_im = kwargs["flatfield_image"]
+        flat_field_im += sys.float_info.epsilon  # prevent divide by zero
         if flat_field_im is not None:
             corrected_image = input_image.astype("float") / flat_field_im
     elif "flatfield_path" in kwargs:
         flatfield_path = kwargs["flatfield_path"]
         if flatfield_path is not None:
             flatfield_image = np.load(flatfield_path)
+            flatfield_image += sys.float_info.epsilon  # prevent divide by zero
             corrected_image = input_image.astype("float") / flatfield_image
     else:
         print("Incorrect kwargs: {}, returning input image".format(kwargs))

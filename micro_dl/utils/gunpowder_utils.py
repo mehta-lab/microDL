@@ -25,7 +25,7 @@ def gpsum(nodelist, verbose=True):
     while len(nodelist) > 0:
         pipeline += nodelist.pop(0)
         if verbose:
-            pipeline += nodes.LogNode(str(prefix))
+            pipeline += nodes.LogNode(str(prefix), time_nodes=verbose)
             prefix += 1
     return pipeline
 
@@ -68,6 +68,7 @@ def build_sources(zarr_store_dir, store_well_paths, arr_spec):
         array_types = store_well_paths[path]
 
         path_keys = [gp.ArrayKey(ar_type) for ar_type in array_types]
+
         if len(keys) == 0:
             keys = path_keys
         else:
@@ -78,16 +79,14 @@ def build_sources(zarr_store_dir, store_well_paths, arr_spec):
 
         dataset_dict = {}
         for i, key in enumerate(keys):
-            dataset_dict[key] = array_types[i]
+            dataset_dict[key] = os.path.join(path, array_types[i])
 
         spec_dict = {}
         for i, dataset_key in enumerate(keys):
             spec_dict[dataset_key] = arr_spec
 
         source = gp.ZarrSource(
-            filename=os.path.join(zarr_store_dir, path),
-            datasets=dataset_dict,
-            array_specs=spec_dict,
+            filename=zarr_store_dir, datasets=dataset_dict, array_specs=spec_dict
         )
 
         sources.append(source)
@@ -106,10 +105,11 @@ def multi_zarr_source(zarr_dir, array_name="*", array_spec=None, data_split={}):
     'arr_0_preprocessed' sources. This feature is only relevant if array_name matches
     multiple arrays in the specified zarr stores.
 
-    Note: The zarr stores in 'zarr_dir' must have the _same number of array types_. This is to
-    enable key sharing, which is necessary for the RandomProvider node to be able to utilize them.
+    Note: The zarr store in 'zarr_dir' must have the _same number of array types_. This is to
+    enable key sharing, which is necessary for the RandomProvider node to be able to utilize all
+    positions.
 
-    Note: The group hierarchy of the zarr arrays must follow the OME-NGFF zarr format. That
+    Note: The group hierarchy of the zarr arrays must follow the OME-NGFF HCS zarr format. That
     is:
     |-Root_dir
          |-Row_0
@@ -134,7 +134,7 @@ def multi_zarr_source(zarr_dir, array_name="*", array_spec=None, data_split={}):
     Notice that the depth here is 3 group orderings followed by array names. This is crucial
     for this function to work properly.
 
-    :param str zarr_dir: path to zarr directory.
+    :param str zarr_dir: path to HCS-compatible zarr store.
     :param str array_name: name of the data container at bottom level of zarr tree,
                             by default, accesses all containers
     :param gp.ArraySpec array_spec: specification for zarr datasets, defaults to None
@@ -151,11 +151,7 @@ def multi_zarr_source(zarr_dir, array_name="*", array_spec=None, data_split={}):
     """
 
     # generate the relative paths from each global parent directory
-    zarr_files = [
-        os.path.join(zarr_dir, fname)
-        for fname in os.listdir(zarr_dir)
-        if pathlib.Path(fname).suffix == ".zarr"
-    ]
+    zarr_files = [zarr_dir]
 
     zarr_stores = {}
     most_recent_array_types = {}
@@ -175,14 +171,14 @@ def multi_zarr_source(zarr_dir, array_name="*", array_spec=None, data_split={}):
             array_type = os.path.basename(os.path.normpath(path))
 
             # TODO maybe a safer way to do this string creation.
-            well_path = path.replace(zarr_fname + "/", "").replace(array_type, "")
+            well_path = path.replace(zarr_fname, "").replace(array_type, "")
 
             # map every well to the types that well contains
             array_types[array_type] = None
             if well_path in well_paths:
-                well_paths[well_path].extend(list(array_types))
+                well_paths[well_path].append(array_type)
             else:
-                well_paths[well_path] = list(array_types)
+                well_paths[well_path] = [array_type]
 
         zarr_stores[zarr_fname] = well_paths
 

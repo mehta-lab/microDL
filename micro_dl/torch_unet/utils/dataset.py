@@ -23,7 +23,13 @@ class TorchDatasetContainer(object):
     """
 
     def __init__(
-        self, train_config, network_config, dataset_config, device=None, workers=0
+        self,
+        zarr_dir,
+        train_config,
+        network_config,
+        dataset_config,
+        device=None,
+        workers=0,
     ):
         # TODO make necessary changes to configs to match structure implied in this module
         """
@@ -32,12 +38,13 @@ class TorchDatasetContainer(object):
 
         If acting as a container object:
         :param dict train_config: dict object of train_config
-        :param dict train_config: dict object of train_config
-        :param dict train_config: dict object of train_config
+        :param dict network_config: dict object of network_config
+        :param dict dataset_config: dict object of dataset_config
         :param str device: device on which to place tensors in child datasets,
                             by default, places on 'cuda'
         :param int workers: number of cpu workers for simultaneous data fetching
         """
+        self.zarr_dir = zarr_dir
         self.train_config = train_config
         self.network_config = network_config
         self.dataset_config = dataset_config
@@ -52,10 +59,9 @@ class TorchDatasetContainer(object):
             self.val_source,
             self.dataset_keys,
         ) = gp_utils.multi_zarr_source(
-            zarr_dir=self.dataset_config["data_dir"],  # TODO config change
-            array_name=self.dataset_config["array_name"],  # TODO config change
+            zarr_dir=self.zarr_dir,  # TODO config change
             array_spec=array_spec,
-            data_split=self.dataset_config["split_ratio"],  # TODO config change
+            data_split=self.dataset_config["split_ratio"],
         )
         try:
             assert len(self.test_source) > 0
@@ -66,6 +72,28 @@ class TorchDatasetContainer(object):
                 f"All datasets must have at least one source node / zarr store,"
                 f" not enough source arrays found.\n {e.args}"
             )
+
+        # extract special keytypes
+        self.flatfield_key = None
+        for key in self.dataset_keys.copy():
+            if key.identifier == "flatfield":
+                self.flatfield_key = key
+                self.dataset_keys.remove(self.flatfield_key)
+                break
+
+        self.mask_key = None
+        mask_key_identifier = ""
+        if "mask_type" in dataset_config:
+            mask_key_identifier = "_".join(["mask", dataset_config["mask_type"]])
+
+        for key in self.dataset_keys.copy():
+            if key.identifier == mask_key_identifier:
+                self.mask_key = key
+                self.dataset_keys.remove(self.mask_key)
+            elif "mask" in key.identifier:
+                self.dataset_keys.remove(key)
+        if "mask_type" in dataset_config and self.mask_key == None:
+            raise ValueError(f"Specified mask type's corresponding array not found")
 
         # build augmentation nodes
         train_aug_nodes = []
@@ -84,12 +112,26 @@ class TorchDatasetContainer(object):
                 train_config["augmentations"], self.dataset_keys
             )
 
-        # assign each source subset to a child dataset object
-        self.train_dataset = self.init_torch_dataset(self.train_source, train_aug_nodes)
-        self.test_dataset = self.init_torch_dataset(self.test_source, test_aug_nodes)
-        self.val_dataset = self.init_torch_dataset(self.val_source, val_aug_nodes)
+        # set up epoch length for each dataset type
+        train_epoch_length = self.train_config["samples_per_epoch"]
+        train_fraction = self.dataset_config["split_ratio"]["train"]
+        total = train_epoch_length // train_fraction
 
-    def init_torch_dataset(self, source, augmentation_nodes):
+        test_epoch_length = int(self.dataset_config["split_ratio"]["test"] * total)
+        val_epoch_length = int(self.dataset_config["split_ratio"]["val"] * total)
+
+        # assign each source subset to a child dataset object
+        self.train_dataset = self.init_torch_dataset(
+            self.train_source, train_aug_nodes, train_epoch_length
+        )
+        self.test_dataset = self.init_torch_dataset(
+            self.test_source, test_aug_nodes, test_epoch_length
+        )
+        self.val_dataset = self.init_torch_dataset(
+            self.val_source, val_aug_nodes, val_epoch_length
+        )
+
+    def init_torch_dataset(self, source, augmentation_nodes, dataset_epoch_length):
         """
         Initializes a torch dataset to sample 'source' through the given
         augmentations 'augmentations'.
@@ -97,25 +139,29 @@ class TorchDatasetContainer(object):
         :param tuple(gp.ZarrSource) source: tuple of source nodes representing the
                                             dataset sample space
         :param list augmentation_nodes: list of augmentation nodes in order
+        :param int dataset_epoch_length: length of epoch for this dataset.
         """
         # NOTE: not passing the whole dataset config is a design choice here. The
         # elements of the config are a black box until theyre indexed. I do this
         # to make them more readable. This can change with PyDantic later
         dataset = TorchDataset(
+            # gunpowder params
             data_source=source,
             augmentation_nodes=augmentation_nodes,
             data_keys=self.dataset_keys,
-            batch_size=self.dataset_config["batch_size"],  # TODO config change
-            epoch_length=self.train_config["samples_per_epoch"],
-            target_channel_idx=tuple(
-                self.dataset_config["target_channels"]
-            ),  # TODO config change
-            input_channel_idx=tuple(
-                self.dataset_config["input_channels"]
-            ),  # TODO config change
-            spatial_window_size=tuple(
-                self.dataset_config["window_size"]
-            ),  # TODO config change
+            # preprocessing node params
+            mask_key=self.mask_key,
+            flatfield_key=self.flatfield_key,
+            normalization_scheme=self.dataset_config["normalization"]["scheme"],
+            normalization_type=self.dataset_config["normalization"]["type"],
+            min_foreground_fraction=self.dataset_config["min_foreground_fraction"],
+            flatfield_correct=self.dataset_config["flatfield_correct"],
+            # dataloading params
+            batch_size=self.dataset_config["batch_size"],
+            epoch_length=dataset_epoch_length,
+            target_channel_idx=tuple(self.dataset_config["target_channels"]),
+            input_channel_idx=tuple(self.dataset_config["input_channels"]),
+            spatial_window_size=tuple(self.dataset_config["window_size"]),
             device=self.device,
             workers=self.workers,
         )
@@ -161,6 +207,12 @@ class TorchDataset(Dataset):
         data_source,
         augmentation_nodes,
         data_keys,
+        mask_key,
+        flatfield_key,
+        normalization_scheme,
+        normalization_type,
+        min_foreground_fraction,
+        flatfield_correct,
         batch_size,
         epoch_length,
         target_channel_idx,
@@ -177,6 +229,14 @@ class TorchDataset(Dataset):
         :param list augmentation_nodes: list of augmentation nodes in order
         :param tuple data_source: tuple of gp.Source nodes which the given pipeline draws samples
         :param list data_keys: list of gp.ArrayKey objects which access the given source
+        :param gp.ArrayKey mask_key: key to untracked mask array in source node, if applicable
+        :param gp.ArrayKey flatfield_key: key to untracked flatfield array in source note, if
+                                    applicable
+        :param str normalization_scheme: see name, one of {"dataset", "FOV", "tile"}
+        :param str normalization_type: see name, one of {"median_and_iqr", "mean_and_std"}
+        :param float min_foreground_fraction: minimum foreground required to be present in sample
+                                    for region to be selected, must be within [0, 1]
+        :param bool flatfield_correct: whether or not to flatfield correct
         :param int batch_size: number of samples per batch
         :param tuple(int) target_channel_idx: indices of target channel(s) within zarr store
         :param tuple(int) input_channel_idx: indices of input channel(s) within zarr store
@@ -184,12 +244,18 @@ class TorchDataset(Dataset):
                                     2D network, expects 2D tuple; dimensions yx
                                     2.5D network, expects 3D tuple; dimensions zyx
         :param str device: device on which to place tensors in child datasets,
-                            by default, places on 'cuda'
+                                    by default, places on 'cuda'
         :param int workers: number of simultaneous threads reading data into batch requests
         """
         self.data_source = data_source
         self.augmentation_nodes = augmentation_nodes
         self.data_keys = data_keys
+        self.mask_key = mask_key
+        self.flatfield_key = flatfield_key
+        self.normalization_scheme = normalization_scheme
+        self.normalization_type = normalization_type
+        self.min_foreground_fraction = min_foreground_fraction
+        self.flatfield_correct = flatfield_correct
         self.batch_size = batch_size
         self.epoch_length = epoch_length
         self.target_idx = target_channel_idx
@@ -197,31 +263,27 @@ class TorchDataset(Dataset):
         self.window_size = spatial_window_size
         self.device = device
         self.active_key = 0
-        self.workers = workers - 1
+        self.workers = max(1, workers - 1)
 
-        # safety checks: iterate through keys and data sources to ensure that they match
-        voxel_size = None
-        for key in self.data_keys:
-            for i, source in enumerate(self.data_source):
-                try:
-                    assert len(source.array_specs) == len(
-                        self.data_keys
-                    ), f"number of keys {len(self.data_keys)} does not match number"
-                    f" of array specs {len(source.array_specs)}"
-
-                    # check that all voxel sizes are the same
-                    array_spec = source.array_specs[key]
-                    if not voxel_size:
-                        voxel_size = array_spec.voxel_size
-                    else:
-                        assert (
-                            voxel_size == array_spec.voxel_size
-                        ), f"Voxel size of array {array_spec.voxel_size} does not match"
-                        f" voxel size of previous array {voxel_size}."
-                except Exception as e:
-                    raise AssertionError(
-                        f"Error matching keys to source in dataset: {e.args}"
-                    )
+        # # safety checks: iterate through keys and data sources to ensure that they match
+        # voxel_size = None
+        # for key in self.data_keys:
+        #     if not ("flatfield" in key.identifier or "mask" in key.identifier):
+        #         for i, source in enumerate(self.data_source):
+        #             try:
+        #                 # check that all voxel sizes are the same
+        #                 array_spec = source.array_specs[key]
+        #                 if not voxel_size:
+        #                     voxel_size = array_spec.voxel_size
+        #                 else:
+        #                     assert (
+        #                         voxel_size == array_spec.voxel_size
+        #                     ), f"Voxel size of array {array_spec.voxel_size} does not match"
+        #                     f" voxel size of previous array {voxel_size}."
+        #             except Exception as e:
+        #                 raise AssertionError(
+        #                     f"Error matching keys to source in dataset: {e.args}"
+        #                 )
 
         # calculate epoch length: if no epoch length specified, set according to data size
         if self.epoch_length == 0 or self.epoch_length == None:
@@ -247,22 +309,31 @@ class TorchDataset(Dataset):
             self.epoch_length = self.epoch_length // self.batch_size
 
         # construct pipeline: generate batch request, construct nodes, make iterable
-        assert len(self.window_size) == len(voxel_size), (
-            f"Incompatible voxel size {voxel_size}. "
-            f"Must be same length as spatial_window_size {self.window_size}"
-        )
+        # assert len(self.window_size) == len(voxel_size), (
+        #     f"Incompatible voxel size {voxel_size}. "
+        #     f"Must be same length as spatial_window_size {self.window_size}"
+        # )
 
         batch_request = gp.BatchRequest()
         for key in self.data_keys:
             batch_request[key] = gp.Roi((0,) * len(self.window_size), self.window_size)
             # NOTE: the keymapping we are performing here makes it so that if
-            # we DO end up generating multiple arrays at the group level
+            # we DO end up generating multiple arrays at the position/well level
             # (for example one with and without flatfield correction), we can
             # access all of them by requesting that key. The index we request
             # in __getitem__ ends up being the index of our key.
+        if self.flatfield_key:
+            batch_request[self.flatfield_key] = gp.Roi(
+                (0,) * len(self.window_size), tuple([1] + list(self.window_size[1:]))
+            )
+        if self.mask_key:
+            batch_request[self.mask_key] = gp.Roi(
+                (0,) * len(self.window_size), self.window_size
+            )
         self.batch_request = batch_request
 
         # build our pipeline and the generator structure that uses it
+        self.preprocessing_nodes = self._generate_preprocessing_nodes()
         self.pipeline = self._build_pipeline()
         self.batch_generator = self._generate_batches()
 
@@ -302,7 +373,7 @@ class TorchDataset(Dataset):
         # stack multiple channels
         full_input = []
         for idx in self.input_idx:  # assumes bczyx or bcyx
-            channel_input = sample_data[:, idx - 1, ...]
+            channel_input = sample_data[:, idx, ...]
             full_input.append(channel_input)
         full_input = np.stack(full_input, 1)
 
@@ -363,12 +434,17 @@ class TorchDataset(Dataset):
         if isinstance(source, tuple):
             source = [source, gp.RandomProvider()]
         source = source + [gp.RandomLocation()]
+        if self.min_foreground_fraction and self.mask_key:
+            source = source + [
+                gp.Reject(
+                    mask=self.mask_key,
+                    min_masked=self.min_foreground_fraction,
+                ),
+                custom_nodes.PrepMaskRoi(self.data_keys, self.mask_key),
+            ]
 
         # ---- Preprocessing Nodes ----#
-        # TODO implement preprocessing nodes
-        # source = source + [custom_nodes.Register()]
-        # source = source + [custom_nodes.Normalize()]
-        # source = source + [custom_nodes.FlatFieldCorrect()]
+        source = source + self.preprocessing_nodes
 
         # ---- Batch Creation Nodes ----#
         batch_creation = []
@@ -402,6 +478,31 @@ class TorchDataset(Dataset):
         with gp.build(self.pipeline):
             while True:
                 yield self.pipeline.request_batch(self.batch_request)
+
+    def _generate_preprocessing_nodes(self):
+        """
+        Returns a list of preprocessing nodes configured according to the current state of
+        this object.
+
+        :return list preprocessing_nodes: see name
+        """
+        preprocessing_nodes = []
+
+        if self.flatfield_key and self.flatfield_correct:
+            flatfield_correct = custom_nodes.FlatFieldCorrect(
+                array=self.data_keys, flatfield=self.flatfield_key
+            )
+            preprocessing_nodes.append(flatfield_correct)
+
+        if self.normalization_scheme and self.normalization_type:
+            normalize = custom_nodes.Normalize(
+                array=self.data_keys,
+                scheme=self.normalization_scheme,
+                type=self.normalization_type,
+            )
+            preprocessing_nodes.append(normalize)
+
+        return preprocessing_nodes
 
 
 class ToTensor(object):

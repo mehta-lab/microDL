@@ -25,44 +25,109 @@ class TestDataset(unittest.TestCase):
         """
         # generate configuration data
         self.temp = "temp_dir"
+        self.augmentations = {
+            "transpose": {
+                "transpose_only": [1, 2],
+            },
+            "mirror": {
+                "mirror_only": [1, 2],
+            },
+            "rotate": {
+                "rotation_interval": [0, 3.14],
+            },
+            "zoom": {
+                "scale_interval": [0.7, 1.3],
+            },
+            "blur": {
+                "mode": "gaussian",
+                "width_range": [3, 7],
+                "sigma": 0.1,
+                "prob": 0.2,
+                "blur_channels": [0],
+            },
+            "shear": {
+                "angle_range": [0.31574673, 0.31574674],
+                "prob": 0.2,
+                "shear_middle_slice_only": [1, 2],
+            },
+            "intensity_jitter": {
+                "mode": "gaussian",
+                "scale_range": [0.7, 1.3],
+                "shift_range": [-0.15, 0.15],
+                "norm_before_shift": True,
+                "jitter_demeaned": True,
+                "prob": 0.2,
+            },
+            "noise": {
+                "mode": "gaussian",
+                "seed": 14156,
+                "clip": True,
+                "prob": 0.2,
+                "noise_channels": [0],
+            },
+        }
         self.train_config_batch = {
-            "data_dir": self.temp,
-            "array_name": "arr_0",
-            # "augmentations": None #TODO implement
+            "augmentations": self.augmentations,
             "batch_size": 5,
             "split_ratio": {
                 "train": 0.66,
                 "test": 0.17,
                 "val": 0.17,
             },
+            "samples_per_epoch": 30,
         }
         self.train_config_single = {
-            "data_dir": self.temp,
-            "array_name": "arr_0",
-            # "augmentations": None #TODO implement
+            "augmentations": self.augmentations,
             "batch_size": 1,
             "split_ratio": {
                 "train": 0.66,
                 "test": 0.17,
                 "val": 0.17,
             },
+            "samples_per_epoch": 30,
         }
         self.all_train_configs = [self.train_config_batch, self.train_config_single]
 
         self.network_config_2d = {"architecture": "2D", "debug_mode": False}
         self.network_config_25d = {"architecture": "2.5D", "debug_mode": False}
-        self.all_network_configs = [self.network_config_2d, self.network_config_25d]
+        self.all_network_configs = [self.network_config_25d]  # self.network_config_2d,
         self.dataset_config_2d = {
+            "array_name": "arr_0",
             "target_channels": [1],
             "input_channels": [0],
             "window_size": (256, 256),
+            "normalization": {
+                "scheme": "FOV",
+                "type": "median_and_iqr",
+            },
+            "min_foreground_fraction": 0.2,
+            "flatfield_correct": True,
+            "batch_size": 16,
+            "split_ratio": {
+                "test": 0.15,
+                "train": 0.7,
+                "val": 0.15,
+            },
         }
         self.dataset_config_25d = {
+            "array_name": "arr_0",
             "target_channels": [1],
             "input_channels": [0, 2],
             "window_size": (3, 256, 256),
+            "normalization": {
+                "scheme": "FOV",
+                "type": "median_and_iqr",
+            },
+            "min_foreground_fraction": 0.2,
+            "flatfield_correct": True,
+            "batch_size": 16,
+            "split_ratio": {
+                "test": 0.15,
+                "train": 0.7,
+                "val": 0.15,
+            },
         }
-        self.all_dataset_configs = [self.dataset_config_2d, self.dataset_config_25d]
+        self.all_dataset_configs = [self.dataset_config_25d]  # self.dataset_config_2d,
 
     def tearDown(self):
         """
@@ -72,7 +137,8 @@ class TestDataset(unittest.TestCase):
         if os.path.exists(self.temp):
             shutil.rmtree(self.temp)
 
-    def build_zarr_store(self, temp, arr_spatial, num_stores=6):
+    def build_zarr_store(self, temp, arr_spatial, num_stores=1):
+        # TODO rewrite using io_utils.
         """
         Builds a test zarr store conforming to OME-NGFF Zarr format with 5d arrays
         in the directory 'temp'
@@ -136,7 +202,8 @@ class TestDataset(unittest.TestCase):
         # build stores
         self.groups = []
         for i in range(num_stores):
-            store = zarr.DirectoryStore(os.path.join(temp, f"example_{i}.zarr"))
+            store_path = os.path.join(temp, f"example_{i}.zarr")
+            store = zarr.DirectoryStore(store_path)
             g1 = zarr.group(store=store, overwrite=True)
             self.groups.append(g1)
 
@@ -144,6 +211,7 @@ class TestDataset(unittest.TestCase):
             arr_channels = self.num_channels
 
             recurse_helper(g1, ["Row", "Col", "Pos", "arr"], 3, 3)
+        self.zarr_dir = store_path
 
     def _test_basic_functionality(self):
         """
@@ -160,6 +228,7 @@ class TestDataset(unittest.TestCase):
         """
         try:
             torch_container = dataset_utils.TorchDatasetContainer(
+                self.zarr_dir,
                 self.train_config,
                 self.network_config,
                 self.dataset_config,
