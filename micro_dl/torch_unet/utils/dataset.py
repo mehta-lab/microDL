@@ -264,6 +264,7 @@ class TorchDataset(Dataset):
         self.device = device
         self.active_key = 0
         self.workers = max(1, workers - 1)
+        self.random_sampling = True
 
         # # safety checks: iterate through keys and data sources to ensure that they match
         # voxel_size = None
@@ -430,10 +431,13 @@ class TorchDataset(Dataset):
         """
         # ---- Sourcing Nodes ----#
         # if source is multi_zarr_source, attach a RandomProvider
-        source = self.data_source
-        if isinstance(source, tuple):
-            source = [source, gp.RandomProvider()]
-        source = source + [gp.RandomLocation()]
+        if self.random_sampling:
+            source = self.data_source
+            if isinstance(source, tuple):
+                source = [source, gp.RandomProvider()]
+            source = source + [gp.RandomLocation()]
+        else:
+            source = self.data_source[0]
         if self.min_foreground_fraction and self.mask_key:
             source = source + [
                 gp.Reject(

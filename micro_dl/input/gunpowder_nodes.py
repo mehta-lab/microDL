@@ -837,6 +837,7 @@ class NoiseAugment(gp.BatchFilter):
         seed=None,
         clip=True,
         prob=1,
+        var=0.01,
         **kwargs,
     ):
         """
@@ -846,7 +847,7 @@ class NoiseAugment(gp.BatchFilter):
 
         Assumes channel dim is the last non-spatial dimension.
 
-        :param gp.ArrayKey array: key to array to perform jittering on. If no key provided,
+        :param gp.ArrayKey array: key to array to perform noising on. If no key provided,
                                 applies to all key:data pairs in request.
         :param str mode: type of noise to apply. see skimage.util.randomnoise
         :param tuple(int) noise_channels: noise only these channels in channel dimension,
@@ -855,6 +856,7 @@ class NoiseAugment(gp.BatchFilter):
         :param bool clip: Whether to preserve the image range after adding noise or
                             not, (note: noise will be scaled to image intensity values)
         :param float prob: probability of applying noise
+        :param float var: variance of noise. Used in gaussian and speckle
         """
 
         self.array_key = array
@@ -864,6 +866,7 @@ class NoiseAugment(gp.BatchFilter):
         self.clip = clip
         self.prob = prob
         self.kwargs = kwargs
+        self.var = var
 
         if noise_channels == None:
             Warning(
@@ -939,6 +942,7 @@ class NoiseAugment(gp.BatchFilter):
             mode=self.mode,
             seed=self.seed,
             clip=self.clip,
+            var=self.var,
             **self.kwargs,
         ).astype(a.dtype)
 

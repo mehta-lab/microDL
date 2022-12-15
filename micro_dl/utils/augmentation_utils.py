@@ -312,6 +312,10 @@ class AugmentationNodeBuilder:
         if "prob" in self.noise_aug_params:
             prob = self.noise_aug_params["prob"]
 
+        var = 0.01
+        if "variance" in self.noise_aug_params:
+            var = self.noise_aug_params["variance"]
+
         noise_augment = custom_nodes.NoiseAugment(
             array=self.noise_aug_params["noise_array_key"],
             mode=mode,
@@ -319,6 +323,7 @@ class AugmentationNodeBuilder:
             seed=seed,
             clip=clip,
             prob=prob,
+            var=var,
         )
 
         return noise_augment
