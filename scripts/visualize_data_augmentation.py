@@ -1,3 +1,4 @@
+# %%
 import cv2
 import numpy as np
 import pandas as pd
@@ -164,6 +165,7 @@ def save_slice(save_file, slice, matplotlib):
         raise ValueError("Only '.png', '.tif', and '.npy' extensions supported.")
 
 
+__name__ = "afa"
 if __name__ == "__main__":
     args = parse_args()
     save_dir = (
@@ -193,3 +195,31 @@ if __name__ == "__main__":
     visualize_dataloading(torch_config, raw_save_dir, save_type, extension)
 
     print(f"Done. Time taken: {time.time() - start}")
+# %%
+save_dir = "/hpc/projects/CompMicro/projects/virtualstaining/torch_microDL/data_visualization/augmentation_test_12_14/"
+extension = ".png"
+save_type = "plot_group"
+torch_config = aux_utils.read_config(
+    "/hpc/projects/CompMicro/projects/virtualstaining/torch_microDL/config_files/2022_11_01_VeroMemNuclStain/data_visualization_12_13/torch_config_25D_all_augmentations.yml"
+)
+start = time.time()
+
+# setup save locations for both samples
+augmented_save_dir = os.path.join(save_dir, "augmented")
+raw_save_dir = os.path.join(save_dir, "raw")
+
+# visualize augmented data
+print(
+    f"Visualizing augmented data, saving as {extension} files"
+    f" in {augmented_save_dir}..."
+)
+visualize_dataloading(torch_config, augmented_save_dir, save_type, extension)
+
+# visualize raw data
+print(f"Visualizing raw data, saving as {extension} files" f" in {raw_save_dir}...")
+torch_config["training"].pop("augmentations")
+visualize_dataloading(torch_config, raw_save_dir, save_type, extension)
+
+print(f"Done. Time taken: {time.time() - start}")
+
+# %%

@@ -157,6 +157,7 @@ class TorchDatasetContainer(object):
             min_foreground_fraction=self.dataset_config["min_foreground_fraction"],
             flatfield_correct=self.dataset_config["flatfield_correct"],
             # dataloading params
+            data_dimensionality=self.network_config["architecture"],
             batch_size=self.dataset_config["batch_size"],
             epoch_length=dataset_epoch_length,
             target_channel_idx=tuple(self.dataset_config["target_channels"]),
@@ -213,6 +214,7 @@ class TorchDataset(Dataset):
         normalization_type,
         min_foreground_fraction,
         flatfield_correct,
+        data_dimensionality,
         batch_size,
         epoch_length,
         target_channel_idx,
@@ -237,6 +239,8 @@ class TorchDataset(Dataset):
         :param float min_foreground_fraction: minimum foreground required to be present in sample
                                     for region to be selected, must be within [0, 1]
         :param bool flatfield_correct: whether or not to flatfield correct
+        :param str data_dimensionality: whether to collapse the first channel of 3d data,
+                                    one of {2D, 2.5D}
         :param int batch_size: number of samples per batch
         :param tuple(int) target_channel_idx: indices of target channel(s) within zarr store
         :param tuple(int) input_channel_idx: indices of input channel(s) within zarr store
@@ -256,6 +260,7 @@ class TorchDataset(Dataset):
         self.normalization_type = normalization_type
         self.min_foreground_fraction = min_foreground_fraction
         self.flatfield_correct = flatfield_correct
+        self.data_dimensionality = data_dimensionality
         self.batch_size = batch_size
         self.epoch_length = epoch_length
         self.target_idx = target_channel_idx
@@ -266,25 +271,25 @@ class TorchDataset(Dataset):
         self.workers = max(1, workers - 1)
         self.random_sampling = True
 
-        # # safety checks: iterate through keys and data sources to ensure that they match
-        # voxel_size = None
-        # for key in self.data_keys:
-        #     if not ("flatfield" in key.identifier or "mask" in key.identifier):
-        #         for i, source in enumerate(self.data_source):
-        #             try:
-        #                 # check that all voxel sizes are the same
-        #                 array_spec = source.array_specs[key]
-        #                 if not voxel_size:
-        #                     voxel_size = array_spec.voxel_size
-        #                 else:
-        #                     assert (
-        #                         voxel_size == array_spec.voxel_size
-        #                     ), f"Voxel size of array {array_spec.voxel_size} does not match"
-        #                     f" voxel size of previous array {voxel_size}."
-        #             except Exception as e:
-        #                 raise AssertionError(
-        #                     f"Error matching keys to source in dataset: {e.args}"
-        #                 )
+        # safety checks: iterate through keys and data sources to ensure that they match
+        voxel_size = None
+        for key in self.data_keys:
+            # check that all data voxel sizes are the same, exclude masks and flatfields
+            if not ("flatfield" in key.identifier or "mask" in key.identifier):
+                for i, source in enumerate(self.data_source):
+                    try:
+                        array_spec = source.array_specs[key]
+                        if not voxel_size:
+                            voxel_size = array_spec.voxel_size
+                        else:
+                            assert (
+                                voxel_size == array_spec.voxel_size
+                            ), f"Voxel size of array {array_spec.voxel_size} does not match"
+                            f" voxel size of previous array {voxel_size}."
+                    except Exception as e:
+                        raise AssertionError(
+                            f"Error matching keys to source in dataset: {e.args}"
+                        )
 
         # calculate epoch length: if no epoch length specified, set according to data size
         if self.epoch_length == 0 or self.epoch_length == None:
@@ -310,10 +315,14 @@ class TorchDataset(Dataset):
             self.epoch_length = self.epoch_length // self.batch_size
 
         # construct pipeline: generate batch request, construct nodes, make iterable
-        # assert len(self.window_size) == len(voxel_size), (
-        #     f"Incompatible voxel size {voxel_size}. "
-        #     f"Must be same length as spatial_window_size {self.window_size}"
-        # )
+        assert len(self.window_size) == 3, (
+            f"Window size {self.window_size} must be 3-dimensional. If 2D data, "
+            "desired, make the first dimension of window size 1; (1, X, Y)."
+        )
+        assert len(self.window_size) == len(voxel_size), (
+            f"Incompatible voxel size {voxel_size}. "
+            f"Must be same length as spatial_window_size {self.window_size}"
+        )
 
         batch_request = gp.BatchRequest()
         for key in self.data_keys:
@@ -368,8 +377,10 @@ class TorchDataset(Dataset):
         # NOTE We assume the .zarr ALWAYS has an extra batch channel.
         # SO, 3d -> 5d data, 2d -> 4d data
 
-        # remove extra dimension from stack node
+        # remove extra dimension from stack node, if 2d remove z dimension
         sample_data = sample_data[:, 0, ...]
+        if self.window_size[0] == 1 and self.data_dimensionality == "2D":
+            sample_data = sample_data[..., 0, :, :]
 
         # stack multiple channels
         full_input = []

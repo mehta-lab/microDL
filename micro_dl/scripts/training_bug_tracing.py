@@ -23,7 +23,7 @@ config_2D = (
 )
 config_test = (
     "/hpc/projects/CompMicro/projects/virtualstaining/torch_microDL/config_files/2022_11_01_VeroMemNuclStain/"
-    "torch_config_25D.yml"
+    "gunpowder_testing_12_13/torch_config_25D.yml"
 )
 torch_config = aux_utils.read_config(config_test)
 
