@@ -3,11 +3,14 @@ import gunpowder as gp
 import os
 import pathlib
 import random
+import re
+import zarr
 
 from matplotlib import test
 
 import micro_dl.input.gunpowder_nodes as nodes
 import micro_dl.utils.augmentation_utils as aug_utils
+import micro_dl.utils.io_utils as io_utils
 
 
 def gpsum(nodelist, verbose=True):
@@ -92,6 +95,41 @@ def build_sources(zarr_store_dir, store_well_paths, arr_spec):
         sources.append(source)
 
     return sources, keys
+
+
+def get_zarr_source_position(zarr_source):
+    """
+    Gets the position that this zarr_source refers to
+
+    For context, this requires that all datasets inside this zarr_source refer to the
+    same position
+
+    This method retrieves the position by scraping the path. It assumes that the
+    postion name in the path is numbered, and that the number is the position:
+
+        '/..plate_name../..well_name../Pos_<position_number_as_int>/...arr_name...'
+
+    :param gp.ZarrSource zarr_source: source that refers to a single position in an
+                                HCS compatible zarr store
+    """
+    zarr_dir = zarr_source.filename
+    modifier = io_utils.HCSZarrModifier(zarr_file=zarr_dir, enable_creation=False)
+
+    source_position = ""
+    for key in zarr_source.datasets:
+        path = zarr_source.datasets[key]
+
+        position = list(map(int, re.findall(r"\d+", path)))[-2]
+        if isinstance(source_position, str):
+            source_position = position
+
+        assert source_position == position, (
+            "Found two datasets with different positions",
+            f"in the same source: {position} and {source_position}",
+        )
+        source_position = position
+
+    return source_position
 
 
 def multi_zarr_source(zarr_dir, array_name="*", array_spec=None, data_split={}):
@@ -233,6 +271,17 @@ def multi_zarr_source(zarr_dir, array_name="*", array_spec=None, data_split={}):
         train_source = tuple(all_sources[0:train_idx])
         test_source = tuple(all_sources[train_idx:test_idx])
         val_source = tuple(all_sources[test_idx:val_idx])
+
+        # record the positions of each source with their data split
+        position_metadata = {}
+        split = ["train", "test", "val"]
+        for i, source_list in enumerate([train_source, test_source, val_source]):
+            source_split = split[i]
+            positions = list(map(get_zarr_source_position, source_list))
+            position_metadata[split[i]] = positions
+        plate_level_store = zarr.open(zarr_dir, mode="a")
+        plate_level_store.attrs.update({"data_split_positions": position_metadata})
+
         return train_source, test_source, val_source, all_keys
     else:
         source = tuple(all_sources)
