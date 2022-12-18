@@ -18,9 +18,14 @@ import micro_dl.utils.meta_utils as meta_utils
 
 
 def parse_args():
-    """Parse command line arguments
-
+    """
+    Parse command line arguments
     In python namespaces are implemented as dictionaries
+    The preprocess_cli script takes as input a path to a configuration yaml file.
+    For examples of preprocessing config files in 2.5D and 2D, see:
+    https://github.com/mehta-lab/microDL/blob/main/config_files/Preprocessing-config_2.5DUnet_regression_phase2membrane.yml
+    https://github.com/mehta-lab/microDL/blob/main/config_files/Preprocessing-config_2DUnet_regression_phase2nucleus.yml
+
     :return: namespace containing the arguments passed.
     """
     parser = argparse.ArgumentParser()
@@ -169,7 +174,9 @@ def resize_images(required_params,
                   num_slices_subvolume,
                   resize_3d,
                   flat_field_dir):
-    """Resample images first
+    """
+    Resamples images by a scale factor for either 2D or 3D images
+    using bilinear interpolation.
 
     :param dict required_params: dict with keys: input_dir, output_dir, time_ids,
      channel_ids, pos_ids, slice_ids, int2strlen, uniform_struct, num_workers
@@ -223,7 +230,7 @@ def generate_masks(required_params,
                    mask_dir=None,
                    ):
     """
-    Generate masks per image or volume
+    Generate binary masks from specified channel(s).
 
     :param dict required_params: dict with keys: input_dir, output_dir, time_ids,
         channel_ids, pos_ids, slice_ids, int2strlen, uniform_struct, num_workers
@@ -232,9 +239,9 @@ def generate_masks(required_params,
     :param int str_elem_radius: structuring element size for morphological
         opening
     :param str/None flat_field_dir: dir with flat field correction images
-    :param str mask_type: string to map to masking function. otsu or unimodal
-        or borders_weight_loss_map
-    :param int/None mask_channel: channel num assigned to mask channel. I
+    :param str mask_type: string to map to masking function. Available options:
+        'otsu', 'unimodal', 'dataset otsu', 'borders_weight_loss_map'
+    :param int/None mask_channel: channel index assigned to mask channel.
     :param str mask_ext: 'npy' or 'png'. Save the mask as uint8 PNG or
          NPY files
     :param str/None mask_dir: If creating weight maps from mask directory,
@@ -279,7 +286,11 @@ def generate_zscore_table(required_params,
                           norm_dict,
                           mask_dir):
     """
-    Compute z-score parameters and update frames_metadata based on the normalize_im
+    Computes z-score parameters (zscore_median and zscore_iqr) from precomputed
+    intensities sampled from blocks/tiles with a minimum foreground specified by
+    masks (masks with min_fraction specified required).
+    Updates frames_metadata with values for given normalization scheme.
+
     :param dict required_params: Required preprocessing parameters
     :param dict norm_dict: Normalization scheme (preprocess_config['normalization'])
     :param str mask_dir: Directory containing masks
@@ -452,7 +463,7 @@ def pre_process(preprocess_config):
     [input_dir, output_dir, slice_ids, time_ids, pos_ids
     correct_flat_field, use_masks, masks, tile_stack, tile]
     :param dict required_params: dict with commom params for all tasks
-    :raises AssertionError: If 'masks' in preprocess_config contains both channels
+    :raises: AssertionError: If 'masks' in preprocess_config contains both channels\
      and mask_dir (the former is for generating masks from a channel)
     """
     time_start = time.time()
@@ -525,7 +536,7 @@ def pre_process(preprocess_config):
                 "mismatch".format(flat_field_channels, existing_channels)
         preprocess_config['flat_field']['flat_field_channels'] = flat_field_channels
 
-    # -------Compute intensities for flatfield corrected images-------
+    # -------Compute intensities of blocks/tiles in all images-------
     if required_params['normalize_im'] in ['dataset', 'volume', 'slice']:
         block_size = None
         if 'metadata' in preprocess_config:
@@ -568,7 +579,7 @@ def pre_process(preprocess_config):
         frames_meta = aux_utils.read_meta(required_params['input_dir'])
         mask_channel = frames_meta['channel_idx'].max() + 1
         if 'channels' in preprocess_config['masks']:
-            # Generate masks from channel
+            # Generate masks from channel(s)
             assert 'mask_dir' not in preprocess_config['masks'], \
                 "Don't specify a mask_dir if generating masks from channel"
             mask_from_channel_names = preprocess_config['masks']['channels']
@@ -599,7 +610,8 @@ def pre_process(preprocess_config):
             assert 'channels' not in preprocess_config['masks'], \
                 "Don't specify channels to mask if using pre-generated masks"
             mask_dir = preprocess_config['masks']['mask_dir']
-            # Get preexisting masks from directory and match to input dir
+            # Get preexisting masks from directory, match to input dir and
+            # compute foreground fraction
             mask_meta = meta_utils.mask_meta_generator(
                 mask_dir,
             )

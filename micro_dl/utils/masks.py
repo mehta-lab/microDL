@@ -13,12 +13,15 @@ def create_otsu_mask(input_image,
                      thr=None,
                      kernel_size=3,
                      w_shed=False):
-    """Create a binary mask using morphological operations
-
+    """
+    Create a binary mask using morphological operations
     Opening removes small objects in the foreground.
 
     :param np.array input_image: generate masks from this image
     :param int str_elem_size: size of the structuring element. typically 3, 5
+    :param float thr: Threshold
+    :param int kernel_size: Kernel size
+    :param bool w_shed: Whether to use watershed
     :return: mask of input_image, np.array
     """
 
@@ -121,19 +124,19 @@ def create_unimodal_mask(input_image, str_elem_size=3, kernel_size=3):
 
 def get_unet_border_weight_map(annotation, w0=10, sigma=5):
     """
-    Return weight map for borders as specified in UNet paper
-    :param annotation A 2D array of shape (image_height, image_width)
-     contains annotation with each class labeled as an integer.
-    :param w0 multiplier to the exponential distance loss
-     default 10 as mentioned in UNet paper
-    :param sigma standard deviation in the exponential distance term
-     e^(-d1 + d2) ** 2 / 2 (sigma ^ 2)
-     default 5 as mentioned in UNet paper
-    :return weight mapt for borders as specified in UNet
-
+    Return weight map for borders as specified in UNet paper.
+    Note: The below method only works for UNet Segmentation only.
     TODO: Calculate boundaries directly and calculate distance
-    from boundary of cells to another
-    Note: The below method only works for UNet Segmentation only
+    from boundary of cells to another.
+
+    :param annotation A 2D array of shape (image_height, image_width)\
+     contains annotation with each class labeled as an integer.
+    :param w0 multiplier to the exponential distance loss\
+     default 10 as mentioned in UNet paper
+    :param sigma standard deviation in the exponential distance term\
+     e^(-d1 + d2) ** 2 / 2 (sigma ^ 2)\
+     default 5 as mentioned in UNet paper
+    :return weight map for borders as specified in UNet
     """
     # if there is only one label, zero return the array as is
     if np.sum(annotation) == 0:

@@ -54,7 +54,9 @@ class FlatFieldEstimator2D:
 
     def estimate_flat_field(self):
         """
-        Estimates flat field correction image.
+        Estimates flat field image for given channel indices using a
+        polynomial fit of sampled intensity medians from blocks/tiles across
+        the image, assuming a smoothly varying flat field.
         """
         # flat_field constant over time, so use first time idx. And use only first
         # slice if multiple are present
@@ -87,17 +89,17 @@ class FlatFieldEstimator2D:
             np.save(cur_fname, flatfield, allow_pickle=True, fix_imports=True)
 
     def sample_block_medians(self, im):
-        """Subdivide a 2D image in smaller blocks of size block_size and
+        """
+        Subdivide a 2D image in smaller blocks of size block_size and
         compute the median intensity value for each block. Any incomplete
         blocks (remainders of modulo operation) will be ignored.
 
-        :param np.array im:         2D image
+        :param np.array im: 2D image
         :return np.array(float) sample_coords: Image coordinates for block
-                                               centers
+            centers
         :return np.array(float) sample_values: Median intensity values for
-                                               blocks
+            blocks
         """
-
         im_shape = im.shape
         assert self.block_size < im_shape[0], "Block size larger than image height"
         assert self.block_size < im_shape[1], "Block size larger than image width"
@@ -124,14 +126,12 @@ class FlatFieldEstimator2D:
         Combine sampling and polynomial surface fit for flatfield estimation.
         To flatfield correct an image, divide it by flatfield.
 
-        :param np.array im:        2D image
-        :param int order:          Order of polynomial (default 2)
-        :param bool normalize:     Normalize surface by dividing by its mean
-                                   for flatfield correction (default True)
-
-        :return np.array flatfield:    Flatfield image
+        :param np.array im: 2D image
+        :param int order: Order of polynomial (default 2)
+        :param bool normalize: Normalize surface by dividing by its mean
+            for flatfield correction (default True)
+        :return np.array flatfield: Flatfield image
         """
-
         coords, values = self.sample_block_medians(im=im)
         flatfield = im_utils.fit_polynomial_surface_2D(
             sample_coords=coords,

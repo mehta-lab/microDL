@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>micro_dl.cli module &mdash; microDL 1.0.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="micro_dl.inference module" href="micro_dl.inference.html" />
+    <link rel="prev" title="micro_dl module" href="micro_dl.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> microDL
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">micro_dl</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="micro_dl.html">micro_dl module</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="micro_dl.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">micro_dl.cli module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.inference.html">micro_dl.inference module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.input.html">micro_dl.input module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.networks.html">micro_dl.networks module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.plotting.html">micro_dl.plotting module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.preprocessing.html">micro_dl.preprocessing module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.train.html">micro_dl.train module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="micro_dl.utils.html">micro_dl.utils module</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="micro_dl.html#module-micro_dl">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">microDL</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">micro_dl</a></li>
+          <li class="breadcrumb-item"><a href="micro_dl.html">micro_dl module</a></li>
+      <li class="breadcrumb-item active">micro_dl.cli module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/micro_dl.cli.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="micro-dl-cli-module">
+<h1>micro_dl.cli module<a class="headerlink" href="#micro-dl-cli-module" title="Permalink to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading"></a></h2>
+</section>
+<section id="module-micro_dl.cli.dataset_pooling">
+<span id="micro-dl-cli-dataset-pooling-module"></span><h2>micro_dl.cli.dataset_pooling module<a class="headerlink" href="#module-micro_dl.cli.dataset_pooling" title="Permalink to this heading"></a></h2>
+<p>Pool multiple datasets into a single dataset for training</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.cli.dataset_pooling.parse_args">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.cli.dataset_pooling.</span></span><span class="sig-name descname"><span class="pre">parse_args</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.cli.dataset_pooling.parse_args" title="Permalink to this definition"></a></dt>
+<dd><p>Parse command line arguments</p>
+<p>In python namespaces are implemented as dictionaries
+:return: namespace containing the arguments passed.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.cli.dataset_pooling.pool_dataset">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.cli.dataset_pooling.</span></span><span class="sig-name descname"><span class="pre">pool_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.cli.dataset_pooling.pool_dataset" title="Permalink to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>args</strong> (<em>dict</em>) – dict with input options</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-micro_dl.cli.inference_script">
+<span id="micro-dl-cli-inference-script-module"></span><h2>micro_dl.cli.inference_script module<a class="headerlink" href="#module-micro_dl.cli.inference_script" title="Permalink to this heading"></a></h2>
+<p>Model inference on larger images with and w/o stitching</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.cli.inference_script.parse_args">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.cli.inference_script.</span></span><span class="sig-name descname"><span class="pre">parse_args</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.cli.inference_script.parse_args" title="Permalink to this definition"></a></dt>
+<dd><p>Parse command line arguments</p>
+<p>In python namespaces are implemented as dictionaries
+:return: namespace containing the arguments passed.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.cli.inference_script.run_inference">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.cli.inference_script.</span></span><span class="sig-name descname"><span class="pre">run_inference</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config_fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gpu_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gpu_mem_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.cli.inference_script.run_inference" title="Permalink to this definition"></a></dt>
+<dd><p>Run inference and optionally also evaluation metrics.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>config_fname</strong> (<em>str</em>) – Full path to config yaml file</p></li>
+<li><p><strong>gpu_ids</strong> (<em>int</em>) – gpu id to use</p></li>
+<li><p><strong>gpu_mem_frac</strong> (<em>float/None</em>) – gpu memory fraction to use</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-micro_dl.cli.metrics_script">
+<span id="micro-dl-cli-metrics-script-module"></span><h2>micro_dl.cli.metrics_script module<a class="headerlink" href="#module-micro_dl.cli.metrics_script" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.cli.metrics_script.compute_metrics">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.cli.metrics_script.</span></span><span class="sig-name descname"><span class="pre">compute_metrics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orientations_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name_parser</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'parse_sms_name'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.cli.metrics_script.compute_metrics" title="Permalink to this definition"></a></dt>
+<dd><p>Compute specified metrics for given orientations for predictions, which
+are assumed to be stored in model_dir/predictions. Targets are stored in
+image_dir.
+Writes metrics csv files for each orientation in model_dir/predictions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_dir</strong> (<em>str</em>) – Assumed to contain config, split_samples.json and
+subdirectory predictions/</p></li>
+<li><p><strong>image_dir</strong> (<em>str</em>) – Directory containing target images with frames_meta.csv</p></li>
+<li><p><strong>metrics_list</strong> (<em>list</em>) – See inference/evaluation_metrics.py for options</p></li>
+<li><p><strong>orientations_list</strong> (<em>list</em>) – Any subset of {xy, xz, yz, xyz}
+(see evaluation_metrics)</p></li>
+<li><p><strong>test_data</strong> (<em>bool</em>) – Uses test indices in split_samples.json,</p></li>
+</ul>
+</dd>
+</dl>
+<p>otherwise all indices
+:param str name_parser: Type of name parser (default or parse_idx_from_name)</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.cli.metrics_script.parse_args">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.cli.metrics_script.</span></span><span class="sig-name descname"><span class="pre">parse_args</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.cli.metrics_script.parse_args" title="Permalink to this definition"></a></dt>
+<dd><p>Parse command line arguments</p>
+<p>In python namespaces are implemented as dictionaries
+:return: namespace containing the arguments passed.</p>
+</dd></dl>
+
+</section>
+<section id="module-micro_dl.cli.preprocess_script">
+<span id="micro-dl-cli-preprocess-script-module"></span><h2>micro_dl.cli.preprocess_script module<a class="headerlink" href="#module-micro_dl.cli.preprocess_script" title="Permalink to this heading"></a></h2>
+<p>Script for preprocessing stack</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.cli.preprocess_script.flat_field_correct">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.cli.preprocess_script.</span></span><span class="sig-name descname"><span class="pre">flat_field_correct</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">required_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">block_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flat_field_channels</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.cli.preprocess_script.flat_field_correct" title="Permalink to this definition"></a></dt>
+<dd><p>Estimate flat_field_images in given channels.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>required_params</strong> (<em>dict</em>) – dict with keys: input_dir, output_dir, time_ids,
+channel_ids, pos_ids, slice_ids, int2strlen, uniform_struct, num_workers</p></li>
+<li><p><strong>block_size</strong> (<em>int</em>) – Specify block size if different from default (32 pixels)</p></li>
+<li><p><strong>flat_field_channels</strong> (<em>list</em>) – Channels in which to estimate flatfields.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return str flat_field_dir</dt>
+<dd class="field-even"><p>full path of dir with flat field correction
+images</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.cli.preprocess_script.generate_masks">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.cli.preprocess_script.</span></span><span class="sig-name descname"><span class="pre">generate_masks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">required_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_from_channel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">str_elem_radius</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flat_field_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_channel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_ext</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.cli.preprocess_script.generate_masks" title="Permalink to this definition"></a></dt>
+<dd><p>Generate binary masks from specified channel(s).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>required_params</strong> (<em>dict</em>) – dict with keys: input_dir, output_dir, time_ids,
+channel_ids, pos_ids, slice_ids, int2strlen, uniform_struct, num_workers</p></li>
+<li><p><strong>mask_from_channel</strong> (<em>int/list</em>) – generate masks from sum of these
+channels</p></li>
+<li><p><strong>str_elem_radius</strong> (<em>int</em>) – structuring element size for morphological
+opening</p></li>
+<li><p><strong>flat_field_dir</strong> (<em>str/None</em>) – dir with flat field correction images</p></li>
+<li><p><strong>mask_type</strong> (<em>str</em>) – string to map to masking function. Available options:
+‘otsu’, ‘unimodal’, ‘dataset otsu’, ‘borders_weight_loss_map’</p></li>
+<li><p><strong>mask_channel</strong> (<em>int/None</em>) – channel index assigned to mask channel.</p></li>
+<li><p><strong>mask_ext</strong> (<em>str</em>) – ‘npy’ or ‘png’. Save the mask as uint8 PNG or
+NPY files</p></li>
+<li><p><strong>mask_dir</strong> (<em>str/None</em>) – If creating weight maps from mask directory,
+specify mask dir</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return str mask_dir</dt>
+<dd class="field-even"><p>Directory with created masks</p>
+</dd>
+<dt class="field-odd">Return int mask_channel</dt>
+<dd class="field-odd"><p>Channel number assigned to masks</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.cli.preprocess_script.generate_zscore_table">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.cli.preprocess_script.</span></span><span class="sig-name descname"><span class="pre">generate_zscore_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">required_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_dir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.cli.preprocess_script.generate_zscore_table" title="Permalink to this definition"></a></dt>
+<dd><p>Computes z-score parameters (zscore_median and zscore_iqr) from precomputed
+intensities sampled from blocks/tiles with a minimum foreground specified by
+masks (masks with min_fraction specified required).
+Updates frames_metadata with values for given normalization scheme.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>required_params</strong> (<em>dict</em>) – Required preprocessing parameters</p></li>
+<li><p><strong>norm_dict</strong> (<em>dict</em>) – Normalization scheme (preprocess_config[‘normalization’])</p></li>
+<li><p><strong>mask_dir</strong> (<em>str</em>) – Directory containing masks</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.cli.preprocess_script.get_required_params">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.cli.preprocess_script.</span></span><span class="sig-name descname"><span class="pre">get_required_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">preprocess_config</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.cli.preprocess_script.get_required_params" title="Permalink to this definition"></a></dt>
+<dd><p>Create a dictionary with required parameters for preprocessing
+from the preprocessing config. Required parameters are:</p>
+<blockquote>
+<div><p>‘input_dir’: Directory containing input image data
+‘output_dir’: Directory to write preprocessed data
+‘slice_ids’: Slice indices
+‘time_ids’: Time indices
+‘pos_ids’: Position indices
+‘channel_ids’ or ‘channel_names’: Channel indices or names (default).
+‘uniform_struct’: (bool) If images are uniform
+‘int2strlen’: (int) How long of a string to convert integers to
+‘normalize_channels’: (list) Containing channel names or bools the length of channels
+‘num_workers’: Number of workers for multiprocessing
+‘normalize_im’: (str) Normalization scheme</p>
+<blockquote>
+<div><p>(stack, dataset, slice, volume)</p>
+</div></blockquote>
+<p>‘zarr_file’: Zarr file name in case of zarr file (as opposed to tiffs)</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>preprocess_config</strong> (<em>dict</em>) – Preprocessing config</p>
+</dd>
+<dt class="field-even">Return dict required_params</dt>
+<dd class="field-even"><p>Required parameters</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.cli.preprocess_script.parse_args">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.cli.preprocess_script.</span></span><span class="sig-name descname"><span class="pre">parse_args</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.cli.preprocess_script.parse_args" title="Permalink to this definition"></a></dt>
+<dd><p>Parse command line arguments</p>
+<p>In python namespaces are implemented as dictionaries
+:return: namespace containing the arguments passed.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.cli.preprocess_script.pre_process">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.cli.preprocess_script.</span></span><span class="sig-name descname"><span class="pre">pre_process</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">preprocess_config</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.cli.preprocess_script.pre_process" title="Permalink to this definition"></a></dt>
+<dd><p>Preprocess data. Possible options are:</p>
+<p>correct_flat_field: Perform flatfield correction (2D only currently)
+resample: Resize 2D images (xy-plane) according to a scale factor,</p>
+<blockquote>
+<div><p>e.g. to match resolution in z. Resize 3d images</p>
+</div></blockquote>
+<p>create_masks: Generate binary masks from given input channels
+do_tiling: Split frames (stacked frames if generating 3D tiles) into
+smaller tiles with tile_size and step_size.</p>
+<p>This script will preprocess your dataset, save tiles and associated
+metadata. Then in the train_script, a dataframe for training data
+will be assembled based on the inputs and target you specify.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>preprocess_config</strong> (<em>dict</em>) – dict with key options:</p>
+</dd>
+</dl>
+<p>[input_dir, output_dir, slice_ids, time_ids, pos_ids
+correct_flat_field, use_masks, masks, tile_stack, tile]
+:param dict required_params: dict with commom params for all tasks
+:raises: AssertionError: If ‘masks’ in preprocess_config contains both channels     and mask_dir (the former is for generating masks from a channel)</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.cli.preprocess_script.resize_images">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.cli.preprocess_script.</span></span><span class="sig-name descname"><span class="pre">resize_images</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">required_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_factor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_slices_subvolume</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resize_3d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flat_field_dir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.cli.preprocess_script.resize_images" title="Permalink to this definition"></a></dt>
+<dd><p>Resamples images by a scale factor for either 2D or 3D images
+using bilinear interpolation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>required_params</strong> (<em>dict</em>) – dict with keys: input_dir, output_dir, time_ids,
+channel_ids, pos_ids, slice_ids, int2strlen, uniform_struct, num_workers</p></li>
+<li><p><strong>scale_factor</strong> (<em>int/list</em>) – scale factor for each dimension</p></li>
+<li><p><strong>num_slices_subvolume</strong> (<em>int</em>) – num of slices to be included in each
+volume. If -1, include all slices in slice_ids</p></li>
+<li><p><strong>resize_3d</strong> (<em>bool</em>) – indicator for resize 2d or 3d</p></li>
+<li><p><strong>flat_field_dir</strong> (<em>str/None</em>) – Directory containing flatfields</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return str resize_dir</dt>
+<dd class="field-even"><p>dir with resized images</p>
+</dd>
+<dt class="field-odd">Return int/list slice_ids</dt>
+<dd class="field-odd"><p>corrected for gaps due to 3d. For ex.
+slice_ids=[0,1,…8] and num_slices_subvolume=3, returned
+slice_ids=[0, 2, 4, 6]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.cli.preprocess_script.save_config">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.cli.preprocess_script.</span></span><span class="sig-name descname"><span class="pre">save_config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cur_config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">runtime</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.cli.preprocess_script.save_config" title="Permalink to this definition"></a></dt>
+<dd><p>Save the current config (cur_config) or append to existing config.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cur_config</strong> (<em>dict</em>) – Current config</p></li>
+<li><p><strong>runtime</strong> (<em>float</em>) – Run time for preprocessing</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.cli.preprocess_script.tile_images">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.cli.preprocess_script.</span></span><span class="sig-name descname"><span class="pre">tile_images</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">required_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tile_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resize_flag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">flat_field_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tiles_exist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.cli.preprocess_script.tile_images" title="Permalink to this definition"></a></dt>
+<dd><p>Tile images.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>required_params</strong> (<em>dict</em>) – dict with keys: input_dir, output_dir, time_ids,
+channel_ids, pos_ids, slice_ids, int2strlen, uniform_struct, num_workers</p></li>
+<li><p><strong>tile_dict</strong> (<em>dict</em>) – dict with tiling related keys: tile_size, step_size,
+image_format, depths, min_fraction. Optional: mask_channel, mask_dir,
+mask_depth, tile_3d</p></li>
+<li><p><strong>resize_flag</strong> (<em>bool</em>) – indicator if resize related params in preprocess_config
+passed to pre_process()</p></li>
+<li><p><strong>flat_field_dir</strong> (<em>str/None</em>) – dir with flat field correction images</p></li>
+<li><p><strong>tiles_exist</strong> (<em>bool</em>) – If tiling weights after other channels, make sure
+previous tiles are not erased</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return str tile_dir</dt>
+<dd class="field-even"><p>dir with tiled images</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-micro_dl.cli.train_script">
+<span id="micro-dl-cli-train-script-module"></span><h2>micro_dl.cli.train_script module<a class="headerlink" href="#module-micro_dl.cli.train_script" title="Permalink to this heading"></a></h2>
+<p>Train neural network models in keras</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.cli.train_script.create_datasets">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.cli.train_script.</span></span><span class="sig-name descname"><span class="pre">create_datasets</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df_meta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tile_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset_config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trainer_config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_format</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">masked_loss</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.cli.train_script.create_datasets" title="Permalink to this definition"></a></dt>
+<dd><p>Create train, val and test datasets</p>
+<p>Saves val_metadata.csv and test_metadata.csv for checking model performance</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df_meta</strong> (<em>pd.DataFrame</em>) – Dataframe containing info on split tiles</p></li>
+<li><p><strong>tile_dir</strong> (<em>str</em>) – directory containing training image tiles</p></li>
+<li><p><strong>dataset_config</strong> (<em>dict</em>) – dict with dataset related params</p></li>
+<li><p><strong>trainer_config</strong> (<em>dict</em>) – dict with params related to training</p></li>
+<li><p><strong>image_format</strong> (<em>str</em>) – Tile shape order: ‘xyz’ or ‘zyx’</p></li>
+<li><p><strong>masked_loss</strong> (<em>bool</em>) – Whether or not to use masks</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>Dict containing
+:BaseDataSet df_train: training dataset
+:BaseDataSet df_val: validation dataset
+:BaseDataSet df_test: test dataset
+:dict split_idx: dict with keys [train, val, test] and list of sample</p>
+<blockquote>
+<div><p>numbers as values</p>
+</div></blockquote>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.cli.train_script.create_network">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.cli.train_script.</span></span><span class="sig-name descname"><span class="pre">create_network</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">network_config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gpu_id</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.cli.train_script.create_network" title="Permalink to this definition"></a></dt>
+<dd><p>Create an instance of the network</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>network_config</strong> (<em>dict</em>) – dict with network related params</p></li>
+<li><p><strong>gpu_id</strong> (<em>int</em>) – gpu to use</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.cli.train_script.get_image_dir_format">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.cli.train_script.</span></span><span class="sig-name descname"><span class="pre">get_image_dir_format</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset_config</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.cli.train_script.get_image_dir_format" title="Permalink to this definition"></a></dt>
+<dd><p>Get dir with input images for generating full path from frames_meta</p>
+<p>If the tiled dir is passed as data dir there will be no
+preprocessing_info.json. If json present use it, else read images from the
+given dir.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.cli.train_script.parse_args">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.cli.train_script.</span></span><span class="sig-name descname"><span class="pre">parse_args</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.cli.train_script.parse_args" title="Permalink to this definition"></a></dt>
+<dd><p>Parse command line arguments</p>
+<p>In python namespaces are implemented as dictionaries
+:return: namespace containing the arguments passed.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="micro_dl.cli.train_script.run_action">
+<span class="sig-prename descclassname"><span class="pre">micro_dl.cli.train_script.</span></span><span class="sig-name descname"><span class="pre">run_action</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">action</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gpu_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gpu_mem_frac</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.cli.train_script.run_action" title="Permalink to this definition"></a></dt>
+<dd><p>Performs training or tunes hyper parameters
+Lambda layers throw errors when converting to yaml!
+model_yaml = self.model.to_yaml()</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>action</strong> (<em>str</em>) – Currently the only supported action is ‘train’</p></li>
+<li><p><strong>config</strong> (<em>dict</em>) – Training config</p></li>
+<li><p><strong>gpu_ids</strong> (<em>int</em>) – GPU ID</p></li>
+<li><p><strong>gpu_mem_frac</strong> (<em>float</em>) – Available GPU memory fraction</p></li>
+<li><p><strong>model_fname</strong> (<em>str</em>) – Full path to model weights if not starting
+training from scratch</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-micro_dl.cli">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-micro_dl.cli" title="Permalink to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="micro_dl.html" class="btn btn-neutral float-left" title="micro_dl module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="micro_dl.inference.html" class="btn btn-neutral float-right" title="micro_dl.inference module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, mehta-lab.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

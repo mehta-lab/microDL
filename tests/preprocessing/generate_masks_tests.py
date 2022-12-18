@@ -122,15 +122,6 @@ class TestMaskProcessor(unittest.TestCase):
         """Test get_mask_channel"""
         nose.tools.assert_equal(self.mask_gen_inst.get_mask_channel(), 3)
 
-    def test_get_ff_paths(self):
-        ff_dir = os.path.join(self.temp_path, 'ff_dir')
-        self.tempdir.makedir(ff_dir)
-        ff_name = os.path.join(ff_dir, 'flat-field_channel-25.npy')
-        np.save(ff_name, self.rec_object[..., 0], allow_pickle=True, fix_imports=True)
-        self.mask_gen_inst.flat_field_dir = ff_dir
-        flat_field_fnames = self.mask_gen_inst._get_ff_paths(25)
-        self.assertListEqual(flat_field_fnames, [ff_name])
-
     def test_generate_masks_uni(self):
         """Test generate masks"""
         self.mask_gen_inst.generate_masks(str_elem_radius=1)

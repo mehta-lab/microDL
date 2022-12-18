@@ -60,6 +60,7 @@ def frames_meta_from_filenames(input_dir, name_parser):
     Extracts metadata (channel, position, time, slice) from file name.
 
     :param str input_dir:   path to input directory containing images
+
     :param str name_parser: Function in aux_utils for parsing indices from file name
     :return pd.DataFrame frames_meta: Metadata for all frames in dataset
     """
@@ -213,18 +214,20 @@ def compute_zscore_params(frames_meta,
                           normalize_im,
                           min_fraction=0.99):
     """
-    Get zscore median and interquartile range
+    Compute median and interquartile range of intensities in blocks/tiles
+    determined ints_meta_generator function (saved in intensity_meta.csv).
+    Masks need to bee computed and only tiles with enough foreground given masks
+    (determined by min_fraction) will be included in the analysis.
 
     :param pd.DataFrame frames_meta: Dataframe containing all metadata
-    :param pd.DataFrame ints_meta: Metadata containing intensity statistics
+    :param pd.DataFrame ints_meta: Metadata containing intensity statistics\
         each z-slice and foreground fraction for masks
     :param str input_dir: Directory containing images
-    :param None or str normalize_im: normalization scheme for input images
-    :param float min_fraction: Minimum foreground fraction (in case of masks)
+    :param None/str normalize_im: normalization scheme for input images
+    :param float min_fraction: Minimum foreground fraction of masks\
         for computing intensity statistics.
-
-    :return pd.DataFrame frames_meta: Dataframe containing all metadata
-    :return pd.DataFrame ints_meta: Metadata containing intensity statistics
+    :return pd.DataFrame frames_meta: DataFrame containing all metadata
+    :return pd.DataFrame ints_meta: Metadata containing intensity statistics\
         each z-slice
     """
 

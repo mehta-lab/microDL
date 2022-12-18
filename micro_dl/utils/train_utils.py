@@ -50,8 +50,8 @@ def select_gpu(gpu_ids=None, gpu_mem_frac=None):
         use maximum available amount of GPU.
     :return int gpu_ids: GPU ID to use.
     :return float cur_mem_frac: GPU memory fraction to use
-    :raises NotImplementedError: If gpu_ids is not int
-    :raises AssertionError: If requested memory fraction isn't available
+    :raises: NotImplementedError: If gpu_ids is not int
+    :raises: AssertionError: If requested memory fraction isn't available
     """
     # Check if user has specified a GPU ID to use
     if not isinstance(gpu_ids, type(None)):

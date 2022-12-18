@@ -12,7 +12,8 @@ from micro_dl.utils.normalize import hist_clipping
 
 
 def mp_wrapper(fn, fn_args, workers):
-    """Create and save masks with multiprocessing
+    """
+    Create and save masks with multiprocessing
 
     :param list of tuple fn_args: list with tuples of function arguments
     :param int workers: max number of workers
@@ -25,7 +26,8 @@ def mp_wrapper(fn, fn_args, workers):
 
 
 def mp_create_save_mask(fn_args, workers):
-    """Create and save masks with multiprocessing
+    """
+    Create and save masks with multiprocessing
 
     :param list of tuple fn_args: list with tuples of function arguments
     :param int workers: max number of workers
@@ -50,12 +52,12 @@ def create_save_mask(channels_meta_sub,
 
     """
     Create and save mask.
-    When >1 channel are used to generate the mask, mask of each channel is
-    generated then added together.
+    When more than one channel are used to generate the mask, mask of each
+    channel is generated then added together.
 
     :param pd.DataFrame channels_meta_sub: Metadata for given PTCZ
     :param list/None flat_field_fnames: Paths to corresponding flat field images
-    :param int str_elem_radius: size of structuring element used for binary
+    :param int str_elem_radius: size of structuring element used for binary\
      opening. str_elem: disk or ball
     :param str mask_dir: dir to save masks
     :param int mask_channel_idx: channel number of mask
@@ -63,17 +65,16 @@ def create_save_mask(channels_meta_sub,
     :param int pos_idx: generate masks for given position / sample ids
     :param int slice_idx: generate masks for given slice ids
     :param int int2str_len: Length of str when converting ints
-    :param str mask_type: thresholding type used for masking or str to map to
+    :param str mask_type: thresholding type used for masking or str to map to\
      masking function
-    :param str mask_ext: '.npy' or '.png'. Save the mask as uint8 PNG or
-     NPY files for otsu, unimodal masks, recommended to save as npy
-     float64 for borders_weight_loss_map masks to avoid loss due to scaling it
+    :param str mask_ext: '.npy' or '.png'. Save the mask as uint8 PNG or\
+     NPY files for otsu, unimodal masks, recommended to save as npy\
+     float64 for borders_weight_loss_map masks to avoid loss due to scaling it\
      to uint8.
     :param str/None dir_name: Image directory (none if using frames_meta dir_name)
-    :param list channel_thrs: list of threshold for each channel to generate
-    binary masks. Only used when mask_type is 'dataset_otsu'
-    :return dict cur_meta: One for each mask. fg_frac is added to metadata
-            - how is it used?
+    :param list channel_thrs: list of threshold for each channel to generate\
+     binary masks. Only used when mask_type is 'dataset_otsu'
+    :return dict cur_meta: For each mask, fg_frac is added to metadata
     """
     im_stack = image_utils.read_imstack_from_meta(
         frames_meta_sub=channels_meta_sub,
@@ -172,6 +173,15 @@ def create_save_mask(channels_meta_sub,
 
 
 def get_mask_meta_row(file_path, meta_row):
+    """
+    Given path to mask, read mask, compute foreground fraction and fill
+    in corresponding metadata row.
+
+    :param str file_path: Path to binary mask image
+    :param pd.DataFrame meta_row: Metadata row to fill in
+    :return pd.DataFrame meta_row: Metadata row with foreground fraction\
+        for mask
+    """
     mask = image_utils.read_image(file_path)
     fg_frac = np.sum(mask > 0) / mask.size
     meta_row = {**meta_row, 'fg_frac': fg_frac}
@@ -179,8 +189,10 @@ def get_mask_meta_row(file_path, meta_row):
 
 
 def mp_tile_save(fn_args, workers):
-    """Tile and save with multiprocessing
+    """
+    Tile and save with multiprocessing
     https://stackoverflow.com/questions/42074501/python-concurrent-futures-processpoolexecutor-performance-of-submit-vs-map
+
     :param list of tuple fn_args: list with tuples of function arguments
     :param int workers: max number of workers
     :return: list of returned df from tile_and_save
@@ -208,7 +220,7 @@ def tile_and_save(meta_sub,
                   zscore_std=None,
                   ):
     """
-    Crop image into tiles at given indices and save
+    Crop image into tiles at given indices and save.
 
     :param pd.DataFrame meta_sub: Subset of metadata for images to be tiled
     :param str flat_field_fname: fname of flat field image
@@ -268,7 +280,8 @@ def tile_and_save(meta_sub,
 
 
 def mp_crop_save(fn_args, workers):
-    """Crop and save images with multiprocessing
+    """
+    Crop and save images with multiprocessing.
 
     :param list of tuple fn_args: list with tuples of function arguments
     :param int workers: max number of workers
@@ -296,7 +309,8 @@ def crop_at_indices_save(meta_sub,
                          zscore_mean=None,
                          zscore_std=None
                          ):
-    """Crop image into tiles at given indices and save
+    """
+    Crop image into tiles at given indices and save.
 
     :param pd.DataFrame meta_sub: Subset of metadata for images to be cropped
     :param str flat_field_fname: File nname of flat field image
@@ -356,7 +370,7 @@ def crop_at_indices_save(meta_sub,
 
 def mp_resize_save(mp_args, workers):
     """
-    Resize and save images with multiprocessing
+    Resize and save images with multiprocessing.
 
     :param list mp_args: Function keyword arguments
     :param int workers: max number of workers
@@ -367,14 +381,14 @@ def mp_resize_save(mp_args, workers):
 
 def resize_and_save(**kwargs):
     """
-    Resizing images and saving them.
+    Resizes images and saving them. Performs flatfield correction
+    prior to resizing if flatfield images are present.
 
-    Keyword arguments:
-    :param pd.DataFrame meta_row: Row of metadata
-    :param str/None dir_name: Image directory (none if using dir_name from frames_meta)
-    :param str output_dir: Path to output directory
-    :param float scale_factor: Scale factor for resizing
-    :param str ff_path: Path to flatfield image
+    :param kwargs: Keyword arguments:
+    str file_path: Path to input image
+    str write_path: Path to image to be written
+    float scale_factor: Scale factor for resizing
+    str ff_path: path to flat field correction image
     """
     meta_row = kwargs['meta_row']
     im = image_utils.read_image_from_row(meta_row, kwargs['dir_name'])
@@ -406,7 +420,8 @@ def resize_and_save(**kwargs):
 
 
 def mp_rescale_vol(fn_args, workers):
-    """Rescale and save image stacks with multiprocessing
+    """
+    Rescale and save image stacks with multiprocessing.
 
     :param list of tuple fn_args: list with tuples of function arguments
     :param int workers: max number of workers
@@ -427,7 +442,8 @@ def rescale_vol_and_save(time_idx,
                          output_fname,
                          scale_factor,
                          ff_path):
-    """Rescale volumes and save
+    """
+    Rescale volumes and save.
 
     :param int time_idx: time point of input image
     :param int pos_idx: sample idx of input image
@@ -473,7 +489,8 @@ def rescale_vol_and_save(time_idx,
 
 
 def mp_get_im_stats(fn_args, workers):
-    """Read and computes statistics of images with multiprocessing
+    """
+    Read and computes statistics of images with multiprocessing.
 
     :param list of tuple fn_args: list with tuples of function arguments
     :param int workers: max number of workers
@@ -489,7 +506,7 @@ def mp_get_im_stats(fn_args, workers):
 
 def get_im_stats(im_path):
     """
-    Read and computes statistics of images
+    Read and computes statistics of images.
 
     :param str im_path: Full path to image
     :return dict meta_row: Dict with intensity data for image
@@ -503,7 +520,8 @@ def get_im_stats(im_path):
 
 
 def mp_sample_im_pixels(fn_args, workers):
-    """Read and computes statistics of images with multiprocessing
+    """
+    Read and computes statistics of images with multiprocessing.
 
     :param list of tuple fn_args: list with tuples of function arguments
     :param int workers: max number of workers
