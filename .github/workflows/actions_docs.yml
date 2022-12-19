@@ -5,13 +5,14 @@ on: [push]
 #    branches:
 #      - main
 
-
 jobs:
   build:
+
     runs-on: ubuntu-latest
+
     steps:
-    - name: Sphinx Build
     - uses: actions/checkout@v1
+    # Standard drop-in approach that should work for most people.
     - uses: ammaraskar/sphinx-action@master
       with:
         docs-folder: "docs/"
