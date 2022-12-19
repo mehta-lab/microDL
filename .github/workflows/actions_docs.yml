@@ -10,6 +10,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Install dependencies
+      run: pip install sphinx_rtd_theme
+
     - uses: actions/checkout@v1
     - name: Build documentation
       uses: ammaraskar/sphinx-action@master
