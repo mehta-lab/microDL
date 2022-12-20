@@ -1,3 +1,7 @@
+---
+permalink: /build/html/index.html
+---
+
 # Auto-Documentation
 
 # Sphinx
