@@ -1,5 +1,5 @@
 ---
-permalink: /build/html/index.html
+permalink: ./build/html/index.html
 ---
 
 # Auto-Documentation
@@ -22,9 +22,9 @@ sphinx-apidoc -o docs/source/ micro_dl/
 from the main microDL directory to autogenerate the reStructuredText (rst) files.
 
 A Makefile was already generated upon initialization of Sphinx (when running sphinx-quickstart), so the
-next step is to cd to the docs directory and run
+next step is to run
 ```buildoutcfg
-make html
+make -C docs/ html
 ```
 Check for error messages and warning to make sure all docstring are correctly formatted.
 
