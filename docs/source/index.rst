@@ -6,6 +6,10 @@
 Welcome to microDL's documentation!
 ===================================
 
+.. toctree::
+   :maxdepth: 2
+   :caption: Introduction:
+
 microDL is a deep learning framework for processing microscopy data.
 The framework consists of
 
@@ -15,6 +19,7 @@ The framework consists of
 
 This documentation goes in depth into the functions and classed of microDL.
 For a user overview of how to run it, please see our `GitHub repository <https://github.com/mehta-lab/microDL>`_ and the readme markdown files within it.
+
 
 .. toctree::
    :maxdepth: 2
