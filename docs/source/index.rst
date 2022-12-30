@@ -13,7 +13,7 @@ Welcome to microDL's documentation!
 microDL is a deep learning framework for processing microscopy data.
 The framework consists of:
 
-* Preprocessing: flatfield correction, mask creation and normalization
+* Preprocessing: Flatfield correction, mask creation and normalization.
 * Training: Building and training 2.5D or 2D U-Net models for regression or segmentation.
 * Inference: Use your trained model to predict full size images.
 
