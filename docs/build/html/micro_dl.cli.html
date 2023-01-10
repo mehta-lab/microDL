@@ -287,9 +287,17 @@ from the preprocessing config. Required parameters are:</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="micro_dl.cli.preprocess_script.parse_args">
 <span class="sig-prename descclassname"><span class="pre">micro_dl.cli.preprocess_script.</span></span><span class="sig-name descname"><span class="pre">parse_args</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#micro_dl.cli.preprocess_script.parse_args" title="Permalink to this definition"></a></dt>
-<dd><p>Parse command line arguments</p>
-<p>In python namespaces are implemented as dictionaries
-:return: namespace containing the arguments passed.</p>
+<dd><p>Parse command line arguments
+In python namespaces are implemented as dictionaries
+The preprocess_cli script takes as input a path to a configuration yaml file.
+For examples of preprocessing config files in 2.5D and 2D, see:
+<a class="reference external" href="https://github.com/mehta-lab/microDL/blob/main/config_files/Preprocessing-config_2.5DUnet_regression_phase2membrane.yml">https://github.com/mehta-lab/microDL/blob/main/config_files/Preprocessing-config_2.5DUnet_regression_phase2membrane.yml</a>
+<a class="reference external" href="https://github.com/mehta-lab/microDL/blob/main/config_files/Preprocessing-config_2DUnet_regression_phase2nucleus.yml">https://github.com/mehta-lab/microDL/blob/main/config_files/Preprocessing-config_2DUnet_regression_phase2nucleus.yml</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>namespace containing the arguments passed.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">

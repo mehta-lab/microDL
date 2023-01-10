@@ -1,7 +1,3 @@
----
-permalink: ./build/html/index.html
----
-
 # Auto-Documentation
 
 # Sphinx
@@ -30,3 +26,11 @@ Check for error messages and warning to make sure all docstring are correctly fo
 
 Once updated docs are merged into main, the documentation can be hosted e.g. on
 [GitHub Pages.](https://pages.github.com/)
+
+There's a GitHub actions workflow (actions_docs.yml) that will 
+automatically build the docs and push to the gh-pages branch when there's a push to the main branch.
+The documentation will then be pushed to GitHub pages and the documentation is
+published [here.](https://mehta-lab.github.io/microDL/)
+
+Note: Python version is currently old because microDL version 1.0.0 still supports tensorflow.
+Please update when updating to version 2.0.0.
