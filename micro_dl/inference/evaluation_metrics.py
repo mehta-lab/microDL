@@ -4,8 +4,12 @@ import numpy as np
 import pandas as pd
 from skimage.metrics import structural_similarity as ssim
 import sklearn.metrics
+from skimage.morphology import disk, dilation, erosion
+from skimage.measure import label, regionprops
 from scipy.stats import pearsonr
 
+from cellpose import models, utils, io
+from lapsolver import solve_dense
 
 def mask_decorator(metric_function):
     """Decorator for masking the metrics
@@ -128,7 +132,7 @@ def ssim_metric(target, prediction, mask=None, win_size=21):
         return [cur_ssim, cur_ssim_masked]
 
 
-def accuracy_metric(target, prediction):
+def accuracy_metric(target_bin, prediction):
     """Accuracy of binary target and prediction.
     Not using mask decorator for binary data evaluation.
 
@@ -136,12 +140,12 @@ def accuracy_metric(target, prediction):
     :param np.array prediction: model prediction
     :return float Accuracy: Accuracy for binarized data
     """
-    target_bin = binarize_array(target)
-    pred_bin = binarize_array(prediction)
+    # target_bin = binarize_array(target)
+    pred_bin = cpmask_array(prediction)
     return sklearn.metrics.accuracy_score(target_bin, pred_bin)
 
 
-def dice_metric(target, prediction):
+def dice_metric(target_bin, prediction):
     """Dice similarity coefficient (F1 score) of binary target and prediction.
     Reports global metric.
     Not using mask decorator for binary data evaluation.
@@ -150,9 +154,133 @@ def dice_metric(target, prediction):
     :param np.array prediction: model prediction
     :return float dice: Dice for binarized data
     """
-    target_bin = binarize_array(target)
-    pred_bin = binarize_array(prediction)
+    # target_bin = binarize_array(target) 
+    # change to reading existing ground truth masks
+    pred_bin = cpmask_array(prediction)
     return sklearn.metrics.f1_score(target_bin, pred_bin, average="micro")
+
+def IOU_metric(target_bin, prediction):
+    """ Intersection over union metric is same as dice metric
+    Reports overlap between predicted and ground truth mask
+    : param np.array target_bin: ground truth mask
+    : param np.array prediction: model infered FL image
+    : return float IOU: IOU for image masks
+    """
+    # predicted image cellpose segmentation: output labelled mask
+    pred_bin = cpmask_array(prediction)
+
+    # convert label to binary mask
+    im_targ_mask = target_bin > 0
+    im_pred_mask = pred_bin > 0
+
+    # compute raw intersection, union and IoU
+    im_intersection = np.logical_and(im_pred_mask, im_targ_mask)
+    # im_union = (1-((1-im_pred_mask)*(1-im_targ_mask)))
+    im_union = np.logical_or(im_pred_mask, im_targ_mask)
+    IOU_ksize = [(np.sum(im_intersection) / np.sum(im_union))]
+
+    # compute intersection, union and IoU for different mask constriction
+    # mask can be too large/small due to variation in cellpose segmentation
+    # eg., defocused image has more dilated mask
+    # compute IoU at range of dilation/erosion of mask to find highest IoU
+    for k_size in range(20):
+        im_dilation = dilation(im_pred_mask, disk(k_size + 1))
+        # cv2.erode(im_pred_mask, k_size+1, iterations=1)
+        im_erosion = erosion(im_pred_mask, disk(k_size + 1))
+
+        # im_intersection = (im_pred_mask*im_targ_mask)
+        im_intersection_e = np.logical_and(im_erosion, im_targ_mask)
+        im_intersection_d = np.logical_and(im_dilation, im_targ_mask)
+
+        # im_union = (1-((1-im_pred_mask)*(1-im_targ_mask)))
+        im_union_e = np.logical_or(im_erosion, im_targ_mask)
+        im_union_d = np.logical_or(im_dilation, im_targ_mask)
+
+        # I[1] : Intersection over union
+        IOU_ksize.append(np.sum(im_intersection_d) / np.sum(im_union_d))
+        to_insert = np.sum(im_intersection_e) / np.sum(im_union_e)
+        IOU_ksize = [to_insert] + IOU_ksize
+
+    IOU = max(IOU_ksize)
+
+    return IOU.astype(np.uint8)
+
+def VOI_metric(target_bin, prediction):
+
+    # cellpose segmentation of predicted image: outputs labl mask 
+    pred_bin = cpmask_array(prediction)
+
+    # convert to binary mask
+    im_targ_mask = target_bin > 0
+    im_pred_mask = pred_bin > 0
+
+    # compute entropy from pred_mask
+    marg_pred = np.histogramdd(np.ravel(im_pred_mask), bins=256)[0] / im_pred_mask.size
+    marg_pred = list(filter(lambda p: p > 0, np.ravel(marg_pred)))
+    entropy_pred = -np.sum(np.multiply(marg_pred, np.log2(marg_pred)))
+
+    # compute entropy from target_mask
+    marg_targ = np.histogramdd(np.ravel(im_targ_mask), bins=256)[0] / im_targ_mask.size
+    marg_targ = list(filter(lambda p: p > 0, np.ravel(marg_targ)))
+    entropy_targ = -np.sum(np.multiply(marg_targ, np.log2(marg_targ)))
+
+    # intersection entropy
+    im_intersection = np.logical_and(im_pred_mask, im_targ_mask)
+    im_inters_informed = im_intersection * im_targ_mask * im_pred_mask
+
+    marg_intr = np.histogramdd(np.ravel(im_inters_informed), bins=256)[0] / im_inters_informed.size
+    marg_intr = list(filter(lambda p: p > 0, np.ravel(marg_intr)))
+    entropy_intr = -np.sum(np.multiply(marg_intr, np.log2(marg_intr)))
+
+    # variation of entropy/information
+    VI = entropy_pred + entropy_targ - (2 * entropy_intr)
+
+    return VI.astype(np.uint8)
+
+def  POD_metric(target_bin, prediction):
+
+    pred_bin = cpmask_array(prediction)
+
+    # relabel mask for ordered labelling across images for efficient LAP mapping
+    props_pred = regionprops(label(pred_bin))
+    props_targ = regionprops(label(target_bin))
+
+    # construct empty cost matrix based on the number of objects being mapped
+    n_predObj = len(props_pred)
+    n_targObj = len(props_targ)
+    dim_cost = max(n_predObj, n_targObj)
+
+    # calculate cost based on proximity of centroid b/w objects
+    cost_matrix = np.zeros((dim_cost, dim_cost))
+    a = 0
+    b = 0
+    lab_targ = []   # enumerate the labels from labelled ground truth mask
+    lab_pred = []   # enumerate the labels from labelled predicted image mask
+    for props_t in props_targ:
+        y_t, x_t = props_t.centroid
+        lab_targ.append(props_t.label)
+        for props_p in props_pred:
+            y_p, x_p = props_p.centroid
+            lab_pred.append(props_p.label)
+            # using centroid distance as measure for mapping
+            cost_matrix[a, b] = np.sqrt(((y_t - y_p) ** 2) + ((x_t - x_p) ** 2))
+            b = b + 1
+        a = a + 1
+        b = 0
+
+    # LAPsolver for minimizing cost matrix of objects
+    rids, cids = solve_dense(cost_matrix)
+
+    # compute percent of objects detected omitting newly introduced objects and dropped objects
+    boolarr_pred = np.isin(cids, lab_pred)
+    boolarr_targ = np.isin(rids, lab_targ)
+    deaths = np.absolute(n_targObj - boolarr_targ.sum())
+    births = np.absolute(boolarr_targ.sum() - boolarr_pred.sum())
+    objects_detected = n_targObj - births - deaths
+    percent_detected = (objects_detected / n_targObj)
+    percent_false_detected = births
+
+    return percent_detected.astype(np.uint8), percent_false_detected.astype(np.uint8)
 
 
 def binarize_array(im):
@@ -164,6 +292,16 @@ def binarize_array(im):
     im_bin = (im.flatten() / im.max()) > 0.5
     return im_bin.astype(np.uint8)
 
+def cpmask_array(im, model_name):
+    """mask preparation using cellpose
+
+    :input model: cellpose model used for segmentation
+    :input im: predicted image to be segmented
+    :return im_mask: cellpose segmented mask
+    """
+    model = models.CellposeModel(model_type=model_name)
+    channels = [0, 0]
+    masks = model.eval(im, channels=channels, diameter=None)[0]
 
 class MetricsEstimator:
     """Estimate metrics for evaluating a trained model"""
@@ -184,13 +322,16 @@ class MetricsEstimator:
             'mae' -  Mean absolute error
             'acc' -  Accuracy (for binary data, no masks)
             'dice' - Dice similarity coefficient (for binary data, no masks)
+            'IoU' - Intersection over union (for binary data)
+            'VI'  - Variation of information (for binary data)
+            'POD' - Percent object detected (for label mask data)
         :param bool masked_metrics: get the metrics for the masked region
         """
 
-        available_metrics = {"ssim", "corr", "r2", "mse", "mae", "acc", "dice"}
+        available_metrics = {"ssim", "corr", "r2", "mse", "mae", "acc", "dice", "IoU", "VI", "POD"}
         assert set(metrics_list).issubset(
             available_metrics
-        ), "only ssim, r2, corr, mse, mae, acc, dice are currently supported"
+        ), "only ssim, r2, corr, mse, mae, acc, dice, IoU, VI, POD are currently supported"
         self.metrics_list = metrics_list
         self.pd_col_names = metrics_list.copy()
         self.masked_metrics = masked_metrics
@@ -219,6 +360,9 @@ class MetricsEstimator:
             "ssim_metric": ssim_metric,
             "acc_metric": accuracy_metric,
             "dice_metric": dice_metric,
+            "IoU_metric": IOU_metric,
+            "VI_metric": VOI_metric,
+            "POD_metric": POD_metric,
         }
 
     def get_metrics_xyz(self):
