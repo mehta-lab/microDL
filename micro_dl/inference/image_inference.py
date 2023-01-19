@@ -6,8 +6,9 @@ import os
 import pandas as pd
 from tqdm import tqdm
 from pathlib import Path
+import zarr
 
-from micro_dl.input.inference_dataset import InferenceDataSet
+# from micro_dl.input.inference_dataset import InferenceDataSet
 from micro_dl.inference.evaluation_metrics import MetricsEstimator
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.image_utils as image_utils
@@ -16,6 +17,7 @@ import micro_dl.utils.tile_utils as tile_utils
 import micro_dl.utils.normalize as normalize
 import micro_dl.plotting.plot_utils as plot_utils
 
+import micro_dl.torch_unet.utils.training as train
 
 class ImagePredictor:
     """
@@ -41,7 +43,7 @@ class ImagePredictor:
     """
 
     def __init__(
-        self, train_config, inference_config, torch_predictor, preprocess_config=None
+        self, torch_config, torch_predictor=None
     ):
         """Init
 
@@ -102,49 +104,49 @@ class ImagePredictor:
                 "model_dir must be specified in torch config for inference"
             )
 
-        self.config = train_config
+        self.config = torch_config
         self.model_dir = model_dir
-        self.image_dir = inference_config["image_dir"]
+        self.zarr_dir = torch_config["zarr_dir"]
+        # self.image_dir = torch_config["image_dir"]
+        self.GT_dir = torch_config["mask_dir"]
 
-        if "save_folder_name" in inference_config:
-            if inference_config["save_folder_name"][0] == "/":
-                self.pred_dir = inference_config["save_folder_name"]
+        if "save_dir" in torch_config:
+            if torch_config["save_dir"][0] == "/":
+                self.pred_dir = torch_config["save_dir"]
             else:
                 self.pred_dir = os.path.join(
-                    Path(self.model_dir).parent, inference_config["save_folder_name"]
+                    Path(self.model_dir).parent, torch_config["model_dir"]
                 )
         else:
             print(
                 f"No save_folder_name specified... saving predictions to "
-                "image_dir: \n\t{self.image_dir}"
+                "model_dir: \n\t{self.model_dir}"
             )
-            self.pred_dir = os.path.join(self.image_dir, os.path.basename(model_dir))
-        os.makedirs(self.pred_dir, exist_ok=True)
 
-        try:
-            # Check if metadata is present
-            self.frames_meta = aux_utils.read_meta(self.image_dir)
-        except AssertionError as e:
-            print(e, "Generating metadata.")
-            order = "cztp"
-            name_parser = "parse_sms_name"
-            if "metadata" in preprocess_config:
-                if "order" in preprocess_config["metadata"]:
-                    order = preprocess_config["metadata"]["order"]
-                if "name_parser" in preprocess_config["metadata"]:
-                    name_parser = preprocess_config["metadata"]["name_parser"]
-            # Create metadata from file names instead
-            self.frames_meta = meta_utils.frames_meta_generator(
-                input_dir=self.image_dir,
-                order=order,
-                name_parser=name_parser,
-            )
+        # try:
+        #     # Check if metadata is present
+        #     self.frames_meta = aux_utils.read_meta(self.image_dir)
+        # except AssertionError as e:
+        #     print(e, "Generating metadata.")
+        #     order = "cztp"
+        #     name_parser = "parse_sms_name"
+        #     if "metadata" in preprocess_config:
+        #         if "order" in preprocess_config["metadata"]:
+        #             order = preprocess_config["metadata"]["order"]
+        #         if "name_parser" in preprocess_config["metadata"]:
+        #             name_parser = preprocess_config["metadata"]["name_parser"]
+        #     # Create metadata from file names instead
+        #     self.frames_meta = meta_utils.frames_meta_generator(
+        #         input_dir=self.image_dir,
+        #         order=order,
+        #         name_parser=name_parser,
+        #     )
 
         # Set default for data split, determine column name and indices
         # TODO remove these parameters from config. drop support for variability
         data_split = "test"
-        if "data_split" in inference_config:
-            data_split = inference_config["data_split"]
+        if "data_split" in torch_config:
+            data_split = torch_config["data_split"]
         assert data_split in [
             "train",
             "val",
@@ -162,7 +164,7 @@ class ImagePredictor:
         if "depth" in self.config["network"]:
             self.input_depth = self.config["network"]["depth"]
         flat_field_dir = None
-        images_dict = inference_config["images"]
+        images_dict = torch_config["images"]
         if "flat_field_dir" in images_dict:
             flat_field_dir = images_dict["flat_field_dir"]
 
@@ -185,8 +187,8 @@ class ImagePredictor:
             self.name_format = images_dict["name_format"]
 
         self.save_figs = True
-        if "save_figs" in inference_config:
-            self.save_figs = inference_config["save_figs"]
+        if "save_figs" in torch_config:
+            self.save_figs = torch_config["save_figs"]
 
         # Check if model task (regression or segmentation) is specified
         self.model_task = "regression"
@@ -203,37 +205,38 @@ class ImagePredictor:
         self.mask_dir = None
         self.mask_meta = None
         mask_dir = None
-        if "masks" in inference_config:
-            self.masks_dict = inference_config["masks"]
-            assert "mask_channel" in self.masks_dict, "mask_channel is needed"
-            assert "mask_dir" in self.masks_dict, "mask_dir is needed"
-            self.mask_dir = self.masks_dict["mask_dir"]
+        if "mask_dir" in torch_config:
+            self.mask_dir = torch_config["mask_dir"]
+            #assert "mask_channel" in self.masks_dict, "mask_channel is needed"
+            # assert "mask_dir" in self.masks_dict, "mask_dir is needed"
+            # self.mask_dir = self.masks_dict["mask_dir"]
             self.mask_meta = aux_utils.read_meta(self.mask_dir)
-            assert (
-                "mask_type" in self.masks_dict
-            ), "mask_type (target/metrics) is needed"
-            if self.masks_dict["mask_type"] == "metrics":
-                assert (
-                    self.model_task == "regression"
-                ), "masked metrics are for regression tasks only"
-                # Compute weighted metrics
-                self.mask_metrics = True
-            else:
-                assert (
-                    self.model_task == "segmentation"
-                ), "masks can only be target for segmentation tasks"
-                mask_dir = self.mask_dir
+            # assert (
+            #     "mask_type" in self.masks_dict
+            # ), "mask_type (target/metrics) is needed"
+            # if self.masks_dict["mask_type"] == "metrics":
+            #     assert (
+            #         self.model_task == "regression"
+            #     ), "masked metrics are for regression tasks only"
+            #     # Compute weighted metrics
+            #     self.mask_metrics = True
+            # else:
+            #     assert (
+            #         self.model_task == "segmentation"
+            #     ), "masks can only be target for segmentation tasks"
+            #     mask_dir = self.mask_dir
+            mask_dir = self.mask_dir
 
         normalize_im = "stack"
         # TODO standardize this parameter into the master config file.
-        if preprocess_config is not None:
-            if "normalize" in preprocess_config:
-                if "normalize_im" in preprocess_config["normalize"]:
-                    normalize_im = preprocess_config["normalize"]["normalize_im"]
-            elif "normalize_im" in preprocess_config:
-                normalize_im = preprocess_config["normalize_im"]
-            elif "normalize_im" in preprocess_config["tile"]:
-                normalize_im = preprocess_config["tile"]["normalize_im"]
+        # if preprocess_config is not None:
+        #     if "normalize" in preprocess_config:
+        #         if "normalize_im" in preprocess_config["normalize"]:
+        #             normalize_im = preprocess_config["normalize"]["normalize_im"]
+        #     elif "normalize_im" in preprocess_config:
+        #         normalize_im = preprocess_config["normalize_im"]
+        #     elif "normalize_im" in preprocess_config["tile"]:
+        #         normalize_im = preprocess_config["tile"]["normalize_im"]
 
         self.normalize_im = normalize_im
 
@@ -248,24 +251,24 @@ class ImagePredictor:
             self.crop_shape = images_dict["crop_shape"]
         crop2base = True
         self.tile_params = None
-        if "tile" in inference_config:
-            self.tile_params = inference_config["tile"]
-            self._assign_3d_inference()
-            # Make image ext npy default for 3D
+        # if "tile" in inference_config:
+        #     self.tile_params = inference_config["tile"]
+        #     self._assign_3d_inference()
+        #     # Make image ext npy default for 3D
 
         # Create dataset instance
-        self.dataset_inst = InferenceDataSet(
-            image_dir=self.image_dir,
-            inference_config=inference_config,
-            dataset_config=self.config["dataset"],
-            network_config=self.config["network"],
-            preprocess_config=preprocess_config,
-            split_col_ids=split_col_ids,
-            image_format=images_dict["image_format"],
-            mask_dir=mask_dir,
-            flat_field_dir=flat_field_dir,
-            crop2base=crop2base,
-        )
+        # self.dataset_inst = InferenceDataSet(
+        #     image_dir=self.image_dir,
+        #     inference_config=torch_config,
+        #     dataset_config=self.config["dataset"],
+        #     network_config=self.config["network"],
+        #     preprocess_config=torch_config,
+        #     split_col_ids=split_col_ids,
+        #     image_format=images_dict["image_format"],
+        #     mask_dir=mask_dir,
+        #     flat_field_dir=flat_field_dir,
+        #     crop2base=crop2base,
+        # )
 
         # create an instance of MetricsEstimator
         # TODO in 2.1.0 this metadata will be stored in .zarr keys
@@ -281,8 +284,8 @@ class ImagePredictor:
         # Handle metrics config settings
         self.metrics_inst = None
         self.metrics_dict = None
-        if "metrics" in inference_config:
-            self.metrics_dict = inference_config["metrics"]
+        if "metrics" in torch_config:
+            self.metrics_dict = torch_config["metrics"]
         if self.metrics_dict is not None:
             assert "metrics" in self.metrics_dict, "Must specify with metrics to use"
             self.metrics_inst = MetricsEstimator(
@@ -301,6 +304,7 @@ class ImagePredictor:
         self.df_xz = pd.DataFrame()
         self.df_yz = pd.DataFrame()
 
+    
     def _get_split_ids(self, data_split="test"):
         """
         Get the indices for data_split. Used to determine which images to run
@@ -313,22 +317,31 @@ class ImagePredictor:
         :return list inference_ids: Indices for inference given data split
         :return str split_col: Dataframe column name, which was split in training
         """
-        split_col = self.config["dataset"]["split_by_column"]
-        inference_ids = np.unique(self.frames_meta[split_col]).tolist()
+        # split_col = self.config["dataset"]["split_by_column"]
+
+        zarr_store = zarr.open(self.zarr_dir, mode="r")
+        all_split_ids = zarr.attrs.__getitem__("data_split_positions")
+            
         if data_split == "all":
-            return split_col, inference_ids
+            split_ids = sum(all_split_ids.values(), [])
+        else:
+            split_ids = all_split_ids[data_split]
 
-        try:
-            split_fname = os.path.join(
-                Path(self.torch_predictor.network_config["model_dir"]).parent,
-                "split_samples.json",
-            )
-            split_samples = aux_utils.read_json(split_fname)
-            inference_ids = split_samples[data_split]
-        except FileNotFoundError as e:
-            print("No split_samples file. " "Will predict all images in dir.")
+        # inference_ids = np.unique(self.frames_meta[split_col]).tolist()
+        # if data_split == "all":
+        #     return split_col, inference_ids
 
-        return split_col, inference_ids
+        # try:
+        #     split_fname = os.path.join(
+        #         Path(self.torch_predictor.network_config["model_dir"]).parent,
+        #         "split_samples.json",
+        #     )
+        #     split_samples = aux_utils.read_json(split_fname)
+        #     inference_ids = split_samples[data_split]
+        # except FileNotFoundError as e:
+        #     print("No split_samples file. " "Will predict all images in dir.")
+
+        return split_ids
 
     def _assign_3d_inference(self):
         raise DeprecationWarning("3d inference no longer supported in 2.0.0")
