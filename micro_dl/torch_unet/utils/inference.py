@@ -1,44 +1,193 @@
+import datetime
+import time
 import numpy as np
+import os
+
 import torch
+from torch.utils.data import DataLoader
+from torch.utils.data import ConcatDataset
+from torch.utils.tensorboard import SummaryWriter
 
 import micro_dl.torch_unet.utils.model as model_utils
 import micro_dl.torch_unet.utils.dataset as ds
+import micro_dl.torch_unet.utils.io as io_utils
 
 
 class TorchPredictor:
     """
-    Instance of TorchPredictor which performs all of the compatibility functions required to
-    run prediction on an image given a trained pytorch model
+    TorchPredictor object handles all procedures involved with model inference.
+    The trainer uses a the model.py and dataset.py utility modules to instantiate and load a model
+    and validation data for inference using a gunpowder backend.
 
     Params:
-    :param torch.nn.module model: trained model for prediction
-    :param dict network_config: model configuration dictionary. parameters can be found
-                                in torch_unet.utils.readme.md
-    :param torch.device device: device to run inference on
+    :param torch_config
     """
 
-    def __init__(self, model=None, network_config=None, device=None) -> None:
-        self.model = model
-        self.network_config = network_config
-        self.device = device
+    def __init__(self, torch_config) -> None:
+        self.torch_config = torch_config
 
-    def load_model_torch(self) -> None:
+        self.zarr_dir = self.torch_config["zarr_dir"]
+        self.network_config = self.torch_config["model"]
+        self.training_config = self.torch_config["training"]
+        self.dataset_config = self.torch_config["dataset"]
+        self.inference_config = self.torch_config["inference"]
+
+        self.train_dataloader = None
+        self.test_dataloader = None
+        self.val_dataloader = None
+        self.current_dataloader = None
+
+        self.model = None
+        self.device = self.inference_config["device"]
+
+        # get directory for inference figure saving
+        self.get_save_location()
+
+    def load_model(self, init_dir=True) -> None:
         """
         Initializes a model according to the network configuration dictionary used
         to train it, and loads the parameters saved in model_dir into the model's state dict.
+
+        :param str init_dir: directory containing model weights and biases (should be true)
         """
         debug_mode = False
         if "debug_mode" in self.network_config:
             debug_mode = self.network_config["debug_mode"]
 
         model = model_utils.model_init(
-            self.network_config, device=self.device, debug_mode=debug_mode
+            self.network_config,
+            device=self.training_config["device"],
+            debug_mode=debug_mode,
         )
 
-        model_dir = self.network_config["model_dir"]
-        readout = model.load_state_dict(torch.load(model_dir))
-        print(f"PyTorch model load status: {readout}")
+        if init_dir:
+            model_dir = self.network_config["model_dir"]
+            readout = model.load_state_dict(torch.load(model_dir))
+            print(f"PyTorch model load status: {readout}")
         self.model = model
+
+    def generate_dataloaders(self, train_key=None, test_key=None, val_key=None) -> None:
+        """
+        Helper that generates validation torch dataloaders for loading validation samples
+        with a gunpowder backend. Note that a train/test/val data split must have already been
+        recorded in the zarr_dir zarr store's top level .zattrs metadata during training in the
+        following format in order for this method to work:
+            "data_split_positions":{
+                "train": -train positions (list[int])-,
+                "test": -test positions (list[int])-,
+                "val": -val positions (list[int])-,
+            }
+
+        Dataloaders are set to class variables. Dataloaders correspond to one multi-zarr
+        dataset each. Each dataset's access key will determine the data array (by type)
+        it calls at the well-level.
+
+        If keys unspecified, defaults to the first available data array at each well
+
+        :param int or gp.ArrayKey train_key: key or index of key to data array for training
+                                            in training dataset
+        :param int or gp.ArrayKey test_key: key or index of key to data array for testing
+                                            in testing dataset
+        :param int or gp.ArrayKey val_key: key or index of key to data array for validation
+                                            in validation dataset
+        """
+        assert self.torch_config != None, (
+            "torch_config must be specified in object" "initiation "
+        )
+
+        # init datasets
+        workers = 0
+        if "num_workers" in self.training_config:
+            workers = self.training_config["num_workers"]
+
+        torch_data_container = ds.InferenceDatasetContainer(
+            zarr_dir=self.zarr_dir,
+            train_config=self.training_config,
+            network_config=self.network_config,
+            dataset_config=self.dataset_config,
+            device=self.device,
+            workers=workers,
+            use_recorded_split=True,
+        )
+        train_dataset_list = torch_data_container["train"]
+        test_dataset_list = torch_data_container["test"]
+        val_dataset_list = torch_data_container["val"]
+
+        # initalize dataset keys
+        train_key = 0 if train_key == None else train_key
+        test_key = 0 if test_key == None else test_key
+        val_key = 0 if val_key == None else val_key
+        for train_dataset in train_dataset_list:
+            train_dataset.use_key(train_key)
+        for test_dataset in test_dataset_list:
+            test_dataset.use_key(test_key)
+        for val_dataset in val_dataset_list:
+            val_dataset.use_key(val_key)
+
+        # init dataloaders
+        self.train_dataloader = DataLoader(
+            dataset=ConcatDataset(train_dataset_list), shuffle=True
+        )
+        self.test_dataloader = DataLoader(
+            dataset=ConcatDataset(test_dataset_list), shuffle=True
+        )
+        self.val_dataloader = DataLoader(
+            dataset=ConcatDataset(val_dataset_list), shuffle=True
+        )
+
+    def select_dataloader(self, name="val"):
+        """
+        Selects dataloader from train, test, val
+
+        :param name: _description_, defaults to "val"
+        :type name: str, optional
+        """
+        assert self.train_dataloader and self.test_dataloader and self.val_dataloader, (
+            "Dataloaders " " must be initated. Try 'object_name'.generate_dataloaders()"
+        )
+        assert name in {
+            "train",
+            "test",
+            "val",
+        }, "name must be one of 'train', 'test', 'val'"
+        if name == "val":
+            self.current_dataloader = self.val_dataloader
+        if name == "test":
+            self.current_dataloader = self.test_dataloader
+        if name == "train":
+            self.current_dataloader = self.train_dataloader
+
+    def get_save_location(self):
+        """
+        Sets save location as specified in config files.
+
+        Note: for save location to be different than training save location,
+        not only does inference/save_preds_to_model_dir need to be False,
+        but you must specify a new location in inference/save_preds_dir
+
+        This is to encourage saving model inference with training models.
+
+        """
+        # TODO Change the functionality of saving to put inference in the actual
+        # train directory the model comes from. Not a big fan
+        train_save_dir = self.training_config["save_dir"]
+        save_to_train_save_dir = self.inference_config["save_preds_to_model_dir"]
+        custom_save_dir = self.inference_config["save_preds_dir"]
+
+        if not save_to_train_save_dir and custom_save_dir:
+            self.save_dir = custom_save_dir
+        else:
+            self.save_dir = train_save_dir
+
+        now = (
+            str(datetime.datetime.now())
+            .replace(" ", "_")
+            .replace(":", "_")
+            .replace("-", "_")[:-10]
+        )
+        self.save_folder = os.path.join(self.save_dir, f"inference_results_{now}")
+        if not os.path.exists(self.save_folder):
+            os.makedirs(self.save_folder)
 
     def predict_image(self, input_image, model=None):
         """
@@ -90,95 +239,34 @@ class TorchPredictor:
         pred = model(img_tensor)
         return pred.detach().cpu().numpy()
 
-    def predict_large_image_tiling(self, input_image, model=None):
+    def run_inference(self):
         """
-        Takes large image (or image stack) as a numpy array and returns prediction for it,
-        block-wise.
+        Performs inference on the entire validation dataset.
 
-        Note: only accepts input_image inputs of sizes that are powers of 2 (due to downsampling).
-        Please crop non-power-of-two length images.
+        Model outputs are normalized and compared with ground truth through metrics specified
+        in the metrics parameter in the inference section of the config.
 
-        :param numpy.ndarray/torch.Tensor input_image: large (xy > 256x256) input image or
-                                                        image stack
-        :param torch.nn.Module model: trained model to use for prediction
-
+        Metrics along with figures of both raw outputs, ground truth, and comparison overlays
+        are saved in the tensorboard output at the specified save directory.
         """
-        assert len(input_image.shape) in [4, 5], "".join(
-            "Invalid image shape: only 4D and 5D",
-            "inputs - 2D / 3D images with channel and batch dim allowed",
-        )
+        assert self.current_dataloader, "Select dataloader prior to inference"
 
-        if type(input_image) != type(torch.rand(1, 1)):
-            input_image = ds.ToTensor(device=self.device)(input_image)
+        # init io and saving
+        start = time.time()
+        self.writer = SummaryWriter(log_dir=self.save_folder)
+        self.model.eval()
 
-        # generate tiles
-        tiles = self.tile_large_image_torch(input_image)
-        # predict each tile
-        for key in tiles:
-            for ind, input_tile in enumerate(tiles[key]):
-                prediction = model(input_tile)
+        print("Running inference: \n")
+        for current, sample in enumerate(self.current_dataloader):
 
-                tiles[key][ind] = prediction
-        # stitich predictions
-        output_image = self.stitch_image_tiles_torch(
-            tiles, (input_image.shape[-2], input_image.shape[-1])
-        )
+            # pretty printing
+            io_utils.show_progress_bar(self.current_dataloader, current)
 
-        return output_image.detach().cpu().numpy()
+            # get sample and target (removing single batch dimension)
+            input_ = sample[0][0].cuda(device=self.device).float()
+            target_ = sample[1][0].cuda(device=self.device).float()
 
-    def tile_large_image(self, input_image, tile_size=(256, 256), stride=128):
-        # TODO: readability + implement tiling with a stride.
-        """
-        NOTE: This function is redundant and may be removed, depending on ongoing design choices
+            # run through model
+            prediction = self.model(input_, validate_input=True)
 
-        Takes large input image as and returns dictionary of tiles of that image.
-        dictionaries are indexed by row number of each tile (tile-sized rows),
-        and contains list of all tiles of that row.
-
-        :param input_image
-        :param tuple(int, int) tile_size: size of tiles to
-        """
-        img_shape = input_image.shape
-
-        s1, s2 = img_shape[0] % tile_size[0], img_shape[1] % tile_size[1]
-        assert s1 + s2 == 0, "".join(
-            "For downsampling reasons, image input size",
-            "must be multiple of tile input size",
-        )
-        img_dict = {}
-        for i in range(img_shape[-2] // tile_size[0]):
-            row = []
-            for j in range(img_shape[-1] // tile_size[1]):
-                img_tile = input_image[
-                    ...,
-                    i * tile_size[0] : (i + 1) * tile_size[0],
-                    j * tile_size[0] : (j + 1) * tile_size[0],
-                ]
-                row.append(img_tile)
-            img_dict[i] = row
-        return img_dict
-
-    def stitch_image_tiles(self, tiles, output_size, stride=128):
-        # TODO: Implement stride and stitching using center of FoV only
-        #      Offer option for averaging versus completely overriding overlap
-        """
-        NOTE: This function is redundant and may be removed, depending on ongoing design choices
-
-        Takes in dictionary of tiles in,
-        and returns the tiles stitched together along x and y dimensions.
-
-        Params:
-        :param dict tiles: dict of tiles for stitching:
-                            format {row_index: [row of torch.tensor tiles],
-                            ..., row_index: [row of torch.tensor tiles]}
-        :param tuple(int, int) output_size: expected x-y size of output tensor
-        """
-
-        output_tensor = []
-        for key in tiles:
-            output_tensor.append(tiles[key])
-
-        output_tensor = [torch.cat(row, axis=-1) for row in output_tensor]
-        output_tensor = torch.cat(output_tensor, axis=-2)
-
-        return output_tensor
+            self.current_dataloader.dataset

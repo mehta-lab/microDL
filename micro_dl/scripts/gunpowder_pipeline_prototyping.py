@@ -1,28 +1,17 @@
 # %%
-import collections
-import glob
-from lib2to3.pgen2.token import NOTEQUAL
-import pathlib
 import numpy as np
-import scipy.signal as signal
-import cv2
-from random import random
-from pandas import array
-import zarr
-from multiprocessing.pool import Pool
-
 import os
 import gunpowder as gp
-
 import matplotlib.pyplot as plt
-
 import sys
 
 sys.path.insert(0, "/home/christian.foley/virtual_staining/workspaces/microDL")
 
-from micro_dl.input.dataset import apply_affine_transform
-from micro_dl.utils.normalize import unzscore
-from micro_dl.utils.gunpowder_utils import gpsum, multi_zarr_source
+from micro_dl.utils.gunpowder_utils import (
+    gpsum,
+    multi_zarr_source,
+    get_zarr_source_position,
+)
 from micro_dl.input.gunpowder_nodes import (
     IntensityAugment,
     BlurAugment,
@@ -128,7 +117,7 @@ print("done")
 print("building pipeline...", end="")
 batch_pipeline = gpsum(
     [
-        multi_source[0],
+        multi_source,
         random_provider,
         random_location,
         reject,
@@ -185,6 +174,5 @@ with gp.build(batch_pipeline) as pipeline:
                     f"min:{np.max(data[row][channel][2]):.3f}"
                 )
     plt.show()
-
 
 # %%

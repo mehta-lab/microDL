@@ -1,3 +1,4 @@
+#%%
 import argparse
 import datetime
 import os
@@ -9,7 +10,7 @@ import micro_dl.inference.image_inference as image_inf
 import micro_dl.torch_unet.utils.inference as torch_inference_utils
 import micro_dl.utils.train_utils as train_utils
 
-
+#%%
 def parse_args():
     """
     Parse command line arguments
@@ -107,3 +108,8 @@ if __name__ == "__main__":
         preprocess_config=preprocess_config,
     )
     image_predictor.run_prediction()
+#%%
+import micro_dl.torch_unet.utils.dataset as dataset
+
+# %%
+dataset.InferenceDatasetContainer()

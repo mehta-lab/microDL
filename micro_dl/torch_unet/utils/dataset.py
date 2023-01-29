@@ -19,7 +19,7 @@ class TorchDatasetContainer(object):
     Dataset container object which initalizes multiple TorchDatasets depending upon the parameters
     given in the training and network config files during initialization.
 
-    Randomly selects samples to divy up sources between train, test, and validation datasets.
+    By default, randomly selects samples to divy up sources between train, test, and validation datasets.
     """
 
     def __init__(
@@ -30,8 +30,9 @@ class TorchDatasetContainer(object):
         dataset_config,
         device=None,
         workers=0,
+        use_recorded_split=False,
+        allow_augmentations=True,
     ):
-        # TODO make necessary changes to configs to match structure implied in this module
         """
         Inits an object which builds a testing, training, and validation dataset
         from .zarr data files using gunpowder pipelines
@@ -43,6 +44,10 @@ class TorchDatasetContainer(object):
         :param str device: device on which to place tensors in child datasets,
                             by default, places on 'cuda'
         :param int workers: number of cpu workers for simultaneous data fetching
+        :param bool use_recorded_split: whether to use random or previously recorded
+                            train/test/val data split
+        :param bool allow_augmentations: If False disallows augmentations in dataloading
+                            pipelines, by default True
         """
         self.zarr_dir = zarr_dir
         self.train_config = train_config
@@ -59,9 +64,10 @@ class TorchDatasetContainer(object):
             self.val_source,
             self.dataset_keys,
         ) = gp_utils.multi_zarr_source(
-            zarr_dir=self.zarr_dir,  # TODO config change
+            zarr_dir=self.zarr_dir,
             array_spec=array_spec,
             data_split=self.dataset_config["split_ratio"],
+            use_recorded_split=use_recorded_split,
         )
         try:
             assert len(self.test_source) > 0
@@ -95,11 +101,11 @@ class TorchDatasetContainer(object):
         if "mask_type" in dataset_config and self.mask_key == None:
             raise ValueError(f"Specified mask type's corresponding array not found")
 
-        # build augmentation nodes
+        # build augmentation nodes if allowed
         train_aug_nodes = []
         test_aug_nodes = []
         val_aug_nodes = []
-        if "augmentations" in train_config:
+        if "augmentations" in train_config and allow_augmentations:
             assert isinstance(train_config["augmentations"], dict), "Augmentations"
             " section of config must be a dictionary of parameters"
             train_aug_nodes = gp_utils.generate_augmentation_nodes(
@@ -112,8 +118,11 @@ class TorchDatasetContainer(object):
                 train_config["augmentations"], self.dataset_keys
             )
 
-        # set up epoch length for each dataset type
-        train_epoch_length = self.train_config["samples_per_epoch"]
+        # set up epoch length for each dataset type or allow for later calculation
+        if "samples_per_epoch" in self.train_config:
+            train_epoch_length = self.train_config["samples_per_epoch"]
+        else:
+            train_epoch_length = 0
         train_fraction = self.dataset_config["split_ratio"]["train"]
         total = train_epoch_length // train_fraction
 
@@ -133,7 +142,7 @@ class TorchDatasetContainer(object):
 
     def init_torch_dataset(self, source, augmentation_nodes, dataset_epoch_length):
         """
-        Initializes a torch dataset to sample 'source' through the given
+        Initializes a torch dataset to sample 'source' tuple through the given
         augmentations 'augmentations'.
 
         :param tuple(gp.ZarrSource) source: tuple of source nodes representing the
@@ -163,8 +172,10 @@ class TorchDatasetContainer(object):
             target_channel_idx=tuple(self.dataset_config["target_channels"]),
             input_channel_idx=tuple(self.dataset_config["input_channels"]),
             spatial_window_size=tuple(self.dataset_config["window_size"]),
+            spatial_window_offset=(0,) * len(tuple(self.dataset_config["window_size"])),
             device=self.device,
             workers=self.workers,
+            random_sampling=True,
         )
         return dataset
 
@@ -185,6 +196,188 @@ class TorchDatasetContainer(object):
             }[idx]
         else:
             return [self.train_dataset, self.test_dataset, self.val_dataset][idx]
+
+
+class InferenceDatasetContainer(object):
+    """
+    Dataset container object which initalizes multiple TorchDatasets depending upon the
+    parametersgiven in the training, inference and network config files during initialization.
+
+    Unlike the TorchDatasetObject meant for training, this object does not initialize any
+    random sampling. This means that instead of initializing one dataset which randomly
+    accesses many positions, it returns a labeled list of datasets: one for each source
+    at each z-slice.
+
+    Dataset objects are relatively light-weight until they are called, so having a large number
+    should not affect performance drastically.
+
+    Requires use of a recorded data split to determine train, test, and validation positions
+    """
+
+    def __init__(
+        self,
+        zarr_dir,
+        network_config,
+        dataset_config,
+        inference_config,
+        device=None,
+        workers=0,
+    ):
+        """
+        Inits an object which rebuilds a previously recorded testing, training, and
+        validation dataset from .zarr data files using gunpowder pipelines
+
+        :param dict network_config: dict object of network_config
+        :param dict dataset_config: dict object of dataset_config
+        :param str device: device on which to place tensors in child datasets,
+                            by default, places on 'cuda'
+        :param int workers: number of cpu workers for simultaneous data fetching
+        """
+        self.zarr_dir = zarr_dir
+        self.network_config = network_config
+        self.dataset_config = dataset_config
+        self.inference_config = inference_config
+        self.device = device
+        self.workers = workers
+
+        # acquire sources from the zarr directory
+        array_spec = gp_utils.generate_array_spec(network_config)
+        (
+            self.train_source,
+            self.test_source,
+            self.val_source,
+            self.dataset_keys,
+        ) = gp_utils.multi_zarr_source(
+            zarr_dir=self.zarr_dir,
+            array_spec=array_spec,
+            use_recorded_split=True,
+        )
+        try:
+            assert len(self.test_source) > 0
+            assert len(self.train_source) > 0
+            assert len(self.val_source) > 0
+        except Exception as e:
+            raise AssertionError(
+                f"All datasets must have at least one source node / zarr store,"
+                f" not enough source arrays found.\n {e.args}"
+            )
+
+        # extract special keytypes
+        self.flatfield_key = None
+        for key in self.dataset_keys.copy():
+            if key.identifier == "flatfield":
+                self.flatfield_key = key
+                self.dataset_keys.remove(self.flatfield_key)
+                break
+
+        self.mask_key = None
+        mask_key_identifier = ""
+        if "mask_type" in dataset_config:
+            mask_key_identifier = "_".join(["mask", dataset_config["mask_type"]])
+
+        for key in self.dataset_keys.copy():
+            if key.identifier == mask_key_identifier:
+                self.mask_key = key
+                self.dataset_keys.remove(self.mask_key)
+            elif "mask" in key.identifier:
+                self.dataset_keys.remove(key)
+        if "mask_type" in dataset_config and self.mask_key == None:
+            raise ValueError(f"Specified mask type's corresponding array not found")
+
+        # assign each source subset to a child dataset object
+        self.train_dataset_list = self.generate_dataset_list(self.train_source)
+        self.test_dataset_list = self.generate_dataset_list(self.test_source)
+        self.val_dataset_list = self.generate_dataset_list(self.val_source)
+
+    def init_inference_dataset(self, source, window_size, window_offset):
+        """
+        Initializes a torch dataset to sample 'source' tuple.
+
+        :param tuple(gp.ZarrSource) source: tuple of source nodes representing the
+                                            dataset sample space
+        :param tuple(int) window_size: dataset sample size
+        :param tuple(int) window_offset: dataset sample window offset in data array
+        """
+        # NOTE: not passing the whole dataset config is a design choice here. The
+        # elements of the config are a black box until theyre indexed. I do this
+        # to make them more readable. This can change with PyDantic later
+        dataset = TorchDataset(
+            # gunpowder params
+            data_source=source,
+            augmentation_nodes=[],
+            data_keys=self.dataset_keys,
+            # preprocessing node params
+            mask_key=self.mask_key,
+            flatfield_key=self.flatfield_key,
+            normalization_scheme=self.dataset_config["normalization"]["scheme"],
+            normalization_type=self.dataset_config["normalization"]["type"],
+            min_foreground_fraction=0,
+            flatfield_correct=self.dataset_config["flatfield_correct"],
+            # dataloading params
+            data_dimensionality=self.network_config["architecture"],
+            batch_size=1,
+            epoch_length=1,
+            target_channel_idx=tuple(self.dataset_config["target_channels"]),
+            input_channel_idx=tuple(self.dataset_config["input_channels"]),
+            spatial_window_size=window_size,
+            spatial_window_offset=window_offset,
+            device=self.device,
+            workers=self.workers,
+            random_sampling=False,
+        )
+        return dataset
+
+    def generate_dataset_list(self, sources):
+        """
+        Generate a list of datasets, one for each source at each z-slice in the specified
+        window range.
+
+        :param tuple(gp.ZarrSource) sources: multi-zarr-source (tuple of sources)
+
+        :return list datasets: returns a list of datasets each servicing one z-offset window
+                        in one source position
+        """
+        z_slice_range = self.inference_config["z_slice_range"]
+        spatial_window_size = self.inference_config["window_size"]
+        spatial_window_z_depth = spatial_window_size[0]
+        self.z_offset_ranges = range(
+            z_slice_range[0], z_slice_range[1] - spatial_window_z_depth
+        )
+
+        datasets = []
+        for source in sources:
+            for z_offset in self.offset_ranges:
+                spatial_window_offset = (z_offset,) + (0,) * len(spatial_window_size)
+                dataset = self.init_inference_dataset(
+                    source,
+                    spatial_window_size,
+                    spatial_window_offset,
+                )
+                datasets.append(dataset)
+
+        return datasets
+
+    def __getitem__(self, idx):
+        """
+        Provides indexing capabilities to reference train, test, and val datasets
+
+        :param int or str idx: index/key of dataset to retrieve:
+                                train -> 0 or 'train'
+                                test -> 1 or 'test'
+                                val -> 2 or 'val'
+        """
+        if isinstance(idx, str):
+            return {
+                "train": self.train_dataset_list,
+                "test": self.test_dataset_list,
+                "val": self.val_dataset_list,
+            }[idx]
+        else:
+            return [
+                self.train_dataset_list,
+                self.test_dataset_list,
+                self.val_dataset_list,
+            ][idx]
 
 
 class TorchDataset(Dataset):
@@ -220,8 +413,10 @@ class TorchDataset(Dataset):
         target_channel_idx,
         input_channel_idx,
         spatial_window_size,
+        spatial_window_offset,
         device,
         workers,
+        random_sampling,
     ):
         """
         Creates a dataset object which draws samples directly from a gunpowder pipeline.
@@ -245,11 +440,13 @@ class TorchDataset(Dataset):
         :param tuple(int) target_channel_idx: indices of target channel(s) within zarr store
         :param tuple(int) input_channel_idx: indices of input channel(s) within zarr store
         :param tuple spatial_window_size: tuple of sample dimensions, specifies batch request ROI
-                                    2D network, expects 2D tuple; dimensions yx
-                                    2.5D network, expects 3D tuple; dimensions zyx
+                                    expects 3D tuple; dimensions zyx, where z = 1 for 2d request
+        :param tuple spatial_window_offset: tuple of offset dimensions, specifies batch request ROI
+                                    expects 3D tuple; dimensions zyx, where z = 1 for 2d request
         :param str device: device on which to place tensors in child datasets,
                                     by default, places on 'cuda'
         :param int workers: number of simultaneous threads reading data into batch requests
+        :param bool random_sampling: whether to sample source data randomly or not.
         """
         self.data_source = data_source
         self.augmentation_nodes = augmentation_nodes
@@ -266,10 +463,11 @@ class TorchDataset(Dataset):
         self.target_idx = target_channel_idx
         self.input_idx = input_channel_idx
         self.window_size = spatial_window_size
+        self.window_offset = spatial_window_offset
         self.device = device
         self.active_key = 0
         self.workers = max(1, workers - 1)
-        self.random_sampling = True
+        self.random_sampling = random_sampling
 
         # safety checks: iterate through keys and data sources to ensure that they match
         voxel_size = None
@@ -321,12 +519,16 @@ class TorchDataset(Dataset):
         )
         assert len(self.window_size) == len(voxel_size), (
             f"Incompatible voxel size {voxel_size}. "
-            f"Must be same length as spatial_window_size {self.window_size}"
+            f"Must be same length as spatial_window_size {self.window_size}."
+        )
+        assert len(self.window_size) == len(self.window_offset), (
+            f"Incompatible window offset {self.window_offset}. "
+            f"Must be same length as spatial_window_size {self.window_size}."
         )
 
         batch_request = gp.BatchRequest()
         for key in self.data_keys:
-            batch_request[key] = gp.Roi((0,) * len(self.window_size), self.window_size)
+            batch_request[key] = gp.Roi(self.window_offset, self.window_size)
             # NOTE: the keymapping we are performing here makes it so that if
             # we DO end up generating multiple arrays at the position/well level
             # (for example one with and without flatfield correction), we can
@@ -334,12 +536,10 @@ class TorchDataset(Dataset):
             # in __getitem__ ends up being the index of our key.
         if self.flatfield_key:
             batch_request[self.flatfield_key] = gp.Roi(
-                (0,) * len(self.window_size), tuple([1] + list(self.window_size[1:]))
+                self.window_offset, tuple([1] + list(self.window_size[1:]))
             )
         if self.mask_key:
-            batch_request[self.mask_key] = gp.Roi(
-                (0,) * len(self.window_size), self.window_size
-            )
+            batch_request[self.mask_key] = gp.Roi(self.window_offset, self.window_size)
         self.batch_request = batch_request
 
         # build our pipeline and the generator structure that uses it

@@ -18,15 +18,13 @@ if __name__ == "__main__":
 import micro_dl.torch_unet.utils.model as model_utils
 import micro_dl.torch_unet.utils.dataset as ds
 import micro_dl.torch_unet.utils.io as io_utils
-import micro_dl.utils.aux_utils as aux_utils
 
 
 class TorchTrainer:
     """
     TorchTrainer object which handles all the procedures involved with training a pytorch model.
     The trainer uses a the model.py and dataset.py utility modules to instantiate and load a model and
-    training data by passing them through the existing tensorflow dataset creators and reformatting
-    the outputs.
+    training data using a gunpowder backend.
 
     Functionality of the class can be achieved without specifying full torch_config. However, full
     functionality requires full configuration file.
@@ -95,7 +93,16 @@ class TorchTrainer:
         assert (
             self.network_config != None
         ), "Network configuration must be initiated to load model"
-        model = model_utils.model_init(self.network_config)
+
+        debug_mode = False
+        if "debug_mode" in self.network_config:
+            debug_mode = self.network_config["debug_mode"]
+
+        model = model_utils.model_init(
+            self.network_config,
+            device=self.training_config["device"],
+            debug_mode=debug_mode,
+        )
 
         if init_dir:
             model_dir = self.network_config["model_dir"]
@@ -141,6 +148,7 @@ class TorchTrainer:
             dataset_config=self.dataset_config,
             device=self.device,
             workers=workers,
+            use_recorded_split=self.dataset_config["use_recorded_data_split"],
         )
         train_dataset = torch_data_container["train"]
         test_dataset = torch_data_container["test"]
@@ -153,9 +161,6 @@ class TorchTrainer:
         train_dataset.use_key(train_key)
         test_dataset.use_key(test_key)
         val_dataset.use_key(val_key)
-
-        self.train_dataset = train_dataset
-        # TODO Modify metadata to track data split
 
         # init dataloaders
         self.train_dataloader = DataLoader(dataset=train_dataset, shuffle=True)
@@ -432,7 +437,7 @@ class EarlyStopping:
         verbose=False,
         delta=0,
         trace_func=print,
-        save_model = True
+        save_model=True,
     ):
         """
         Early stops the training if validation loss doesn't improve after a given patience.

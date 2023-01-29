@@ -8,7 +8,6 @@ import subprocess
 from micro_dl.input.dataset import BaseDataSet
 from micro_dl.input import DataSetWithMask
 from micro_dl.input.training_table import BaseTrainingTable
-from micro_dl.train import losses as custom_losses, metrics as custom_metrics
 import micro_dl.utils.preprocess_utils as preprocess_utils
 
 

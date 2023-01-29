@@ -132,7 +132,9 @@ def get_zarr_source_position(zarr_source):
     return source_position
 
 
-def multi_zarr_source(zarr_dir, array_name="*", array_spec=None, data_split={}):
+def multi_zarr_source(
+    zarr_dir, array_name="*", array_spec=None, data_split={}, use_recorded_split=False
+):
     """
     Generates a tuple of source nodes for for each dataset type (train, test, val),
     containing one source node for every well in the zarr_dir specified.
@@ -176,9 +178,11 @@ def multi_zarr_source(zarr_dir, array_name="*", array_spec=None, data_split={}):
     :param str array_name: name of the data container at bottom level of zarr tree,
                             by default, accesses all containers
     :param gp.ArraySpec array_spec: specification for zarr datasets, defaults to None
-    :param dict data_split: dict containing fractions to split data for train, test, validation,
-                            fields must be 'train', 'test', and 'val',
-                            by default does not split and returns one source tuple
+    :param dict data_split: dict containing fractions  to split data for train, test, validation.
+                            Fields must be 'train', 'test', and 'val'. By default does not split
+                            and returns one source tuple. Is overridden by "use_recorded_split".
+    :param bool use_recorded_split: if true, will use recorded data split stored in top-level .zattrs
+                            of "zarr_dir". by default is false
 
     :return tuple all_sources: (if no data_split) multi-source node from zarr_dir stores (equivalent to
                             s_1 + ... + s_n)
@@ -256,7 +260,7 @@ def multi_zarr_source(zarr_dir, array_name="*", array_spec=None, data_split={}):
                 map(identity, all_keys)
             ), f"Found different array types in zarr store {zarr_fname}"
 
-    if len(data_split) > 0:
+    if len(data_split) > 0 and use_recorded_split == False:
         assert "train" in data_split and "test" in data_split and "val" in data_split, (
             f"Incorrect format for data_split: {data_split}."
             " \n Must contain 'train', 'test', and 'val' "
@@ -276,11 +280,36 @@ def multi_zarr_source(zarr_dir, array_name="*", array_spec=None, data_split={}):
         position_metadata = {}
         split = ["train", "test", "val"]
         for i, source_list in enumerate([train_source, test_source, val_source]):
-            source_split = split[i]
             positions = list(map(get_zarr_source_position, source_list))
             position_metadata[split[i]] = positions
         plate_level_store = zarr.open(zarr_dir, mode="a")
         plate_level_store.attrs.update({"data_split_positions": position_metadata})
+
+        return train_source, test_source, val_source, all_keys
+    elif use_recorded_split:
+        # read recorded split and validate
+        plate_level_store = zarr.open(zarr_dir, mode="a")
+        data_split = plate_level_store.attrs.asdict()["data_split_positions"]
+
+        assert "train" in data_split and "test" in data_split and "val" in data_split, (
+            f"Incorrect format for data_split: {data_split}."
+            " \n Must contain 'train', 'test', and 'val' "
+        )
+
+        # map each source to its position
+        train_source, test_source, val_source = [], [], []
+        for i, source in enumerate(all_sources):
+            source_position = get_zarr_source_position(source)
+            if source_position in data_split["train"]:
+                train_source.append(source)
+            elif source_position in data_split["test"]:
+                test_source.append(source)
+            elif source_position in data_split["val"]:
+                val_source.append(source)
+
+        train_source = tuple(train_source)
+        test_source = tuple(test_source)
+        val_source = tuple(val_source)
 
         return train_source, test_source, val_source, all_keys
     else:
