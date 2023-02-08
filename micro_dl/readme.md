@@ -82,7 +82,7 @@ The ```your_config_file_path.yml``` config file contains the necessary parameter
 >
 >**training:**
 >
->&nbsp;&nbsp; **epochs:** <span style="color:cyan"> 300 </span> (number of tiles for gunpowder to sample each epoch. If set to 0, will be automatically estimated based off the size of your window and the size of your dataset)
+>&nbsp;&nbsp; **samples_per_epoch:** <span style="color:cyan"> 300 </span> (number of tiles for gunpowder to sample each epoch. If set to 0, will be automatically estimated based off the size of your window and the size of your dataset)
 >
 >&nbsp;&nbsp; **epochs:** <span style="color:cyan"> 41 </span> (number of epochs to train)
 >

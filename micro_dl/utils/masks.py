@@ -4,7 +4,8 @@ import cv2
 from scipy.ndimage import binary_fill_holes
 from skimage.filters import threshold_otsu
 from skimage.feature import peak_local_max
-from skimage.morphology import disk, ball, binary_opening, binary_erosion, watershed
+from skimage.morphology import disk, ball, binary_opening, binary_erosion
+from skimage.segmentation import watershed
 from micro_dl.utils.image_utils import im_adjust
 
 

@@ -2,56 +2,21 @@ import cv2
 import numpy as np
 import pandas as pd
 import os
-import argparse
+import typer
+from rich import print
+
+from enum import Enum
 import glob
 import time
 import sys
 import matplotlib.pyplot as plt
 
-sys.path.insert(0, "/home/christian.foley/virtual_staining/workspaces/microDL")
+sys.path.insert(0, "/home/shalin.mehta/code/microDL")
 
 import micro_dl.torch_unet.utils.training as training
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.torch_unet.utils.io as torch_io_utils
 import micro_dl.plotting.plot_utils as plot_utils
-
-
-def parse_args():
-    """Parse command line arguments
-
-    In python namespaces are implemented as dictionaries
-    :return: namespace containing the arguments passed.
-    """
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--config",
-        type=str,
-        help=(
-            "path to config with all the necessary parameters and structure"
-            " to perform preprocessing and training and some augmentation"
-        ),
-    )
-
-    parser.add_argument(
-        "--save_dir",
-        type=str,
-        help="directory to save samples images at",
-    )
-    parser.add_argument(
-        "--extension",
-        type=str,
-        default=".png",
-        help="image save type, defaults to '.png'",
-    )
-    parser.add_argument(
-        "--save_type",
-        type=str,
-        default="group_plot",
-        help="format to save images in. One of {'group_plot', 'plot', 'image_only'}",
-    )
-
-    args = parser.parse_args()
-    return args
 
 
 def visualize_dataloading(
@@ -164,32 +129,111 @@ def save_slice(save_file, slice, matplotlib):
         raise ValueError("Only '.png', '.tif', and '.npy' extensions supported.")
 
 
-if __name__ == "__main__":
-    args = parse_args()
-    save_dir = (
-        args.save_dir
-    )  # "/hpc/projects/CompMicro/projects/virtualstaining/torch_microDL/data_visualization/augmentation_test_12_14/"
-    extension = args.extension  # ".png"
-    save_type = args.save_type  # "plot_group"
-    torch_config = aux_utils.read_config(
-        args.config  # "/hpc/projects/CompMicro/projects/virtualstaining/torch_microDL/config_files/2022_11_01_VeroMemNuclStain/data_visualization_12_13/torch_config_25D.yml"
-    )
-    start = time.time()
+class plot_save_type(str, Enum):
+    group_plot = "group_plot"
+    plot = "plot"
+    image_only = "image_only"
 
-    # setup save locations for both samples
+def main(config: str = typer.Option(..., help="Path to YAML config that specifies dataset and augmentation parameters"),
+         save_dir: str = typer.Option(..., help = "Directory to save samples images at"),
+         extension: str = typer.Option(".png", help = "File type of saved images."),
+         save_type: plot_save_type = typer.Option(plot_save_type.group_plot, case_sensitive= False,
+                                       help = "Format to save images in.")):
+    """
+    Generates a set of images from the training set to visualize the data with and without augmentation.
+    """
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+        
     augmented_save_dir = os.path.join(save_dir, "augmented")
     raw_save_dir = os.path.join(save_dir, "raw")
+    
+    start = time.time()
 
-    # visualize augmented data
+    torch_config = aux_utils.read_config(
+        config  # "/hpc/projects/CompMicro/projects/virtualstaining/torch_microDL/config_files/2022_11_01_VeroMemNuclStain/data_visualization_12_13/torch_config_25D.yml"
+    )
+    
+        # visualize augmented data
     print(
         f"Visualizing augmented data, saving as {extension} files"
         f" in {augmented_save_dir}..."
     )
-    visualize_dataloading(torch_config, augmented_save_dir, save_type, extension)
+    visualize_dataloading(torch_config, augmented_save_dir, save_type.value, extension)
 
     # visualize raw data
     print(f"Visualizing raw data, saving as {extension} files" f" in {raw_save_dir}...")
     torch_config["training"].pop("augmentations")
-    visualize_dataloading(torch_config, raw_save_dir, save_type, extension)
+    visualize_dataloading(torch_config, raw_save_dir, save_type.value, extension)
 
     print(f"Done. Time taken: {time.time() - start}")
+
+
+if __name__ == "__main__":
+    typer.run(main)
+
+# # def parse_args():
+#     """Parse command line arguments
+
+#     In python namespaces are implemented as dictionaries
+#     :return: namespace containing the arguments passed.
+#     """
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument(
+#         "--config",
+#         type=str,
+#         help=(
+#             "path to config with all the necessary parameters and structure"
+#             " to perform preprocessing and training and some augmentation"
+#         ),
+#     )
+
+#     parser.add_argument(
+#         "--save_dir",
+#         type=str,
+#         help="directory to save samples images at",
+#     )
+#     parser.add_argument(
+#         "--extension",
+#         type=str,
+#         default=".png",
+#         help="image save type, defaults to '.png'",
+#     )
+#     parser.add_argument(
+#         "--save_type",
+#         type=str,
+#         default="group_plot",
+#         help="format to save images in. One of {'group_plot', 'plot', 'image_only'}",
+#     )
+
+#     args = parser.parse_args()
+#     return args
+
+
+#     args = parse_args()
+#     save_dir = (
+#         args.save_dir
+#     )  # "/hpc/projects/CompMicro/projects/virtualstaining/torch_microDL/data_visualization/augmentation_test_12_14/"
+#     extension = args.extension  # ".png"
+#     save_type = args.save_type  # "plot_group"
+#     torch_config = aux_utils.read_config(
+#         args.config  # "/hpc/projects/CompMicro/projects/virtualstaining/torch_microDL/config_files/2022_11_01_VeroMemNuclStain/data_visualization_12_13/torch_config_25D.yml"
+#     )
+
+#     # setup save locations for both samples
+#     augmented_save_dir = os.path.join(save_dir, "augmented")
+#     raw_save_dir = os.path.join(save_dir, "raw")
+
+#     # visualize augmented data
+#     print(
+#         f"Visualizing augmented data, saving as {extension} files"
+#         f" in {augmented_save_dir}..."
+#     )
+#     visualize_dataloading(torch_config, augmented_save_dir, save_type, extension)
+
+#     # visualize raw data
+#     print(f"Visualizing raw data, saving as {extension} files" f" in {raw_save_dir}...")
+#     torch_config["training"].pop("augmentations")
+#     visualize_dataloading(torch_config, raw_save_dir, save_type, extension)
+
+#     print(f"Done. Time taken: {time.time() - start}")
