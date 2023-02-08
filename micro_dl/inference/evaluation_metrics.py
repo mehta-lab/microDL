@@ -350,7 +350,7 @@ class MetricsEstimator:
             prediction = prediction[..., np.newaxis]
         self.metrics_xy = pd.DataFrame(columns=self.pd_col_names)
         # Loop through slices
-        for slice_idx in range(target.shape[2]):
+        for slice_idx in range(target.shape[-1]):
             slice_name = "{}_xy{}".format(pred_name, slice_idx)
             cur_mask = mask[..., slice_idx] if mask is not None else None
             metrics_row = self.compute_metrics_row(
@@ -377,15 +377,15 @@ class MetricsEstimator:
         """
         mask = self.mask_to_bool(mask)
         self.assert_input(target, prediction, pred_name, mask)
-        assert len(target.shape) == 3, "Dataset is assumed to be 3D"
+        assert len(target.shape) >= 3, "Dataset is assumed to be at least 3D"
         self.metrics_xz = pd.DataFrame(columns=self.pd_col_names)
         # Loop through slices
-        for slice_idx in range(target.shape[0]):
+        for slice_idx in range(target.shape[-3]):
             slice_name = "{}_xz{}".format(pred_name, slice_idx)
             cur_mask = mask[slice_idx, ...] if mask is not None else None
             metrics_row = self.compute_metrics_row(
-                target=target[slice_idx, ...],
-                prediction=prediction[slice_idx, ...],
+                target=target[..., slice_idx, :, :],
+                prediction=prediction[..., slice_idx, :, :],
                 pred_name=slice_name,
                 mask=cur_mask,
             )
@@ -407,15 +407,15 @@ class MetricsEstimator:
         """
         mask = self.mask_to_bool(mask)
         self.assert_input(target, prediction, pred_name, mask)
-        assert len(target.shape) == 3, "Dataset is assumed to be 3D"
+        assert len(target.shape) >= 3, "Dataset is assumed to be at least 3D"
         self.metrics_yz = pd.DataFrame(columns=self.pd_col_names)
         # Loop through slices
-        for slice_idx in range(target.shape[1]):
+        for slice_idx in range(target.shape[-2]):
             slice_name = "{}_yz{}".format(pred_name, slice_idx)
             cur_mask = mask[:, slice_idx, :] if mask is not None else None
             metrics_row = self.compute_metrics_row(
-                target=target[:, slice_idx, :],
-                prediction=prediction[:, slice_idx, :],
+                target=target[..., slice_idx, :],
+                prediction=prediction[..., slice_idx, :],
                 pred_name=slice_name,
                 mask=cur_mask,
             )

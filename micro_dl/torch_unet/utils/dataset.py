@@ -227,8 +227,11 @@ class InferenceDatasetContainer(object):
         Inits an object which rebuilds a previously recorded testing, training, and
         validation dataset from .zarr data files using gunpowder pipelines
 
+        :param str zarr_dir: path to OME-Zarr HCS compatible zarr directory contraining
+                    training data
         :param dict network_config: dict object of network_config
         :param dict dataset_config: dict object of dataset_config
+        :param dict inference_config: dict object of inference_config
         :param str device: device on which to place tensors in child datasets,
                             by default, places on 'cuda'
         :param int workers: number of cpu workers for simultaneous data fetching
@@ -346,10 +349,12 @@ class InferenceDatasetContainer(object):
 
         datasets = []
         for source in sources:
-            for z_offset in self.offset_ranges:
-                spatial_window_offset = (z_offset,) + (0,) * len(spatial_window_size)
+            for z_offset in self.z_offset_ranges:
+                spatial_window_offset = (z_offset,) + (0,) * len(
+                    spatial_window_size[1:]
+                )
                 dataset = self.init_inference_dataset(
-                    source,
+                    (source,),
                     spatial_window_size,
                     spatial_window_offset,
                 )
@@ -536,7 +541,7 @@ class TorchDataset(Dataset):
             # in __getitem__ ends up being the index of our key.
         if self.flatfield_key:
             batch_request[self.flatfield_key] = gp.Roi(
-                self.window_offset, tuple([1] + list(self.window_size[1:]))
+                (0,) * len(self.window_offset), tuple([1] + list(self.window_size[1:]))
             )
         if self.mask_key:
             batch_request[self.mask_key] = gp.Roi(self.window_offset, self.window_size)
@@ -648,7 +653,7 @@ class TorchDataset(Dataset):
                 source = [source, gp.RandomProvider()]
             source = source + [gp.RandomLocation()]
         else:
-            source = self.data_source[0]
+            source = [self.data_source[0]]
         if self.min_foreground_fraction and self.mask_key:
             source = source + [
                 gp.Reject(
