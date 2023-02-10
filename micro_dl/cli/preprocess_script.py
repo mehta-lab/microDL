@@ -93,7 +93,7 @@ def pre_process(torch_config):
         # validate
         if isinstance(flatfield_channels, list):
             assert set(flatfield_channels).issubset(
-                list(range(modifier.channel_names))
+                list(range(len(modifier.channel_names)))
             ), "Flatfield channels {} is not a subset of channel_ids".format(
                 flatfield_channels
             )
