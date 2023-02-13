@@ -51,6 +51,25 @@ def create_otsu_mask(input_image,
     # # mask = binary_erosion(mask, str_elem)
     return mask
 
+def create_adaptive_mask(input_image,
+                     str_elem_size=2,
+                     thr=None,
+                     kernel_size=3,
+                     w_shed=False):
+    """Create a binary mask using morphological operations
+
+    Opening removes small objects in the foreground.
+
+    :param np.array input_image: generate masks from this image
+    :param int str_elem_size: size of the structuring element. typically 3, 5
+    :return: mask of input_image, np.array
+    """
+    input_image = im_adjust(cv2.GaussianBlur(input_image, (kernel_size, kernel_size), 0))
+    mask = cv2.adaptiveThreshold(input_image,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
+            cv2.THRESH_BINARY,11,str_elem_size)
+    return mask
+
+
 def get_unimodal_threshold(input_image):
     """Determines optimal unimodal threshold
 
