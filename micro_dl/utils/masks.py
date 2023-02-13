@@ -24,30 +24,31 @@ def create_otsu_mask(input_image,
     """
 
     input_image = im_adjust(cv2.GaussianBlur(input_image, (kernel_size, kernel_size), 0))
-    input_image = im_adjust(input_image)
-    if thr is None:
-        if np.min(input_image) == np.max(input_image):
-            thr = np.unique(input_image)
-        else:
-            thr = 1.1 * threshold_otsu(input_image, nbins=128)
-    if len(input_image.shape) == 2:
-        str_elem = disk(str_elem_size)
-    else:
-        str_elem = ball(str_elem_size)
-    # remove small objects in mask
-    mask = input_image > thr
-    mask = binary_opening(mask, str_elem)
-    # mask = binary_fill_holes(mask)
-    if not w_shed:
-        return mask
-    dist = ndimage.distance_transform_edt(mask)
-    localMax = peak_local_max(dist, indices=False, min_distance=15,
-                              labels=mask)
-    # perform a connected component analysis on the local peaks
-    markers = ndimage.label(localMax, structure=np.ones((3, 3)))[0]
-    labels = watershed(-dist, markers, mask=mask, watershed_line=True)
-    mask = labels > 0
-    # mask = binary_erosion(mask, str_elem)
+    _, mask = cv2.threshold(input_image,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    # input_image = im_adjust(input_image)
+    # if thr is None:
+    #     if np.min(input_image) == np.max(input_image):
+    #         thr = np.unique(input_image)
+    #     else:
+    #         thr = 1.1 * threshold_otsu(input_image, nbins=128)
+    # if len(input_image.shape) == 2:
+    #     str_elem = disk(str_elem_size)
+    # else:
+    #     str_elem = ball(str_elem_size)
+    # # remove small objects in mask
+    # mask = input_image > thr
+    # mask = binary_opening(mask, str_elem)
+    # # mask = binary_fill_holes(mask)
+    # if not w_shed:
+    #     return mask
+    # dist = ndimage.distance_transform_edt(mask)
+    # localMax = peak_local_max(dist, indices=False, min_distance=15,
+    #                           labels=mask)
+    # # perform a connected component analysis on the local peaks
+    # markers = ndimage.label(localMax, structure=np.ones((3, 3)))[0]
+    # labels = watershed(-dist, markers, mask=mask, watershed_line=True)
+    # mask = labels > 0
+    # # mask = binary_erosion(mask, str_elem)
     return mask
 
 def get_unimodal_threshold(input_image):
