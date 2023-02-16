@@ -187,7 +187,7 @@ def create_and_write_mask(
     )
 
     # save masks as an 'untracked' array
-    if mask_type in {"otsu", "unimodal"}:
+    if mask_type in {"otsu", "unimodal","edge_detection"}:
         position_masks = position_masks.astype("bool")
 
     modifier.init_untracked_array(
@@ -233,7 +233,7 @@ def get_mask_slice(
     :param channel_index: see name
     :param slice_index: see name
     :param mask_type: see name,
-                    options are {otsu, unimodal, borders_weight_loss_map}
+                    options are {otsu, unimodal, edge_detection, borders_weight_loss_map}
     :param int structure_elem_radius: creation radius for the structuring
                     element
     :param np.ndarray flatfield_array: flatfield to correct image
@@ -252,6 +252,10 @@ def get_mask_slice(
         mask = mask_utils.create_otsu_mask(im.astype("float32"), structure_elem_radius)
     elif mask_type == "unimodal":
         mask = mask_utils.create_unimodal_mask(
+            im.astype("float32"), structure_elem_radius
+        )
+    elif mask_type == "edge_detection":
+        mask = mask_utils.create_edge_detection_mask(
             im.astype("float32"), structure_elem_radius
         )
     elif mask_type == "borders_weight_loss_map":

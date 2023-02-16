@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.ndimage as ndimage
 import cv2
+import skimage
 from scipy.ndimage import binary_fill_holes
 from skimage.filters import threshold_otsu
 from skimage.feature import peak_local_max
@@ -15,8 +16,6 @@ def create_otsu_mask(input_image,
                      kernel_size=3,
                      w_shed=False):
     """Create a binary mask using morphological operations
-
-    Opening removes small objects in the foreground.
 
     :param np.array input_image: generate masks from this image
     :param int str_elem_size: size of the structuring element. typically 3, 5
@@ -51,22 +50,26 @@ def create_otsu_mask(input_image,
     # # mask = binary_erosion(mask, str_elem)
     return mask
 
-def create_adaptive_mask(input_image,
-                     str_elem_size=2,
+def create_edge_detection_mask(input_image,
+                     str_elem_size=25,
                      thr=None,
                      kernel_size=3,
                      w_shed=False):
-    """Create a binary mask using morphological operations
-
-    Opening removes small objects in the foreground.
+    """Create a binary mask using edge detection
 
     :param np.array input_image: generate masks from this image
-    :param int str_elem_size: size of the structuring element. typically 3, 5
+    :param int str_elem_size: size of the laplacian filter used for edge detection. typically 21 (odd number). Increase in value increases sensitivity of edge
     :return: mask of input_image, np.array
     """
-    input_image = im_adjust(cv2.GaussianBlur(input_image, (kernel_size, kernel_size), 0))
-    mask = cv2.adaptiveThreshold(input_image,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
-            cv2.THRESH_BINARY,11,str_elem_size)
+
+    input_image = im_adjust(cv2.GaussianBlur(input_image, (kernel_size,kernel_size), 0))
+    input_Lapl = cv2.Laplacian(input_image, ddepth=cv2.CV_32F, ksize=str_elem_size)
+    sz_Lapl = im_adjust(input_Lapl)
+    sz_Lapl = 255-sz_Lapl
+    _, mask_bin = cv2.threshold(sz_Lapl,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+
+    mask = skimage.morphology.remove_small_objects(mask_bin.astype(bool), min_size=80) 
+
     return mask
 
 
