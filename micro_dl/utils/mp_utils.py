@@ -249,7 +249,7 @@ def get_mask_slice(
     im = image_utils.preprocess_image(im, hist_clip_limits=(1, 99))
     # generate mask for slice
     if mask_type == "otsu":
-        mask = mask_utils.create_otsu_mask(im.astype("float32"), structure_elem_radius)
+        mask = mask_utils.create_otsu_mask(im.astype("float32"))
     elif mask_type == "unimodal":
         mask = mask_utils.create_unimodal_mask(
             im.astype("float32"), structure_elem_radius

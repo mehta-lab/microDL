@@ -11,10 +11,7 @@ from micro_dl.utils.image_utils import im_adjust
 
 
 def create_otsu_mask(input_image,
-                     str_elem_size=3,
-                     thr=None,
-                     kernel_size=3,
-                     w_shed=False):
+                     kernel_size=3):
     """Create a binary mask using morphological operations
 
     :param np.array input_image: generate masks from this image
@@ -52,9 +49,8 @@ def create_otsu_mask(input_image,
 
 def create_edge_detection_mask(input_image,
                      str_elem_size=25,
-                     thr=None,
-                     kernel_size=3,
-                     w_shed=False):
+                     msize=80,
+                     kernel_size=3):
     """Create a binary mask using edge detection
 
     :param np.array input_image: generate masks from this image
@@ -68,7 +64,7 @@ def create_edge_detection_mask(input_image,
     sz_Lapl = im_adjust(input_Lapl)  # stretch image contrast
     sz_Lapl = 255-sz_Lapl # invert foreground to background for enabling thresholding
     _, mask_bin = cv2.threshold(sz_Lapl,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU) # binary threshold enhanced edge
-    mask = skimage.morphology.remove_small_objects(mask_bin.astype(bool), min_size=80) # remove small objects from mask
+    mask = skimage.morphology.remove_small_objects(mask_bin.astype(bool), min_size=msize) # remove objects from mask smaller than msize pixels
 
     return mask
 
