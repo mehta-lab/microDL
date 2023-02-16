@@ -61,14 +61,14 @@ def create_edge_detection_mask(input_image,
     :param int str_elem_size: size of the laplacian filter used for edge detection. typically 21 (odd number). Increase in value increases sensitivity of edge
     :return: mask of input_image, np.array
     """
-
-    input_image = im_adjust(cv2.GaussianBlur(input_image, (kernel_size,kernel_size), 0))
-    input_Lapl = cv2.Laplacian(input_image, ddepth=cv2.CV_32F, ksize=str_elem_size)
-    sz_Lapl = im_adjust(input_Lapl)
-    sz_Lapl = 255-sz_Lapl
-    _, mask_bin = cv2.threshold(sz_Lapl,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-
-    mask = skimage.morphology.remove_small_objects(mask_bin.astype(bool), min_size=80) 
+    
+    input_image = cv2.GaussianBlur(input_image, (kernel_size,kernel_size), 0) # Gaussian blurring with specified kernel size
+    input_image_adjusted = im_adjust(input_image) # stretch image contrast
+    input_Lapl = cv2.Laplacian(input_image_adjusted, ddepth=cv2.CV_32F, ksize=str_elem_size) # Laplace filter image with kernel size of ksize
+    sz_Lapl = im_adjust(input_Lapl)  # stretch image contrast
+    sz_Lapl = 255-sz_Lapl # invert foreground to background for enabling thresholding
+    _, mask_bin = cv2.threshold(sz_Lapl,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU) # binary threshold enhanced edge
+    mask = skimage.morphology.remove_small_objects(mask_bin.astype(bool), min_size=80) # remove small objects from mask
 
     return mask
 
