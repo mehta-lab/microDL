@@ -7,7 +7,6 @@ import pandas as pd
 from tqdm import tqdm
 from pathlib import Path
 
-from micro_dl.input.inference_dataset import InferenceDataSet
 from micro_dl.inference.evaluation_metrics import MetricsEstimator
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.image_utils as image_utils

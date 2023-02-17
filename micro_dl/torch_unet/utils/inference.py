@@ -71,8 +71,10 @@ class TorchPredictor:
         )
 
         if init_dir:
-            model_dir = self.network_config["model_dir"]
-            readout = model.load_state_dict(torch.load(model_dir))
+            model_dir = self.inference_config["model_dir"]
+            readout = model.load_state_dict(
+                torch.load(model_dir, map_location=self.device)
+            )
             print(f"PyTorch model load status: {readout}")
         self.model = model
 
@@ -391,11 +393,14 @@ class TorchPredictor:
         target = np.transpose(target, (0, 1, -2, -1, -3))
         prediction = np.transpose(prediction, (0, 1, -2, -1, -3))
 
+        zstart, zend = window[0][0], window[1][0]
+        pred_name = f"slice_{zstart}-{zend}"
+
         if "xy" in metrics_orientations:
             metrics_estimator.estimate_xy_metrics(
                 target=target,
                 prediction=prediction,
-                pred_name=f"{window}",
+                pred_name=pred_name,
             )
             metrics_xy = self._collapse_metrics_dict(
                 metrics_estimator.get_metrics_xy().to_dict()
@@ -406,7 +411,7 @@ class TorchPredictor:
             metrics_estimator.estimate_xyz_metrics(
                 target=target,
                 prediction=prediction,
-                pred_name=f"{window}",
+                pred_name=pred_name,
             )
             metrics_xyz = self._collapse_metrics_dict(
                 metrics_estimator.get_metrics_xyz().to_dict()
@@ -417,7 +422,7 @@ class TorchPredictor:
             metrics_estimator.estimate_xz_metrics(
                 target=target,
                 prediction=prediction,
-                pred_name=f"{window}",
+                pred_name=pred_name,
             )
             metrics_xz = self._collapse_metrics_dict(
                 metrics_estimator.get_metrics_xz().to_dict()
@@ -428,7 +433,7 @@ class TorchPredictor:
             metrics_estimator.estimate_yz_metrics(
                 target=target,
                 prediction=prediction,
-                pred_name=f"{window}",
+                pred_name=pred_name,
             )
             metrics_yz = self._collapse_metrics_dict(
                 metrics_estimator.get_metrics_yz().to_dict()
@@ -440,6 +445,47 @@ class TorchPredictor:
         self.inference_metrics[tag] = prediction_metrics
 
         return prediction_metrics
+
+    def record_metrics(self, sample_information):
+        """
+        Handles metric recording in tensorboard.
+
+        Metrics are saved position by position. If multiple scalar metric values are stored for a
+        particular metric in a particular position, they are plotted along the axis they are calculated
+        on.
+
+        :param list sample_information: list of tuples containing information about each sample
+                                in the form (position_group, position_path, normalization_meta, window)
+        """
+        for info_tuple in sample_information:
+            _, position_path, normalization_meta, window = info_tuple
+            position = position_path.split("/")[-1]
+            sample_metrics = self.inference_metrics[position_path + f"_{window}"]
+
+            for orientation in sample_metrics:
+                scalar_dict = sample_metrics[orientation]
+                pred_name = scalar_dict.pop("pred_name")[0]
+
+                # generate a unique plot & tag for each orientation
+                main_tag = f"{position}/{orientation}_{pred_name}"
+
+                # Need to plot a line if metrics calculated along an axis
+                if scalar_dict[list(scalar_dict.keys())[0]].shape[0] == 1:
+                    self.writer.add_scalars(
+                        main_tag=main_tag,
+                        tag_scalar_dict=scalar_dict,
+                    )
+                else:
+                    axis_length = scalar_dict[list(scalar_dict.keys())[0]].shape[0]
+                    for i in range(axis_length):
+                        scalar_dict_i = {}
+                        for key in scalar_dict.keys():
+                            scalar_dict_i[key] = scalar_dict[key][i]
+                        self.writer.add_scalars(
+                            main_tag=main_tag,
+                            tag_scalar_dict=scalar_dict_i,
+                            global_step=i,
+                        )
 
     def run_inference(self):
         """
@@ -538,24 +584,16 @@ class TorchPredictor:
                         img_data_stack = batch_data[batch_idx, channel_idx]
                         img_data = img_data_stack[img_data_stack.shape[0] // 2]
 
+                        position = position_path.split("/")[-1]
                         self.writer.add_images(
-                            tag=data_name + position_path + f"_{window}" + channel_name,
+                            tag=f"{position}/{data_name} {channel_name}: {window}",
                             img_tensor=torch.tensor(img_data),
                             dataformats="hw",
                         )
-            break
 
         # record metrics
-        for info_tuple in sample_information:
-            _, position_path, normalization_meta, window = info_tuple
-            tag = position_path + f"_{window}"
-            sample_metrics = self.inference_metrics[tag]
-            for orientation in sample_metrics:
-                scalar_dict = sample_metrics[orientation]
-                pred_slice = scalar_dict.pop("pred_name")[0][-1]
-                self.writer.add_scalars(
-                    main_tag=tag + f"_{orientation}_slice_{pred_slice}",
-                    tag_scalar_dict=scalar_dict,
-                )
+        # self.writer.add_graph(self.model, input_)
+        self.record_metrics(sample_information)
+
         self.writer.close()
         print(f"Done! Time taken: {time.time() - start:.2f}s")

@@ -5,8 +5,6 @@ import numpy as np
 import os
 import subprocess
 
-from micro_dl.input.dataset import BaseDataSet
-from micro_dl.input import DataSetWithMask
 from micro_dl.input.training_table import BaseTrainingTable
 import micro_dl.utils.preprocess_utils as preprocess_utils
 

@@ -324,7 +324,7 @@ class MetricsEstimator:
         metrics_row = self.compute_metrics_row(
             target=target,
             prediction=prediction,
-            pred_name=pred_name,
+            pred_name=f"{pred_name}_xyz",
             mask=mask,
         )
         # Append to existing dataframe
@@ -351,7 +351,7 @@ class MetricsEstimator:
         self.metrics_xy = pd.DataFrame(columns=self.pd_col_names)
         # Loop through slices
         for slice_idx in range(target.shape[-1]):
-            slice_name = "{}_xy{}".format(pred_name, slice_idx)
+            slice_name = "{}_xy".format(pred_name)
             cur_mask = mask[..., slice_idx] if mask is not None else None
             metrics_row = self.compute_metrics_row(
                 target=target[..., slice_idx],
@@ -381,7 +381,7 @@ class MetricsEstimator:
         self.metrics_xz = pd.DataFrame(columns=self.pd_col_names)
         # Loop through slices
         for slice_idx in range(target.shape[-3]):
-            slice_name = "{}_xz{}".format(pred_name, slice_idx)
+            slice_name = "{}_xz".format(pred_name)
             cur_mask = mask[slice_idx, ...] if mask is not None else None
             metrics_row = self.compute_metrics_row(
                 target=target[..., slice_idx, :, :],
@@ -411,7 +411,7 @@ class MetricsEstimator:
         self.metrics_yz = pd.DataFrame(columns=self.pd_col_names)
         # Loop through slices
         for slice_idx in range(target.shape[-2]):
-            slice_name = "{}_yz{}".format(pred_name, slice_idx)
+            slice_name = "{}_yz".format(pred_name)
             cur_mask = mask[:, slice_idx, :] if mask is not None else None
             metrics_row = self.compute_metrics_row(
                 target=target[..., slice_idx, :],

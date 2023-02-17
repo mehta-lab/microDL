@@ -1,6 +1,7 @@
 from typing import Union
 import cv2
 import collections
+import copy
 import gunpowder as gp
 import numpy as np
 import os
@@ -347,14 +348,25 @@ class InferenceDatasetContainer(object):
             z_slice_range[0], z_slice_range[1] - spatial_window_z_depth
         )
 
+        # ensure that all sources are unique, so that we aren't sharing any nodes
+        source_set = set(sources)
+        if len(source_set) != len(sources):
+            print(
+                "Warning: Removing duplicates found in sources. Removing duplicates"
+                "may remove some positions from your inference data"
+            )
+            sources = list(source_set)
+
         datasets = []
         for source in sources:
+            # create copies for each pipeline to ensure we arent sharing any nodes
+            source_copy = copy.copy(source)
             for z_offset in self.z_offset_ranges:
                 spatial_window_offset = (z_offset,) + (0,) * len(
                     spatial_window_size[1:]
                 )
                 dataset = self.init_inference_dataset(
-                    (source,),
+                    (source_copy,),
                     spatial_window_size,
                     spatial_window_offset,
                 )
@@ -495,27 +507,7 @@ class TorchDataset(Dataset):
                         )
 
         # calculate epoch length: if no epoch length specified, set according to data size
-        if self.epoch_length == 0 or self.epoch_length == None:
-            source = self.data_source[0]
-            for key in source.datasets:
-                z1 = zarr.open(source.filename)
-                fov_shape = z1[source.datasets[key]][:].shape
-                break
-            data_spatial_dims = fov_shape[-len(self.window_size) :]
-
-            # assuming stride sampling 1/2 of window, calculate # theoretical tiles/fov
-            samples_per_fov = 1
-            for dim_index in range(len(self.window_size)):
-                data_length = data_spatial_dims[dim_index]
-                if len(self.window_size) == 3 and dim_index == 0:  # if z
-                    samples_per_fov *= data_length - (self.window_size[dim_index] - 1)
-                else:  # if x or y
-                    samples_per_fov *= (
-                        (data_length // self.window_size[dim_index]) * 2
-                    ) - 1
-
-            self.epoch_length = int(samples_per_fov * len(self.data_source))
-            self.epoch_length = self.epoch_length // self.batch_size
+        self.epoch_length = self._calculate_epoch_length()
 
         # construct pipeline: generate batch request, construct nodes, make iterable
         assert len(self.window_size) == 3, (
@@ -530,10 +522,60 @@ class TorchDataset(Dataset):
             f"Incompatible window offset {self.window_offset}. "
             f"Must be same length as spatial_window_size {self.window_size}."
         )
+        self.batch_request = self._generate_batch_request(
+            window_offset=self.window_offset,
+            window_size=self.window_size,
+        )
+        self.preprocessing_nodes = self._generate_preprocessing_nodes()
+        self.pipeline = self._build_pipeline()
 
+        self.batch_generator = self._generate_batches()
+
+    def _calculate_epoch_length(self, oversample_factor=2):
+        """
+        Calculates the epoch length that should be used for this dataset based upon the
+        tile window size and the size of the data. Assumes that sampling will be uniformly
+        random over the spatial data, and that we will oversample our data to the specified
+        factor (default of 2).
+
+        :param int oversample_factor: factor with which we will oversample our data to ensure
+                            that data is given a fair chance at being at the "center" of a tile
+        """
+        if self.epoch_length == 0 or self.epoch_length == None:
+            source = self.data_source[0]
+            for key in source.datasets:
+                z1 = zarr.open(source.filename)
+                fov_shape = z1[source.datasets[key]][:].shape
+                break
+            data_spatial_dims = fov_shape[-len(self.window_size) :]
+
+            # assuming stride length providing oversampling, calculate # theoretical tiles/fov
+            samples_per_fov = 1
+            for dim_index in range(len(self.window_size)):
+                data_length = data_spatial_dims[dim_index]
+                if len(self.window_size) == 3 and dim_index == 0:  # if z
+                    samples_per_fov *= data_length - (self.window_size[dim_index] - 1)
+                else:  # if x or y
+                    samples_per_fov *= (
+                        (data_length // self.window_size[dim_index]) * oversample_factor
+                    ) - 1
+
+            self.epoch_length = int(samples_per_fov * len(self.data_source))
+            self.epoch_length = self.epoch_length // self.batch_size
+
+    def _generate_batch_request(self, window_offset, window_size):
+        """
+        Generates a series of batch requests according to a window offset and window size
+
+        :param tuple(int, int, int) window_offset: offset at start of window
+        :param tuple(int, int, int) window_size: size of dimensions of window
+
+        :return gp.BatchRequest() batch_request: batch request corresponding to given window
+        """
         batch_request = gp.BatchRequest()
+
         for key in self.data_keys:
-            batch_request[key] = gp.Roi(self.window_offset, self.window_size)
+            batch_request[key] = gp.Roi(window_offset, window_size)
             # NOTE: the keymapping we are performing here makes it so that if
             # we DO end up generating multiple arrays at the position/well level
             # (for example one with and without flatfield correction), we can
@@ -541,16 +583,12 @@ class TorchDataset(Dataset):
             # in __getitem__ ends up being the index of our key.
         if self.flatfield_key:
             batch_request[self.flatfield_key] = gp.Roi(
-                (0,) * len(self.window_offset), tuple([1] + list(self.window_size[1:]))
+                (0,) * len(window_offset), tuple([1] + list(window_size[1:]))
             )
         if self.mask_key:
-            batch_request[self.mask_key] = gp.Roi(self.window_offset, self.window_size)
-        self.batch_request = batch_request
+            batch_request[self.mask_key] = gp.Roi(window_offset, window_size)
 
-        # build our pipeline and the generator structure that uses it
-        self.preprocessing_nodes = self._generate_preprocessing_nodes()
-        self.pipeline = self._build_pipeline()
-        self.batch_generator = self._generate_batches()
+        return batch_request
 
     def __len__(self):
         """
@@ -654,6 +692,8 @@ class TorchDataset(Dataset):
             source = source + [gp.RandomLocation()]
         else:
             source = [self.data_source[0]]
+        # NOTE: not random sampling with multiple providers only calls from the first
+
         if self.min_foreground_fraction and self.mask_key:
             source = source + [
                 gp.Reject(
@@ -668,12 +708,12 @@ class TorchDataset(Dataset):
 
         # ---- Batch Creation Nodes ----#
         batch_creation = []
-        batch_creation.append(
-            gp.PreCache(
-                cache_size=self.epoch_length // 10,
-                num_workers=max(1, self.workers),
-            )
-        )
+        # batch_creation.append(
+        #     gp.PreCache(
+        #         cache_size=self.epoch_length // 10,
+        #         num_workers=max(1, self.workers),
+        #     )
+        # )
         batch_creation.append(gp.Stack(self.batch_size))
 
         # attach additional nodes, if any, and sum
@@ -698,6 +738,9 @@ class TorchDataset(Dataset):
         with gp.build(self.pipeline):
             while True:
                 yield self.pipeline.request_batch(self.batch_request)
+                # batch = self.pipeline.request_batch(self.batch_request)
+                # self.pipeline.internal_teardown()
+                # yield batch
 
     def _generate_preprocessing_nodes(self):
         """

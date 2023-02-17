@@ -106,7 +106,7 @@ torch_config = aux_utils.read_config(
     "/hpc/projects/CompMicro/projects/"
     "virtualstaining/torch_microDL/config_files/"
     "2022_11_01_VeroMemNuclStain/gunpowder_testing_12_13/"
-    "torch_config_25D.yml"
+    "torch_config_Soorya_VeroA549_25D_mem.yml"
 )
 torch_config["inference"]["device"] = torch.device("cuda:0")
 torch_predictor = torch_inference_utils.TorchPredictor(torch_config=torch_config)
@@ -115,6 +115,5 @@ torch_predictor.load_model()
 torch_predictor.generate_dataloaders()
 torch_predictor.select_dataloader(name="val")
 torch_predictor.run_inference()
-import micro_dl.torch_unet.utils.dataset as dataset
 
 # %%
