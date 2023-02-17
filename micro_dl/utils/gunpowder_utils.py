@@ -33,7 +33,7 @@ def gpsum(nodelist, verbose=True):
     return pipeline
 
 
-def build_sources(zarr_store_dir, store_well_paths, arr_spec):
+def build_sources(zarr_store_dir, store_well_paths, arr_spec, copies=1):
     """
     Builds a source for every well_path (position) in a zarr store, specified by
     store_well_paths and zarr_dir, and returns each source.
@@ -60,6 +60,7 @@ def build_sources(zarr_store_dir, store_well_paths, arr_spec):
     :param str zarr_store_dir: path to zarr directory to build sources for
     :param collections.defaultdict store_well_paths: mapping of all well paths in zarr store
     :param gp.ArraySpec arrspec: ArraySpec pertaining to datasets (supports one global spec)
+    :param int copies: number of sources to generate and return for each path
 
     :return list sources: dictionary of datasets locations and corresponding arraykeys
     :return list keys: list of ArrayKeys for each array type, shared across sources
@@ -88,9 +89,17 @@ def build_sources(zarr_store_dir, store_well_paths, arr_spec):
         for i, dataset_key in enumerate(keys):
             spec_dict[dataset_key] = arr_spec
 
-        source = gp.ZarrSource(
-            filename=zarr_store_dir, datasets=dataset_dict, array_specs=spec_dict
-        )
+        source = []
+        for i in range(copies):
+            source.append(
+                gp.ZarrSource(
+                    filename=zarr_store_dir,
+                    datasets=dataset_dict,
+                    array_specs=spec_dict,
+                )
+            )
+        if copies == 1:  # no need for nesting if a single copy is returned
+            source = source[0]
 
         sources.append(source)
 
@@ -109,11 +118,11 @@ def get_zarr_source_position(zarr_source):
 
         '/..plate_name../..well_name../Pos_<position_number_as_int>/...arr_name...'
 
-    :param gp.ZarrSource zarr_source: source that refers to a single position in an
+    :param list or gp.ZarrSource zarr_source: source that refers to a single position in an
                                 HCS compatible zarr store
     """
-    zarr_dir = zarr_source.filename
-    modifier = io_utils.HCSZarrModifier(zarr_file=zarr_dir, enable_creation=False)
+    if isinstance(zarr_source, list):
+        zarr_source = zarr_source[0]
 
     source_position = ""
     for key in zarr_source.datasets:
@@ -133,7 +142,12 @@ def get_zarr_source_position(zarr_source):
 
 
 def multi_zarr_source(
-    zarr_dir, array_name="*", array_spec=None, data_split={}, use_recorded_split=False
+    zarr_dir,
+    array_name="*",
+    array_spec=None,
+    data_split={},
+    use_recorded_split=False,
+    copies=1,
 ):
     """
     Generates a tuple of source nodes for for each dataset type (train, test, val),
@@ -183,6 +197,8 @@ def multi_zarr_source(
                             and returns one source tuple. Is overridden by "use_recorded_split".
     :param bool use_recorded_split: if true, will use recorded data split stored in top-level .zattrs
                             of "zarr_dir". by default is false
+    :param int copies: number of sources to build for each position path. Used in inference when
+                            different non-random ROIs are needed.
 
     :return tuple all_sources: (if no data_split) multi-source node from zarr_dir stores (equivalent to
                             s_1 + ... + s_n)
@@ -248,7 +264,7 @@ def multi_zarr_source(
         store_well_paths = zarr_stores[zarr_fname]
 
         store_sources, store_keys = build_sources(
-            zarr_fname, store_well_paths, array_spec
+            zarr_fname, store_well_paths, array_spec, copies
         )
         all_sources.extend(store_sources)
 
@@ -286,6 +302,7 @@ def multi_zarr_source(
         plate_level_store.attrs.update({"data_split_positions": position_metadata})
 
         return train_source, test_source, val_source, all_keys
+
     elif use_recorded_split:
         # read recorded split and validate
         plate_level_store = zarr.open(zarr_dir, mode="a")

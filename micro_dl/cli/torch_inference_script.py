@@ -1,4 +1,3 @@
-#%%
 import argparse
 import datetime
 import os
@@ -7,14 +6,12 @@ import yaml
 import sys
 import zarr
 
-sys.path.insert(0, "/home/christian.foley/virtual_staining/workspaces/microDL/")
-
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.inference.image_inference as image_inf
 import micro_dl.torch_unet.utils.inference as torch_inference_utils
 import micro_dl.utils.train_utils as train_utils
 
-#%%
+
 def parse_args():
     """
     Parse command line arguments
@@ -77,16 +74,14 @@ def check_save_folder(inference_config, preprocess_config):
         )
 
 
-#%%
-if __name__ == "__main__":
-    args = parse_args()
-    torch_config = aux_utils.read_config(args.config)
+def main(config, gpu, gpu_mem_frac):
+    torch_config = aux_utils.read_config(config)
 
-    if args.gpu:
+    if gpu is not None:
         # Get GPU ID and memory fraction
         gpu_id, gpu_mem_frac = train_utils.select_gpu(
-            args.gpu,
-            args.gpu_mem_frac,
+            gpu,
+            gpu_mem_frac,
         )
         torch_config["inference"]["device"] = torch.device(gpu_id)
     else:
@@ -94,26 +89,15 @@ if __name__ == "__main__":
             torch_config["inference"]["device"]
         )
 
-    # read configuration parameters and metadata
+    # Initialize and run a predictor
     torch_predictor = torch_inference_utils.TorchPredictor(torch_config=torch_config)
 
     torch_predictor.load_model()
     torch_predictor.generate_dataloaders()
+    torch_predictor.select_dataloader(name="val")
     torch_predictor.run_inference()
 
-#%%
-torch_config = aux_utils.read_config(
-    "/hpc/projects/CompMicro/projects/"
-    "virtualstaining/torch_microDL/config_files/"
-    "2022_11_01_VeroMemNuclStain/gunpowder_testing_12_13/"
-    "torch_config_Soorya_VeroA549_25D_mem.yml"
-)
-torch_config["inference"]["device"] = torch.device("cuda:0")
-torch_predictor = torch_inference_utils.TorchPredictor(torch_config=torch_config)
 
-torch_predictor.load_model()
-torch_predictor.generate_dataloaders()
-torch_predictor.select_dataloader(name="val")
-torch_predictor.run_inference()
-
-# %%
+if __name__ == "__main__":
+    args = parse_args()
+    main(args.config, args.gpu, args.gpu_mem_frac)

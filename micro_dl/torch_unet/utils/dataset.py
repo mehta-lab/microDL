@@ -246,20 +246,22 @@ class InferenceDatasetContainer(object):
 
         # acquire sources from the zarr directory
         array_spec = gp_utils.generate_array_spec(network_config)
+        z_offset_range = self.calculate_z_offset_range()
         (
-            self.train_source,
-            self.test_source,
-            self.val_source,
+            self.train_sources,
+            self.test_sources,
+            self.val_sources,
             self.dataset_keys,
         ) = gp_utils.multi_zarr_source(
             zarr_dir=self.zarr_dir,
             array_spec=array_spec,
             use_recorded_split=True,
+            copies=len(z_offset_range),
         )
         try:
-            assert len(self.test_source) > 0
-            assert len(self.train_source) > 0
-            assert len(self.val_source) > 0
+            assert len(self.test_sources) > 0
+            assert len(self.train_sources) > 0
+            assert len(self.val_sources) > 0
         except Exception as e:
             raise AssertionError(
                 f"All datasets must have at least one source node / zarr store,"
@@ -289,9 +291,59 @@ class InferenceDatasetContainer(object):
             raise ValueError(f"Specified mask type's corresponding array not found")
 
         # assign each source subset to a child dataset object
-        self.train_dataset_list = self.generate_dataset_list(self.train_source)
-        self.test_dataset_list = self.generate_dataset_list(self.test_source)
-        self.val_dataset_list = self.generate_dataset_list(self.val_source)
+        self.train_dataset_list = self.generate_dataset_list(
+            self.train_sources,
+            z_offset_range,
+        )
+        self.test_dataset_list = self.generate_dataset_list(
+            self.test_sources,
+            z_offset_range,
+        )
+        self.val_dataset_list = self.generate_dataset_list(
+            self.val_sources,
+            z_offset_range,
+        )
+
+    def calculate_z_offset_range(self):
+        """
+        Gets the range of z-offsets for this data position to requested by the config setup.
+        """
+        z_slice_range = self.inference_config["z_slice_range"]
+        spatial_window_size = self.inference_config["window_size"]
+        spatial_window_z_depth = spatial_window_size[0]
+        z_offset_ranges = list(
+            range(z_slice_range[0], z_slice_range[1] - spatial_window_z_depth)
+        )
+        return z_offset_ranges
+
+    def generate_dataset_list(self, sources, z_offset_range):
+        """
+        Generate a list of datasets, one for each source at each z-slice in the specified
+        window range.
+
+        :param tuple(gp.ZarrSource) sources: multi-zarr-source (tuple of sources)
+        :param list[int] z_offset_range: z-offsets corresponding to each source
+
+        :return list datasets: returns a list of datasets each servicing one z-offset window
+                        in one source position
+        """
+        spatial_window_size = self.inference_config["window_size"]
+
+        datasets = []
+        for source in sources:
+            for i, z_offset in enumerate(z_offset_range):
+                source_copy = source[i]
+                spatial_window_offset = (z_offset,) + (0,) * len(
+                    spatial_window_size[1:]
+                )
+                dataset = self.init_inference_dataset(
+                    (source_copy,),
+                    spatial_window_size,
+                    spatial_window_offset,
+                )
+                datasets.append(dataset)
+
+        return datasets
 
     def init_inference_dataset(self, source, window_size, window_offset):
         """
@@ -330,49 +382,6 @@ class InferenceDatasetContainer(object):
             random_sampling=False,
         )
         return dataset
-
-    def generate_dataset_list(self, sources):
-        """
-        Generate a list of datasets, one for each source at each z-slice in the specified
-        window range.
-
-        :param tuple(gp.ZarrSource) sources: multi-zarr-source (tuple of sources)
-
-        :return list datasets: returns a list of datasets each servicing one z-offset window
-                        in one source position
-        """
-        z_slice_range = self.inference_config["z_slice_range"]
-        spatial_window_size = self.inference_config["window_size"]
-        spatial_window_z_depth = spatial_window_size[0]
-        self.z_offset_ranges = range(
-            z_slice_range[0], z_slice_range[1] - spatial_window_z_depth
-        )
-
-        # ensure that all sources are unique, so that we aren't sharing any nodes
-        source_set = set(sources)
-        if len(source_set) != len(sources):
-            print(
-                "Warning: Removing duplicates found in sources. Removing duplicates"
-                "may remove some positions from your inference data"
-            )
-            sources = list(source_set)
-
-        datasets = []
-        for source in sources:
-            # create copies for each pipeline to ensure we arent sharing any nodes
-            source_copy = copy.copy(source)
-            for z_offset in self.z_offset_ranges:
-                spatial_window_offset = (z_offset,) + (0,) * len(
-                    spatial_window_size[1:]
-                )
-                dataset = self.init_inference_dataset(
-                    (source_copy,),
-                    spatial_window_size,
-                    spatial_window_offset,
-                )
-                datasets.append(dataset)
-
-        return datasets
 
     def __getitem__(self, idx):
         """
@@ -507,7 +516,7 @@ class TorchDataset(Dataset):
                         )
 
         # calculate epoch length: if no epoch length specified, set according to data size
-        self.epoch_length = self._calculate_epoch_length()
+        self._calculate_epoch_length()
 
         # construct pipeline: generate batch request, construct nodes, make iterable
         assert len(self.window_size) == 3, (
@@ -601,13 +610,6 @@ class TorchDataset(Dataset):
         Requests a batch from the data pipeline using the key selected by self.use_key,
         and applying that key to call a batch from its corresponding source using
         self.batch_request.
-
-        :param int idx: index of the key you wish to use to access a random sample. Generally:
-                        0 -> key for arr_0 in Pos_x
-                        1 -> key for arr_1 in Pos_x
-                                .
-                                .
-                                .
         """
         assert self.active_key != None, "No active key. Try '.use_key()'"
 
@@ -766,6 +768,60 @@ class TorchDataset(Dataset):
             preprocessing_nodes.append(normalize)
 
         return preprocessing_nodes
+
+
+class DatasetEnsemble(TorchDataset):
+    def __init__(self, torch_datasets):
+        """
+        Groups the datasets in torch_datasets together, pulling from each of them
+        individually.
+
+        Used instead of ConcatDataset for context-management issues with gunpowder
+        generator pipeline
+
+        :param list torch_datasets: list of TorchDataset objects to sample from
+        :return: object instance
+        """
+        self.datasets = torch_datasets
+        self.last_pipeline = None
+
+    def __getitem__(self, idx):
+        """
+        Returns one sample by calling the __getitem__ of the subsequent TorchDataset at
+        index idx.
+
+        :param int idx: index of dataset to call sample from in torch_datasets
+        :return: item from __getitem__ of torch_datasets[idx]
+        """
+        dataset = self.datasets[idx]
+        self._check_source_uniqueness(dataset)
+
+        return dataset.__getitem__()
+
+    def _check_source_uniqueness(self, dataset):
+        dataset_pipeline = dataset.pipeline
+        if not self.last_pipeline:
+            self.last_pipeline = dataset_pipeline
+        else:
+            pipeline_1 = self.last_pipeline
+            pipeline_2 = dataset_pipeline
+
+            assert (
+                pipeline_1.output is not pipeline_2.output
+            ), f"Two nodes shared: {pipeline_1.output} is {pipeline_2.output}"
+
+            while len(pipeline_1.children) > 0:
+                pipeline_1 = pipeline_1.children[0]
+                pipeline_2 = pipeline_2.children[0]
+
+                assert (
+                    pipeline_1.output is not pipeline_2.output
+                ), f"Two nodes shared: {pipeline_1.output} is {pipeline_2.output}"
+
+            self.last_pipeline = dataset_pipeline
+
+    def __len__(self):
+        return len(self.datasets)
 
 
 class ToTensor(object):

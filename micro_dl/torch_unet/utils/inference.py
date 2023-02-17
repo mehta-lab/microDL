@@ -137,13 +137,13 @@ class TorchPredictor:
 
         # init dataloaders
         self.train_dataloader = DataLoader(
-            dataset=ConcatDataset(train_dataset_list), shuffle=False
+            dataset=ds.DatasetEnsemble(torch_datasets=train_dataset_list), shuffle=False
         )
         self.test_dataloader = DataLoader(
-            dataset=ConcatDataset(test_dataset_list), shuffle=False
+            dataset=ds.DatasetEnsemble(torch_datasets=test_dataset_list), shuffle=False
         )
         self.val_dataloader = DataLoader(
-            dataset=ConcatDataset(val_dataset_list), shuffle=False
+            dataset=ds.DatasetEnsemble(torch_datasets=val_dataset_list), shuffle=False
         )
 
     def select_dataloader(self, name="val"):
@@ -393,7 +393,7 @@ class TorchPredictor:
         target = np.transpose(target, (0, 1, -2, -1, -3))
         prediction = np.transpose(prediction, (0, 1, -2, -1, -3))
 
-        zstart, zend = window[0][0], window[1][0]
+        zstart, zend = window[0][0], window[0][0] + window[1][0]  # end = start + length
         pred_name = f"slice_{zstart}-{zend}"
 
         if "xy" in metrics_orientations:
@@ -516,18 +516,24 @@ class TorchPredictor:
             target_ = sample[1][0].cuda(device=self.device).float()
             prediction = self.model(input_, validate_input=True)
 
+            # pulling tensors off gpu prevents cuda errors
+            input_ = input_.detach().cpu().numpy()
+            target_ = target_.detach().cpu().numpy()
+            prediction = prediction.detach().cpu().numpy()
+            inference_data = {
+                "input": input_,
+                "target": target_,
+                "pred": prediction,
+            }
+
             # retrieve information about this sample
             information = self._get_source_information(self.current_dataloader, current)
             sample_information.append(information)
             position_group, position_path, normalization_meta, window = information
-            inference_data = {
-                "input": input_.detach().cpu().numpy(),
-                "target": target_.detach().cpu().numpy(),
-                "pred": prediction.detach().cpu().numpy(),
-            }
+
             # calculate metrics
             io.show_progress_bar(
-                self.current_dataloader, current, process="calculating metrics"
+                self.current_dataloader, current, process="computing metrics"
             )
             metrics_list = self.inference_config["metrics"]["metrics"]
             metrics_orientations = self.inference_config["metrics"]["orientations"]
@@ -573,6 +579,8 @@ class TorchPredictor:
                             )
                         denormed_data[batch_idx, channel_idx] = data
                 inference_data[key] = denormed_data
+
+            # TODO: Add output to tiff file of inference_data
 
             # record predictions
             for data_name in inference_data:
