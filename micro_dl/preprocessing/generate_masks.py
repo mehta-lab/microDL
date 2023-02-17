@@ -59,8 +59,9 @@ class MaskProcessor:
         assert mask_type in [
             "otsu",
             "unimodal",
+            "edge_detection",
             "borders_weight_loss_map",
-        ], "Masking method invalid, 'otsu', 'unimodal', 'borders_weight_loss_map'\
+        ], "Masking method invalid, 'otsu', 'unimodal', 'edge_detection', 'borders_weight_loss_map'\
              are currently supported"
         self.mask_type = mask_type
         self.ints_metadata = None
@@ -78,6 +79,7 @@ class MaskProcessor:
                 if channel_name in {
                     "mask_unimodal",
                     "mask_otsu",
+                    "mask_edge_detection",
                     "mask_borders_weight_loss_map",
                     "flatfield",
                 }:
