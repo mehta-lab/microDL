@@ -1,3 +1,4 @@
+import glob
 from typing import Union
 import cv2
 import collections
@@ -13,6 +14,7 @@ import zarr
 import micro_dl.utils.normalize as norm_utils
 import micro_dl.input.gunpowder_nodes as custom_nodes
 import micro_dl.utils.gunpowder_utils as gp_utils
+import micro_dl.utils.aux_utils as aux_utils
 
 
 class TorchDatasetContainer(object):
@@ -32,6 +34,7 @@ class TorchDatasetContainer(object):
         device=None,
         workers=0,
         use_recorded_split=False,
+        data_split={},
         allow_augmentations=True,
     ):
         """
@@ -47,6 +50,9 @@ class TorchDatasetContainer(object):
         :param int workers: number of cpu workers for simultaneous data fetching
         :param bool use_recorded_split: whether to use random or previously recorded
                             train/test/val data split
+        :param dict data_split: dictionary of data split containing integer list of positions
+                            OR decimal fractions indicating split under {'train', 'test', 'val'}
+                            keys
         :param bool allow_augmentations: If False disallows augmentations in dataloading
                             pipelines, by default True
         """
@@ -56,6 +62,7 @@ class TorchDatasetContainer(object):
         self.dataset_config = dataset_config
         self.device = device
         self.workers = workers
+        self.data_split = data_split
 
         # acquire sources from the zarr directory
         array_spec = gp_utils.generate_array_spec(network_config)
@@ -64,10 +71,11 @@ class TorchDatasetContainer(object):
             self.test_source,
             self.val_source,
             self.dataset_keys,
+            self.data_split,
         ) = gp_utils.multi_zarr_source(
             zarr_dir=self.zarr_dir,
             array_spec=array_spec,
-            data_split=self.dataset_config["split_ratio"],
+            data_split=self.data_split,
             use_recorded_split=use_recorded_split,
         )
         try:
@@ -221,6 +229,7 @@ class InferenceDatasetContainer(object):
         network_config,
         dataset_config,
         inference_config,
+        data_split,
         device=None,
         workers=0,
     ):
@@ -233,6 +242,9 @@ class InferenceDatasetContainer(object):
         :param dict network_config: dict object of network_config
         :param dict dataset_config: dict object of dataset_config
         :param dict inference_config: dict object of inference_config
+        :param dict data_split: dictionary of data split containing integer list of positions
+                            OR decimal fractions indicating split under {'train', 'test', 'val'}
+                            keys
         :param str device: device on which to place tensors in child datasets,
                             by default, places on 'cuda'
         :param int workers: number of cpu workers for simultaneous data fetching
@@ -241,6 +253,7 @@ class InferenceDatasetContainer(object):
         self.network_config = network_config
         self.dataset_config = dataset_config
         self.inference_config = inference_config
+        self.data_split = data_split
         self.device = device
         self.workers = workers
 
@@ -252,10 +265,12 @@ class InferenceDatasetContainer(object):
             self.test_sources,
             self.val_sources,
             self.dataset_keys,
+            self.data_split,
         ) = gp_utils.multi_zarr_source(
             zarr_dir=self.zarr_dir,
             array_spec=array_spec,
             use_recorded_split=True,
+            data_split=data_split,
             copies=len(z_offset_range),
         )
         try:
@@ -307,6 +322,8 @@ class InferenceDatasetContainer(object):
     def calculate_z_offset_range(self):
         """
         Gets the range of z-offsets for this data position to requested by the config setup.
+
+        :return list[range] z_offset_ranges: list of ranges containing z-slice offset ranges
         """
         z_slice_range = self.inference_config["z_slice_range"]
         spatial_window_size = self.inference_config["window_size"]

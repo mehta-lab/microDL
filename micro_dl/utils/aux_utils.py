@@ -1,5 +1,6 @@
 """Auxiliary utility functions"""
 import glob
+import datetime
 import inspect
 import importlib
 import json
@@ -33,6 +34,20 @@ class MultiProcessProgressTracker(object):
     """
 
 
+def get_timestamp():
+    """
+    Returns a string of the current timestamp in the format:
+        YYYY_MM_DD_HH_mm
+    """
+    now = (
+        str(datetime.datetime.now())
+        .replace(" ", "_")
+        .replace(":", "_")
+        .replace("-", "_")[:-10]
+    )
+    return now
+
+
 def import_object(module_name, obj_name, obj_type="class"):
     """Imports a class or function dynamically
 
@@ -54,21 +69,6 @@ def import_object(module_name, obj_name, obj_type="class"):
         return obj
     except ImportError:
         raise
-
-
-def read_config(config_fname):
-    """Read the config file in yml format
-
-    TODO: validate config!
-
-    :param str config_fname: fname of config yaml with its full path
-    :return: dict config: Configuration parameters
-    """
-
-    with open(config_fname, "r") as f:
-        config = yaml.safe_load(f)
-
-    return config
 
 
 def get_row_idx(
@@ -548,6 +548,31 @@ def write_json(json_dict, json_filename):
     json_dump = json.dumps(json_dict, indent=4)
     with open(json_filename, "w") as write_file:
         write_file.write(json_dump)
+
+
+def read_config(config_fname):
+    """Read the config file in yml format
+
+    :param str config_fname: fname of config yaml with its full path
+    :return: dict config: Configuration parameters
+    """
+
+    with open(config_fname, "r") as f:
+        config = yaml.safe_load(f)
+
+    return config
+
+
+def write_yaml(yml_dict, yml_filename):
+    """
+    Writes dict as yml file.
+
+    :param dict yml_dict: Dictionary to be written
+    :param str yml_filename: Full path file name of yml
+    """
+    file_string = yaml.safe_dump(yml_dict)
+    with open(yml_filename, "w") as f:
+        f.write(file_string)
 
 
 def get_sorted_names(dir_name):

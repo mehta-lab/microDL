@@ -30,12 +30,7 @@ def check_save_folder(inference_config, preprocess_config):
         assert "input_dir" in preprocess_config, (
             "Error in autosaving: 'input_dir'" "unspecified in preprocess config"
         )
-        now = (
-            str(datetime.datetime.now())
-            .replace(" ", "_")
-            .replace(":", "_")
-            .replace("-", "_")[:-10]
-        )
+        now = aux_utils.get_timestamp()
         save_dir = os.path.join(preprocess_config["input_dir"], f"../prediction_{now}")
 
         if not os.path.exists(save_dir):
@@ -71,7 +66,13 @@ if __name__ == "__main__":
         "2022_11_01_VeroMemNuclStain/gunpowder_testing_12_13/"
         "torch_config_Soorya_VeroA549_25D_mem.yml"
     )
+    config_soorya_issue190 = (
+        "/hpc/projects/CompMicro/projects/"
+        "virtualstaining/torch_microDL/config_files/"
+        "2022_11_01_VeroMemNuclStain/gunpowder_testing_12_13/"
+        "torch_config_Soorya_VeroA549_25D_nucl.yml"
+    )
 
-    inference_script.main(config_recent, gpu=0, gpu_mem_frac=0.1)
+    inference_script.main(config_soorya_issue190, gpu=0, gpu_mem_frac=0.1)
 
 # %%

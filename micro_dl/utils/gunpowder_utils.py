@@ -2,6 +2,7 @@ import glob
 import gunpowder as gp
 import os
 import pathlib
+import yaml
 import random
 import re
 import zarr
@@ -195,8 +196,7 @@ def multi_zarr_source(
     :param dict data_split: dict containing fractions  to split data for train, test, validation.
                             Fields must be 'train', 'test', and 'val'. By default does not split
                             and returns one source tuple. Is overridden by "use_recorded_split".
-    :param bool use_recorded_split: if true, will use recorded data split stored in top-level .zattrs
-                            of "zarr_dir". by default is false
+    :param bool use_recorded_split: if true, will use recorded data split given in 'data_split'.
     :param int copies: number of sources to build for each position path. Used in inference when
                             different non-random ROIs are needed.
 
@@ -293,21 +293,16 @@ def multi_zarr_source(
         val_source = tuple(all_sources[test_idx:val_idx])
 
         # record the positions of each source with their data split
-        position_metadata = {}
+        data_split = {}
         split = ["train", "test", "val"]
         for i, source_list in enumerate([train_source, test_source, val_source]):
             positions = list(map(get_zarr_source_position, source_list))
-            position_metadata[split[i]] = positions
-        plate_level_store = zarr.open(zarr_dir, mode="a")
-        plate_level_store.attrs.update({"data_split_positions": position_metadata})
+            data_split[split[i]] = positions
 
-        return train_source, test_source, val_source, all_keys
+        return train_source, test_source, val_source, all_keys, data_split
 
     elif use_recorded_split:
-        # read recorded split and validate
-        plate_level_store = zarr.open(zarr_dir, mode="a")
-        data_split = plate_level_store.attrs.asdict()["data_split_positions"]
-
+        # use split provided in data_split
         assert "train" in data_split and "test" in data_split and "val" in data_split, (
             f"Incorrect format for data_split: {data_split}."
             " \n Must contain 'train', 'test', and 'val' "
@@ -328,7 +323,7 @@ def multi_zarr_source(
         test_source = tuple(test_source)
         val_source = tuple(val_source)
 
-        return train_source, test_source, val_source, all_keys
+        return train_source, test_source, val_source, all_keys, data_split
     else:
         source = tuple(all_sources)
         return source, all_keys

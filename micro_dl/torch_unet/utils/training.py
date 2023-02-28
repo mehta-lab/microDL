@@ -18,6 +18,7 @@ if __name__ == "__main__":
 import micro_dl.torch_unet.utils.model as model_utils
 import micro_dl.torch_unet.utils.dataset as ds
 import micro_dl.torch_unet.utils.io as io_utils
+import micro_dl.utils.aux_utils as aux_utils
 
 
 class TorchTrainer:
@@ -141,6 +142,7 @@ class TorchTrainer:
         if "num_workers" in self.training_config:
             workers = self.training_config["num_workers"]
 
+        self.data_split = self.get_data_split()
         torch_data_container = ds.TorchDatasetContainer(
             zarr_dir=self.zarr_dir,
             train_config=self.training_config,
@@ -149,7 +151,10 @@ class TorchTrainer:
             device=self.device,
             workers=workers,
             use_recorded_split=self.dataset_config["use_recorded_data_split"],
+            data_split=self.data_split,
         )
+        self.record_data_split(torch_data_container.data_split)
+
         train_dataset = torch_data_container["train"]
         test_dataset = torch_data_container["test"]
         val_dataset = torch_data_container["val"]
@@ -173,17 +178,68 @@ class TorchTrainer:
         Directory is named depending on time of training. All training/testing information is
         saved to this directory.
         """
-        now = (
-            str(datetime.datetime.now())
-            .replace(" ", "_")
-            .replace(":", "_")
-            .replace("-", "_")[:-10]
-        )
+        now = aux_utils.get_timestamp()
+
         self.save_folder = os.path.join(
             self.training_config["save_dir"], f"training_model_{now}"
         )
         if not os.path.exists(self.save_folder):
             os.makedirs(self.save_folder)
+
+    def get_data_split(self):
+        """
+        Extracts the data split from the model directory referenced in inference. Data
+        splits are stored in a .yml local to the model by timestamp. This method will prioritize
+        the most recent data split saved. If the data split is not provided, returns false.
+
+        Usage of data split files be overriden by manually inputting the data split positions
+        into the inference config section in the config file.
+
+        :return dict data_split: dictionary of data split containing integer list of positions
+                            OR decimal fractions indicating split under {'train', 'test', 'val'}
+                            keys
+
+        """
+        if "custom_data_split" in self.training_config:
+            print("Using custom data split found in training config.")
+            return self.training_config["custom_data_split"]
+
+        data_split_file = os.path.join(self.save_folder, "data_splits.yml")
+
+        if os.path.exists(data_split_file):
+            print("Using saved data split found in model directory.")
+            data_splits = aux_utils.read_config(data_split_file)
+            timestamps = list(data_splits.keys())
+            timestamps.sort(reverse=True)
+            most_recent_split = timestamps[0]
+
+            data_split = data_splits[most_recent_split]
+            return data_split
+        else:
+            return self.dataset_config["split_ratio"]
+
+    def record_data_split(self, data_split):
+        """
+        Records the given data split ('train', 'test', 'val') positions in the given training
+        model directory as a yaml file. If data split already recorded for this model, will
+        overwrite. The intention here is to record all models separately, and their data splits
+        with them.
+
+        :param dict data_split: dictionary of data split containing integer list of positions
+                                    under {'train', 'test', 'val'} keys.
+        """
+        data_split_file = os.path.join(self.save_folder, "data_splits.yml")
+
+        timestamp = aux_utils.get_timestamp()
+        if os.path.exists(data_split_file):
+            print("Previous split(s) found. Recording current split.")
+            data_splits = aux_utils.read_config(data_split_file)
+            data_splits[timestamp] = data_split
+        else:
+            print("No previous split found, storing split in new file")
+            data_splits = {timestamp: data_split}
+
+        aux_utils.write_yaml(data_splits, data_split_file)
 
     def train(self):
         """
@@ -199,7 +255,6 @@ class TorchTrainer:
 
         # init io and saving
         start = time.time()
-        self.get_save_location()
         self.writer = SummaryWriter(log_dir=self.save_folder)
 
         # init optimizer and lr regularization
@@ -219,6 +274,7 @@ class TorchTrainer:
 
         # train
         train_loss_list = []
+        val_loss_list = []
         test_loss_list = []
         for i in range(self.training_config["epochs"]):
             # Setup epoch
@@ -247,8 +303,9 @@ class TorchTrainer:
 
             train_loss_list.append(train_loss / self.train_dataloader.__len__())
 
-            # regularize
+            # run validation and loss scheduler every 'testing_stride' epochs
             val_loss = self.run_test(validate_mode=True)
+            val_loss_list.append(val_loss)
             self.scheduler.step(val_loss)
             self.early_stopper(val_loss=val_loss, model=self.model, epoch=i)
 
@@ -257,7 +314,7 @@ class TorchTrainer:
                 test_loss = self.run_test(i)
                 test_loss_list.append(test_loss)
 
-            # save model every 'save_model_stride' epochs
+            # save model checkpoint every 'save_model_stride' epochs
             if (
                 i % self.training_config["save_model_stride"] == 0
                 or i == self.training_config["epochs"] - 1
@@ -267,11 +324,19 @@ class TorchTrainer:
             # send epoch summary to stdout
             print(f"\t Training loss: {train_loss_list[-1]}")
             if i % 1 == 0:
-                print(f"\t Testing loss: {test_loss_list[-1]}")
+                print(f"\t Validation loss: {val_loss_list[-1]}")
             print(
                 f"\t Epoch time: {time.time() - epoch_time}, Total_time: {time.time() - start}"
             )
             print(" ")
+
+            # save to tensorboard
+            self.writer.add_scalar(
+                tag="train_loss", scalar_value=train_loss_list[-1], global_step=i
+            )
+            self.writer.add_scalar(
+                tag="validation_loss", scalar_value=val_loss_list[-1], global_step=i
+            )
 
             if self.early_stopper.early_stop:
                 print("\t Stopping early...")
@@ -293,7 +358,7 @@ class TorchTrainer:
 
         self.writer.close()
 
-    def run_test(self, epoch=0, validate_mode=False):
+    def run_test(self, epoch=0, validate_mode=False, to_writer=True):
         """
         Runs test on all samples in a test_dataloader. Equivalent to one epoch on test/val data
         without updating weights. Runs metrics on the test results (given in criterion) and saves
@@ -304,6 +369,8 @@ class TorchTrainer:
 
         :param int epoch: training epoch test was run at
         :param bool validate_mode: run in validation mode to just produce loss (for lr scheduler)
+        :param bool to_writer: Whether to record figures to the active SummaryWriter logging this
+                            session. If false, will save figures as png instead.
         :return float avg_loss: average testing loss per sample of given data set
         """
         # set the model to evaluation mode
@@ -316,18 +383,15 @@ class TorchTrainer:
         outputs = []
 
         # determine data source
-        if not validate_mode:
-            dataloader = self.test_dataloader
-        else:
+        if validate_mode:
             dataloader = self.val_dataloader
+            process = "running loss scheduler"
+        else:
+            dataloader = self.test_dataloader
+            process = "testing"
 
         for current, minibatch in enumerate(dataloader):
-            if not validate_mode:
-                io_utils.show_progress_bar(dataloader, current, process="testing")
-            else:
-                io_utils.show_progress_bar(
-                    dataloader, current, process="running loss scheduler"
-                )
+            io_utils.show_progress_bar(dataloader, current, process=process)
 
             # get input/target
             input_ = minibatch[0][0].to(self.device).float()
@@ -346,59 +410,66 @@ class TorchTrainer:
                 targets.append(rem(target))
                 outputs.append(rem(output))
 
-        if not validate_mode:
-            # save test figures
-            # TODO: This is too long, move to auxilary function
-            arch = self.network_config["architecture"]
-            fig, ax = plt.subplots(1, 3, figsize=(18, 6))
-            try:
-                ax[0].imshow(
-                    np.mean(samples.pop(), 2)[0, 0]
-                    if arch == "2.5D"
-                    else samples.pop()[0, 0],
-                    cmap="gray",
+        # save test figures
+        # TODO: This is too long, move to auxilary function
+        arch = self.network_config["architecture"]
+        fig, ax = plt.subplots(1, 3, figsize=(18, 6))
+        try:
+            ax[0].imshow(
+                np.mean(samples.pop(), 2)[0, 0]
+                if arch == "2.5D"
+                else samples.pop()[0, 0],
+                cmap="gray",
+            )
+            ax[0].set_title("input image")
+        except TypeError as e:
+            print(
+                f"Caught error showing phase input, arguments: {e.args}. "
+                "Not saving visualization for this epoch."
+            )
+        try:
+            ax[1].imshow(
+                targets.pop()[0, 0, 0] if arch == "2.5D" else targets.pop()[0, 0]
+            )
+            ax[1].set_title("target")
+        except TypeError as e:
+            print(
+                f"Caught error showing fluorescent target, arguments: {e.args}. "
+                "Not saving visualization for this epoch."
+            )
+        try:
+            ax[2].imshow(
+                outputs.pop()[0, 0, 0] if arch == "2.5D" else outputs.pop()[0, 0]
+            )
+            ax[2].set_title("prediction")
+        except TypeError as e:
+            print(
+                f"Caught error showing prediction, arguments: {e.args}. "
+                "Not saving visualization for this epoch."
+            )
+        try:
+            for i in range(3):
+                ax[i].axis("off")
+            plt.tight_layout()
+            if to_writer:
+                self.writer.add_figure(
+                    tag="predictions",
+                    figure=fig,
+                    global_step=epoch,
+                    close=False,
                 )
-                ax[0].set_title("input image")
-            except TypeError as e:
-                print(
-                    f"Caught error showing phase input, arguments: {e.args}. "
-                    "Not saving visualization for this epoch."
-                )
-            try:
-                ax[1].imshow(
-                    targets.pop()[0, 0, 0] if arch == "2.5D" else targets.pop()[0, 0]
-                )
-                ax[1].set_title("target")
-            except TypeError as e:
-                print(
-                    f"Caught error showing fluorescent target, arguments: {e.args}. "
-                    "Not saving visualization for this epoch."
-                )
-            try:
-                ax[2].imshow(
-                    outputs.pop()[0, 0, 0] if arch == "2.5D" else outputs.pop()[0, 0]
-                )
-                ax[2].set_title("prediction")
-            except TypeError as e:
-                print(
-                    f"Caught error showing prediction, arguments: {e.args}. "
-                    "Not saving visualization for this epoch."
-                )
-            try:
-                for i in range(3):
-                    ax[i].axis("off")
-                plt.tight_layout()
+            else:
                 plt.savefig(
                     os.path.join(self.save_folder, f"prediction_epoch_{epoch}.png")
                 )
-                if self.plot:
-                    plt.show()
-            except Exception as e:
-                print(
-                    f"Caught error plotting visualization figure, arguments: {e.args}. "
-                    "Not saving visualization for this epoch."
-                )
-            plt.close()
+            if self.plot:
+                plt.show()
+        except Exception as e:
+            print(
+                f"Caught error plotting visualization figure, arguments: {e.args}. "
+                "Not saving visualization for this epoch."
+            )
+        plt.close()
 
         # set back to training mode
         self.model.train()

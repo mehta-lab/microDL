@@ -7,12 +7,12 @@ import pathlib
 
 import torch
 from torch.utils.data import DataLoader
-from torch.utils.data import ConcatDataset
 from torch.utils.tensorboard import SummaryWriter
 
 import micro_dl.torch_unet.utils.model as model_utils
 import micro_dl.torch_unet.utils.dataset as ds
 import micro_dl.torch_unet.utils.io as io
+import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.normalize as normalize
 import micro_dl.utils.io_utils as io_utils
 import micro_dl.inference.evaluation_metrics as inference_metrics
@@ -117,9 +117,11 @@ class TorchPredictor:
             inference_config=self.inference_config,
             network_config=self.network_config,
             dataset_config=self.dataset_config,
+            data_split=self.get_inference_data_split(),
             device=self.device,
             workers=workers,
         )
+        self.record_data_split(torch_data_container.data_split)
         train_dataset_list = torch_data_container["train"]
         test_dataset_list = torch_data_container["test"]
         val_dataset_list = torch_data_container["val"]
@@ -145,6 +147,56 @@ class TorchPredictor:
         self.val_dataloader = DataLoader(
             dataset=ds.DatasetEnsemble(torch_datasets=val_dataset_list), shuffle=False
         )
+
+    def get_inference_data_split(self):
+        """
+        Extracts the data split from the model directory referenced in inference. Data
+        split is stored as a .yml local to the model. If the data split is not provided,
+        returns false.
+
+        Data split files be overriden by manually inputting the data split positions into
+        the inference config section in the config file.
+
+        :return dict data_split: dictionary of data split containing integer list of positions
+                            OR decimal fractions indicating split under {'train', 'test', 'val'}
+                            keys
+        """
+        if "custom_data_split" in self.inference_config:
+            print("Using custom data split found in inference config.")
+            return self.inference_config["custom_data_split"]
+
+        model_dir = os.path.dirname(self.inference_config["model_dir"])
+        data_split_file = os.path.join(model_dir, "data_splits.yml")
+
+        if os.path.exists(data_split_file):
+            print("Using saved data split found in model directory.")
+            data_splits = aux_utils.read_config(data_split_file)
+            timestamps = list(data_splits.keys())
+            timestamps.sort(reverse=True)
+            most_recent_split = timestamps[0]
+
+            data_split = data_splits[most_recent_split]
+            return data_split
+        else:
+            raise ValueError(
+                f"No data_splits.yml file found in dir {model_dir}.\n"
+                "Generate and save a data split file or override by providing"
+                " a custom_data_split in inference config."
+            )
+
+    def record_data_split(self, data_split):
+        """
+        Records the given data split ('train', 'test', 'val') positions in the inference save
+        folder with the predictions and metrics. Intention is to keep track of what data splits
+        were used for what inference, in the event of a custom data split.
+
+        :param dict data_split: dictionary of data split containing integer list of positions
+                                    under {'train', 'test', 'val'} keys.
+        """
+        data_split_file = os.path.join(self.save_folder, "data_splits.yml")
+        data_splits = {aux_utils.get_timestamp(): data_split}
+
+        aux_utils.write_yaml(data_splits, data_split_file)
 
     def select_dataloader(self, name="val"):
         """
@@ -181,22 +233,23 @@ class TorchPredictor:
         """
         # TODO Change the functionality of saving to put inference in the actual
         # train directory the model comes from. Not a big fan
-        train_save_dir = self.training_config["save_dir"]
+
+        model_dir = os.path.dirname(self.inference_config["model_dir"])
         save_to_train_save_dir = self.inference_config["save_preds_to_model_dir"]
-        custom_save_dir = self.inference_config["custom_save_preds_dir"]
 
-        if not save_to_train_save_dir and custom_save_dir:
-            self.save_dir = custom_save_dir
+        if save_to_train_save_dir:
+            save_dir = model_dir
+        elif "custom_save_preds_dir" in self.inference_config:
+            custom_save_dir = self.inference_config["custom_save_preds_dir"]
+            save_dir = custom_save_dir
         else:
-            self.save_dir = train_save_dir
+            raise ValueError(
+                "Must provide custom_save_preds_dir if save_preds_to"
+                "_model_dir is False."
+            )
 
-        now = (
-            str(datetime.datetime.now())
-            .replace(" ", "_")
-            .replace(":", "_")
-            .replace("-", "_")[:-10]
-        )
-        self.save_folder = os.path.join(self.save_dir, f"inference_results_{now}")
+        now = aux_utils.get_timestamp()
+        self.save_folder = os.path.join(save_dir, f"inference_results_{now}")
         if not os.path.exists(self.save_folder):
             os.makedirs(self.save_folder)
 
@@ -605,3 +658,4 @@ class TorchPredictor:
 
         self.writer.close()
         print(f"Done! Time taken: {time.time() - start:.2f}s")
+        print(f"Predictions and metrics saved to {self.save_folder}")
