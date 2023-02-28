@@ -52,6 +52,7 @@ class TorchPredictor:
 
         # get directory for inference figure saving
         self.get_save_location()
+        self.read_model_meta()
 
     def load_model(self, init_dir=True) -> None:
         """
@@ -197,6 +198,21 @@ class TorchPredictor:
         data_splits = {aux_utils.get_timestamp(): data_split}
 
         aux_utils.write_yaml(data_splits, data_split_file)
+
+    def read_model_meta(self, model_dir=None):
+        """
+        Reads the model metadata from the given model dir and stores it as an attribute.
+        Use here is to allow for inference to 'intelligently' infer it's configuration
+        parameters from a model directory to reduce hassle on user.
+
+        :param str model_dir: global path to model directory in which 'model_metadata.yml'
+                        is stored. If not specified, infers from inference config.
+        """
+        if not model_dir:
+            model_dir = os.path.dirname(self.inference_config["model_dir"])
+
+        model_meta_filename = os.path.join(model_dir, "model_metadata.yml")
+        self.model_meta = aux_utils.read_config(model_meta_filename)
 
     def select_dataloader(self, name="val"):
         """

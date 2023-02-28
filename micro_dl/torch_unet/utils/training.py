@@ -241,6 +241,20 @@ class TorchTrainer:
 
         aux_utils.write_yaml(data_splits, data_split_file)
 
+    def record_model_meta(self):
+        """
+        Regroups and records important metadata related to training model with the model in
+        the 'train_metedata.yml' file.
+        """
+        model_metadata = {}
+        model_metadata["training"] = self.training_config
+        model_metadata["dataset"] = self.dataset_config
+        model_metadata["model"] = self.network_config
+        model_metadata["zarr_dir"] = self.zarr_dir
+
+        model_meta_filename = os.path.join(self.save_folder, "model_metadata.yml")
+        aux_utils.write_yaml(model_metadata, model_meta_filename)
+
     def train(self):
         """
         Run training loop for model, according to parameters set in self.network_config.
@@ -347,14 +361,6 @@ class TorchTrainer:
         print(
             f"\t Training results and testing predictions saved at: \n\t\t{self.save_folder}"
         )
-        plt.figure(figsize=(14, 7))
-        plt.plot(train_loss_list, label="training loss")
-        plt.plot(test_loss_list, label="testing loss")
-        plt.legend()
-        plt.savefig(
-            os.path.join(self.save_folder, "training_loss.png"), bbox_inches="tight"
-        )
-        plt.cla()
 
         self.writer.close()
 
