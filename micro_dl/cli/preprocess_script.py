@@ -124,13 +124,6 @@ def pre_process(torch_config):
         if "block_size" in normalize_config:
             norm_block_size = normalize_config["block_size"]
 
-        # validate
-        if normalize_config["scheme"] not in {"dataset", "FOV", "tile"}:
-            raise ValueError(
-                f"Normalization scheme {normalize_config['scheme']}",
-                f" must be one of {['dataset', 'FOV', 'tile']}",
-            )
-
         meta_utils.generate_normalization_metadata(
             zarr_dir=torch_config["zarr_dir"],
             num_workers=norm_num_workers,
@@ -171,7 +164,12 @@ def pre_process(torch_config):
             structuring_radius = mask_config["structure_element_radius"]
 
         # validate
-        if mask_type not in {"unimodal", "otsu", "edge_detection", "borders_weight_loss_map"}:
+        if mask_type not in {
+            "unimodal",
+            "otsu",
+            "edge_detection",
+            "borders_weight_loss_map",
+        }:
             raise ValueError(
                 f"Thresholding type {mask_type} must be one of: "
                 f"{['unimodal', 'otsu', 'edge_detection', 'borders_weight_loss_map']}"
