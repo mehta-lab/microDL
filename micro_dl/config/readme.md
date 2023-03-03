@@ -159,8 +159,6 @@ The ```torch_config.yml``` config file contains the parameters for model initiat
 >
 >&nbsp;&nbsp; **device:** <span style="color:cyan"> 'gpu', 'cpu', or int </span> (Device to use for inference)
 >
->&nbsp;&nbsp; **optimizer:** <span style="color:cyan"> adam or sgd </span> (optimizer choice)
->
 >&nbsp;&nbsp; **metrics:** (Metrics computed directly at inference time. May not include all evaluation metrics)
 >
 >&nbsp;&nbsp;&nbsp;&nbsp; **metrics:** <span style="color:cyan"> ['mae', 'r2', 'cossim', 'ssim'] </span> (list of evaluation metrics to compute over each prediction)
