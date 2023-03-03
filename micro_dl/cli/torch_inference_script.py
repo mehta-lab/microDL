@@ -8,7 +8,7 @@ import zarr
 
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.inference.image_inference as image_inf
-import micro_dl.torch_unet.utils.inference as torch_inference_utils
+import micro_dl.inference.inference as torch_inference_utils
 import micro_dl.utils.train_utils as train_utils
 
 

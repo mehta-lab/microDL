@@ -7,7 +7,7 @@ import zarr
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.image_utils as im_utils
 import micro_dl.utils.io_utils as io_utils
-from micro_dl.torch_unet.utils.io import show_progress_bar
+from micro_dl.utils.cli_utils import show_progress_bar
 
 
 class FlatFieldEstimator2D:

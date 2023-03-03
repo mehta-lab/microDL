@@ -9,7 +9,7 @@ import torch
 import time
 import zarr
 
-from micro_dl.input.dataset import apply_affine_transform
+from micro_dl.input.transformations import apply_affine_transform
 from micro_dl.utils.normalize import unzscore
 
 import micro_dl.utils.io_utils as io_utils

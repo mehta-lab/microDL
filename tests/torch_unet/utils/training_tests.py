@@ -11,8 +11,8 @@ import itertools
 import unittest
 
 
-from micro_dl.torch_unet.utils.dataset import ToTensor
-from micro_dl.torch_unet.utils.training import TorchTrainer
+from micro_dl.input.dataset import ToTensor
+from micro_dl.training.training import TorchTrainer
 from tests.torch_unet.utils.dataset_tests import TestDataset
 
 

@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import os
 import typer
-from rich import print
+
 
 from enum import Enum
 import glob
@@ -13,9 +13,9 @@ import matplotlib.pyplot as plt
 
 sys.path.insert(0, "/home/shalin.mehta/code/microDL")
 
-import micro_dl.torch_unet.utils.training as training
+import microDL.micro_dl.training.training as training
 import micro_dl.utils.aux_utils as aux_utils
-import micro_dl.torch_unet.utils.io as torch_io_utils
+import microDL.micro_dl.utils.cli_utils as torch_io_utils
 import micro_dl.plotting.plot_utils as plot_utils
 
 
@@ -134,27 +134,36 @@ class plot_save_type(str, Enum):
     plot = "plot"
     image_only = "image_only"
 
-def main(config: str = typer.Option(..., help="Path to YAML config that specifies dataset and augmentation parameters"),
-         save_dir: str = typer.Option(..., help = "Directory to save samples images at"),
-         extension: str = typer.Option(".png", help = "File type of saved images."),
-         save_type: plot_save_type = typer.Option(plot_save_type.group_plot, case_sensitive= False,
-                                       help = "Format to save images in.")):
+
+def main(
+    config: str = typer.Option(
+        ...,
+        help="Path to YAML config that specifies dataset and augmentation parameters",
+    ),
+    save_dir: str = typer.Option(..., help="Directory to save samples images at"),
+    extension: str = typer.Option(".png", help="File type of saved images."),
+    save_type: plot_save_type = typer.Option(
+        plot_save_type.group_plot,
+        case_sensitive=False,
+        help="Format to save images in.",
+    ),
+):
     """
     Generates a set of images from the training set to visualize the data with and without augmentation.
     """
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
-        
+
     augmented_save_dir = os.path.join(save_dir, "augmented")
     raw_save_dir = os.path.join(save_dir, "raw")
-    
+
     start = time.time()
 
     torch_config = aux_utils.read_config(
         config  # "/hpc/projects/CompMicro/projects/virtualstaining/torch_microDL/config_files/2022_11_01_VeroMemNuclStain/data_visualization_12_13/torch_config_25D.yml"
     )
-    
-        # visualize augmented data
+
+    # visualize augmented data
     print(
         f"Visualizing augmented data, saving as {extension} files"
         f" in {augmented_save_dir}..."

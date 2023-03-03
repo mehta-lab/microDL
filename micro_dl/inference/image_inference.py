@@ -90,6 +90,7 @@ class ImagePredictor:
         :param TorchPredictor torch_predictor: predictor object which handles
             transporting data to a PyTorch model for inference.
         """
+        raise DeprecationWarning("Deprecated. Use TorchPredictor in inference")
         # create model and load weights
         self.torch_predictor = torch_predictor
 

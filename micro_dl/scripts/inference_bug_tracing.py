@@ -10,7 +10,7 @@ sys.path.insert(0, "/home/christian.foley/virtual_staining/workspaces/microDL")
 
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.inference.image_inference as image_inf
-import micro_dl.torch_unet.utils.inference as torch_inference_utils
+import micro_dl.inference.inference as torch_inference_utils
 import micro_dl.utils.train_utils as train_utils
 
 import micro_dl.cli.torch_inference_script as inference_script

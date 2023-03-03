@@ -11,7 +11,7 @@ import micro_dl.utils.io_utils as io_utils
 import micro_dl.utils.masks as mask_utils
 import micro_dl.utils.tile_utils as tile_utils
 from micro_dl.utils.normalize import hist_clipping
-from micro_dl.torch_unet.utils.io import show_progress_bar
+from micro_dl.utils.cli_utils import show_progress_bar
 
 
 def mp_wrapper(fn, fn_args, workers):
@@ -187,7 +187,7 @@ def create_and_write_mask(
     )
 
     # save masks as an 'untracked' array
-    if mask_type in {"otsu", "unimodal","edge_detection"}:
+    if mask_type in {"otsu", "unimodal", "edge_detection"}:
         position_masks = position_masks.astype("bool")
 
     modifier.init_untracked_array(

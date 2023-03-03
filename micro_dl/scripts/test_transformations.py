@@ -9,7 +9,7 @@ import sys
 
 sys.path.insert(0, "/home/christian.foley/virtual_staining/workspaces/microDL")
 
-from micro_dl.input.dataset import apply_affine_transform
+from micro_dl.input.transformations import apply_affine_transform
 
 # %%
 img = cv2.imread(

@@ -4,7 +4,7 @@ import yaml
 import torch
 
 import micro_dl.utils.aux_utils as aux_utils
-import micro_dl.torch_unet.utils.training as train
+import micro_dl.training.training as train
 
 
 def parse_args():

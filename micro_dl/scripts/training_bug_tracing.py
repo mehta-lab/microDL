@@ -8,7 +8,7 @@ import torch
 sys.path.insert(0, "/home/christian.foley/virtual_staining/workspaces/microDL")
 
 import micro_dl.utils.aux_utils as aux_utils
-import micro_dl.torch_unet.utils.training as train
+import micro_dl.training.training as train
 
 # %%
 config_25D = (
