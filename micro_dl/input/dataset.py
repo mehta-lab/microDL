@@ -520,6 +520,8 @@ class TorchDataset(Dataset):
                 for i, source in enumerate(self.data_source):
                     try:
                         array_spec = source.array_specs[key]
+                        if len(array_spec.voxel_size) == 2: # for 2D models
+                            array_spec.voxel_size = (1,)+array_spec.voxel_size
                         if not voxel_size:
                             voxel_size = array_spec.voxel_size
                         else:
