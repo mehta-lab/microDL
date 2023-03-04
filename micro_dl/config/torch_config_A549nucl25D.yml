@@ -1,19 +1,21 @@
-zarr_dir: /hpc/projects/CompMicro/projects/infected_cell_imaging/VirtualStaining/VirtualStain_NuclMem_VeroA549_2022_12_14/Inputs_nucl/A549_20X.zarr
+zarr_dir: /hpc/projects/CompMicro/projects/infected_cell_imaging/VirtualStaining/VirtualStain_NuclMem_A549_2023_02_07/Input_Nucl/A549_20X.zarr
 dataset:
-  input_channels: [1]
-  target_channels: [0]
+  input_channels: [2]
+  target_channels: [3]
   window_size: [5,256,256]
   normalization:
     scheme: 'FOV'
     type: 'median_and_iqr'
-  min_foreground_fraction: 0.1
-  mask_type: 'unimodal'
-  flatfield_correct: True
-  batch_size: 64
+  min_foreground_fraction: 0.02
+  mask_type: 'otsu'
+  flatfield_correct: False
+  batch_size: 8
   split_ratio: 
-    test: 0.08
-    train: 0.85
-    val: 0.07
+    test: 0.1
+    train: 0.8
+    val: 0.1
+  use_recorded_data_split: false
+
 model:
   architecture: 2.5D
   in_channels: 1
@@ -21,36 +23,36 @@ model:
   in_stack_depth: 5
   residual: true
   task: reg
-  model_dir: '/hpc/projects/CompMicro/projects/infected_cell_imaging/VirtualStaining/VirtualStain_NuclMem_VeroA549_2022_12_14/model_2d/2023_01_gunpowder_test/training_model_2023_01_03_13_58/saved_model_ep_9_testloss_0.9924.pt'
+
 preprocessing:
   flatfield:
-    channel_ids: -1
+    channel_ids: [3]
     slice_ids: -1
     block_size: 32
   normalize:
-    channel_ids: -1
+    channel_ids: [3]
     block_size: 32
     scheme: "FOV"
     num_workers: 8
   masks:
-    channel_ids: -1
+    channel_ids: [3]
     time_ids: -1
     slice_ids: -1
-    thresholding_type: "unimodal"
+    thresholding_type: "otsu"
     output_channel: none
-    structuring_element_radius: 1
+    structuring_element_radius: 5
     num_workers: 8
 training:
-  epochs: 10
-  samples_per_epoch: 300
-  learning_rate: 0.0015
+  epochs: 20
+  samples_per_epoch: 100
+  learning_rate: 0.0001
   optimizer: adam
   loss: mae
   testing_stride: 1
   save_model_stride: 1
-  save_dir: '/hpc/projects/CompMicro/projects/infected_cell_imaging/VirtualStaining/VirtualStain_NuclMem_VeroA549_2022_12_14/model_2d/2023_01_gunpowder_test/'
+  save_dir: '/hpc/projects/CompMicro/projects/infected_cell_imaging/VirtualStaining/VirtualStain_NuclMem_A549_2023_02_07/model_nucl25d/2023_02_gpTest/'
   device: 'gpu'
-  num_workers: 16
+  num_workers: 8
   augmentations:
     transpose:
       transpose_only: [1,2] #spatial dimensions: 0:z, 1:y, 2:x
@@ -59,39 +61,43 @@ training:
     rotate: 
       rotation_interval: [0,3.14]
     zoom:
-      scale_interval: [0.7,1.3]
+      scale_interval: [0.5,1.5]
     blur:
       mode: 'gaussian'
-      width_range: [3,7]
+      width_range: [3,15]
       sigma: 0.1
       prob: 0.2
-      blur_channels: [1]
+      blur_channels: [2]
     shear:
       angle_range: [-15,15]
       prob: 0.2
       shear_middle_slice_only: [0,2]
     intensity_jitter:
-      scale_range: [0.7, 1.3]
+      scale_range: [0.5, 1.5]
       shift_range: [-0.15, 0.15]
       norm_before_shift: True
       jitter_demeaned: True
       prob: 0.2
-      jitter_channels: [1]
+      jitter_channels: [2]
     noise:
       mode: 'gaussian'
       seed: 14156
       clip: True
       prob: 0.2
-      noise_channels: [1]
-data_split: all
-images:
-    image_format: 'zyx'
-    image_ext: '.tif'
-    name_format: sms
-    pred_chan_name: 'pred'
-save_figs: True
-metrics:
-    metrics: ['r2', 'corr', 'mse', 'mae']
-    metrics_orientations: ['xy']
-    binarize_model: ['CP_20220902_NuclFL']
-    targetmask_dir: '/hpc/projects/CompMicro/projects/infected_cell_imaging/VirtualStaining/VirtualStain_NuclMem_VeroA549_2022_12_14/Inputs_nucl/TargetMask_A549/'
+      noise_channels: [2]
+
+inference:
+  z_slice_range: [0, 7]
+  window_size: [5, 2000, 2000]
+  model_dir: '/hpc/projects/CompMicro/projects/infected_cell_imaging/VirtualStaining/VirtualStain_NuclMem_A549_2023_02_07/model_nucl25d/2023_02_gpTest/training_model_2023_02_28_13_09/saved_model_ep_7_testloss_5.3496.pt'
+  save_preds_to_model_dir: True
+  custom_save_preds_dir: None
+  data_partition_to_predict: val
+  device: 'gpu'
+  image_format: 'zyx'
+
+evaluation_metrics:
+  cp_model: 'CP_20220915_A549Mem' # cellpose model for segmentation
+  ground_truth_dir: None # None:if dir is generated during inference inside model dir
+  metrics: ['ssim','r2','corr','IoU', 'VI', 'POD']
+  mask_ext: '_cp_mask.png'
