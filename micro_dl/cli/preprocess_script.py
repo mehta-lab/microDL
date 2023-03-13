@@ -7,6 +7,7 @@ from micro_dl.preprocessing.generate_masks import MaskProcessor
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.meta_utils as meta_utils
 import micro_dl.utils.io_utils as io_utils
+import iohub.ngff as ngff
 
 
 def parse_args():
@@ -67,7 +68,8 @@ def pre_process(torch_config):
      and mask_dir (the former is for generating masks from a channel)
     """
     time_start = time.time()
-    modifier = io_utils.HCSZarrModifier(zarr_file=torch_config["zarr_dir"])
+    plate = ngff.open_ome_zarr()
+    io_utils.HCSZarrModifier(zarr_file=torch_config["zarr_dir"])
     preprocess_config = torch_config["preprocessing"]
 
     # -----------------Estimate flat field images--------------------

@@ -1,21 +1,12 @@
-import glob
-from typing import Union
-import cv2
-import collections
-import copy
+
 import gunpowder as gp
 import numpy as np
-import os
-import pandas as pd
 import torch
 from torch.utils.data import Dataset
 import zarr
 
-import micro_dl.utils.normalize as norm_utils
 import micro_dl.input.gunpowder_nodes as custom_nodes
 import micro_dl.utils.gunpowder_utils as gp_utils
-import micro_dl.utils.aux_utils as aux_utils
-
 
 class TorchDatasetContainer(object):
     """
@@ -208,6 +199,7 @@ class TorchDatasetContainer(object):
 
 
 class InferenceDatasetContainer(object):
+    #TODO remove once migration to iohub dependency is complete
     """
     Dataset container object which initalizes multiple TorchDatasets depending upon the
     parametersgiven in the training, inference and network config files during initialization.
@@ -727,12 +719,12 @@ class TorchDataset(Dataset):
 
         # ---- Batch Creation Nodes ----#
         batch_creation = []
-        # batch_creation.append(
-        #     gp.PreCache(
-        #         cache_size=self.epoch_length // 10,
-        #         num_workers=max(1, self.workers),
-        #     )
-        # )
+        batch_creation.append(
+            gp.PreCache(
+                cache_size=self.epoch_length // 10,
+                num_workers=max(1, self.workers),
+            )
+        )
         batch_creation.append(gp.Stack(self.batch_size))
 
         # attach additional nodes, if any, and sum

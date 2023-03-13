@@ -2,12 +2,8 @@ import glob
 import gunpowder as gp
 import os
 import pathlib
-import yaml
 import random
 import re
-import zarr
-
-from matplotlib import test
 
 import micro_dl.input.gunpowder_nodes as nodes
 import micro_dl.utils.augmentation_utils as aug_utils
@@ -341,17 +337,12 @@ def generate_array_spec(network_config):
         "architecture" in network_config
     ), f"no 'architecture' specified in network config"
 
-    if network_config["architecture"] == "2D":
-        # 2D data will be 4D, 2 spatial dims
-        voxel_size = (1, 1)
-    elif network_config["architecture"] == "2.5D":
-        # 2.5D data will be 5D, 2 spatial dims
-        voxel_size = (1, 1, 1)
-    else:
+    arch = network_config["architecture"]
+    if arch not in {"2D", "2.5D"}:
         raise AttributeError(
             f"Architecture {network_config['architecture']} not supported"
         )
-
+    voxel_size = (1, 1, 1)
     array_spec = gp.ArraySpec(
         interpolatable=True,
         voxel_size=voxel_size,
