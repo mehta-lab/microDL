@@ -1,13 +1,12 @@
 """Script for preprocessing stack"""
 import argparse
+import iohub.ngff as ngff
 import time
 
 from micro_dl.preprocessing.estimate_flat_field import FlatFieldEstimator2D
 from micro_dl.preprocessing.generate_masks import MaskProcessor
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.meta_utils as meta_utils
-import micro_dl.utils.io_utils as io_utils
-import iohub.ngff as ngff
 
 
 def parse_args():
@@ -68,8 +67,7 @@ def pre_process(torch_config):
      and mask_dir (the former is for generating masks from a channel)
     """
     time_start = time.time()
-    plate = ngff.open_ome_zarr()
-    io_utils.HCSZarrModifier(zarr_file=torch_config["zarr_dir"])
+    plate = ngff.open_ome_zarr(torch_config["zarr_dir"], layout='hcs', mode='r')
     preprocess_config = torch_config["preprocessing"]
 
     # -----------------Estimate flat field images--------------------
@@ -95,7 +93,7 @@ def pre_process(torch_config):
         # validate
         if isinstance(flatfield_channels, list):
             assert set(flatfield_channels).issubset(
-                list(range(len(modifier.channel_names)))
+                list(range(len(plate.channel_names)))
             ), "Flatfield channels {} is not a subset of channel_ids".format(
                 flatfield_channels
             )
@@ -157,9 +155,9 @@ def pre_process(torch_config):
         if "thresholding_type" in mask_config:
             mask_type = mask_config["thresholding_type"]
 
-        mask_output_channel = None
-        if "output_channel" in mask_config:
-            mask_output_channel = mask_config["output_channel"]
+        overwrite_ok = True
+        if "allow_overwrite_old_mask" in mask_config:
+            overwrite_ok = mask_config["allow_overwrite_old_mask"]
 
         structuring_radius = 5
         if "structure_element_radius" in mask_config:
@@ -185,7 +183,7 @@ def pre_process(torch_config):
             pos_ids=mask_pos_ids,
             num_workers=mask_num_workers,
             mask_type=mask_type,
-            output_channel_index=mask_output_channel,
+            overwrite_ok=overwrite_ok,
         )
         mask_generator.generate_masks(structure_elem_radius=structuring_radius)
 
@@ -193,6 +191,7 @@ def pre_process(torch_config):
     # TODO: determine if weight map generation should be offered in simultaneity
     #      with binary mask generation
 
+    plate.close()
     return time.time() - time_start
 
 

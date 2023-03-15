@@ -1,5 +1,6 @@
 import cv2
 import gunpowder as gp
+import iohub.ngff as ngff
 import numpy as np
 import os
 import pathlib
@@ -124,9 +125,9 @@ class Normalize(gp.BatchFilter):
 
             # get indices of channels to be normalized
             self.normalize_channels = []
-            normalization_meta = self._get_normalization_meta()
+            normalization_meta = self._get_normalization_meta() #opens self.plate
             for channel_name in normalization_meta:
-                channel_index_in_data = self.modifier.channel_names.index(channel_name)
+                channel_index_in_data = self.plate.channel_names.index(channel_name)
                 self.normalize_channels.append(channel_index_in_data)
 
             # prepare out array
@@ -141,7 +142,7 @@ class Normalize(gp.BatchFilter):
                 for channel_idx in range(batch_data.shape[1]):
                     data = batch_data[batch_idx, channel_idx]
                     if channel_idx in self.normalize_channels:
-                        channel_name = self.modifier.channel_names[channel_idx]
+                        channel_name = self.plate.channel_names[channel_idx]
                         data = self._normalize(data, normalization_meta[channel_name])
 
                     normalized_data[batch_idx, channel_idx] = data.astype(
@@ -150,6 +151,8 @@ class Normalize(gp.BatchFilter):
 
             batch[key] = batch[key].crop(request[key].roi)
             batch[key].data = normalized_data
+            
+            self.plate.close()
 
     def _normalize(self, data, channel_statistics):
         """
@@ -195,14 +198,14 @@ class Normalize(gp.BatchFilter):
         Traces the upstream calls back to the zarr-source providing the batch to this node.
         Scrapes the position from that zarr source's metadata and returns
         """
-        # trace current provider and set modifier
+        # trace current provider and set reader
         provider = self.upstream_providers[0]
         while not isinstance(provider, gp.ZarrSource):
             try:
                 provider = provider.upstream_providers[0]
             except Exception as e:
                 print(f"Ran out of upstream providers at provider: {provider}")
-        self.modifier = io_utils.HCSZarrModifier(zarr_file=provider.filename)
+        self.plate = ngff.open_ome_zarr(store_path=provider.filename)
 
         # open the position metadata
         datasets_key = list(provider.datasets)[0]
@@ -239,9 +242,14 @@ class FlatFieldCorrect(gp.BatchFilter):
         self.infer_zarr_dir = False
         self.flatfield_channels = None
         if zarr_dir:
-            self.modifier = io_utils.HCSZarrModifier(zarr_file=zarr_dir)
-            position_meta = self.modifier.get_position_meta(0)
-            self.flatfield_channels = position_meta["flatfield"]["channel_ids"]
+            self.plate = ngff.open_ome_zarr(store_path=zarr_dir)
+            path, position = next(self.plate.positions())
+            self.flatfield_channels = io_utils.read_meta_field(
+                zarr_dir=zarr_dir,
+                position_path=path,
+                field_name='flatfield'
+            )["channel_ids"]
+            self.plate.close()
         else:
             self.infer_zarr_dir = True
 
@@ -306,9 +314,15 @@ class FlatFieldCorrect(gp.BatchFilter):
 
             # if no zarr_dir specified
             if self.infer_zarr_dir:
-                self.modifier = io_utils.HCSZarrModifier(zarr_file=self._get_zarr_dir())
-                position_meta = self.modifier.get_position_meta(0)
-                self.flatfield_channels = position_meta["flatfield"]["channel_ids"]
+                zarr_dir = self._get_zarr_dir()
+                self.plate = ngff.open_ome_zarr(store_path=zarr_dir)
+                path, position = next(self.plate.positions())
+                self.flatfield_channels = io_utils.read_meta_field(
+                    zarr_dir=zarr_dir,
+                    position_path=path,
+                    field_name='flatfield'
+                )["channel_ids"]
+                self.plate.close()
 
             if self.flatfield_channels == None:
                 self.flatfield_channels = tuple(range(batch_data.shape[channel_dim]))

@@ -11,7 +11,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 import micro_dl.torch_unet.utils.model as model_utils
 import micro_dl.input.dataset as ds
-import microDL.micro_dl.utils.cli_utils as cli_utils
+import micro_dl.utils.cli_utils as cli_utils
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.io_utils as io_utils
 import micro_dl.inference.evaluation_metrics as inference_metrics

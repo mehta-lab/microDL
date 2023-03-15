@@ -1,5 +1,6 @@
 """Estimate flat field images"""
 
+import iohub.ngff as ngff
 import numpy as np
 import os
 import zarr
@@ -53,9 +54,6 @@ class FlatFieldEstimator2D:
             block_size = 32
         self.block_size = block_size
 
-        # initate modifier
-        self.modifier = io_utils.HCSZarrModifier(zarr_file=zarr_dir)
-
     def get_flat_field_dir(self):
         """
         Return flatfield directory
@@ -84,7 +82,7 @@ class FlatFieldEstimator2D:
         }
         return metadata
 
-    def estimate_flat_field(self, verbose=False):
+    def estimate_flat_field(self):
         """
         Estimates flat field correction image and stores in zarr store at the image level
         as a new array.
@@ -98,20 +96,23 @@ class FlatFieldEstimator2D:
         all_channels_array = []
         self.skipped_channels = []
 
-        for channel_idx in self.channels_ids:
+        plate_rw = ngff.open_ome_zarr(self.zarr_dir, layout='hcs', mode='r+')
+        all_positions = list(plate_rw.positions())
+
+        for i, channel_idx in enumerate(self.channels_ids):
             show_progress_bar(
                 dataloader=self.channels_ids,
-                current=channel_idx,
+                current=i,
                 process="estimating channel flatfield",
             )
             summed_image = None
 
             # Average over all positions
             num_slices_used = 0
-            for position in list(self.modifier.position_map):
+            
+            for path, position in all_positions:
                 for slice_idx in self.slice_ids:
-                    position_zarr = self.modifier.get_zarr(position)
-                    im = position_zarr[time_idx, channel_idx, slice_idx]
+                    im = position.data[time_idx, channel_idx, slice_idx]
 
                     if len(im.shape) == 3:
                         im = np.mean(im, axis=2)
@@ -132,7 +133,7 @@ class FlatFieldEstimator2D:
                 all_channels_array.append(flatfield)
             except Exception as e:
                 print(
-                    f"\n Skipping channel {self.modifier.channel_names[channel_idx]}:",
+                    f"\n Skipping channel {plate_rw.channel_names[channel_idx]}:",
                     "\n\t",
                     e.args,
                 )
@@ -140,21 +141,25 @@ class FlatFieldEstimator2D:
 
         all_channels_array = np.stack(all_channels_array, 0)
         all_channels_array = np.expand_dims(all_channels_array, (0, 2))
-
+        plate_rw.close()
+        
         # record flat_field inside zarr store.
-        for position in self.modifier.position_map:
+        for i, (path, position) in enumerate(all_positions):
             show_progress_bar(
-                dataloader=self.modifier.position_map,
-                current=position,
+                dataloader=all_positions,
+                current=i,
                 process="saving flatfield position",
             )
-            self.modifier.init_untracked_array(
+            io_utils.init_untracked_array(
+                zarr_dir=self.zarr_dir,
+                position_path=path,
                 data_array=all_channels_array,
-                position=position,
                 name=self.flat_field_array_name,
+                overwrite_ok=True,
             )
-            self.modifier.write_meta_field(
-                position=position,
+            io_utils.write_meta_field(
+                zarr_dir=self.zarr_dir,
+                position_path=path,
                 metadata=self.get_hyperparameters(),
                 field_name="flatfield",
             )
@@ -226,3 +231,5 @@ class FlatFieldEstimator2D:
                 ),
             )
         return flatfield
+
+    
