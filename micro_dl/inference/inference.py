@@ -169,7 +169,7 @@ class TorchPredictor:
                 )
             img_tensor = ds.ToTensor(device=self.device)(input_image)
 
-        pred = model(img_tensor, validate_input = True)
+        pred = model(img_tensor, validate_input = False)
         return pred.detach().cpu().numpy()
 
     def _get_positions(self):
@@ -283,23 +283,23 @@ class TorchPredictor:
         # generate list of position tuples from dictionary for iteration
         positions_dict = self._get_positions()
         position_paths = []
-        for row_idx in positions_dict.keys():
-            for col_idx in positions_dict[row_idx].keys():
-                well_fovs = [(row_idx, col_idx, x) for x in positions_dict[row_idx][col_idx]]
-                position_paths.append(well_fovs)
+        for row_k, row_v in positions_dict.items():
+            for well_k, well_v in row_v.items():
+                fov_path_tuples = [(row_k, well_k, pos_k) for pos_k in well_v]
+                position_paths.extend(fov_path_tuples)
         
         # run inference on each position
         print("Running inference: \n")
         i = 0
         depth = self.dataset_config["window_size"][0]
-        for row_idx, col_idx, fov_idx in position_paths:
+        for row_name, col_name, fov_name in position_paths:
             timepoint_preds = []
             #TODO This currently holds the *entire* position in memory, 
             # which is a problem for very large positions.
             # Should be able to be fixed with api exposed by
             # merging of https://github.com/czbiohub/iohub/pull/87
             for time_idx in self.inference_config["time_indices"]:
-                process_string = "predicting " + str((row_idx, col_idx, fov_idx, time_idx))
+                process_string = "predicting " + str((row_name, col_name, fov_name, time_idx))
                 cli_utils.show_progress_bar(
                     position_paths, i, process=process_string
                 )
@@ -309,15 +309,16 @@ class TorchPredictor:
                     # load and predict data by slice
                     start, end = center_slice - depth//2, center_slice + depth//2 + 1
                     input_, norm_statistics = self.dataset.__getitem__(
-                        row_idx=row_idx,
-                        col_idx=col_idx,
-                        fov_idx=fov_idx,
+                        row_idx=row_name,
+                        col_idx=col_name,
+                        fov_idx=fov_name,
                         time_idx=time_idx,
                         channel_ids=self.inference_config["input_channels"],
                         slice_range=(start, end),
                         return_norm_statistics=True
                     )
-                    prediction = self.predict_image(input_)
+                    # FIXME: use dataloader to do batch predictions
+                    prediction = self.predict_image(input_.unsqueeze_(0))
                     
                     # visualization logging
                     if self.inference_config["log_tensorboard"]:
@@ -327,7 +328,7 @@ class TorchPredictor:
                         channels = " + ".join(self.dataset.item_chan_names)
                         for i in range(denormed_prediction.shape[-4]):
                             self.log_writer.add_images(
-                                tag=f"{row_idx}.{col_idx}.{fov_idx}.{time_idx}"\
+                                tag=f"{row_name}.{col_name}.{fov_name}.{time_idx}"\
                                     f"/prediction channel {i} | input {channels}"\
                                     " | z{start}-{end}",
                                 img_tensor=torch.tensor(denormed_prediction[0,i]),
@@ -339,8 +340,8 @@ class TorchPredictor:
                 
             #write position to an output zarr store
             position_preds = np.stack(timepoint_preds, axis=0)
-            output_position = self.output_writer.create_position(row_idx, col_idx, fov_idx)
-            output_position[f"0"] = position_preds
+            output_position = self.output_writer.create_position(row_name, col_name, fov_name)
+            output_position["0"] = position_preds.squeeze(axis=(0, 1))
             
             i += 1
         

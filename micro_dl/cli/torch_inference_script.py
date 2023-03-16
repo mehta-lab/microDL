@@ -93,8 +93,6 @@ def main(config, gpu, gpu_mem_frac):
     torch_predictor = torch_inference_utils.TorchPredictor(torch_config=torch_config)
 
     torch_predictor.load_model()
-    torch_predictor.generate_dataloaders()
-    torch_predictor.select_dataloader(name="val")
     torch_predictor.run_inference()
 
 

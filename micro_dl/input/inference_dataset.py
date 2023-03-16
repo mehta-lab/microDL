@@ -35,6 +35,7 @@ class TorchInferenceDataset(Dataset):
         self.zarr_dir = zarr_dir
         self.dataset_config = dataset_config
         self.inference_config = inference_config
+        self.y_window_size, self.x_window_size = inference_config["window_size"][-2:]
         
         self.data_plate = ngff.open_ome_zarr(
             store_path=zarr_dir,
@@ -80,7 +81,7 @@ class TorchInferenceDataset(Dataset):
         position = self.data_plate["/".join(map(str, [row_idx, col_idx, fov_idx]))]
         
         shape = position.data.shape
-        assert slice_range[0] > 0 and slice_range[1] <= position.data.shape, (
+        assert slice_range[0] > 0 and slice_range[1] <= position.data.slices, (
             f"Requested center slice with slice range {slice_range} is out of bounds"
             f" for data with shape {shape}."
         )
@@ -94,7 +95,13 @@ class TorchInferenceDataset(Dataset):
         norm_statistics = []
         self.item_chan_names = []
         for channel in channel_ids:
-            channel_data = position.data[time_idx, channel, slice_range[0]: slice_range[1]]
+            channel_data = position.data[
+                time_idx,
+                channel, 
+                slice_range[0]: slice_range[1], 
+                :self.y_window_size, 
+                :self.x_window_size
+                ]
             
             channel_name = position.channel_names[channel]
             channel_norm_statistics = self._get_normalization_statistics(
@@ -103,13 +110,13 @@ class TorchInferenceDataset(Dataset):
             norm_statistics.append(channel_norm_statistics)
             self.item_chan_names.append(channel_name)
             
-            if self.inference_config["normalize_inputs"]:
+            if self.inference_config.get("normalize_inputs"):
                 channel_data = self._normalize(channel_data, channel_norm_statistics)
             data.append(channel_data)
             
         data = np.stack(data, axis=0)
         
-        convert = dataset.ToTensor(self.device)
+        convert = dataset.ToTensor(self.inference_config["device"])(data)
         if return_norm_statistics:
             return convert, channel_norm_statistics
         else:
@@ -124,9 +131,9 @@ class TorchInferenceDataset(Dataset):
         :param int col_idx: colum index of position
         :param int fov_idx: field of view index
         """
-        position = self.data_plate["/".join(map(str, [row_idx, col_idx, fov_idx]))]
-        pos_meta = position.metadata.asdict()["normalization"]
-        return pos_meta[channel_name]
+        position = self.data_plate[row_idx][col_idx][fov_idx]
+        normalization_metadata = position.zattrs["normalization"]
+        return normalization_metadata[channel_name]
     
     def _normalize(self, data, normalization_meta, denorm=False):
         """
