@@ -169,7 +169,7 @@ class TorchPredictor:
                 )
             img_tensor = ds.ToTensor(device=self.device)(input_image)
 
-        pred = model(img_tensor, validate_input = False)
+        pred = model(img_tensor, validate_input = False, pad_nonmultiple_input = True)
         return pred.detach().cpu().numpy()
 
     def _get_positions(self):

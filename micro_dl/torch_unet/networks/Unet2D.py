@@ -50,7 +50,7 @@ class Unet2d(nn.Module):
         # ----- set static parameters -----#
         self.block_padding = "same"
         down_mode = "avgpool"  # TODO set static avgpool
-        up_mode = "bilinear"  # TODO set static trilinear
+        up_mode = "bilinear"  # TODO set static bilinear
         activation = "relu"  # TODO set static relu
         self.bottom_block_spatial = False  # TODO set static
 
@@ -63,7 +63,6 @@ class Unet2d(nn.Module):
             self.num_filters = num_filters
         else:
             self.num_filters = [pow(2, i) * 16 for i in range(num_blocks + 1)]
-            self.num_filters
         downsampling_filters = [in_channels] + self.num_filters
         upsampling_filters = [
             self.num_filters[-(i + 1)] + self.num_filters[-(i + 2)]
@@ -165,7 +164,7 @@ class Unet2d(nn.Module):
                 kernel_size=self.kernel_size,
             )
 
-    def forward(self, x, validate_input=False):
+    def forward(self, x, validate_input=False, pad_nonmultiple_input=False):
         """
         Forward call of network
             - x -> Torch.tensor: input image stack
@@ -179,6 +178,9 @@ class Unet2d(nn.Module):
         :param torch.tensor x: input image
         :param bool validate_input: Deactivates assertions which are redundat if forward pass
                                     is being traced by tensorboard writer.
+        :param bool pad_nonmultiple_input: enables padding and cropping on inputs with spatial
+                                    dimensions not multiples of 2**num_blocks. Only allowed when
+                                    model is in evaluation mode.
         """
         # handle input exceptions
         if validate_input:
@@ -187,6 +189,9 @@ class Unet2d(nn.Module):
                 f"Input channels must equal network"
                 f" input channels: {self.in_channels}"
             )
+        # zero-pad non multiple of 2**num_blocks shapes
+        if pad_nonmultiple_input:
+            x, pad_shape = self._pad_nonmultiple_input(x)
 
         # encoder
         skip_tensors = []
@@ -207,8 +212,39 @@ class Unet2d(nn.Module):
         # output channel collapsing layer
         x = self.terminal_block(x)
 
+        #crop padded inputs to valid regions
+        if pad_nonmultiple_input:
+            x = x[...,0:-pad_shape[1], 0:-pad_shape[3]]
+            
         return x
 
+    def _pad_nonmultiple_input(self, x):
+        """
+        Pads row and col dimensions of inputs to a multiple of 2**num_blocks
+
+        :param torch.tensor x: input tensor
+        
+        :return torch.tensor x_padded: zero-padded x
+        :return tuple pad_shape: shape x was padded by
+        """
+        # zero-pad non multiple of 2**num_blocks shapes
+        assert self.training == False, (
+                "Padding and cropping to shape requires evaluation mode.. "
+                "may produced undeterministic behavior in backwards pass. "
+                "Change input size to fit network depth instead."
+            )
+        downsamp_factor = 2 ** self.num_blocks
+        pad_shape = [0,0,0,0] #note order is reversed for F.pad
+        
+        if not x.shape[-1] % downsamp_factor == 0:
+            rows_shape = (x.shape[-1]//downsamp_factor + 1) * downsamp_factor
+            pad_shape[1] = rows_shape - x.shape[-1]
+        if not x.shape[-2] % downsamp_factor == 0:
+            cols_shape = (x.shape[-2]//downsamp_factor + 1) * downsamp_factor
+            pad_shape[3] = cols_shape - x.shape[-2]
+            
+        return F.pad(x, tuple(pad_shape), mode="constant", value=0), pad_shape
+    
     def register_modules(self, module_list, name):
         """
         Helper function that registers modules stored in a list to the model object so that the can
