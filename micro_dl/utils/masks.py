@@ -19,18 +19,24 @@ def create_otsu_mask(input_image, style='otsu', thresh_input=0, kernel_size=11):
     :return: mask of input_image, np.array
     """
 
+    ret = []
     input_image = input_image.astype("float32")
     input_image_blur = cv2.GaussianBlur(input_image, (kernel_size, kernel_size), 0)
  
-    focus_max = np.max(input_image_blur)
-    focus_min = np.min(input_image_blur)
-    input_image_norm = 255*(input_image_blur - focus_min)/(focus_max - focus_min)
-
     if style == 'otsu':
-        ret, mask = cv2.threshold(input_image_norm.astype(np.uint8), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        focus_max = np.max(input_image_blur)
+        ret.append(focus_max)
+        focus_min = np.min(input_image_blur)
+        ret.append(focus_min)
+        input_image_norm = 255*(input_image_blur - focus_min)/(focus_max - focus_min)
+
+    
+        thresh, mask = cv2.threshold(input_image_norm.astype(np.uint8), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        ret.append(thresh)
 
     elif style == 'binary':
-        ret, mask = cv2.threshold(input_image_norm.astype(np.uint8), thresh_input, 255, cv2.THRESH_BINARY)
+        input_image_norm = 255*(input_image_blur - thresh_input[1])/(thresh_input[0] - thresh_input[1])
+        ret, mask = cv2.threshold(input_image_norm.astype(np.uint8), thresh_input[2], 255, cv2.THRESH_BINARY)
     
     return mask, ret
 

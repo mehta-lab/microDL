@@ -122,7 +122,7 @@ def create_and_write_mask(
                 #     channel_index=channel_index,
                 #     z_index=center_slice_index,
                 # )
-                _, thresh_otsu = get_mask_slice(
+                _, ret_otsu = get_mask_slice(
                     position_zarr=position_zarr,
                     time_index=time_index,
                     channel_index=channel_index,
@@ -165,7 +165,7 @@ def create_and_write_mask(
                             channel_index=channel_index,
                             slice_index=slice_index,
                             style='binary',
-                            thresh_input=thresh_otsu,
+                            thresh_input=ret_otsu,
                             mask_type=mask_type,
                             structure_elem_radius=structure_elem_radius,
                             flatfield_array=flatfield_slice,
