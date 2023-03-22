@@ -28,9 +28,10 @@ def create_otsu_mask(input_image, style='otsu', thresh_input=0, kernel_size=11):
 
     if style == 'otsu':
         ret, mask = cv2.threshold(input_image_norm.astype(np.uint8), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
     elif style == 'binary':
         ret, mask = cv2.threshold(input_image_norm.astype(np.uint8), thresh_input, 255, cv2.THRESH_BINARY)
-
+    
     return mask, ret
 
 

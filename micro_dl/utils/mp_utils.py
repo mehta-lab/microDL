@@ -114,8 +114,15 @@ def create_and_write_mask(
                     print("You are likely creating duplicates, which is bad practice.")
                 print(f"Skipping mask channel '{channel_name}' for thresholding")
             else:
-                center_slice_index = np.round(modifier.slices/2)
-                mask, thresh_otsu = get_mask_slice(
+                center_slice_index = (np.ceil(modifier.slices/2)).astype(int)
+                # flatfield_slice = modifier.get_untracked_array_slice(
+                #     position=position,
+                #     meta_field_name="flatfield",
+                #     time_index=time_index,
+                #     channel_index=channel_index,
+                #     z_index=center_slice_index,
+                # )
+                _, thresh_otsu = get_mask_slice(
                     position_zarr=position_zarr,
                     time_index=time_index,
                     channel_index=channel_index,
@@ -124,7 +131,7 @@ def create_and_write_mask(
                     thresh_input=0,
                     mask_type=mask_type,
                     structure_elem_radius=structure_elem_radius,
-                    flatfield_array=flatfield_slice,
+                    flatfield_array=center_slice_index,
                 )
                 for slice_index in range(modifier.slices):
                     # print pyrimidal progress bar
@@ -152,7 +159,7 @@ def create_and_write_mask(
                         except Exception as e:
                             flatfield_slice = None
 
-                        mask = get_mask_slice(
+                        mask, _ = get_mask_slice(
                             position_zarr=position_zarr,
                             time_index=time_index,
                             channel_index=channel_index,
