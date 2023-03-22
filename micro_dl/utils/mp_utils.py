@@ -265,6 +265,7 @@ def get_mask_slice(
     """
     # read and correct/preprocess slice
     im = position_zarr[time_index, channel_index, slice_index]
+    ret = 0
     if isinstance(flatfield_array, np.ndarray):
         im = image_utils.apply_flat_field_correction(
             input_image=im,
@@ -274,21 +275,22 @@ def get_mask_slice(
     # generate mask for slice
     if mask_type == "otsu":
         mask, ret = mask_utils.create_otsu_mask(im.astype("float32"),style=style,thresh_input=thresh_input)
-        return mask, ret
+    
     elif mask_type == "unimodal":
         mask = mask_utils.create_unimodal_mask(
             im.astype("float32"), structure_elem_radius
         )
-        return mask
+    
     elif mask_type == "edge_detection":
         mask = mask_utils.create_edge_detection_mask(
             im.astype("float32"), structure_elem_radius
         )
-        return mask
+    
     elif mask_type == "borders_weight_loss_map":
         mask = mask_utils.get_unet_border_weight_map(im)
         mask = image_utils.im_adjust(mask).astype(position_zarr.dtype)
-        return mask
+    
+    return mask, ret
 
 
 def mp_get_i_stats(fn_args, workers):
