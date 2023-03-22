@@ -10,19 +10,28 @@ from skimage.segmentation import watershed
 from micro_dl.utils.image_utils import im_adjust
 
 
-def create_otsu_mask(input_image, kernel_size=3):
+def create_otsu_mask(input_image, style='otsu', thresh_input=0, kernel_size=11):
     """Create a binary mask using morphological operations
 
     :param np.array input_image: generate masks from this image
-    :param int str_elem_size: size of the structuring element. typically 3, 5
+    :param str style: 'otsu', or 'binary'
+    :param int kernel_size: Gaussian blur kernel size. odd number and increase with increase in size of object
     :return: mask of input_image, np.array
     """
 
-    input_image = im_adjust(
-        cv2.GaussianBlur(input_image, (kernel_size, kernel_size), 0)
-    )
-    _, mask = cv2.threshold(input_image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    return mask
+    input_image = input_image.astype("float32")
+    input_image_blur = cv2.GaussianBlur(input_image, (kernel_size, kernel_size), 0)
+ 
+    focus_max = np.max(input_image_blur)
+    focus_min = np.min(input_image_blur)
+    input_image_norm = 255*(input_image_blur - focus_min)/(focus_max - focus_min)
+
+    if style == 'otsu':
+        ret, mask = cv2.threshold(input_image_norm.astype(np.uint8), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    elif style == 'binary':
+        ret, mask = cv2.threshold(input_image_norm.astype(np.uint8), thresh_input, 255, cv2.THRESH_BINARY)
+
+    return mask, ret
 
 
 def create_edge_detection_mask(input_image, str_elem_size=25, msize=80, kernel_size=3):

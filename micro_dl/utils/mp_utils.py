@@ -114,6 +114,18 @@ def create_and_write_mask(
                     print("You are likely creating duplicates, which is bad practice.")
                 print(f"Skipping mask channel '{channel_name}' for thresholding")
             else:
+                center_slice_index = np.round(modifier.slices/2)
+                mask, thresh_otsu = get_mask_slice(
+                    position_zarr=position_zarr,
+                    time_index=time_index,
+                    channel_index=channel_index,
+                    slice_index=center_slice_index,
+                    style='otsu',
+                    thresh_input=0,
+                    mask_type=mask_type,
+                    structure_elem_radius=structure_elem_radius,
+                    flatfield_array=flatfield_slice,
+                )
                 for slice_index in range(modifier.slices):
                     # print pyrimidal progress bar
                     if verbose:
@@ -145,6 +157,8 @@ def create_and_write_mask(
                             time_index=time_index,
                             channel_index=channel_index,
                             slice_index=slice_index,
+                            style='binary',
+                            thresh_input=thresh_otsu,
                             mask_type=mask_type,
                             structure_elem_radius=structure_elem_radius,
                             flatfield_array=flatfield_slice,
@@ -217,6 +231,8 @@ def get_mask_slice(
     channel_index,
     slice_index,
     mask_type,
+    style,
+    thresh_input,
     structure_elem_radius,
     flatfield_array=None,
 ):
@@ -234,6 +250,7 @@ def get_mask_slice(
     :param slice_index: see name
     :param mask_type: see name,
                     options are {otsu, unimodal, edge_detection, borders_weight_loss_map}
+    :param str style: 'applicable for volume segmenation in otsu, can be 'otsu' or 'binary'
     :param int structure_elem_radius: creation radius for the structuring
                     element
     :param np.ndarray flatfield_array: flatfield to correct image
@@ -249,20 +266,22 @@ def get_mask_slice(
     im = image_utils.preprocess_image(im, hist_clip_limits=(1, 99))
     # generate mask for slice
     if mask_type == "otsu":
-        mask = mask_utils.create_otsu_mask(im.astype("float32"))
+        mask, ret = mask_utils.create_otsu_mask(im.astype("float32"),style=style,thresh_input=thresh_input)
+        return mask, ret
     elif mask_type == "unimodal":
         mask = mask_utils.create_unimodal_mask(
             im.astype("float32"), structure_elem_radius
         )
+        return mask
     elif mask_type == "edge_detection":
         mask = mask_utils.create_edge_detection_mask(
             im.astype("float32"), structure_elem_radius
         )
+        return mask
     elif mask_type == "borders_weight_loss_map":
         mask = mask_utils.get_unet_border_weight_map(im)
         mask = image_utils.im_adjust(mask).astype(position_zarr.dtype)
-
-    return mask
+        return mask
 
 
 def mp_get_i_stats(fn_args, workers):
