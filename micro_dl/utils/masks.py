@@ -15,7 +15,7 @@ def create_otsu_mask(input_image, style='otsu', thresh_input=0, kernel_size=11):
 
     :param np.array input_image: generate masks from this image
     :param str style: 'otsu', or 'binary'
-    :param iterable thresh_input: default zero, chnages size to input max and min intensity & otsu threshold level of stack middle slice.
+    :param Iterable thresh_input: default zero, chnages size to input max and min intensity & otsu threshold level of stack middle slice.
     :param int kernel_size: Gaussian blur kernel size. odd number and increase with increase in size of object
     :return: mask of input_image, np.array
     """
