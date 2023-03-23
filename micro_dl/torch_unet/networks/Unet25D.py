@@ -4,7 +4,6 @@ import time
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from micro_dl.torch_unet.networks.layers.ConvBlock3D import *
 import micro_dl.torch_unet.utils.logging as log
@@ -198,7 +197,7 @@ class Unet25d(nn.Module):
         # ----- Feature Logging ----- #
         self.log_save_folder = None
 
-    def forward(self, x, validate_input=False, pad_nonmultiple_input=False):
+    def forward(self, x, validate_input=False):
         """
         Forward call of network.
 
@@ -212,9 +211,6 @@ class Unet25d(nn.Module):
         :param torch.tensor x: input image
         :param bool validate_input: Deactivates assertions which are redundant if forward pass
                                     is being traced by tensorboard writer.
-        :param bool pad_nonmultiple_input: enables padding and cropping on inputs with spatial
-                                    dimensions not multiples of 2**num_blocks. Only allowed when
-                                    model is in evaluation mode.
         """
         # handle input exceptions
         if validate_input:
@@ -223,9 +219,6 @@ class Unet25d(nn.Module):
                 f"Input channels must equal network"
                 f"input channels: {self.in_channels}"
             )
-        # zero-pad non multiple of 2**num_blocks shapes
-        if pad_nonmultiple_input:
-            x, pad_shape = self._pad_nonmultiple_input(x)
         self.log_feature(x, f"input")
 
         # encoder
@@ -255,40 +248,7 @@ class Unet25d(nn.Module):
         # output channel collapsing layer
         x = self.terminal_block(x)
         self.log_feature(x, f"output")
-
-        #crop padded inputs to valid regions
-        if pad_nonmultiple_input:
-            x = x[...,0:x.shape[-2]-pad_shape[3], 0:x.shape[-1]-pad_shape[1]]
-            
         return x
-
-    def _pad_nonmultiple_input(self, x):
-        """
-        Pads row and col dimensions of inputs to a multiple of 2**num_blocks
-
-        :param torch.tensor x: input tensor
-        
-        :return torch.tensor x_padded: zero-padded x
-        :return tuple pad_shape: shape x was padded by
-        """
-        
-        # zero-pad non multiple of 2**num_blocks shapes
-        assert self.training == False, (
-                "Padding and cropping to shape requires evaluation mode.. "
-                "may produced undeterministic behavior in backwards pass. "
-                "Change input size to fit network depth instead."
-            )
-        downsamp_factor = 2 ** self.num_blocks
-        pad_shape = [0,0,0,0] #note order is reversed for F.pad
-        
-        if not x.shape[-1] % downsamp_factor == 0:
-            rows_shape = (x.shape[-1]//downsamp_factor + 1) * downsamp_factor
-            pad_shape[1] = rows_shape - x.shape[-1]
-        if not x.shape[-2] % downsamp_factor == 0:
-            cols_shape = (x.shape[-2]//downsamp_factor + 1) * downsamp_factor
-            pad_shape[3] = cols_shape - x.shape[-2]
-            
-        return F.pad(x, tuple(pad_shape), mode="constant", value=0), pad_shape
     
     def register_modules(self, module_list, name):
         """

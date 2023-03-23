@@ -1,22 +1,36 @@
-import datetime
-import time
-import numpy as np
+import math
 import os
-import zarr
-import pathlib
+import time
 
+import iohub.ngff as ngff
+import numpy as np
 import torch
-from torch.utils.data import DataLoader
+import torchvision.transforms.functional as TF
+from torch import Tensor
 from torch.utils.tensorboard import SummaryWriter
 
-import micro_dl.torch_unet.utils.model as model_utils
 import micro_dl.input.dataset as ds
-import micro_dl.utils.cli_utils as cli_utils
-import micro_dl.utils.aux_utils as aux_utils
-import micro_dl.utils.io_utils as io_utils
-import micro_dl.inference.evaluation_metrics as inference_metrics
 import micro_dl.input.inference_dataset as inference_dataset
-import iohub.ngff as ngff
+import micro_dl.torch_unet.utils.model as model_utils
+import micro_dl.utils.aux_utils as aux_utils
+import micro_dl.utils.cli_utils as cli_utils
+
+
+def _pad_input(x: Tensor, num_blocks: int):
+    """
+    Zero-pads row and col dimensions of inputs to a multiple of 2**num_blocks
+
+    :param torch.tensor x: input tensor
+
+    :return torch.tensor x_padded: zero-padded x
+    :return tuple pad_shape: shape x was padded by (left, top, right, bottom)
+    """
+    down_factor = 2**num_blocks
+    sizes = [down_factor * math.ceil(s / down_factor) - s for s in x.shape[-2:]]
+    pads = [(p // 2, p - p // 2) for p in sizes]
+    pads = (pads[1][0], pads[0][0], pads[1][1], pads[0][1])
+    x = TF.pad(x, pads)
+    return x, pads
 
 
 class TorchPredictor:
@@ -131,8 +145,12 @@ class TorchPredictor:
 
     def predict_image(self, input_image, model=None,):
         """
-        Runs prediction on entire image field of view. xy size is configurable, but it must be
-        a power of 2. Input must be either 4 or 5 dimensions, and output is returned with the
+        Runs prediction on entire image field of view.
+        If the input XY size is not compatible with the model
+        (a multiple of :math:`2^{blocks}`),
+        it will be padded with zeros on all sides for inference
+        and cropped to the original size before output.
+        Input must be either 4 or 5 dimensions, and output is returned with the
         same dimensionality as given in input.
 
         Params:
@@ -169,8 +187,9 @@ class TorchPredictor:
                 )
             img_tensor = ds.ToTensor(device=self.device)(input_image)
 
-        pred = model(img_tensor, validate_input = False, pad_nonmultiple_input = True)
-        return pred.detach().cpu().numpy()
+        img_tensor, pads = _pad_input(img_tensor, num_blocks=model.num_blocks)
+        pred = model(img_tensor, validate_input = False)
+        return TF.crop(pred.detach().cpu(), *(pads[1], pads[0]) + input_image.shape[-2:]).numpy()
 
     def _get_positions(self):
         """
