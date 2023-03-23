@@ -2,14 +2,21 @@ import numpy as np
 import scipy.ndimage as ndimage
 from skimage.filters import threshold_otsu, gaussian, laplace
 from scipy.ndimage import binary_fill_holes
-from skimage.morphology import disk, ball, binary_opening, remove_small_objects, binary_dilation
+from skimage.morphology import (
+    disk,
+    ball,
+    binary_opening,
+    remove_small_objects,
+    binary_dilation,
+)
 from micro_dl.utils.image_utils import im_adjust
 
-def var_otsu_mask(input_image,sigma=0.6):
 
-    """ Finds input image intensity max, min and otsu threshold
+def var_otsu_mask(input_image, sigma=0.6):
+
+    """Finds input image intensity max, min and otsu threshold
     :param np.array input_image: generate masks from this image
-    :param int kernel_size: Gaussian blur kernel size. odd number and increase with increase in size of object
+    :param float sigma: Gaussian blur sigma, increase in values causes more blur
     :return: ret_values, list of max, min, and otsu threshold for 'otsu' style and threshold used for binary thresholding for 'binary' style
     """
     ret_values = []
@@ -21,7 +28,7 @@ def var_otsu_mask(input_image,sigma=0.6):
     focus_min = np.min(input_image_blur)
     ret_values.append(focus_min)
 
-    input_image_norm = (input_image_blur - focus_min)/(focus_max - focus_min)
+    input_image_norm = (input_image_blur - focus_min) / (focus_max - focus_min)
 
     thresh = threshold_otsu(input_image_norm)
     ret_values.append(thresh)
@@ -34,30 +41,32 @@ def create_otsu_mask(input_image, thresh_input, sigma=0.6):
     """Create a binary mask using morphological operations
     :param np.array input_image: generate masks from this image
     :param list thresh_input: list of input max and min intensity & otsu threshold level of stack middle slice.
-    :param int kernel_size: Gaussian blur kernel size. odd number and increase with increase in size of object
+    :param float sigma: Gaussian blur sigma, increase in value increases blur
     :return: mask of input_image, np.array
     """
 
     input_image_blur = gaussian(input_image, sigma=sigma)
 
-    input_image_norm = (input_image_blur - thresh_input[1])/(thresh_input[0] - thresh_input[1])
-    
+    input_image_norm = (input_image_blur - thresh_input[1]) / (
+        thresh_input[0] - thresh_input[1]
+    )
+
     mask = input_image_norm >= thresh_input[2]
 
     return mask
 
 
-def create_membrane_mask(input_image, str_elem_size=23, msize=120, sigma=0.6, k_size=5):
+def create_membrane_mask(input_image, str_elem_size=23, sigma=0.6, k_size=5, msize=120):
     """Create a binary mask using edge detection
 
     :param np.array input_image: generate masks from this image
-    :param int str_elem_size: size of the laplacian filter used for edge detection.
-                    typically 21 (odd number). Increase in value increases
-                    sensitivity of edge
+    :param int str_elem_size: size of the laplacian filter used for edge enhancement, odd number.
+        Increase in value increases sensitivity of edge enhancement
+    :param float sigma: Gaussian blur sigma
+    :param int k_size: disk size for mask dilation
+    :param int msize: size of small objects removed to clean segmentation
     :return: mask of input_image, np.array
     """
-
-    disk_elem = disk(k_size)
 
     input_image_blur = gaussian(input_image, sigma=sigma)
 
@@ -68,6 +77,7 @@ def create_membrane_mask(input_image, str_elem_size=23, msize=120, sigma=0.6, k_
     thresh = threshold_otsu(input_Lapl)
     mask_bin = input_Lapl >= thresh
 
+    disk_elem = disk(k_size)
     mask_dilated = binary_dilation(mask_bin, disk_elem)
 
     mask = remove_small_objects(mask_dilated, min_size=msize)

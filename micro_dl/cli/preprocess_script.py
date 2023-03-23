@@ -166,13 +166,13 @@ def pre_process(torch_config):
         # validate
         if mask_type not in {
             "unimodal",
-            "otsu",
-            "edge_detection",
+            "otsu_volume",
+            "membrane_detection",
             "borders_weight_loss_map",
         }:
             raise ValueError(
                 f"Thresholding type {mask_type} must be one of: "
-                f"{['unimodal', 'otsu', 'edge_detection', 'borders_weight_loss_map']}"
+                f"{['unimodal', 'otsu_volume', 'membrane_detection', 'borders_weight_loss_map']}"
             )
 
         # generate masks
