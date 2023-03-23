@@ -189,7 +189,7 @@ def create_and_write_mask(
     )
 
     # save masks as an 'untracked' array
-    if mask_type in {"otsu", "unimodal", "edge_detection"}:
+    if mask_type in {"otsu_volume", "unimodal", "membrane_detection"}:
         position_masks = position_masks.astype("bool")
 
     modifier.init_untracked_array(
@@ -236,8 +236,7 @@ def get_mask_slice(
     :param channel_index: see name
     :param slice_index: see name
     :param mask_type: see name,
-                    options are {otsu, unimodal, edge_detection, borders_weight_loss_map}
-    :param str style: 'applicable for volume segmenation in otsu, can be 'otsu' or 'binary'
+                    options are {otsu, unimodal, mem_detection, borders_weight_loss_map}
     :param int structure_elem_radius: creation radius for the structuring
                     element
     :param np.ndarray flatfield_array: flatfield to correct image
@@ -253,7 +252,7 @@ def get_mask_slice(
         )
     im = image_utils.preprocess_image(im, hist_clip_limits=(1, 99))
     # generate mask for slice
-    if mask_type == "otsu":
+    if mask_type == "otsu_volume":
         mask = mask_utils.create_otsu_mask(im.astype("float32"),thresh_input=thresh_input)
     
     elif mask_type == "unimodal":
@@ -261,9 +260,9 @@ def get_mask_slice(
             im.astype("float32"), structure_elem_radius
         )
     
-    elif mask_type == "edge_detection":
-        mask = mask_utils.create_edge_detection_mask(
-            im.astype("float32"), structure_elem_radius
+    elif mask_type == "membrane_detection":
+        mask = mask_utils.create_membrane_mask(
+            im.astype("float32"), structure_elem_radius,
         )
     
     elif mask_type == "borders_weight_loss_map":

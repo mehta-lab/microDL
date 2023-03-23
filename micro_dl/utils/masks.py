@@ -1,12 +1,11 @@
 import numpy as np
 import scipy.ndimage as ndimage
-import cv2
-import skimage
+from skimage.filters import threshold_otsu, gaussian, laplace
 from scipy.ndimage import binary_fill_holes
-from skimage.morphology import disk, ball, binary_opening
+from skimage.morphology import disk, ball, binary_opening, remove_small_objects, binary_dilation
 from micro_dl.utils.image_utils import im_adjust
 
-def var_otsu_mask(input_image,kernel_size=11):
+def var_otsu_mask(input_image,sigma=0.6):
 
     """ Finds input image intensity max, min and otsu threshold
     :param np.array input_image: generate masks from this image
@@ -14,23 +13,23 @@ def var_otsu_mask(input_image,kernel_size=11):
     :return: ret_values, list of max, min, and otsu threshold for 'otsu' style and threshold used for binary thresholding for 'binary' style
     """
     ret_values = []
-    input_image = input_image.astype("float32")
-    input_image_blur = cv2.GaussianBlur(input_image, (kernel_size, kernel_size), 0)
+
+    input_image_blur = gaussian(input_image, sigma=sigma)
 
     focus_max = np.max(input_image_blur)
     ret_values.append(focus_max)
     focus_min = np.min(input_image_blur)
     ret_values.append(focus_min)
-    input_image_norm = 255*(input_image_blur - focus_min)/(focus_max - focus_min)
 
+    input_image_norm = (input_image_blur - focus_min)/(focus_max - focus_min)
 
-    thresh, mask = cv2.threshold(input_image_norm.astype(np.uint8), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    thresh = threshold_otsu(input_image_norm)
     ret_values.append(thresh)
 
     return ret_values
 
 
-def create_otsu_mask(input_image, thresh_input, kernel_size=11):
+def create_otsu_mask(input_image, thresh_input, sigma=0.6):
 
     """Create a binary mask using morphological operations
     :param np.array input_image: generate masks from this image
@@ -39,16 +38,16 @@ def create_otsu_mask(input_image, thresh_input, kernel_size=11):
     :return: mask of input_image, np.array
     """
 
-    input_image = input_image.astype("float32")
-    input_image_blur = cv2.GaussianBlur(input_image, (kernel_size, kernel_size), 0)
+    input_image_blur = gaussian(input_image, sigma=sigma)
 
-    input_image_norm = 255*(input_image_blur - thresh_input[1])/(thresh_input[0] - thresh_input[1])
-    _, mask = cv2.threshold(input_image_norm.astype(np.uint8), thresh_input[2], 255, cv2.THRESH_BINARY)
+    input_image_norm = (input_image_blur - thresh_input[1])/(thresh_input[0] - thresh_input[1])
     
+    mask = input_image_norm >= thresh_input[2]
+
     return mask
 
 
-def create_edge_detection_mask(input_image, str_elem_size=25, msize=80, kernel_size=3):
+def create_membrane_mask(input_image, str_elem_size=23, msize=120, sigma=0.6, k_size=5):
     """Create a binary mask using edge detection
 
     :param np.array input_image: generate masks from this image
@@ -58,21 +57,20 @@ def create_edge_detection_mask(input_image, str_elem_size=25, msize=80, kernel_s
     :return: mask of input_image, np.array
     """
 
-    input_image = cv2.GaussianBlur(
-        input_image, (kernel_size, kernel_size), 0
-    )  # Gaussian blurring with specified kernel size
-    input_image_adjusted = im_adjust(input_image)  # stretch image contrast
-    input_Lapl = cv2.Laplacian(
-        input_image_adjusted, ddepth=cv2.CV_32F, ksize=str_elem_size
-    )  # Laplace filter image with kernel size of ksize
-    sz_Lapl = im_adjust(input_Lapl)  # stretch image contrast
-    sz_Lapl = 255 - sz_Lapl  # invert foreground to background for enabling thresholding
-    _, mask_bin = cv2.threshold(
-        sz_Lapl, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
-    )  # binary threshold enhanced edge
-    mask = skimage.morphology.remove_small_objects(
-        mask_bin.astype(bool), min_size=msize
-    )  # remove objects from mask smaller than msize pixels
+    disk_elem = disk(k_size)
+
+    input_image_blur = gaussian(input_image, sigma=sigma)
+
+    # input_image_adjusted = im_adjust(input_image)
+
+    input_Lapl = laplace(input_image_blur, ksize=str_elem_size)
+
+    thresh = threshold_otsu(input_Lapl)
+    mask_bin = input_Lapl >= thresh
+
+    mask_dilated = binary_dilation(mask_bin, disk_elem)
+
+    mask = remove_small_objects(mask_dilated, min_size=msize)
 
     return mask
 

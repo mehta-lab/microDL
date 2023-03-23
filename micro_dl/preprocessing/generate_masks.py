@@ -6,7 +6,6 @@ import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.image_utils as im_utils
 import micro_dl.utils.io_utils as io_utils
 from micro_dl.utils.mp_utils import mp_create_and_write_mask
-from skimage.filters import threshold_otsu
 from micro_dl.utils.cli_utils import MultiProcessProgressBar
 
 
@@ -22,7 +21,7 @@ class MaskProcessor:
         time_ids=-1,
         pos_ids=-1,
         num_workers=4,
-        mask_type="otsu",
+        mask_type="otsu_volume",
         output_channel_index=None,
     ):
         """
@@ -38,7 +37,7 @@ class MaskProcessor:
         :param int num_workers: number of workers for multiprocessing
         :param str mask_type: method to use for generating mask. Needed for
             mapping to the masking function. One of:
-                {'otsu', 'unimodal', 'borders_weight_loss_map'}
+                {'otsu_volume', 'membrane_detection', 'unimodal', 'borders_weight_loss_map'}
         :param int/None output_channel_index: specific channel to write to,
                 overwriting the existing data and metadata in this channel
         """
@@ -57,11 +56,11 @@ class MaskProcessor:
         self.position_ids = metadata_ids["pos_ids"]
 
         assert mask_type in [
-            "otsu",
+            "otsu_volume",
             "unimodal",
-            "edge_detection",
+            "membrane_detection",
             "borders_weight_loss_map",
-        ], "Masking method invalid, 'otsu', 'unimodal', 'edge_detection', 'borders_weight_loss_map'\
+        ], "Masking method invalid, 'otsu_volume', 'unimodal', 'membrane_detection', 'borders_weight_loss_map'\
              are currently supported"
         self.mask_type = mask_type
         self.ints_metadata = None
@@ -79,7 +78,7 @@ class MaskProcessor:
                 if channel_name in {
                     "mask_unimodal",
                     "mask_otsu",
-                    "mask_edge_detection",
+                    "mask_mem_detection",
                     "mask_borders_weight_loss_map",
                     "flatfield",
                 }:
