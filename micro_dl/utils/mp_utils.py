@@ -1,17 +1,11 @@
-import cv2
+
 from concurrent.futures import ProcessPoolExecutor
 import numpy as np
-import os
-import sys
 import scipy.stats
 
-import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.image_utils as image_utils
 import micro_dl.utils.io_utils as io_utils
 import micro_dl.utils.masks as mask_utils
-import micro_dl.utils.tile_utils as tile_utils
-from micro_dl.utils.normalize import hist_clipping
-from micro_dl.utils.cli_utils import show_progress_bar
 
 
 def mp_wrapper(fn, fn_args, workers):
@@ -115,24 +109,12 @@ def create_and_write_mask(
                 print(f"Skipping mask channel '{channel_name}' for thresholding")
             else:
                 center_slice_index = (np.ceil(modifier.slices/2)).astype(int)
-                # flatfield_slice = modifier.get_untracked_array_slice(
-                #     position=position,
-                #     meta_field_name="flatfield",
-                #     time_index=time_index,
-                #     channel_index=channel_index,
-                #     z_index=center_slice_index,
-                # )
-                _, ret_otsu = get_mask_slice(
-                    position_zarr=position_zarr,
-                    time_index=time_index,
-                    channel_index=channel_index,
-                    slice_index=center_slice_index,
-                    style='otsu',
-                    thresh_input=0,
-                    mask_type=mask_type,
-                    structure_elem_radius=structure_elem_radius,
-                    flatfield_array=center_slice_index,
-                )
+                if mask_type=='otsu':
+                    middle_slice = position_zarr[time_index, channel_index, center_slice_index]
+                    ret_otsu = mask_utils.var_otsu_mask(middle_slice)
+                else:
+                    ret_otsu = 0
+
                 for slice_index in range(modifier.slices):
                     # print pyrimidal progress bar
                     if verbose:
@@ -159,12 +141,11 @@ def create_and_write_mask(
                         except Exception as e:
                             flatfield_slice = None
 
-                        mask, _ = get_mask_slice(
+                        mask = get_mask_slice(
                             position_zarr=position_zarr,
                             time_index=time_index,
                             channel_index=channel_index,
                             slice_index=slice_index,
-                            style='binary',
                             thresh_input=ret_otsu,
                             mask_type=mask_type,
                             structure_elem_radius=structure_elem_radius,
@@ -238,7 +219,6 @@ def get_mask_slice(
     channel_index,
     slice_index,
     mask_type,
-    style,
     thresh_input,
     structure_elem_radius,
     flatfield_array=None,
@@ -265,7 +245,7 @@ def get_mask_slice(
     """
     # read and correct/preprocess slice
     im = position_zarr[time_index, channel_index, slice_index]
-    ret = 0
+    
     if isinstance(flatfield_array, np.ndarray):
         im = image_utils.apply_flat_field_correction(
             input_image=im,
@@ -274,7 +254,7 @@ def get_mask_slice(
     im = image_utils.preprocess_image(im, hist_clip_limits=(1, 99))
     # generate mask for slice
     if mask_type == "otsu":
-        mask, ret = mask_utils.create_otsu_mask(im.astype("float32"),style=style,thresh_input=thresh_input)
+        mask = mask_utils.create_otsu_mask(im.astype("float32"),thresh_input=thresh_input)
     
     elif mask_type == "unimodal":
         mask = mask_utils.create_unimodal_mask(
@@ -290,7 +270,7 @@ def get_mask_slice(
         mask = mask_utils.get_unet_border_weight_map(im)
         mask = image_utils.im_adjust(mask).astype(position_zarr.dtype)
     
-    return mask, ret
+    return mask
 
 
 def mp_get_i_stats(fn_args, workers):

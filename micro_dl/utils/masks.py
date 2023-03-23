@@ -3,46 +3,49 @@ import scipy.ndimage as ndimage
 import cv2
 import skimage
 from scipy.ndimage import binary_fill_holes
-from skimage.filters import threshold_otsu
-from skimage.feature import peak_local_max
-from skimage.morphology import disk, ball, binary_opening, binary_erosion
-from skimage.segmentation import watershed
+from skimage.morphology import disk, ball, binary_opening
 from micro_dl.utils.image_utils import im_adjust
 
+def var_otsu_mask(input_image,kernel_size=11):
 
-def create_otsu_mask(input_image, style='otsu', thresh_input=0, kernel_size=11):
-    """Create a binary mask using morphological operations
-
+    """ Finds input image intensity max, min and otsu threshold
     :param np.array input_image: generate masks from this image
-    :param str style: 'otsu', or 'binary'
-    :param Iterable thresh_input: default zero, chnages size to input max and min intensity & otsu threshold level of stack middle slice.
     :param int kernel_size: Gaussian blur kernel size. odd number and increase with increase in size of object
-    :return: mask of input_image, np.array
-    :return: ret, Iterable, list of max, min, and otsu threshold for 'otsu' style and threshold used for binary thresholding for 'binary' style
+    :return: ret_values, list of max, min, and otsu threshold for 'otsu' style and threshold used for binary thresholding for 'binary' style
     """
-
-    ret = []
+    ret_values = []
     input_image = input_image.astype("float32")
     input_image_blur = cv2.GaussianBlur(input_image, (kernel_size, kernel_size), 0)
-    
-    # if middle slice
-    if style == 'otsu':
-        focus_max = np.max(input_image_blur)
-        ret.append(focus_max)
-        focus_min = np.min(input_image_blur)
-        ret.append(focus_min)
-        input_image_norm = 255*(input_image_blur - focus_min)/(focus_max - focus_min)
 
-    
-        thresh, mask = cv2.threshold(input_image_norm.astype(np.uint8), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        ret.append(thresh)
+    focus_max = np.max(input_image_blur)
+    ret_values.append(focus_max)
+    focus_min = np.min(input_image_blur)
+    ret_values.append(focus_min)
+    input_image_norm = 255*(input_image_blur - focus_min)/(focus_max - focus_min)
 
-    # for the whole stack based on values computed from middle stack
-    elif style == 'binary':
-        input_image_norm = 255*(input_image_blur - thresh_input[1])/(thresh_input[0] - thresh_input[1])
-        ret, mask = cv2.threshold(input_image_norm.astype(np.uint8), thresh_input[2], 255, cv2.THRESH_BINARY)
+
+    thresh, mask = cv2.threshold(input_image_norm.astype(np.uint8), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    ret_values.append(thresh)
+
+    return ret_values
+
+
+def create_otsu_mask(input_image, thresh_input, kernel_size=11):
+
+    """Create a binary mask using morphological operations
+    :param np.array input_image: generate masks from this image
+    :param list thresh_input: list of input max and min intensity & otsu threshold level of stack middle slice.
+    :param int kernel_size: Gaussian blur kernel size. odd number and increase with increase in size of object
+    :return: mask of input_image, np.array
+    """
+
+    input_image = input_image.astype("float32")
+    input_image_blur = cv2.GaussianBlur(input_image, (kernel_size, kernel_size), 0)
+
+    input_image_norm = 255*(input_image_blur - thresh_input[1])/(thresh_input[0] - thresh_input[1])
+    _, mask = cv2.threshold(input_image_norm.astype(np.uint8), thresh_input[2], 255, cv2.THRESH_BINARY)
     
-    return mask, ret
+    return mask
 
 
 def create_edge_detection_mask(input_image, str_elem_size=25, msize=80, kernel_size=3):
