@@ -109,7 +109,7 @@ def create_and_write_mask(
                 print(f"Skipping mask channel '{channel_name}' for thresholding")
             else:
                 center_slice_index = (np.ceil(modifier.slices/2)).astype(int)
-                if mask_type=='otsu':
+                if mask_type=='otsu_volume':
                     middle_slice = position_zarr[time_index, channel_index, center_slice_index]
                     ret_otsu = mask_utils.var_otsu_mask(middle_slice)
                 else:
