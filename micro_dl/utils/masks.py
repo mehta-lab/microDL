@@ -15,6 +15,7 @@ def create_otsu_mask(input_image, style='otsu', thresh_input=0, kernel_size=11):
 
     :param np.array input_image: generate masks from this image
     :param str style: 'otsu', or 'binary'
+    :param iterable thresh_input: default zero, chnages size to input max and min intensity & otsu threshold level of stack middle slice.
     :param int kernel_size: Gaussian blur kernel size. odd number and increase with increase in size of object
     :return: mask of input_image, np.array
     """
@@ -22,7 +23,8 @@ def create_otsu_mask(input_image, style='otsu', thresh_input=0, kernel_size=11):
     ret = []
     input_image = input_image.astype("float32")
     input_image_blur = cv2.GaussianBlur(input_image, (kernel_size, kernel_size), 0)
- 
+    
+    # if middle slice
     if style == 'otsu':
         focus_max = np.max(input_image_blur)
         ret.append(focus_max)
@@ -34,6 +36,7 @@ def create_otsu_mask(input_image, style='otsu', thresh_input=0, kernel_size=11):
         thresh, mask = cv2.threshold(input_image_norm.astype(np.uint8), 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         ret.append(thresh)
 
+    # for the whole stack based on values computed from middle stack
     elif style == 'binary':
         input_image_norm = 255*(input_image_blur - thresh_input[1])/(thresh_input[0] - thresh_input[1])
         ret, mask = cv2.threshold(input_image_norm.astype(np.uint8), thresh_input[2], 255, cv2.THRESH_BINARY)
