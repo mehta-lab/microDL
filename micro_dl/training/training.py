@@ -323,17 +323,12 @@ class TorchTrainer:
             self.scheduler.step(val_loss)
             self.early_stopper(val_loss=val_loss, model=self.model, epoch=i)
 
-            # run testing cycle every 'testing_stride' epochs
-            if i % self.training_config["testing_stride"] == 0:
-                test_loss = self.run_test(i)
-                test_loss_list.append(test_loss)
-
             # save model checkpoint every 'save_model_stride' epochs
             if (
                 i % self.training_config["save_model_stride"] == 0
                 or i == self.training_config["epochs"] - 1
             ):
-                self.save_model(i, test_loss, input_)
+                self.save_model(i, val_loss, input_)
 
             # send epoch summary to stdout
             print(f"\t Training loss: {train_loss_list[-1]}")
@@ -502,7 +497,7 @@ class TorchTrainer:
             )
 
         # save model
-        save_file = str(f"saved_model_ep_{epoch}_testloss_{avg_loss:.4f}.pt")
+        save_file = str(f"saved_model_ep_{epoch}_valloss_{avg_loss:.4f}.pt")
         torch.save(self.model.state_dict(), os.path.join(self.save_folder, save_file))
 
 

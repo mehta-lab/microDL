@@ -58,7 +58,7 @@ def resize_image(input_image, output_shape):
 
     msg = "the output shape does not match the image dimension"
     assert len(output_shape) == len(input_image.shape), msg
-    assert input_image.dtype is not "bool"
+    assert input_image.dtype != "bool"
 
     resized_image = resize(input_image, output_shape)
     return resized_image
