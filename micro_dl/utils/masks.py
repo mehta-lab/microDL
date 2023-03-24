@@ -22,7 +22,7 @@ def create_otsu_mask(input_image, sigma=0.6):
     input_image_blur = gaussian(input_image, sigma=sigma)
 
     input_sz = input_image.shape
-    mid_slice_id = (np.ceil(input_sz[0]/2)).astype(int)
+    mid_slice_id = input_sz[0] // 2
 
     focus_max = np.max(input_image_blur[mid_slice_id,:,:])
     focus_min = np.min(input_image_blur[mid_slice_id,:,:])
