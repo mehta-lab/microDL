@@ -164,15 +164,16 @@ def pre_process(torch_config):
             structuring_radius = mask_config["structure_element_radius"]
 
         # validate
-        if mask_type not in {
+        mtypes= {
             "unimodal",
             "otsu_volume",
             "membrane_detection",
             "borders_weight_loss_map",
-        }:
+        }
+        if mask_type not in mtypes:
             raise ValueError(
                 f"Thresholding type {mask_type} must be one of: "
-                f"{['unimodal', 'otsu_volume', 'membrane_detection', 'borders_weight_loss_map']}"
+                f"{mtypes}"
             )
 
         # generate masks
