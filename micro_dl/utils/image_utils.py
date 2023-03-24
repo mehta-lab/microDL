@@ -148,29 +148,29 @@ def resize_mask(input_image, target_size):
     raise NotImplementedError
 
 
-def apply_flat_field_correction(input_image, **kwargs):
+def apply_flat_field_correction(input_stack, **kwargs):
     """Apply flat field correction. Input image and flatfield must be
-    provided as 2d images.
+    provided as 3d image stack.
 
-    :param np.array input_image: image to be corrected
+    :param np.array input_stack: image stack to be corrected
     Kwargs, either:
-        flatfield_image (np.float): flatfield_image for correction
+        flatfield_image (np.float): flatfield_image for correction broadcasted to all slices
         flatfield_path (str): Full path to flatfield image
     :return: np.array (float) corrected image
     """
 
-    corrected_image = input_image.astype("float")
+    corrected_image = input_stack.astype("float")
     if "flatfield_image" in kwargs:
         flat_field_im = kwargs["flatfield_image"]
         flat_field_im += sys.float_info.epsilon  # prevent divide by zero
         if flat_field_im is not None:
-            corrected_image = input_image.astype("float") / flat_field_im
+            corrected_image = input_stack.astype("float") / flat_field_im
     elif "flatfield_path" in kwargs:
         flatfield_path = kwargs["flatfield_path"]
         if flatfield_path is not None:
             flatfield_image = np.load(flatfield_path)
             flatfield_image += sys.float_info.epsilon  # prevent divide by zero
-            corrected_image = input_image.astype("float") / flatfield_image
+            corrected_image = input_stack.astype("float") / flatfield_image
     else:
         print("Incorrect kwargs: {}, returning input image".format(kwargs))
     return corrected_image

@@ -109,52 +109,44 @@ def create_and_write_mask(
                 print(f"Skipping mask channel '{channel_name}' for thresholding")
             else:
                 center_slice_index = (np.ceil(modifier.slices/2)).astype(int)
-                if mask_type=='otsu_volume':
-                    middle_slice = position_zarr[time_index, channel_index, center_slice_index]
-                    ret_otsu = mask_utils.var_otsu_mask(middle_slice)
-                else:
-                    ret_otsu = 0
 
-                for slice_index in range(modifier.slices):
+                # for slice_index in range(modifier.slices):
                     # print pyrimidal progress bar
-                    if verbose:
-                        time_progress = f"time {time_index+1}/{modifier.frames}"
-                        channel_progress = f"chan {channel_index}/{channel_indices}"
-                        position_progress = f"pos {position}/{modifier.positions}"
-                        slice_progress = f"slice {slice_index}/{modifier.slices}"
-                        p = (
-                            f"Computing masks slice [{position_progress}, {time_progress},"
-                            f" {channel_progress}, {slice_progress}]"
-                        )
-                        print(p)
+                if verbose:
+                    time_progress = f"time {time_index+1}/{modifier.frames}"
+                    channel_progress = f"chan {channel_index}/{channel_indices}"
+                    position_progress = f"pos {position}/{modifier.positions}"
+                    p = (
+                        f"Computing masks slice [{position_progress}, {time_progress},"
+                        f" {channel_progress}]"
+                    )
+                    print(p)
 
-                    # get mask for image slice or populate with zeros
-                    if time_index in time_indices:
-                        try:
-                            flatfield_slice = modifier.get_untracked_array_slice(
-                                position=position,
-                                meta_field_name="flatfield",
-                                time_index=time_index,
-                                channel_index=channel_index,
-                                z_index=slice_index,
-                            )
-                        except Exception as e:
-                            flatfield_slice = None
-
-                        mask = get_mask_slice(
-                            position_zarr=position_zarr,
+                # get mask for image slice or populate with zeros
+                if time_index in time_indices:
+                    try:
+                        flatfield_slice = modifier.get_untracked_array_slice(
+                            position=position,
+                            meta_field_name="flatfield",
                             time_index=time_index,
                             channel_index=channel_index,
-                            slice_index=slice_index,
-                            thresh_input=ret_otsu,
-                            mask_type=mask_type,
-                            structure_elem_radius=structure_elem_radius,
-                            flatfield_array=flatfield_slice,
+                            z_index=center_slice_index,
                         )
-                    else:
-                        mask = np.zeros(modifier.shape[-2:])
+                    except Exception as e:
+                        flatfield_slice = None
 
-                    position_masks[time_index, mask_array_chan_idx, slice_index] = mask
+                    mask = get_mask_stack(
+                        position_zarr=position_zarr,
+                        time_index=time_index,
+                        channel_index=channel_index,
+                        mask_type=mask_type,
+                        structure_elem_radius=structure_elem_radius,
+                        flatfield_array=flatfield_slice,
+                    )
+                else:
+                    mask = np.zeros(modifier.shape[-3:])
+
+                position_masks[time_index, mask_array_chan_idx] = mask
 
                 # compute & record channel-wise foreground fractions
                 frame_foreground_fraction = float(
@@ -213,13 +205,11 @@ def create_and_write_mask(
     )
 
 
-def get_mask_slice(
+def get_mask_stack(
     position_zarr,
     time_index,
     channel_index,
-    slice_index,
     mask_type,
-    thresh_input,
     structure_elem_radius,
     flatfield_array=None,
 ):
@@ -234,7 +224,6 @@ def get_mask_slice(
     :param zarr.Array position_zarr: zarr array of the desired position
     :param time_index: see name
     :param channel_index: see name
-    :param slice_index: see name
     :param mask_type: see name,
                     options are {otsu, unimodal, mem_detection, borders_weight_loss_map}
     :param int structure_elem_radius: creation radius for the structuring
@@ -243,30 +232,31 @@ def get_mask_slice(
     :return np.ndarray mask: 2d mask for this slice
     """
     # read and correct/preprocess slice
-    im = position_zarr[time_index, channel_index, slice_index]
+    im_stack = position_zarr[time_index, channel_index]
     
     if isinstance(flatfield_array, np.ndarray):
-        im = image_utils.apply_flat_field_correction(
-            input_image=im,
+        im_stack = image_utils.apply_flat_field_correction(
+            input_stack=im_stack,
             flatfield_image=flatfield_array,
         )
-    im = image_utils.preprocess_image(im, hist_clip_limits=(1, 99))
+    im_stack = image_utils.preprocess_image(im_stack, hist_clip_limits=(1, 99))
+
     # generate mask for slice
     if mask_type == "otsu_volume":
-        mask = mask_utils.create_otsu_mask(im.astype("float32"),thresh_input=thresh_input)
+        mask = mask_utils.create_otsu_mask(im_stack.astype("float32"))
     
     elif mask_type == "unimodal":
         mask = mask_utils.create_unimodal_mask(
-            im.astype("float32"), structure_elem_radius
+            im_stack.astype("float32"), structure_elem_radius,
         )
     
     elif mask_type == "membrane_detection":
         mask = mask_utils.create_membrane_mask(
-            im.astype("float32"), structure_elem_radius,
+            im_stack.astype("float32"), structure_elem_radius,
         )
     
     elif mask_type == "borders_weight_loss_map":
-        mask = mask_utils.get_unet_border_weight_map(im)
+        mask = mask_utils.get_unet_border_weight_map(im_stack)
         mask = image_utils.im_adjust(mask).astype(position_zarr.dtype)
     
     return mask
@@ -393,13 +383,14 @@ def sample_im_pixels(
             flatfield = False
 
     for time_index in all_time_indices:
+        image_stack = image_zarr[time_index, channel, :, :, :]
+        if flatfield:
+            image_stack = image_utils.apply_flat_field_correction(
+                input_stack=image_stack,
+                flatfield_image=flatfield_slice,
+            )
         for z_index in all_z_indices:
-            image_slice = image_zarr[time_index, channel, z_index, :, :]
-            if flatfield:
-                image_slice = image_utils.apply_flat_field_correction(
-                    input_image=image_slice,
-                    flatfield_image=flatfield_slice,
-                )
+            image_slice = image_stack[z_index, :, :]
             _, _, sample_values = image_utils.grid_sample_pixel_values(
                 image_slice, grid_spacing
             )

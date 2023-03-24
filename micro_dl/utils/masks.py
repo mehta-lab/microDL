@@ -3,7 +3,6 @@ import scipy.ndimage as ndimage
 from skimage.filters import threshold_otsu, gaussian, laplace
 from scipy.ndimage import binary_fill_holes
 from skimage.morphology import (
-    disk,
     ball,
     binary_opening,
     remove_small_objects,
@@ -12,46 +11,28 @@ from skimage.morphology import (
 from micro_dl.utils.image_utils import im_adjust
 
 
-def var_otsu_mask(input_image, sigma=0.6):
-
-    """Finds input image intensity max, min and otsu threshold
-    :param np.array input_image: generate masks from this image
-    :param float sigma: Gaussian blur sigma, increase in values causes more blur
-    :return: ret_values, list of max, min, and otsu threshold for 'otsu' style and threshold used for binary thresholding for 'binary' style
-    """
-    ret_values = []
-
-    input_image_blur = gaussian(input_image, sigma=sigma)
-
-    focus_max = np.max(input_image_blur)
-    ret_values.append(focus_max)
-    focus_min = np.min(input_image_blur)
-    ret_values.append(focus_min)
-
-    input_image_norm = (input_image_blur - focus_min) / (focus_max - focus_min)
-
-    thresh = threshold_otsu(input_image_norm)
-    ret_values.append(thresh)
-
-    return ret_values
-
-
-def create_otsu_mask(input_image, thresh_input, sigma=0.6):
+def create_otsu_mask(input_image, sigma=0.6):
 
     """Create a binary mask using morphological operations
-    :param np.array input_image: generate masks from this image
-    :param list thresh_input: list of input max and min intensity & otsu threshold level of stack middle slice.
-    :param float sigma: Gaussian blur sigma, increase in value increases blur
-    :return: mask of input_image, np.array
+    :param np.array input_image: generate masks from this 3D image
+    :param float sigma: Gaussian blur standard deviation, increase in value increases blur
+    :return: volume mask of input_image, 3D np.array
     """
 
     input_image_blur = gaussian(input_image, sigma=sigma)
 
-    input_image_norm = (input_image_blur - thresh_input[1]) / (
-        thresh_input[0] - thresh_input[1]
+    input_sz = input_image.shape
+    mid_slice_id = (np.ceil(input_sz[0]/2)).astype(int)
+
+    focus_max = np.max(input_image_blur[mid_slice_id,:,:])
+    focus_min = np.min(input_image_blur[mid_slice_id,:,:])
+
+    input_image_norm = (input_image_blur - focus_min) / (
+        focus_max - focus_min
     )
 
-    mask = input_image_norm >= thresh_input[2]
+    thresh = threshold_otsu(input_image_norm[mid_slice_id,:,:])
+    mask = input_image_norm >= thresh
 
     return mask
 
@@ -62,8 +43,8 @@ def create_membrane_mask(input_image, str_elem_size=23, sigma=0.6, k_size=5, msi
     :param np.array input_image: generate masks from this image
     :param int str_elem_size: size of the laplacian filter used for edge enhancement, odd number.
         Increase in value increases sensitivity of edge enhancement
-    :param float sigma: Gaussian blur sigma
-    :param int k_size: disk size for mask dilation
+    :param float sigma: Gaussian blur standard deviation
+    :param int k_size: ball size for mask dilation
     :param int msize: size of small objects removed to clean segmentation
     :return: mask of input_image, np.array
     """
@@ -77,8 +58,8 @@ def create_membrane_mask(input_image, str_elem_size=23, sigma=0.6, k_size=5, msi
     thresh = threshold_otsu(input_Lapl)
     mask_bin = input_Lapl >= thresh
 
-    disk_elem = disk(k_size)
-    mask_dilated = binary_dilation(mask_bin, disk_elem)
+    ball_elem = ball(k_size)
+    mask_dilated = binary_dilation(mask_bin, ball_elem)
 
     mask = remove_small_objects(mask_dilated, min_size=msize)
 
@@ -129,29 +110,29 @@ def get_unimodal_threshold(input_image):
     return best_threshold
 
 
-def create_unimodal_mask(input_image, str_elem_size=3, kernel_size=3):
+def create_unimodal_mask(input_image, str_elem_size=3, sigma = 0.6):
     """
     Create a mask with unimodal thresholding and morphological operations.
     Unimodal thresholding seems to oversegment, erode it by a fraction
 
     :param np.array input_image: generate masks from this image
     :param int str_elem_size: size of the structuring element. typically 3, 5
+    :param float sigma: gaussian blur standard deviation
     :return mask of input_image, np.array
     """
 
-    input_image = im_adjust(
-        cv2.GaussianBlur(input_image, (kernel_size, kernel_size), 0)
-    )
+    input_image = gaussian(input_image, sigma=sigma)
+    
     if np.min(input_image) == np.max(input_image):
         thr = np.unique(input_image)
     else:
         thr = get_unimodal_threshold(input_image)
     if len(input_image.shape) == 2:
-        str_elem = disk(str_elem_size)
+        str_elem = ball(str_elem_size)
     else:
         str_elem = ball(str_elem_size)
     # remove small objects in mask
-    mask = input_image > thr
+    mask = input_image >= thr
     mask = binary_opening(mask, str_elem)
     mask = binary_fill_holes(mask)
     return mask
