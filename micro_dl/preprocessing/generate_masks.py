@@ -55,13 +55,17 @@ class MaskProcessor:
         self.channel_ids = metadata_ids["channel_ids"]
         self.position_ids = metadata_ids["pos_ids"]
 
-        assert mask_type in [
-            "otsu_volume",
+        mtypes= {
             "unimodal",
+            "otsu_volume",
             "membrane_detection",
             "borders_weight_loss_map",
-        ], "Masking method invalid, 'otsu_volume', 'unimodal', 'membrane_detection', 'borders_weight_loss_map'\
-             are currently supported"
+        }
+        if mask_type not in mtypes:
+            raise ValueError(
+                f"Thresholding type {mask_type} must be one of: "
+                f"{mtypes}"
+            )
         self.mask_type = mask_type
         self.ints_metadata = None
         self.channel_thr_df = None
