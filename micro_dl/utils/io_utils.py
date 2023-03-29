@@ -57,8 +57,7 @@ def get_untracked_array_slice(
     """
     Get z-slice of untracked (not in multiscales/omero) array given a position and a channel.
 
-    :param str zarr_dir: path to zarr directory
-    :param str position_path: position path to position inside store
+    :param Position zarr_dir: NGFF position node object
     :param int time_index: time id to use for selecting slice
     :param int channel_index: channel id to use for selecting slice
     :param int z_index: z-stack depth id to use for selecting slice
@@ -98,8 +97,7 @@ def add_channel(
     to one position of an HCS compatible zarr store, an additional channel must
     be added to every position in that store to maintain HCS compatibility.
 
-    :param str zarr_dir: path to zarr directory
-    :param str position_path: path to position in zarr store
+    :param Position zarr_dir: NGFF position node object
     :param np.ndarray new_channel_array: array to add as new channel with matching
                             dimensions (except channel dim) and dtype
     :param str new_channel_name: name of new channel
