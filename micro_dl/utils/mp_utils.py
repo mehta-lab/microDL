@@ -339,9 +339,8 @@ def sample_im_pixels(
     assumes that the data in the zarr store is stored in [T,C,Z,Y,X] format,
     for time, channel, z, y, x.
 
-    :param str position_path: path to position currently being processed
+    :param Position zarr_dir: NGFF position node object
     :param bool flatfield: whether to flatfield correct before sampling or not
-    :param str zarr_dir: path to HCS-compatible zarr directory
     :param int grid_spacing: spacing of sampling grid in x and y
     :param int channel: channel to sample from
 
