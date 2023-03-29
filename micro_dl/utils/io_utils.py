@@ -16,7 +16,7 @@ def write_untracked_array(
     :param np.ndarray data_array: data of array
     :param str name: name of array in storage
     :param bool overwrite_ok: whether overwriting existing arrays of same name is
-                    allowed (generally for flatfielding), by default False
+                    allowed, by default False
     """
     chunk_size = [1] * len(data_array.shape[:-2]) + list(data_array.shape[-2:])
     position.zgroup.array(

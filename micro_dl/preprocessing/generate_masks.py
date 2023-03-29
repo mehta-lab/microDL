@@ -58,9 +58,9 @@ class MaskProcessor:
         assert mask_type in [
             "otsu",
             "unimodal",
-            "edge_detection",
+            "mem_detection",
             "borders_weight_loss_map",
-        ], "Masking method invalid, 'otsu', 'unimodal', 'edge_detection', 'borders_weight_loss_map'\
+        ], "Masking method invalid, 'otsu', 'unimodal', 'mem_detection', 'borders_weight_loss_map'\
              are currently supported"
         self.mask_type = mask_type
         self.ints_metadata = None
@@ -79,7 +79,6 @@ class MaskProcessor:
 
     def generate_masks(self, structure_elem_radius=5):
         """
-        Generate masks from flat-field corrected flurophore images.
         The sum of flurophore channels is thresholded to generate a foreground
         mask.
 

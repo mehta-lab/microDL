@@ -1,18 +1,11 @@
-import cv2
 from concurrent.futures import ProcessPoolExecutor
 import iohub.ngff as ngff
 import numpy as np
-import os
-import sys
 import scipy.stats
 
-import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.image_utils as image_utils
 import micro_dl.utils.io_utils as io_utils
 import micro_dl.utils.masks as mask_utils
-import micro_dl.utils.tile_utils as tile_utils
-from micro_dl.utils.normalize import hist_clipping
-from micro_dl.utils.cli_utils import show_progress_bar
 
 
 def mp_wrapper(fn, fn_args, workers):
@@ -106,45 +99,31 @@ def create_and_write_mask(
                     print("You are likely creating duplicates, which is bad practice.")
                 print(f"Skipping mask channel '{channel_name}' for thresholding")
             else:
-                for slice_index in range(shape[2]):
-                    # print progress update
-                    if verbose:
-                        time_progress = f"time {time_index+1}/{shape[0]}"
-                        channel_progress = f"chan {channel_index}/{channel_indices}"
-                        position_progress = f"pos {position.zgroup.name}"
-                        slice_progress = f"slice {slice_index}/{shape[2]}"
-                        p = (
-                            f"Computing masks slice [{position_progress}, {time_progress},"
-                            f" {channel_progress}, {slice_progress}]\n"
-                        )
-                        print(p)
+                # print progress update
+                if verbose:
+                    time_progress = f"time {time_index+1}/{shape[0]}"
+                    channel_progress = f"chan {channel_index}/{channel_indices}"
+                    position_progress = f"pos {position.zgroup.name}"
+                    p = (
+                        f"Computing masks slice [{position_progress}, {time_progress},"
+                        f" {channel_progress}]\n"
+                    )
+                    print(p)
 
-                    # get mask for image slice or populate with zeros
-                    if time_index in time_indices:
-                        try:
-                            flatfield_slice = io_utils.get_untracked_array_slice(
-                                position=position,
-                                meta_field_name="flatfield",
-                                time_index=time_index,
-                                channel_index=channel_index,
-                                z_index=slice_index,
-                            )
-                        except Exception as e:
-                            flatfield_slice = None
+                # get mask for image slice or populate with zeros
+                if time_index in time_indices:
 
-                        mask = get_mask_slice(
-                            position_zarr=position.data,
-                            time_index=time_index,
-                            channel_index=channel_index,
-                            slice_index=slice_index,
-                            mask_type=mask_type,
-                            structure_elem_radius=structure_elem_radius,
-                            flatfield_array=flatfield_slice,
-                        )
-                    else:
-                        mask = np.zeros(shape[-2:])
+                    mask = get_mask_slice(
+                        position_zarr=position.data,
+                        time_index=time_index,
+                        channel_index=channel_index,
+                        mask_type=mask_type,
+                        structure_elem_radius=structure_elem_radius,
+                    )
+                else:
+                    mask = np.zeros(shape[-2:])
 
-                    position_masks[time_index, mask_array_chan_idx, slice_index] = mask
+                position_masks[time_index, mask_array_chan_idx] = mask
 
                 # compute & record channel-wise foreground fractions
                 frame_foreground_fraction = float(
@@ -170,7 +149,7 @@ def create_and_write_mask(
     )
 
     # save masks as an 'untracked' array
-    if mask_type in {"otsu", "unimodal", "edge_detection"}:
+    if mask_type in {"otsu", "unimodal", "mem_detection"}:
         position_masks = position_masks.astype("bool")
 
     io_utils.write_untracked_array(
@@ -199,37 +178,25 @@ def get_mask_slice(
     position_zarr,
     time_index,
     channel_index,
-    slice_index,
     mask_type,
     structure_elem_radius,
-    flatfield_array=None,
 ):
     """
     Given a set of indices, mask type, and structuring element,
     pulls an image slice from the given zarr array, computes the
     requested mask and returns.
 
-    If given a flatfield array, will flatfield correct the slice before
-    computing the mask.
-
-    :param zarr.Array/ngff.ImageArray position_zarr: zarr array of the desired position
+    :param zarr.Array position_zarr: zarr array of the desired position
     :param time_index: see name
     :param channel_index: see name
-    :param slice_index: see name
     :param mask_type: see name,
-                    options are {otsu, unimodal, edge_detection, borders_weight_loss_map}
+                    options are {otsu, unimodal, mem_detection, borders_weight_loss_map}
     :param int structure_elem_radius: creation radius for the structuring
                     element
-    :param np.ndarray flatfield_array: flatfield to correct image
     :return np.ndarray mask: 2d mask for this slice
     """
     # read and correct/preprocess slice
-    im = position_zarr[time_index, channel_index, slice_index]
-    if isinstance(flatfield_array, np.ndarray):
-        im = image_utils.apply_flat_field_correction(
-            input_image=im,
-            flatfield_image=flatfield_array,
-        )
+    im = position_zarr[time_index, channel_index]
     im = image_utils.preprocess_image(im, hist_clip_limits=(1, 99))
     # generate mask for slice
     if mask_type == "otsu":
@@ -238,9 +205,9 @@ def get_mask_slice(
         mask = mask_utils.create_unimodal_mask(
             im.astype("float32"), structure_elem_radius
         )
-    elif mask_type == "edge_detection":
-        mask = mask_utils.create_edge_detection_mask(
-            im.astype("float32"), structure_elem_radius
+    elif mask_type == "mem_detection":
+        mask = mask_utils.create_membrane_mask(
+            im.astype("float32"), structure_elem_radius,
         )
     elif mask_type == "borders_weight_loss_map":
         mask = mask_utils.get_unet_border_weight_map(im)
@@ -334,13 +301,11 @@ def sample_im_pixels(
     Read and computes statistics of images for each point in a grid.
     Grid spacing determines distance in pixels between grid points
     for rows and cols.
-    Applies flatfield correction prior to intensity sampling if specified.
     By default, samples from every time position and every z-depth, and
     assumes that the data in the zarr store is stored in [T,C,Z,Y,X] format,
     for time, channel, z, y, x.
 
     :param Position zarr_dir: NGFF position node object
-    :param bool flatfield: whether to flatfield correct before sampling or not
     :param int grid_spacing: spacing of sampling grid in x and y
     :param int channel: channel to sample from
 
@@ -352,28 +317,9 @@ def sample_im_pixels(
     all_time_indices = list(range(image_zarr.shape[0]))
     all_z_indices = list(range(image_zarr.shape[2]))
 
-    # flatfield slice same for all time & z indices
-    if flatfield:
-        try:
-            flatfield_slice = io_utils.get_untracked_array_slice(
-                position=position,
-                meta_field_name="flatfield",
-                time_index=0,
-                channel_index=channel,
-                z_index=0,
-            )
-        except:
-            print(f"\nNo flatfield found: channel {channel}, position {position.zgroup.name}")
-            flatfield = False
-
     for time_index in all_time_indices:
         for z_index in all_z_indices:
             image_slice = image_zarr[time_index, channel, z_index, :, :]
-            if flatfield:
-                image_slice = image_utils.apply_flat_field_correction(
-                    input_image=image_slice,
-                    flatfield_image=flatfield_slice,
-                )
             _, _, sample_values = image_utils.grid_sample_pixel_values(
                 image_slice, grid_spacing
             )
