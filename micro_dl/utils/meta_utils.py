@@ -42,7 +42,7 @@ def generate_normalization_metadata(
                                     by default calculates all
     :param int grid_spacing: distance between points in sampling grid
     """
-    plate = ngff.open_ome_zarr(zarr_dir, mode='r')
+    plate = ngff.open_ome_zarr(zarr_dir, mode='r+')
     position_map = list(plate.positions())
 
     if channel_ids == -1:
