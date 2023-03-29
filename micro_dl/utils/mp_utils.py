@@ -363,7 +363,7 @@ def sample_im_pixels(
                 z_index=0,
             )
         except:
-            print(f"\nNo flatfield found: channel {channel}, position {position.name}")
+            print(f"\nNo flatfield found: channel {channel}, position {position.zgroup.name}")
             flatfield = False
 
     for time_index in all_time_indices:
