@@ -144,22 +144,20 @@ class FlatFieldEstimator2D:
         plate_rw.close()
         
         # record flat_field inside zarr store.
-        for i, (path, position) in enumerate(all_positions):
+        for i, (_, position) in enumerate(all_positions):
             show_progress_bar(
                 dataloader=all_positions,
                 current=i,
                 process="saving flatfield position",
             )
-            io_utils.init_untracked_array(
-                zarr_dir=self.zarr_dir,
-                position_path=path,
+            io_utils.write_untracked_array(
+                position=position,
                 data_array=all_channels_array,
                 name=self.flat_field_array_name,
                 overwrite_ok=True,
             )
             io_utils.write_meta_field(
-                zarr_dir=self.zarr_dir,
-                position_path=path,
+                position=position,
                 metadata=self.get_hyperparameters(),
                 field_name="flatfield",
             )

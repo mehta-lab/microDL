@@ -95,20 +95,17 @@ class MaskProcessor:
         """
         
         # Gather function arguments for each index pair at each position
-        plate = ngff.open_ome_zarr(store_path=self.zarr_dir, mode='r')
-        all_positions = list(plate.positions())
-        plate.close()
+        plate = ngff.open_ome_zarr(store_path=self.zarr_dir, mode='r+')
         
         mp_mask_creator_args = []
 
-        for i, (position_path, position) in enumerate(all_positions):
+        for i, (_, position) in enumerate(plate.positions()):
             # TODO: make a better progress bar for mask generation
             verbose = i % 4 == 0
             mp_mask_creator_args.append(
                 tuple(
                     [
-                        self.zarr_dir,
-                        position_path,
+                        position,
                         self.time_ids,
                         self.channel_ids,
                         structure_elem_radius,
@@ -121,3 +118,5 @@ class MaskProcessor:
 
         # create and write masks and metadata using multiprocessing
         mp_create_and_write_mask(mp_mask_creator_args, workers=self.num_workers)
+
+        plate.close()

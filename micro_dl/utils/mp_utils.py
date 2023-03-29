@@ -43,8 +43,7 @@ def mp_create_and_write_mask(fn_args, workers):
 
 
 def create_and_write_mask(
-    zarr_dir,
-    position_path,
+    position: ngff.Position,
     time_indices,
     channel_indices,
     structure_elem_radius,
@@ -86,10 +85,7 @@ def create_and_write_mask(
     :param bool verbose: whether this process should send updates to stdout
     """
 
-    # read in stack we assume that all of the positions' arrays have the same shape
-    plate = ngff.open_ome_zarr(zarr_dir, mode='r+')
-
-    shape = plate[position_path].data.shape
+    shape = position.data.shape
     position_masks_shape = tuple([shape[0], len(channel_indices), *shape[2:]])
 
     # calculate masks over every time index and channel slice
@@ -100,7 +96,7 @@ def create_and_write_mask(
         timepoint_foreground_fraction = {}
 
         for channel_index in channel_indices:
-            channel_name = plate.channel_names[channel_index]
+            channel_name = position.channel_names[channel_index]
             mask_array_chan_idx = channel_indices.index(channel_index)
 
             if "mask" in channel_name:
@@ -115,7 +111,7 @@ def create_and_write_mask(
                     if verbose:
                         time_progress = f"time {time_index+1}/{shape[0]}"
                         channel_progress = f"chan {channel_index}/{channel_indices}"
-                        position_progress = f"pos {position_path}"
+                        position_progress = f"pos {position.zgroup.name}"
                         slice_progress = f"slice {slice_index}/{shape[2]}"
                         p = (
                             f"Computing masks slice [{position_progress}, {time_progress},"
@@ -127,8 +123,7 @@ def create_and_write_mask(
                     if time_index in time_indices:
                         try:
                             flatfield_slice = io_utils.get_untracked_array_slice(
-                                zarr_dir=zarr_dir,
-                                position_path=position_path,
+                                position=position,
                                 meta_field_name="flatfield",
                                 time_index=time_index,
                                 channel_index=channel_index,
@@ -138,7 +133,7 @@ def create_and_write_mask(
                             flatfield_slice = None
 
                         mask = get_mask_slice(
-                            position_zarr=plate[position_path].data,
+                            position_zarr=position.data,
                             time_index=time_index,
                             channel_index=channel_index,
                             slice_index=slice_index,
@@ -166,11 +161,10 @@ def create_and_write_mask(
         timepoint_foreground_fraction["combined_fraction"] = frame_foreground_fraction
 
     # save masks as additional channel
-    position_masks = position_masks.astype(plate[position_path].data.dtype)
+    position_masks = position_masks.astype(position.data.dtype)
     io_utils.add_channel(
-        zarr_dir=zarr_dir,
+        position=position,
         new_channel_array=position_masks,
-        position_path=position_path,
         new_channel_name=mask_name,
         overwrite_ok=True,
     )
@@ -179,10 +173,9 @@ def create_and_write_mask(
     if mask_type in {"otsu", "unimodal", "edge_detection"}:
         position_masks = position_masks.astype("bool")
 
-    io_utils.init_untracked_array(
-        zarr_dir=zarr_dir,
+    io_utils.write_untracked_array(
+        position=position,
         data_array=position_masks,
-        position_path=position_path,
         name=mask_name,
         overwrite_ok=True,
     )
@@ -196,13 +189,10 @@ def create_and_write_mask(
         "foreground_fractions_by_timepoint": position_foreground_fractions,
     }
     io_utils.write_meta_field(
-        zarr_dir=zarr_dir,
-        position_path=position_path,
+        position=position,
         metadata=metadata,
         field_name="mask",
     )
-    
-    plate.close()
 
 
 def get_mask_slice(
@@ -334,9 +324,8 @@ def mp_sample_im_pixels(fn_args, workers):
 
 
 def sample_im_pixels(
-    position_path,
+    position: ngff.Position,
     flatfield,
-    zarr_dir,
     grid_spacing,
     channel,
 ):
@@ -358,8 +347,7 @@ def sample_im_pixels(
 
     :return list meta_rows: Dicts with intensity data for each grid point
     """
-    plate = ngff.open_ome_zarr(zarr_dir, mode='r')
-    image_zarr = plate[position_path].data
+    image_zarr = position.data
 
     all_sample_values = []
     all_time_indices = list(range(image_zarr.shape[0]))
@@ -369,15 +357,14 @@ def sample_im_pixels(
     if flatfield:
         try:
             flatfield_slice = io_utils.get_untracked_array_slice(
-                zarr_dir=zarr_dir,
-                position_path=position_path,
+                position=position,
                 meta_field_name="flatfield",
                 time_index=0,
                 channel_index=channel,
                 z_index=0,
             )
         except:
-            print(f"\nNo flatfield found: channel {channel}, position {position_path}")
+            print(f"\nNo flatfield found: channel {channel}, position {position.name}")
             flatfield = False
 
     for time_index in all_time_indices:
@@ -393,6 +380,5 @@ def sample_im_pixels(
             )
             all_sample_values.append(sample_values)
     sample_values = np.stack(all_sample_values, 0).flatten()
-    plate.close()
     
-    return position_path, sample_values
+    return position, sample_values

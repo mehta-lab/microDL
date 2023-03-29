@@ -67,7 +67,7 @@ def generate_normalization_metadata(
 
         # NOTE: Doing sequential mp with pool execution creates synchronization
         #      points between each step. This could be detrimental to performance
-        position_paths, fov_sample_values = mp_utils.mp_sample_im_pixels(
+        positions, fov_sample_values = mp_utils.mp_sample_im_pixels(
             this_channels_args, num_workers
         )
         dataset_sample_values = np.stack(fov_sample_values, 0)
@@ -75,7 +75,7 @@ def generate_normalization_metadata(
         fov_level_statistics = mp_utils.mp_get_val_stats(fov_sample_values, num_workers)
         dataset_level_statistics = mp_utils.get_val_stats(dataset_sample_values)
 
-        for j, position_path in enumerate(position_paths):
+        for j, pos in enumerate(positions):
             show_progress_bar(
                 dataloader=position_map,
                 current=j,
@@ -90,11 +90,11 @@ def generate_normalization_metadata(
             }
 
             io_utils.write_meta_field(
-                zarr_dir=zarr_dir,
-                position_path=position_path,
+                position=pos,
                 metadata=channel_position_statistics,
                 field_name="normalization",
             )
+    plate.close()
 
 
 def compute_zscore_params(

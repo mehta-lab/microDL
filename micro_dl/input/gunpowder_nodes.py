@@ -244,11 +244,7 @@ class FlatFieldCorrect(gp.BatchFilter):
         if zarr_dir:
             self.plate = ngff.open_ome_zarr(store_path=zarr_dir)
             path, position = next(self.plate.positions())
-            self.flatfield_channels = io_utils.read_meta_field(
-                zarr_dir=zarr_dir,
-                position_path=path,
-                field_name='flatfield'
-            )["channel_ids"]
+            self.flatfield_channels = position.zattrs['flatfield']["channel_ids"]
             self.plate.close()
         else:
             self.infer_zarr_dir = True
@@ -317,11 +313,7 @@ class FlatFieldCorrect(gp.BatchFilter):
                 zarr_dir = self._get_zarr_dir()
                 self.plate = ngff.open_ome_zarr(store_path=zarr_dir)
                 path, position = next(self.plate.positions())
-                self.flatfield_channels = io_utils.read_meta_field(
-                    zarr_dir=zarr_dir,
-                    position_path=path,
-                    field_name='flatfield'
-                )["channel_ids"]
+                self.flatfield_channels = position.zattrs['flatfield']["channel_ids"]
                 self.plate.close()
 
             if self.flatfield_channels == None:
