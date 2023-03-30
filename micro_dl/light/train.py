@@ -5,7 +5,7 @@ from micro_dl.light.engine import PhaseToNuc25D
 
 
 def main():
-    cli = LightningCLI(PhaseToNuc25D, HCSDataModule)
+    _ = LightningCLI(PhaseToNuc25D, HCSDataModule)
 
 
 if __name__ == "__main__":
