@@ -292,7 +292,6 @@ def mp_sample_im_pixels(fn_args, workers):
 
 def sample_im_pixels(
     position: ngff.Position,
-    flatfield,
     grid_spacing,
     channel,
 ):

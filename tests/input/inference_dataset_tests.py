@@ -115,7 +115,6 @@ class TestInferenceDataSet(unittest.TestCase):
         """
         self.assertEqual(self.data_inst.image_dir, self.image_dir)
         self.assertEqual(self.data_inst.target_dir, self.mask_dir)
-        self.assertIsNone(self.data_inst.flat_field_dir)
         self.assertEqual(self.data_inst.image_format, 'zyx')
         self.assertEqual(self.data_inst.model_task, 'segmentation')
         self.assertEqual(self.data_inst.depth, 1)
@@ -346,7 +345,6 @@ class TestInferenceDataSet2p5D(unittest.TestCase):
         """
         self.assertEqual(self.data_inst.image_dir, self.image_dir)
         self.assertEqual(self.data_inst.target_dir, self.mask_dir)
-        self.assertIsNone(self.data_inst.flat_field_dir)
         self.assertEqual(self.data_inst.image_format, 'zyx')
         self.assertEqual(self.data_inst.model_task, 'segmentation')
         self.assertEqual(self.data_inst.depth, 3)

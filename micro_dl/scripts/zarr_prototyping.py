@@ -11,7 +11,6 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 
 import micro_dl.utils.io_utils as io_utils
-from micro_dl.preprocessing.estimate_flat_field import FlatFieldEstimator2D
 from micro_dl.preprocessing.generate_masks import MaskProcessor
 from micro_dl.utils.meta_utils import generate_normalization_metadata
 
@@ -32,17 +31,6 @@ zarr_dir = "/hpc/projects/CompMicro/projects/virtualstaining/torch_microDL/data/
 reader = io_utils.ZarrReader(zarrfile=zarr_dir)
 modifier = io_utils.HCSZarrModifier(zarr_file=zarr_dir, enable_creation=True)
 
-# %%
-print("Performing flatfield estimation:")
-estimator = FlatFieldEstimator2D(
-    zarr_dir=zarr_dir,
-    channel_ids=-1,
-    slice_ids=-1,
-    flat_field_array_name="flatfield",
-)
-
-estimator.estimate_flat_field()
-modifier.get_position_meta(0)
 # %%
 print("\nCalculating normalization statistics:")
 generate_normalization_metadata(zarr_dir=zarr_dir, channel_ids=-1, num_workers=1)
@@ -83,11 +71,6 @@ import micro_dl.cli.preprocess_script as preprocess_script
 preprocess_config = {
     "zarr_dir": "/hpc/projects/CompMicro/projects/virtualstaining/torch_microDL/data/2022_11_01_VeroMemNuclStain/output.zarr",
     "preprocessing": {
-        "flatfield": {
-            "channel_ids": -1,
-            "slice_ids": -1,
-            "block_size": 32,
-        },
         "normalize": {
             "num_workers": 4,
             "channel_ids": -1,

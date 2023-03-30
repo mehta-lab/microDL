@@ -52,20 +52,6 @@ def test_samescale_image():
     nose.tools.assert_equal(im_out[-1, -1], test_im[-1, -1])
 
 
-def test_fit_polynomial_surface():
-    flatfield = image_utils.fit_polynomial_surface_2D(
-        test_coords,
-        test_values,
-        im_shape=(10, 15),
-    )
-    # Since there's a bright block to the right, the left col should be
-    # < right col
-    nose.tools.assert_true(np.mean(flatfield[:, 0]) <
-                           np.mean(flatfield[:, -1]))
-    # Since flatfield is normalized, the mean should be close to one
-    nose.tools.assert_almost_equal(np.mean(flatfield), 1., places=3)
-
-
 def test_rescale_volume():
     # shape (5, 31, 31)
     nd_image = np.repeat(uni_thr_tst_image[np.newaxis], 5, axis=0)
@@ -211,13 +197,6 @@ class TestImageUtils(unittest.TestCase):
             'zscore_median': np.nanmean(sph),
             'zscore_iqr': np.nanstd(sph)
         }])
-        # Write a flatfield image
-        np.save(
-            os.path.join(self.temp_path, 'flat-field_channel-5.npy'),
-            np.zeros((5, 10)),
-            allow_pickle=True,
-            fix_imports=True,
-        )
 
     def tearDown(self):
         """
@@ -253,17 +232,6 @@ class TestImageUtils(unittest.TestCase):
             meta_row=meta_row,
         )
         np.testing.assert_array_equal(im, self.sph[..., 7])
-
-    def test_get_flat_field_path(self):
-        ff_path = image_utils.get_flat_field_path(
-            flat_field_dir=self.temp_path,
-            channel_idx=5,
-            channel_ids=[1, 5],
-        )
-        self.assertEqual(
-            ff_path,
-            os.path.join(self.temp_path, 'flat-field_channel-5.npy'),
-        )
 
     def test_preprocess_image(self):
         im = np.zeros((5, 10, 15, 1))
