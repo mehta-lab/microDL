@@ -12,7 +12,7 @@ from monai.transforms import (
     RandSpatialCrop,
     ScaleIntensityRangePercentiles,
 )
-from pytorch_lightning import LightningDataModule
+from lightning.pytorch import LightningDataModule
 from torch.utils.data import DataLoader, Dataset, random_split
 
 
