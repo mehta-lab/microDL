@@ -149,15 +149,15 @@ def create_and_write_mask(
     )
 
     # save masks as an 'untracked' array
-    if mask_type in {"otsu", "unimodal", "mem_detection"}:
-        position_masks = position_masks.astype("bool")
+    # if mask_type in {"otsu", "unimodal", "mem_detection"}:
+    #     position_masks = position_masks.astype("bool")
 
-    io_utils.write_untracked_array(
-        position=position,
-        data_array=position_masks,
-        name=mask_name,
-        overwrite_ok=True,
-    )
+    # io_utils.write_untracked_array(
+    #     position=position,
+    #     data_array=position_masks,
+    #     name=mask_name,
+    #     overwrite_ok=True,
+    # )
 
     # save custom tracking metadata
     metadata = {

@@ -53,7 +53,7 @@ def generate_normalization_metadata(
     # get arguments for multiprocessed grid sampling
     mp_grid_sampler_args = []
     for _, position in position_map:
-        mp_grid_sampler_args.append([position, True, grid_spacing])
+        mp_grid_sampler_args.append([position, grid_spacing])
 
     # sample values and use them to get normalization statistics
     for i, channel in enumerate(channel_ids):
