@@ -51,7 +51,6 @@ data:
   source_channel_name: null
   target_channel_name: null
   z_window_size: null
-  seed: null
   split_ratio: null
   batch_size: 16
   num_workers: 8
