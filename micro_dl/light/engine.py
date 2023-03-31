@@ -70,20 +70,21 @@ class PhaseToNuc25D(LightningModule):
         pred = self.forward(source)
         loss = self.loss_function(pred, target)
         self.log("val_loss", loss, batch_size=self.batch_size)
-        if batch_idx % 5 == 0:
+        if batch_idx % 10 == 0:
             self.validation_step_outputs.append(
                 [
-                    img[0].cpu().numpy().max(axis=(0, 1))
+                    np.squeeze(img[0].cpu().numpy().max(axis=(0, 1)))
                     for img in (source, target, pred)
                 ]
             )
 
     def on_validation_epoch_end(self):
         """Plot and log sample images"""
-        images_grid = self.validation_step_outputs
-        for row, imgs in enumerate(images_grid):
-            for col, (im, cm_name) in enumerate(zip(imgs, ["gray"] + ["inferno"] * 2)):
-                images_grid[row][col] = get_cmap(cm_name)(im, bytes=True)[..., :-1]
+        images_grid = [[]] * len(self.validation_step_outputs)
+        for row, imgs in enumerate(self.validation_step_outputs):
+            for im, cm_name in zip(imgs, ["gray"] + ["inferno"] * 2):
+                rendered_im = get_cmap(cm_name)(im, bytes=True)[..., :3]
+                images_grid[row].append(rendered_im.transpose(1,2,0))
             images_grid[row] = np.concatenate(images_grid[row], axis=1)
         grid = np.concatenate(images_grid, axis=0)
         self.logger.experiment.add_image("val_samples", grid, self.current_epoch)
