@@ -1,8 +1,11 @@
+from matplotlib.cm import get_cmap
 import numpy as np
 import torch
 import torch.nn as nn
 from lightning.pytorch import LightningModule
 from monai.optimizers import WarmupCosineSchedule
+from torch.optim.lr_scheduler import ConstantLR
+from typing import Literal
 
 from micro_dl.torch_unet.networks.Unet25D import Unet25d
 from micro_dl.torch_unet.utils.model import ModelDefaults25D, define_model
@@ -15,6 +18,7 @@ class PhaseToNuc25D(LightningModule):
         batch_size: int = 16,
         loss_function: nn.Module = None,
         lr: float = 1e-3,
+        schedule: Literal["WarmupCosine", "Constant"] = "Constant",
     ) -> None:
         """Regression U-Net module for virtual staining.
 
@@ -30,12 +34,15 @@ class PhaseToNuc25D(LightningModule):
             Loss function module, by default L2
         lr : float, optional
             Learning rate, by default 1e-3
+        schedule: Literal["WarmupCosine", "Constant"], optional
+            Learning rate scheduler, by default 'Constant'
         """
         super().__init__()
         self.model = define_model(Unet25d, ModelDefaults25D(), model_config)
         self.batch_size = batch_size
         self.loss_function = loss_function if loss_function else nn.MSELoss()
         self.lr = lr
+        self.schedule = schedule
         self.validation_step_outputs = []
 
     def forward(self, x):
@@ -63,24 +70,32 @@ class PhaseToNuc25D(LightningModule):
         pred = self.forward(source)
         loss = self.loss_function(pred, target)
         self.log("val_loss", loss, batch_size=self.batch_size)
-        if batch_idx % 10 == 0:
+        if batch_idx % 5 == 0:
             self.validation_step_outputs.append(
-                np.concatenate(
-                    [
-                        img[0].cpu().numpy().max(axis=(0, 1))
-                        for img in (source, target, pred)
-                    ],
-                    axis=1,
-                )
+                [
+                    img[0].cpu().numpy().max(axis=(0, 1))
+                    for img in (source, target, pred)
+                ]
             )
 
     def on_validation_epoch_end(self):
-        grid = np.concatenate(self.validation_step_outputs, axis=0)
-        self.logger.experiment.add_image("val_samples", grid)
+        """Plot and log sample images"""
+        images_grid = self.validation_step_outputs
+        for row, imgs in enumerate(images_grid):
+            for col, (im, cm_name) in enumerate(zip(imgs, ["gray"] + ["inferno"] * 2)):
+                images_grid[row][col] = get_cmap(cm_name)(im, bytes=True)[..., :-1]
+            images_grid[row] = np.concatenate(images_grid[row], axis=1)
+        grid = np.concatenate(images_grid, axis=0)
+        self.logger.experiment.add_image("val_samples", grid, self.current_epoch)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
-        scheduler = WarmupCosineSchedule(
-            optimizer, warmup_steps=3, t_total=self.trainer.max_epochs
-        )
+        if self.schedule == "WarmupCosine":
+            scheduler = WarmupCosineSchedule(
+                optimizer, warmup_steps=3, t_total=self.trainer.max_epochs
+            )
+        elif self.schedule == "Constant":
+            scheduler = ConstantLR(
+                optimizer, factor=1, total_iters=self.trainer.max_epochs
+            )
         return [optimizer], [scheduler]
