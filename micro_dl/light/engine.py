@@ -1,8 +1,8 @@
 import numpy as np
 import torch
 import torch.nn as nn
-from monai.optimizers import WarmupCosineSchedule
 from lightning.pytorch import LightningModule
+from monai.optimizers import WarmupCosineSchedule
 
 from micro_dl.torch_unet.networks.Unet25D import Unet25d
 from micro_dl.torch_unet.utils.model import ModelDefaults25D, define_model
@@ -38,6 +38,7 @@ class PhaseToNuc25D(LightningModule):
         self.max_epochs = max_epochs
         self.loss_function = loss_function if loss_function else nn.MSELoss()
         self.lr = lr
+        self.validation_step_outputs = []
 
     def forward(self, x):
         x = self.model(x)
@@ -65,16 +66,18 @@ class PhaseToNuc25D(LightningModule):
         loss = self.loss_function(pred, target)
         self.log("val_loss", loss, batch_size=self.batch_size)
         if batch_idx % 10 == 0:
-            return np.concatenate(
-                [
-                    img[0].numpy().max(axis=(0, 1))
-                    for img in (source, target, pred)
-                ],
-                axis=1,
+            self.validation_step_outputs.append(
+                np.concatenate(
+                    [
+                        img[0].cpu().numpy().max(axis=(0, 1))
+                        for img in (source, target, pred)
+                    ],
+                    axis=1,
+                )
             )
 
-    def on_validation_epoch_end(self, validation_step_outputs):
-        grid = np.concatenate(validation_step_outputs, axis=0)
+    def on_validation_epoch_end(self):
+        grid = np.concatenate(self.validation_step_outputs, axis=0)
         self.logger.experiment.add_image("val_samples", grid)
 
     def configure_optimizers(self):
