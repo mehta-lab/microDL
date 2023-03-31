@@ -40,24 +40,25 @@ class SlidingWindowDataset(Dataset):
         self.windows = {}
         for _, fov in self.plate.positions():
             ts = fov["0"].frames
-            ys = fov["0"].slices - self.z_window_size + 1
-            w += ts * ys
+            zs = fov["0"].slices - self.z_window_size + 1
+            w += ts * zs
             self.windows[w] = fov
         self._max_window = w
 
     def _find_window(self, index: int) -> tuple[int, int]:
         window_keys = list(self.windows.keys())
-        window_idx = sorted(window_keys + [index]).index(index)
+        window_idx = sorted(window_keys + [index + 1]).index(index + 1)
         w = window_keys[window_idx]
         tz = index - window_keys[window_idx - 1] if window_idx > 0 else index
         return w, tz
 
     def _read_img_window(self, img: ImageArray, ch_idx: int, tz: int) -> torch.Tensor:
-        t = (tz + img.slices) // img.slices - 1
-        z = tz - t * (img.slices - 1)
+        zs = img.slices - self.z_window_size + 1
+        t = (tz + zs) // zs - 1
+        z = tz - t * zs
         selection = (int(t), int(ch_idx), slice(z, z + self.z_window_size))
         data = img[selection][np.newaxis, ...]
-        if not len(data.shape) == 4:
+        if tuple(data.shape[:2]) != (1, self.z_window_size):
             raise ValueError(
                 f"Invalid sliced shape {data.shape} from selection {selection}"
             )
@@ -76,6 +77,8 @@ class SlidingWindowDataset(Dataset):
             target = self.transform(target)
         if self.source_transform:
             source = self.transform(source)
+        if not source.shape == target.shape:
+            raise RuntimeError(f"{img}: {source.shape} != {target.shape}")
         return {"source": source, "target": target}
 
 
