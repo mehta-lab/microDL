@@ -141,25 +141,12 @@ def create_and_write_mask(
 
     # save masks as additional channel
     position_masks = position_masks.astype(position.data.dtype)
+    new_channel_name = channel_name + '_mask'
     io_utils.add_channel(
         position=position,
         new_channel_array=position_masks,
-        new_channel_name=mask_name,
+        new_channel_name=new_channel_name,
         overwrite_ok=True,
-    )
-
-    # save custom tracking metadata
-    metadata = {
-        "array_name": mask_name,
-        "masking_type": mask_type,
-        "channel_ids": channel_indices,
-        "time_idx": time_indices,
-        "foreground_fractions_by_timepoint": position_foreground_fractions,
-    }
-    io_utils.write_meta_field(
-        position=position,
-        metadata=metadata,
-        field_name="mask",
     )
 
 
