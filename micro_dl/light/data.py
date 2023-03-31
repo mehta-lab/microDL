@@ -2,24 +2,24 @@ from typing import Callable, Literal
 
 import numpy as np
 import torch
-from iohub.ngff import ImageArray, Position, open_ome_zarr
+from iohub.ngff import ImageArray, Plate, Position, open_ome_zarr
+from lightning.pytorch import LightningDataModule
 from monai.transforms import (
-    Compose,
     CenterSpatialCrop,
+    Compose,
     RandAdjustContrast,
     RandAffine,
     RandGaussianSmooth,
     RandSpatialCrop,
     ScaleIntensityRangePercentiles,
 )
-from lightning.pytorch import LightningDataModule
-from torch.utils.data import DataLoader, Dataset, random_split
+from torch.utils.data import DataLoader, Dataset, Subset
 
 
 class SlidingWindowDataset(Dataset):
     def __init__(
         self,
-        fovs: dict[str, Position],
+        plate: Plate,
         source_ch_idx: int,
         target_ch_idx: int,
         z_window_size: int,
@@ -27,7 +27,7 @@ class SlidingWindowDataset(Dataset):
         source_transform: Callable = None,
     ) -> None:
         super().__init__()
-        self.fovs = fovs
+        self.plate = plate
         self.source_ch_idx = source_ch_idx
         self.target_ch_idx = target_ch_idx
         self.z_window_size = z_window_size
@@ -38,11 +38,11 @@ class SlidingWindowDataset(Dataset):
     def _count_windows(self) -> None:
         w = 0
         self.windows = {}
-        for name, fov in self.fovs:
+        for _, fov in self.plate.positions():
             ts = fov["0"].frames
             ys = fov["0"].slices - self.z_window_size + 1
             w += ts * ys
-            self.windows[w] = name
+            self.windows[w] = fov
         self._max_window = w
 
     def _find_window(self, index: int) -> Position:
@@ -50,9 +50,7 @@ class SlidingWindowDataset(Dataset):
         window_idx = sorted(window_keys + [index]).index(index)
         return window_keys[window_idx]
 
-    def _read_img_window(
-        self, img: ImageArray, ch_idx: int, tz: int
-    ) -> torch.Tensor:
+    def _read_img_window(self, img: ImageArray, ch_idx: int, tz: int) -> torch.Tensor:
         t = (tz + img.slices) // img.slices - 2
         z = tz - t * (img.slices - 1)
         data = img[t, ch_idx, z : z + self.z_window_size][np.newaxis, ...]
@@ -84,7 +82,6 @@ class HCSDataModule(LightningDataModule):
         source_channel_name: str,
         target_channel_name: str,
         z_window_size: int,
-        seed: int,
         split_ratio: float,
         batch_size: int = 16,
         num_workers: int = 8,
@@ -92,50 +89,48 @@ class HCSDataModule(LightningDataModule):
         augment: bool = True,
     ):
         super().__init__()
-        self.seed = torch.Generator().manual_seed(seed)
+        self.data_path = data_path
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.z_window_size = z_window_size
         self.yx_patch_size = yx_patch_size
         self.augment = augment
-        # load metadata
-        self.plate = open_ome_zarr(data_path, mode="r")
-        self.fovs = dict([kv for kv in self.plate.positions()])
-        self.sep = int(len(self.fovs) * split_ratio)
-        self.source_ch_idx = self.plate.get_channel_index(source_channel_name)
-        self.target_ch_idx = self.plate.get_channel_index(target_channel_name)
+        # read metadata in the main process
+        with open_ome_zarr(data_path, mode="r") as plate:
+            self.num_fovs = len(list(plate.positions()))
+            self.sep = int(self.num_fovs * split_ratio)
+            self.source_ch_idx = plate.get_channel_index(source_channel_name)
+            self.target_ch_idx = plate.get_channel_index(target_channel_name)
 
     def setup(self, stage: Literal["fit", "validate", "test", "predict"]):
         # train/val split
         if stage in (None, "fit"):
-            train_fovs, val_fovs = random_split(
-                self.fovs,
-                [self.sep, len(self.fovs) - self.sep],
-                generator=self.seed,
-            )
-            fit_transform = self._fit_transform()
             # set training stage transforms
+            fit_transform = self._fit_transform()
             train_transform = Compose(self._train_transform() + fit_transform)
             train_source_transform = None
             if self.augment:
-                train_source_transform = Compose(
-                    self._train_source_transform()
-                )
-            self.train_dataset = SlidingWindowDataset(
-                train_fovs,
+                train_source_transform = Compose(self._train_source_transform())
+            plate = open_ome_zarr(self.data_path, mode="r")
+            whole_train_dataset = SlidingWindowDataset(
+                plate,
                 source_ch_idx=self.source_ch_idx,
                 target_ch_idx=self.target_ch_idx,
                 z_window_size=self.z_window_size,
                 transform=train_transform,
                 source_transform=train_source_transform,
             )
-            self.val_dataset = SlidingWindowDataset(
-                train_fovs,
+            whole_val_dataset = SlidingWindowDataset(
+                plate,
                 source_ch_idx=self.source_ch_idx,
                 target_ch_idx=self.target_ch_idx,
                 z_window_size=self.z_window_size,
                 transform=Compose(fit_transform),
             )
+            # randomness is handled globally
+            indices = torch.randperm(self.num_fovs)
+            self.train_dataset = Subset(whole_train_dataset, indices[:self.sep])
+            self.val_dataset = Subset(whole_val_dataset, indices[self.sep:])
         # test stage
         if stage in (None, "test"):
             raise NotImplementedError(f"{stage} stage")
@@ -171,9 +166,7 @@ class HCSDataModule(LightningDataModule):
                     self.yx_patch_size[1],
                 )
             ),
-            ScaleIntensityRangePercentiles(
-                lower=1, upper=99, b_min=0, b_max=1
-            ),
+            ScaleIntensityRangePercentiles(lower=1, upper=99, b_min=0, b_max=1),
         ]
 
     def _train_transform(self) -> list[Callable]:
