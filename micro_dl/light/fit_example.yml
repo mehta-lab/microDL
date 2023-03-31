@@ -45,6 +45,7 @@ model:
   batch_size: 16
   loss_function: null
   lr: 0.001
+  schedule: WarmupCosine
 data:
   data_path: null
   source_channel_name: null
