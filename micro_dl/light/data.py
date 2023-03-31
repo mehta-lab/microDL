@@ -1,8 +1,8 @@
-from typing import Callable, Literal
+from typing import Callable, Literal, Union
 
 import numpy as np
 import torch
-from iohub.ngff import ImageArray, Plate, Position, open_ome_zarr
+from iohub.ngff import ImageArray, Plate, open_ome_zarr
 from lightning.pytorch import LightningDataModule
 from monai.transforms import (
     CenterSpatialCrop,
@@ -25,6 +25,7 @@ class SlidingWindowDataset(Dataset):
         z_window_size: int,
         transform: Callable = None,
         source_transform: Callable = None,
+        target_center_slice_only: bool = True,
     ) -> None:
         super().__init__()
         self.plate = plate
@@ -33,6 +34,7 @@ class SlidingWindowDataset(Dataset):
         self.z_window_size = z_window_size
         self.transform = transform
         self.source_transform = source_transform
+        self.target_center_slice_only = target_center_slice_only
         self._count_windows()
 
     def _count_windows(self) -> None:
@@ -56,12 +58,14 @@ class SlidingWindowDataset(Dataset):
         zs = img.slices - self.z_window_size + 1
         t = (tz + zs) // zs - 1
         z = tz - t * zs
-        selection = (int(t), int(ch_idx), slice(z, z + self.z_window_size))
-        data = img[selection][np.newaxis, ...]
-        if tuple(data.shape[:2]) != (1, self.z_window_size):
-            raise ValueError(
-                f"Invalid sliced shape {data.shape} from selection {selection}"
-            )
+        if ch_idx == self.target_ch_idx and self.target_center_slice_only:
+            z_slice = int(z + self.z_window_size // 2)
+            pre_dim = 2
+        else:
+            z_slice = slice(z, z + self.z_window_size)
+            pre_dim = 1
+        selection = (int(t), int(ch_idx), z_slice)
+        data = img[selection][(np.newaxis,) * pre_dim]
         return torch.from_numpy(data)
 
     def __len__(self) -> int:
@@ -77,8 +81,6 @@ class SlidingWindowDataset(Dataset):
             target = self.transform(target)
         if self.source_transform:
             source = self.transform(source)
-        if not source.shape == target.shape:
-            raise RuntimeError(f"{img}: {source.shape} != {target.shape}")
         return {"source": source, "target": target}
 
     def __del__(self):
@@ -165,7 +167,7 @@ class HCSDataModule(LightningDataModule):
         return [
             CenterSpatialCrop(
                 (
-                    self.z_window_size,
+                    -1,
                     self.yx_patch_size[0],
                     self.yx_patch_size[1],
                 )
@@ -177,7 +179,7 @@ class HCSDataModule(LightningDataModule):
         transforms = [
             RandSpatialCrop(
                 roi_size=(
-                    self.z_window_size,
+                    -1,
                     self.yx_patch_size[0] * 2,
                     self.yx_patch_size[1] * 2,
                 ),
