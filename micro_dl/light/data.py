@@ -105,12 +105,11 @@ class HCSDataModule(LightningDataModule):
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.z_window_size = z_window_size
+        self.split_ratio = split_ratio
         self.yx_patch_size = yx_patch_size
         self.augment = augment
         # read metadata in the main process
         with open_ome_zarr(data_path, mode="r") as plate:
-            self.num_fovs = len(list(plate.positions()))
-            self.sep = int(self.num_fovs * split_ratio)
             self.source_ch_idx = plate.get_channel_index(source_channel_name)
             self.target_ch_idx = plate.get_channel_index(target_channel_name)
 
@@ -140,7 +139,8 @@ class HCSDataModule(LightningDataModule):
                 transform=Compose(fit_transform),
             )
             # randomness is handled globally
-            indices = torch.randperm(self.num_fovs)
+            indices = torch.randperm(len(whole_train_dataset))
+            self.sep = int(len(indices) * self.split_ratio)
             self.train_dataset = Subset(whole_train_dataset, indices[: self.sep])
             self.val_dataset = Subset(whole_val_dataset, indices[self.sep :])
         # test stage
