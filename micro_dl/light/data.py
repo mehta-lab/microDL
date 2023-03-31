@@ -45,26 +45,30 @@ class SlidingWindowDataset(Dataset):
             self.windows[w] = fov
         self._max_window = w
 
-    def _find_window(self, index: int) -> Position:
+    def _find_window(self, index: int) -> tuple[int, int]:
         window_keys = list(self.windows.keys())
         window_idx = sorted(window_keys + [index]).index(index)
-        return window_keys[window_idx]
+        w = window_keys[window_idx]
+        tz = index - window_keys[window_idx - 1] if window_idx > 0 else index
+        return w, tz
 
     def _read_img_window(self, img: ImageArray, ch_idx: int, tz: int) -> torch.Tensor:
-        t = (tz + img.slices) // img.slices - 2
+        t = (tz + img.slices) // img.slices - 1
         z = tz - t * (img.slices - 1)
-        data = img[t, ch_idx, z : z + self.z_window_size][np.newaxis, ...]
+        selection = (int(t), int(ch_idx), slice(z, z + self.z_window_size))
+        data = img[selection][np.newaxis, ...]
         if not len(data.shape) == 4:
-            raise ValueError(f"Invalid sliced shape: {data.shape}")
+            raise ValueError(
+                f"Invalid sliced shape {data.shape} from selection {selection}"
+            )
         return torch.from_numpy(data)
 
     def __len__(self) -> int:
         return self._max_window
 
     def __getitem__(self, index: int) -> dict[str, torch.Tensor]:
-        w = self._find_window(index)
-        img = self.windows[w]
-        tz = index - w
+        w, tz = self._find_window(index)
+        img = self.windows[w]["0"]
         source = self._read_img_window(img, self.source_ch_idx, tz)
         target = self._read_img_window(img, self.target_ch_idx, tz)
         if self.transform:
@@ -129,8 +133,8 @@ class HCSDataModule(LightningDataModule):
             )
             # randomness is handled globally
             indices = torch.randperm(self.num_fovs)
-            self.train_dataset = Subset(whole_train_dataset, indices[:self.sep])
-            self.val_dataset = Subset(whole_val_dataset, indices[self.sep:])
+            self.train_dataset = Subset(whole_train_dataset, indices[: self.sep])
+            self.val_dataset = Subset(whole_val_dataset, indices[self.sep :])
         # test stage
         if stage in (None, "test"):
             raise NotImplementedError(f"{stage} stage")
