@@ -81,6 +81,9 @@ class SlidingWindowDataset(Dataset):
             raise RuntimeError(f"{img}: {source.shape} != {target.shape}")
         return {"source": source, "target": target}
 
+    def __del__(self):
+        self.plate.close()
+
 
 class HCSDataModule(LightningDataModule):
     def __init__(
@@ -157,12 +160,6 @@ class HCSDataModule(LightningDataModule):
             num_workers=self.num_workers,
             shuffle=False,
         )
-
-    def teardown(self, stage: str):
-        if stage in ("fit", "validate"):
-            self.val_dataset.plate.close()
-        if stage == "fit":
-            self.train_dataset.plate.close()
 
     def _fit_transform(self):
         return [
