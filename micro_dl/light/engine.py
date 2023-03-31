@@ -13,7 +13,6 @@ class PhaseToNuc25D(LightningModule):
         self,
         model_config: dict = {},
         batch_size: int = 16,
-        max_epochs: int = 100,
         loss_function: nn.Module = None,
         lr: float = 1e-3,
     ) -> None:
@@ -35,7 +34,6 @@ class PhaseToNuc25D(LightningModule):
         super().__init__()
         self.model = define_model(Unet25d, ModelDefaults25D(), model_config)
         self.batch_size = batch_size
-        self.max_epochs = max_epochs
         self.loss_function = loss_function if loss_function else nn.MSELoss()
         self.lr = lr
         self.validation_step_outputs = []
@@ -83,6 +81,6 @@ class PhaseToNuc25D(LightningModule):
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
         scheduler = WarmupCosineSchedule(
-            optimizer, warmup_steps=3, t_total=self.max_epochs
+            optimizer, warmup_steps=3, t_total=self.trainer.max_epochs
         )
         return [optimizer], [scheduler]

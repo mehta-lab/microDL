@@ -43,7 +43,6 @@ trainer:
 model:
   model_config: {}
   batch_size: 16
-  max_epochs: 100
   loss_function: null
   lr: 0.001
 data:
