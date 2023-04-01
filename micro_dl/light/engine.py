@@ -70,7 +70,7 @@ class PhaseToNuc25D(LightningModule):
         pred = self.forward(source)
         loss = self.loss_function(pred, target)
         self.log("val_loss", loss, batch_size=self.batch_size)
-        if batch_idx % 10 == 0:
+        if batch_idx % 5 == 0:
             self.validation_step_outputs.append(
                 [
                     np.squeeze(img[0].cpu().numpy().max(axis=(0, 1)))
