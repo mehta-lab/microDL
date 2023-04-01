@@ -80,14 +80,17 @@ class PhaseToNuc25D(LightningModule):
 
     def on_validation_epoch_end(self):
         """Plot and log sample images"""
-        images_grid = [[]] * len(self.validation_step_outputs)
-        for row, imgs in enumerate(self.validation_step_outputs):
-            for im, cm_name in zip(imgs, ["gray"] + ["inferno"] * 2):
+        images_grid = []
+        for sample_images in self.validation_step_outputs:
+            images_row = []
+            for im, cm_name in zip(sample_images, ["gray"] + ["inferno"] * 2):
                 rendered_im = get_cmap(cm_name)(im, bytes=True)[..., :3]
-                images_grid[row].append(rendered_im.transpose(1,2,0))
-            images_grid[row] = np.concatenate(images_grid[row], axis=1)
+                images_row.append(rendered_im)
+            images_grid.append(np.concatenate(images_row, axis=1))
         grid = np.concatenate(images_grid, axis=0)
-        self.logger.experiment.add_image("val_samples", grid, self.current_epoch)
+        self.logger.experiment.add_image(
+            "val_samples", grid, self.current_epoch, dataformats="HWC"
+        )
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
