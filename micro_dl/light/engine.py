@@ -91,12 +91,16 @@ class PhaseToNuc25D(LightningModule):
         self.logger.experiment.add_image(
             "val_samples", grid, self.current_epoch, dataformats="HWC"
         )
+        self.validation_step_outputs = []
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.model.parameters(), lr=self.lr)
         if self.schedule == "WarmupCosine":
             scheduler = WarmupCosineSchedule(
-                optimizer, warmup_steps=3, t_total=self.trainer.max_epochs
+                optimizer,
+                warmup_steps=3,
+                t_total=self.trainer.max_epochs,
+                warmup_multiplier=1e-3,
             )
         elif self.schedule == "Constant":
             scheduler = ConstantLR(
