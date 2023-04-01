@@ -115,7 +115,7 @@ class HCSDataModule(LightningDataModule):
 
     def setup(self, stage: Literal["fit", "validate", "test", "predict"]):
         # train/val split
-        if stage in (None, "fit"):
+        if stage in (None, "fit", "validate"):
             # set training stage transforms
             fit_transform = self._fit_transform()
             train_transform = Compose(self._train_transform() + fit_transform)
