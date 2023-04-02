@@ -202,7 +202,7 @@ class HCSDataModule(LightningDataModule):
                         shear_range=(0, (0.05), (0.05)),
                         scale_range=(0, 0.2, 0.2),
                     ),
-                    RandAdjustContrastd(keys=["source"], prob=0.1, gamma=(0.5, 2.0)),
+                    RandAdjustContrastd(keys=["source"], prob=0.1, gamma=(0.75, 1.5)),
                     RandGaussianSmoothd(
                         keys=["source"],
                         prob=0.2,
