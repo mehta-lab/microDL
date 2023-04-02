@@ -90,7 +90,9 @@ class SlidingWindowDataset(Dataset):
         )
         sample = {"source": source, "target": target}
         if self.transform:
-            sample = self.transform(sample)[0]
+            sample = self.transform(sample)
+        if isinstance(sample, list):
+            sample = sample[0]
         if self.target_center_slice_only:
             sample["target"] = sample["target"][:, self.z_window_size // 2][:, None]
         return sample
@@ -149,8 +151,8 @@ class HCSDataModule(LightningDataModule):
             self.sep = int(len(indices) * self.split_ratio)
             self.train_dataset = Subset(whole_train_dataset, indices[: self.sep])
             self.val_dataset = Subset(whole_val_dataset, indices[self.sep :])
-        # test stage
-        if stage in (None, "test"):
+        # test/predict stage
+        else:
             raise NotImplementedError(f"{stage} stage")
 
     def train_dataloader(self):
