@@ -1,13 +1,13 @@
 from typing import Literal, Sequence
 
 import numpy as np
-from skimage.exposure import rescale_intensity
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from lightning.pytorch import LightningModule
 from matplotlib.cm import get_cmap
 from monai.optimizers import WarmupCosineSchedule
+from skimage.exposure import rescale_intensity
 from torch.optim.lr_scheduler import ConstantLR
 
 from micro_dl.torch_unet.networks.Unet25D import Unet25d
@@ -29,8 +29,6 @@ class PhaseToNuc25D(LightningModule):
         ----------
         model : nn.Module
             U-Net model
-        batch_size : int, optional
-            Batch size, by default 16
         max_epochs : int, optional
             Max epochs in fitting, by default 100
         loss_function : nn.Module, optional

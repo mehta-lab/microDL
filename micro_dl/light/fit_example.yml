@@ -1,4 +1,4 @@
-# lightning.pytorch==2.0.0
+# lightning.pytorch==2.0.1
 seed_everything: true
 trainer:
   accelerator: auto
@@ -6,7 +6,6 @@ trainer:
   devices: auto
   num_nodes: 1
   precision: 32-true
-  logger: null
   callbacks: null
   fast_dev_run: false
   max_epochs: null
@@ -42,14 +41,13 @@ trainer:
   default_root_dir: null
 model:
   model_config: {}
-  batch_size: 16
   loss_function: null
   lr: 0.001
-  schedule: WarmupCosine
+  schedule: Constant
 data:
   data_path: null
-  source_channel_name: null
-  target_channel_name: null
+  source_channel: null
+  target_channel: null
   z_window_size: null
   split_ratio: null
   batch_size: 16
