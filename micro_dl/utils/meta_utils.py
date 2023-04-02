@@ -56,12 +56,13 @@ def generate_normalization_metadata(
         mp_grid_sampler_args.append([position, grid_spacing])
 
     # sample values and use them to get normalization statistics
-    for i, channel in enumerate(channel_ids):
+    for i,channel in enumerate(channel_ids):
         show_progress_bar(
             dataloader=channel_ids,
             current=i,
             process="sampling channel values",
         )
+        print(channel)
         channel_name = plate.channel_names[channel]
         this_channels_args = tuple([args + [channel] for args in mp_grid_sampler_args])
 
@@ -75,6 +76,17 @@ def generate_normalization_metadata(
         fov_level_statistics = mp_utils.mp_get_val_stats(fov_sample_values, num_workers)
         dataset_level_statistics = mp_utils.get_val_stats(dataset_sample_values)
 
+        dataset_statistics = {
+            "dataset_statistics": dataset_level_statistics,
+        }
+
+        io_utils.write_meta_field(
+            position=plate,
+            metadata=dataset_statistics,
+            field_name="normalization",
+            subfield_name = channel_name,
+        )
+        
         for j, pos in enumerate(positions):
             show_progress_bar(
                 dataloader=position_map,
@@ -83,16 +95,13 @@ def generate_normalization_metadata(
             )
             position_statistics = {
                 "fov_statistics": fov_level_statistics[j],
-                "dataset_statistics": dataset_level_statistics,
-            }
-            channel_position_statistics = {
-                channel_name: position_statistics,
             }
 
             io_utils.write_meta_field(
                 position=pos,
-                metadata=channel_position_statistics,
+                metadata=position_statistics,
                 field_name="normalization",
+                subfield_name=channel_name,
             )
     plate.close()
 

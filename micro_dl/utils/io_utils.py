@@ -28,7 +28,7 @@ def write_untracked_array(
     )
 
 
-def write_meta_field(position: ngff.Position, metadata, field_name):
+def write_meta_field(position: ngff.Position, metadata, field_name, subfield_name):
     """
     Writes 'metadata' to position's well-level .zattrs metadata by either
     creating a new field according to 'metadata', or concatenating the
@@ -46,9 +46,21 @@ def write_meta_field(position: ngff.Position, metadata, field_name):
     :param str field_name: name of new/existing field to write to
     """
     if field_name in position.zattrs:
-        position.zattrs[field_name].update(metadata)
+        if subfield_name in position.zattrs[field_name]:
+            position.zattrs[field_name][subfield_name].update(metadata)
+        else:
+            D1 = position.zattrs[field_name]
+            field_metadata = {
+                subfield_name: metadata,
+            }
+            # position.zattrs[field_name][subfield_name] = metadata
+            position.zattrs[field_name] = {**D1,**field_metadata}
     else:
-        position.zattrs[field_name] = metadata
+        field_metadata = {
+            subfield_name: metadata,
+        }
+        position.zattrs[field_name] = field_metadata
+        
 
 
 def get_untracked_array_slice(
