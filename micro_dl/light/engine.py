@@ -1,11 +1,14 @@
-from matplotlib.cm import get_cmap
+from typing import Literal, Sequence
+
 import numpy as np
+from skimage.exposure import rescale_intensity
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from lightning.pytorch import LightningModule
+from matplotlib.cm import get_cmap
 from monai.optimizers import WarmupCosineSchedule
 from torch.optim.lr_scheduler import ConstantLR
-from typing import Literal
 
 from micro_dl.torch_unet.networks.Unet25D import Unet25d
 from micro_dl.torch_unet.utils.model import ModelDefaults25D, define_model
@@ -40,18 +43,19 @@ class PhaseToNuc25D(LightningModule):
         super().__init__()
         self.model = define_model(Unet25d, ModelDefaults25D(), model_config)
         self.batch_size = batch_size
-        self.loss_function = loss_function if loss_function else nn.MSELoss()
+        self.loss_function = loss_function if loss_function else F.mse_loss
         self.lr = lr
         self.schedule = schedule
+        self.training_step_outputs = []
         self.validation_step_outputs = []
 
     def forward(self, x):
-        x = self.model(x)
-        return x
+        return self.model(x)
 
     def training_step(self, batch, batch_idx):
+        source = batch["source"]
         target = batch["target"]
-        pred = self.forward(batch["source"])
+        pred = self.forward(source)
         loss = self.loss_function(pred, target)
         self.log(
             "train_loss",
@@ -62,6 +66,10 @@ class PhaseToNuc25D(LightningModule):
             logger=True,
             batch_size=self.batch_size,
         )
+        if batch_idx % 10 == 0:
+            self.training_step_outputs.append(
+                self._detach_sample((source, target, pred))
+            )
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -72,25 +80,15 @@ class PhaseToNuc25D(LightningModule):
         self.log("val_loss", loss, batch_size=self.batch_size)
         if batch_idx % 5 == 0:
             self.validation_step_outputs.append(
-                [
-                    np.squeeze(img[0].cpu().numpy().max(axis=(0, 1)))
-                    for img in (source, target, pred)
-                ]
+                self._detach_sample((source, target, pred))
             )
 
+    def on_train_epoch_end(self):
+        self._log_samples("train_samples", self.training_step_outputs)
+        self.training_step_outputs = []
+
     def on_validation_epoch_end(self):
-        """Plot and log sample images"""
-        images_grid = []
-        for sample_images in self.validation_step_outputs:
-            images_row = []
-            for im, cm_name in zip(sample_images, ["gray"] + ["inferno"] * 2):
-                rendered_im = get_cmap(cm_name)(im, bytes=True)[..., :3]
-                images_row.append(rendered_im)
-            images_grid.append(np.concatenate(images_row, axis=1))
-        grid = np.concatenate(images_grid, axis=0)
-        self.logger.experiment.add_image(
-            "val_samples", grid, self.current_epoch, dataformats="HWC"
-        )
+        self._log_samples("val_samples", self.validation_step_outputs)
         self.validation_step_outputs = []
 
     def configure_optimizers(self):
@@ -107,3 +105,23 @@ class PhaseToNuc25D(LightningModule):
                 optimizer, factor=1, total_iters=self.trainer.max_epochs
             )
         return [optimizer], [scheduler]
+
+    @staticmethod
+    def _detach_sample(imgs: Sequence[torch.Tensor]):
+        return [
+            np.squeeze(img[0].detach().cpu().numpy().max(axis=(0, 1))) for img in imgs
+        ]
+
+    def _log_samples(self, key: str, imgs: Sequence[Sequence[np.ndarray]]):
+        images_grid = []
+        for sample_images in imgs:
+            images_row = []
+            for im, cm_name in zip(sample_images, ["gray"] + ["inferno"] * 2):
+                im = rescale_intensity(im, out_range=(0, 1))
+                rendered_im = get_cmap(cm_name)(im, bytes=True)[..., :3]
+                images_row.append(rendered_im)
+            images_grid.append(np.concatenate(images_row, axis=1))
+        grid = np.concatenate(images_grid, axis=0)
+        self.logger.experiment.add_image(
+            key, grid, self.current_epoch, dataformats="HWC"
+        )
