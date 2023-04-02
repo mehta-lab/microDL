@@ -66,7 +66,7 @@ class PhaseToNuc25D(LightningModule):
             logger=True,
             batch_size=self.batch_size,
         )
-        if batch_idx % 10 == 0:
+        if batch_idx % 16 == 0:
             self.training_step_outputs.append(
                 self._detach_sample((source, target, pred))
             )
@@ -78,7 +78,7 @@ class PhaseToNuc25D(LightningModule):
         pred = self.forward(source)
         loss = self.loss_function(pred, target)
         self.log("val_loss", loss, batch_size=self.batch_size)
-        if batch_idx % 5 == 0:
+        if batch_idx % 4 == 0:
             self.validation_step_outputs.append(
                 self._detach_sample((source, target, pred))
             )
