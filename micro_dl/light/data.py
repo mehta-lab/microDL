@@ -196,7 +196,7 @@ class HCSDataModule(LightningDataModule):
                     RandAffined(
                         keys=["source", "target"],
                         prob=0.5,
-                        rotate_range=(0, 0, np.pi),
+                        rotate_range=(np.pi, 0, 0),
                         shear_range=(0, (0.05), (0.05)),
                         scale_range=(0, 0.2, 0.2),
                     ),
