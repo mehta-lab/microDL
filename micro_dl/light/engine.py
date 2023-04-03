@@ -32,7 +32,7 @@ class PhaseToNuc25D(LightningModule):
         max_epochs : int, optional
             Max epochs in fitting, by default 100
         loss_function : nn.Module, optional
-            Loss function module, by default L2
+            Loss function module, by default L2 (mean squared error)
         lr : float, optional
             Learning rate, by default 1e-3
         schedule: Literal["WarmupCosine", "Constant"], optional
