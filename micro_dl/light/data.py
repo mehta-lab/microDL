@@ -7,10 +7,10 @@ from lightning.pytorch import LightningDataModule
 from monai.transforms import (
     CenterSpatialCropd,
     Compose,
+    NormalizeIntensity,
     RandAdjustContrastd,
     RandAffined,
     RandGaussianSmoothd,
-    NormalizeIntensity,
     RandWeightedCropd,
 )
 from torch.utils.data import DataLoader, Dataset, Subset
@@ -161,6 +161,7 @@ class HCSDataModule(LightningDataModule):
             batch_size=self.batch_size,
             num_workers=self.num_workers,
             shuffle=True,
+            persistent_workers=True,
         )
 
     def val_dataloader(self):
@@ -169,6 +170,7 @@ class HCSDataModule(LightningDataModule):
             batch_size=self.batch_size,
             num_workers=self.num_workers,
             shuffle=False,
+            persistent_workers=True,
         )
 
     def _fit_transform(self):
