@@ -49,9 +49,7 @@ class SlidingWindowDataset(Dataset):
         self._max_window = w
 
     def _get_normalizer(self, source_channel: str, target_channel: str):
-        # FIXME: use plate metadata
         norm_meta = self.plate.zattrs["normalization"]
-        # norm_meta = next(self.plate.positions())[1].zattrs["normalization"]
         self.source_normalizer = NormalizeIntensity(
             subtrahend=norm_meta[source_channel]["dataset_statistics"]["median"],
             divisor=norm_meta[source_channel]["dataset_statistics"]["iqr"],
