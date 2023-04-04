@@ -11,21 +11,29 @@ The preprocessing step performs the following steps.
 Here is the structure of a 0.4 NGFF version zarr store wriiten using [iohub](https://github.com/czbiohub/iohub) for a dataset with a single condition and multiple imaging FOVs.
 
 ```
-well0
- |---0
- |   |---0
- |       |---0 (1, 5, 33, 2048, 2048) float32
- |---1
- |   |---0
- |       |---0 (1, 5, 33, 2048, 2048) float32
- |---2
- |   |---0
- |       |---0 (1, 5, 33, 2048, 2048) float32
- |---3
- |   |---0
- |       |---0 (1, 5, 33, 2048, 2048) float32
+.                             # Root folder, potentially in S3,
+│
+└── 5966.zarr                 # One plate (id=5966) converted to Zarr
+    ├── .zgroup
+    ├── .zattrs               # Implements "plate" specification
+    ├── A                     # First row of the plate
+    │   ├── .zgroup
+    │   │
+    │   ├── 1                 # First column of row A
+    │   │   ├── .zgroup
+    │   │   ├── .zattrs       # Implements "well" specification
+    │   │   │
+    │   │   ├── 0             # First field of view of well A1
+    │   │   │   │
+    │   │   │   ├── .zgroup
+    │   │   │   ├── .zattrs   # Implements "multiscales", "omero"
+    │   │   │   ├── 0         # (T, C, Z, Y, X) float32
+    │   │   │   │   ...       # Resolution levels
+    │   │   │   ├── n
+    │   │   │   └── labels    # Labels (optional)
+
  ```
- Here the dataset statistics is stored inside the 'well0' folder and the position statistics is stored in '.zattrs' inside well0/pos_no/0/ folder.
+ Here the dataset statistics is stored inside the 'plate' folder and the position statistics is stored in '.zattrs' inside plate/A/1/0 folder.
 
 The statistics are added as dictionaries into the .zattrs file. An example of plate level metadata is here:
 ```
