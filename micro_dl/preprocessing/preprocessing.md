@@ -8,9 +8,39 @@ The preprocessing step performs the following steps.
 
 * Stores the information related to normalization of all input channels mentioned in the configuration. The dataset statistics are stored in the plate level .zattrs file, while the information specific to the position is added in the .zattrs file at each position. The details are explained below.
 
-Here is the structure of a 0.4 NGFF version zarr store wriiten using [iohub](https://github.com/czbiohub/iohub) for a dataset with a single condition and multiple imaging FOVs.
+Here is the structure of a 0.4 NGFF version HCS format zarr store wriiten using [iohub](https://github.com/czbiohub/iohub) for a dataset with a single condition and multiple imaging FOVs.
 
-```
+```buildoutcfg
+.                             # Root folder, potentially in S3,
+│
+└── 5966.zarr                 # One plate (id=5966) converted to Zarr
+    ├── .zgroup
+    ├── .zattrs               # Implements "plate" specification
+    ├── FOVs                  # First row of the plate
+    │   ├── .zgroup
+    │   │
+    │   ├── 000               # First FOV
+    │   │   ├── .zgroup
+    │   │   ├── .zattrs       # Implements "well" specification
+    │   │   │
+    │   │   ├── 0
+    │   │   │   │
+    │   │   │   ├── .zgroup
+    │   │   │   ├── .zattrs   # Implements "multiscales", "omero"
+    │   │   │   ├── 0         # (T, C, Z, Y, X) float32
+    │   │   │   │   ...       # Resolution levels
+    │   │   │   ├── n
+    │   │   │   └── labels    # Labels (optional)
+    |   |
+    |   ├── 001               # second FOV
+
+ ```
+
+ Here the dataset statistics is stored inside the 'plate' folder and the position statistics is stored in '.zattrs' inside plate/A/1/0 folder.
+
+If the dataset contains multiple conditions from different wells the structure can be as follows.
+
+```buildoutcfg
 .                             # Root folder, potentially in S3,
 │
 └── 5966.zarr                 # One plate (id=5966) converted to Zarr
@@ -19,7 +49,7 @@ Here is the structure of a 0.4 NGFF version zarr store wriiten using [iohub](htt
     ├── A                     # First row of the plate
     │   ├── .zgroup
     │   │
-    │   ├── 1                 # First column of row A
+    │   ├── 1                 # First column (well A1 in plate)
     │   │   ├── .zgroup
     │   │   ├── .zattrs       # Implements "well" specification
     │   │   │
@@ -33,9 +63,9 @@ Here is the structure of a 0.4 NGFF version zarr store wriiten using [iohub](htt
     │   │   │   └── labels    # Labels (optional)
 
  ```
- Here the dataset statistics is stored inside the 'plate' folder and the position statistics is stored in '.zattrs' inside plate/A/1/0 folder.
 
 The statistics are added as dictionaries into the .zattrs file. An example of plate level metadata is here:
+
 ```
     "normalization": {
         "Deconvolved-Nuc": {
@@ -56,7 +86,9 @@ The statistics are added as dictionaries into the .zattrs file. An example of pl
         }
     }
 ```
+
 FOV level statistics added to every position:
+
 ```
     "normalization": {
         "Deconvolved-Nuc": {
@@ -75,4 +107,3 @@ FOV level statistics added to every position:
                 "std": 0.007864165119826794
             }
         }
-
