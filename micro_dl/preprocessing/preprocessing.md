@@ -10,7 +10,7 @@ The preprocessing step performs the following steps.
 
 Here is the structure of a 0.4 NGFF version HCS format zarr store wriiten using [iohub](https://github.com/czbiohub/iohub) for a dataset with a single condition and multiple imaging FOVs.
 
-```buildoutcfg
+```text
 .                             # Root folder, potentially in S3,
 │
 └── 5966.zarr                 # One plate (id=5966) converted to Zarr
@@ -40,7 +40,7 @@ Here is the structure of a 0.4 NGFF version HCS format zarr store wriiten using 
 
 If the dataset contains multiple conditions from different wells the structure can be as follows.
 
-```buildoutcfg
+```text
 .                             # Root folder, potentially in S3,
 │
 └── 5966.zarr                 # One plate (id=5966) converted to Zarr
@@ -66,7 +66,7 @@ If the dataset contains multiple conditions from different wells the structure c
 
 The statistics are added as dictionaries into the .zattrs file. An example of plate level metadata is here:
 
-```
+```json
     "normalization": {
         "Deconvolved-Nuc": {
             "dataset_statistics": {
@@ -89,7 +89,7 @@ The statistics are added as dictionaries into the .zattrs file. An example of pl
 
 FOV level statistics added to every position:
 
-```
+```json
     "normalization": {
         "Deconvolved-Nuc": {
             "fov_statistics": {
