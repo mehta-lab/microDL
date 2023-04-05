@@ -4,7 +4,6 @@ import numpy as np
 import scipy.stats
 
 import micro_dl.utils.image_utils as image_utils
-import micro_dl.utils.io_utils as io_utils
 import micro_dl.utils.masks as mask_utils
 
 
@@ -33,6 +32,50 @@ def mp_create_and_write_mask(fn_args, workers):
         # can't use map directly as it works only with single arg functions
         res = ex.map(create_and_write_mask, *zip(*fn_args))
     return list(res)
+
+
+def add_channel(
+    position: ngff.Position,
+    new_channel_array,
+    new_channel_name,
+    overwrite_ok=False,
+):
+    """
+    Adds a channels to the data array at position "position". Note that there is
+    only one 'tracked' data array in current HCS spec at each position. Also
+    updates the 'omero' channel-tracking metadata to track the new channel.
+
+    The 'new_channel_array' must match the dimensions of the current array in
+    all positions but the channel position (1) and have the same datatype
+
+    Note: to maintain HCS compatibility of the zarr store, all positions (wells)
+    must maintain arrays with congruent channels. That is, if you add a channel
+    to one position of an HCS compatible zarr store, an additional channel must
+    be added to every position in that store to maintain HCS compatibility.
+
+    :param Position zarr_dir: NGFF position node object
+    :param np.ndarray new_channel_array: array to add as new channel with matching
+                            dimensions (except channel dim) and dtype
+    :param str new_channel_name: name of new channel
+    :param bool overwrite_ok: if true, if a channel with the same name as
+                            'new_channel_name' is found, will overwrite
+    """
+    assert len(new_channel_array.shape) == len(position.data.shape) - 1, (
+        "New channel array must match all dimensions of the position array, "
+        "except in the inferred channel dimension: "
+        f"array shape: {position.data.shape}"
+        f", expected channel shape: {(position.data.shape[0], ) + position.data.shape[2:]}"
+        f", received channel shape: {new_channel_array.shape}"
+    )
+    # determine whether to overwrite or append
+    if new_channel_name in position.channel_names and overwrite_ok:
+        new_channel_index = list(position.channel_names).index(new_channel_name)
+    else:
+        new_channel_index = len(position.channel_names)
+        position.append_channel(new_channel_name, resize_arrays=True)
+
+    # replace or append channel
+    position["0"][:, new_channel_index] = new_channel_array
 
 
 def create_and_write_mask(
@@ -141,36 +184,12 @@ def create_and_write_mask(
 
     # save masks as additional channel
     position_masks = position_masks.astype(position.data.dtype)
-    io_utils.add_channel(
+    new_channel_name = channel_name + "_mask"
+    add_channel(
         position=position,
         new_channel_array=position_masks,
-        new_channel_name=mask_name,
+        new_channel_name=new_channel_name,
         overwrite_ok=True,
-    )
-
-    # save masks as an 'untracked' array
-    if mask_type in {"otsu", "unimodal", "mem_detection"}:
-        position_masks = position_masks.astype("bool")
-
-    io_utils.write_untracked_array(
-        position=position,
-        data_array=position_masks,
-        name=mask_name,
-        overwrite_ok=True,
-    )
-
-    # save custom tracking metadata
-    metadata = {
-        "array_name": mask_name,
-        "masking_type": mask_type,
-        "channel_ids": channel_indices,
-        "time_idx": time_indices,
-        "foreground_fractions_by_timepoint": position_foreground_fractions,
-    }
-    io_utils.write_meta_field(
-        position=position,
-        metadata=metadata,
-        field_name="mask",
     )
 
 
@@ -207,7 +226,8 @@ def get_mask_slice(
         )
     elif mask_type == "mem_detection":
         mask = mask_utils.create_membrane_mask(
-            im.astype("float32"), structure_elem_radius,
+            im.astype("float32"),
+            structure_elem_radius,
         )
     elif mask_type == "borders_weight_loss_map":
         mask = mask_utils.get_unet_border_weight_map(im)
@@ -324,5 +344,5 @@ def sample_im_pixels(
             )
             all_sample_values.append(sample_values)
     sample_values = np.stack(all_sample_values, 0).flatten()
-    
+
     return position, sample_values
