@@ -11,12 +11,12 @@ The preprocessing step performs the following steps.
 Here is the structure of a 0.4 NGFF version HCS format zarr store wriiten using [iohub](https://github.com/czbiohub/iohub) for a dataset with a single condition and multiple imaging FOVs.
 
 ```text
-.                             # Root folder, potentially in S3,
+.                             # Root folder
 │
-└── 5966.zarr                 # One plate (id=5966) converted to Zarr
+└── my_zarr_name.zarr         # Zarr folder name
     ├── .zgroup
     ├── .zattrs               # Implements "plate" specification
-    ├── FOVs                  # First row of the plate
+    ├── FOVs                  # Named 'FOVs' to indicate different FOVs inside
     │   ├── .zgroup
     │   │
     │   ├── 000               # First FOV
@@ -32,18 +32,18 @@ Here is the structure of a 0.4 NGFF version HCS format zarr store wriiten using 
     │   │   │   ├── n
     │   │   │   └── labels    # Labels (optional)
     |   |
-    |   ├── 001               # second FOV
+    |   ├── 001               # Second FOV
 
  ```
 
- Here the dataset statistics is stored inside the 'plate' folder and the position statistics is stored in '.zattrs' inside plate/A/1/0 folder.
+Here the dataset statistics is stored inside the 'plate' folder and the position statistics is stored in '.zattrs' inside plate/A/1/0 folder.
 
 If the dataset contains multiple conditions from different wells the structure can be as follows.
 
 ```text
-.                             # Root folder, potentially in S3,
+.                             # Root folder
 │
-└── 5966.zarr                 # One plate (id=5966) converted to Zarr
+└── my_zarr_name.zarr         # Zarr folder level
     ├── .zgroup
     ├── .zattrs               # Implements "plate" specification
     ├── A                     # First row of the plate
