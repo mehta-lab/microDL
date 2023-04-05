@@ -4,7 +4,7 @@ import numpy as np
 import scipy.stats
 
 import micro_dl.utils.image_utils as image_utils
-import micro_dl.utils.io_utils as io_utils
+import micro_dl.utils.meta_utils as meta_utils
 import micro_dl.utils.masks as mask_utils
 
 
@@ -142,7 +142,7 @@ def create_and_write_mask(
     # save masks as additional channel
     position_masks = position_masks.astype(position.data.dtype)
     new_channel_name = channel_name + '_mask'
-    io_utils.add_channel(
+    meta_utils.add_channel(
         position=position,
         new_channel_array=position_masks,
         new_channel_name=new_channel_name,

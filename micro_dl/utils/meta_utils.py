@@ -3,13 +3,90 @@ import os
 import numpy as np
 import pandas as pd
 import sys
-import zarr.hierarchy
 
 import micro_dl.utils.aux_utils as aux_utils
 import micro_dl.utils.image_utils as im_utils
-import micro_dl.utils.io_utils as io_utils
 import micro_dl.utils.mp_utils as mp_utils
 from micro_dl.utils.cli_utils import show_progress_bar
+
+
+
+def write_meta_field(position: ngff.Position, metadata, field_name, subfield_name):
+    """
+    Writes 'metadata' to position's plate-level or FOV level .zattrs metadata by either
+    creating a new field (field_name) according to 'metadata', or updating the metadata 
+    to an existing field if found, or concatenating the metadata from different channels.
+
+    Assumes that the zarr store group given follows the OMG-NGFF HCS
+    format as specified here:
+            https://ngff.openmicroscopy.org/latest/#hcs-layout
+
+    Warning: Dangerous. Writing metadata fields above the image-level of
+            an HCS hierarchy can break HCS compatibility
+
+    :param Position zarr_dir: NGFF position node object
+    :param dict metadata: metadata dictionary to write to JSON .zattrs
+    :param str subfield_name: name of subfield inside the the main field (values for different channels)
+    """
+    if field_name in position.zattrs:
+        if subfield_name in position.zattrs[field_name]:
+            position.zattrs[field_name][subfield_name].update(metadata)
+        else:
+            D1 = position.zattrs[field_name]
+            field_metadata = {
+                subfield_name: metadata,
+            }
+            # position.zattrs[field_name][subfield_name] = metadata
+            position.zattrs[field_name] = {**D1,**field_metadata}
+    else:
+        field_metadata = {
+            subfield_name: metadata,
+        }
+        position.zattrs[field_name] = field_metadata
+        
+
+def add_channel(
+    position: ngff.Position,
+    new_channel_array,
+    new_channel_name,
+    overwrite_ok=False,
+):
+    """
+    Adds a channels to the data array at position "position". Note that there is
+    only one 'tracked' data array in current HCS spec at each position. Also
+    updates the 'omero' channel-tracking metadata to track the new channel.
+
+    The 'new_channel_array' must match the dimensions of the current array in
+    all positions but the channel position (1) and have the same datatype
+
+    Note: to maintain HCS compatibility of the zarr store, all positions (wells)
+    must maintain arrays with congruent channels. That is, if you add a channel
+    to one position of an HCS compatible zarr store, an additional channel must
+    be added to every position in that store to maintain HCS compatibility.
+
+    :param Position zarr_dir: NGFF position node object
+    :param np.ndarray new_channel_array: array to add as new channel with matching
+                            dimensions (except channel dim) and dtype
+    :param str new_channel_name: name of new channel
+    :param bool overwrite_ok: if true, if a channel with the same name as
+                            'new_channel_name' is found, will overwrite
+    """
+    assert len(new_channel_array.shape) == len(position.data.shape) - 1, (
+        "New channel array must match all dimensions of the position array, "
+        "except in the inferred channel dimension: "
+        f"array shape: {position.data.shape}"
+        f", expected channel shape: {(position.data.shape[0], ) + position.data.shape[2:]}"
+        f", received channel shape: {new_channel_array.shape}"
+    )
+    # determine whether to overwrite or append
+    if new_channel_name in position.channel_names and overwrite_ok:
+        new_channel_index = list(position.channel_names).index(new_channel_name)
+    else:
+        new_channel_index = len(position.channel_names)
+        position.append_channel(new_channel_name, resize_arrays=True)
+
+    # replace or append channel
+    position["0"][:, new_channel_index] = new_channel_array
 
 
 def generate_normalization_metadata(
@@ -80,7 +157,7 @@ def generate_normalization_metadata(
             "dataset_statistics": dataset_level_statistics,
         }
 
-        io_utils.write_meta_field(
+        write_meta_field(
             position=plate,
             metadata=dataset_statistics,
             field_name="normalization",
@@ -97,7 +174,7 @@ def generate_normalization_metadata(
                 "fov_statistics": fov_level_statistics[j],
             }
 
-            io_utils.write_meta_field(
+            write_meta_field(
                 position=pos,
                 metadata=position_statistics,
                 field_name="normalization",
@@ -188,3 +265,4 @@ def compute_zscore_params(
     ) / (ints_meta["zscore_iqr"] + sys.float_info.epsilon)
 
     return frames_meta, ints_meta
+
