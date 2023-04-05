@@ -141,7 +141,7 @@ def create_and_write_mask(
 
     # save masks as additional channel
     position_masks = position_masks.astype(position.data.dtype)
-    new_channel_name = channel_name + '_mask'
+    new_channel_name = channel_name + "_mask"
     meta_utils.add_channel(
         position=position,
         new_channel_array=position_masks,
@@ -183,7 +183,8 @@ def get_mask_slice(
         )
     elif mask_type == "mem_detection":
         mask = mask_utils.create_membrane_mask(
-            im.astype("float32"), structure_elem_radius,
+            im.astype("float32"),
+            structure_elem_radius,
         )
     elif mask_type == "borders_weight_loss_map":
         mask = mask_utils.get_unet_border_weight_map(im)
@@ -300,5 +301,5 @@ def sample_im_pixels(
             )
             all_sample_values.append(sample_values)
     sample_values = np.stack(all_sample_values, 0).flatten()
-    
+
     return position, sample_values

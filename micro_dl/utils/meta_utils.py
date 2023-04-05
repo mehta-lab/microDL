@@ -4,17 +4,14 @@ import numpy as np
 import pandas as pd
 import sys
 
-import micro_dl.utils.aux_utils as aux_utils
-import micro_dl.utils.image_utils as im_utils
 import micro_dl.utils.mp_utils as mp_utils
 from micro_dl.utils.cli_utils import show_progress_bar
-
 
 
 def write_meta_field(position: ngff.Position, metadata, field_name, subfield_name):
     """
     Writes 'metadata' to position's plate-level or FOV level .zattrs metadata by either
-    creating a new field (field_name) according to 'metadata', or updating the metadata 
+    creating a new field (field_name) according to 'metadata', or updating the metadata
     to an existing field if found, or concatenating the metadata from different channels.
 
     Assumes that the zarr store group given follows the OMG-NGFF HCS
@@ -37,13 +34,13 @@ def write_meta_field(position: ngff.Position, metadata, field_name, subfield_nam
                 subfield_name: metadata,
             }
             # position.zattrs[field_name][subfield_name] = metadata
-            position.zattrs[field_name] = {**D1,**field_metadata}
+            position.zattrs[field_name] = {**D1, **field_metadata}
     else:
         field_metadata = {
             subfield_name: metadata,
         }
         position.zattrs[field_name] = field_metadata
-        
+
 
 def add_channel(
     position: ngff.Position,
@@ -119,7 +116,7 @@ def generate_normalization_metadata(
                                     by default calculates all
     :param int grid_spacing: distance between points in sampling grid
     """
-    plate = ngff.open_ome_zarr(zarr_dir, mode='r+')
+    plate = ngff.open_ome_zarr(zarr_dir, mode="r+")
     position_map = list(plate.positions())
 
     if channel_ids == -1:
@@ -161,9 +158,9 @@ def generate_normalization_metadata(
             position=plate,
             metadata=dataset_statistics,
             field_name="normalization",
-            subfield_name = channel_name,
+            subfield_name=channel_name,
         )
-        
+
         for j, pos in enumerate(positions):
             show_progress_bar(
                 dataloader=position_map,
@@ -265,4 +262,3 @@ def compute_zscore_params(
     ) / (ints_meta["zscore_iqr"] + sys.float_info.epsilon)
 
     return frames_meta, ints_meta
-
