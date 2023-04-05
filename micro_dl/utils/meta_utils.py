@@ -133,13 +133,13 @@ def generate_normalization_metadata(
         mp_grid_sampler_args.append([position, grid_spacing])
 
     # sample values and use them to get normalization statistics
-    for i,channel in enumerate(channel_ids):
+    for i, channel in enumerate(channel_ids):
         show_progress_bar(
             dataloader=channel_ids,
             current=i,
             process="sampling channel values",
         )
-        print(channel)
+
         channel_name = plate.channel_names[channel]
         this_channels_args = tuple([args + [channel] for args in mp_grid_sampler_args])
 
