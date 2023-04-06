@@ -18,7 +18,6 @@ from micro_dl.input.gunpowder_nodes import (
     ShearAugment,
     LogNode,
     NoiseAugment,
-    FlatFieldCorrect,
     Normalize,
     PrepMaskRoi,
 )
@@ -45,7 +44,7 @@ spec = gp.ArraySpec(interpolatable=True, voxel_size=gp.Coordinate((1, 1, 1)))
 multi_source, keys = multi_zarr_source(zarr_dir, array_spec=spec)
 raw = keys[0]
 mask = keys[1]
-flatfield = keys[2]
+
 # %%
 print("done")
 
@@ -98,10 +97,6 @@ noise_aug = NoiseAugment(
     mode="gaussian",
     prob=1,
 )
-flatfield_correct = FlatFieldCorrect(
-    array=raw,
-    flatfield=flatfield,
-)
 normalize = Normalize(
     array=raw,
     scheme="dataset",
@@ -122,7 +117,6 @@ batch_pipeline = gpsum(
         random_location,
         reject,
         prep_mask_roi,
-        flatfield_correct,
         normalize,
         simple_aug,
         elastic_aug,
@@ -138,7 +132,6 @@ batch_pipeline = gpsum(
 
 request = gp.BatchRequest()
 request[raw] = gp.Roi((0, 0, 0), (3, 256, 256))
-request[flatfield] = gp.Roi((0, 0, 0), (1, 256, 256))
 request[mask] = gp.Roi((0, 0, 0), (3, 256, 256))
 # %%
 with gp.build(batch_pipeline) as pipeline:

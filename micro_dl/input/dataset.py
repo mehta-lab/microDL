@@ -78,15 +78,6 @@ class TorchDatasetContainer(object):
                 f"All datasets must have at least one source node / zarr store,"
                 f" not enough source arrays found.\n {e.args}"
             )
-
-        # extract special keytypes
-        self.flatfield_key = None
-        for key in self.dataset_keys.copy():
-            if key.identifier == "flatfield":
-                self.flatfield_key = key
-                self.dataset_keys.remove(self.flatfield_key)
-                break
-
         self.mask_key = None
         mask_key_identifier = ""
         if "mask_type" in dataset_config:
@@ -160,11 +151,9 @@ class TorchDatasetContainer(object):
             data_keys=self.dataset_keys,
             # preprocessing node params
             mask_key=self.mask_key,
-            flatfield_key=self.flatfield_key,
             normalization_scheme=self.dataset_config["normalization"]["scheme"],
             normalization_type=self.dataset_config["normalization"]["type"],
             min_foreground_fraction=self.dataset_config["min_foreground_fraction"],
-            flatfield_correct=self.dataset_config["flatfield_correct"],
             # dataloading params
             data_dimensionality=self.network_config["architecture"],
             batch_size=self.dataset_config["batch_size"],
@@ -220,11 +209,9 @@ class TorchDataset(Dataset):
         augmentation_nodes,
         data_keys,
         mask_key,
-        flatfield_key,
         normalization_scheme,
         normalization_type,
         min_foreground_fraction,
-        flatfield_correct,
         data_dimensionality,
         batch_size,
         epoch_length,
@@ -245,13 +232,10 @@ class TorchDataset(Dataset):
         :param tuple data_source: tuple of gp.Source nodes which the given pipeline draws samples
         :param list data_keys: list of gp.ArrayKey objects which access the given source
         :param gp.ArrayKey mask_key: key to untracked mask array in source node, if applicable
-        :param gp.ArrayKey flatfield_key: key to untracked flatfield array in source note, if
-                                    applicable
         :param str normalization_scheme: see name, one of {"dataset", "FOV", "tile"}
         :param str normalization_type: see name, one of {"median_and_iqr", "mean_and_std"}
         :param float min_foreground_fraction: minimum foreground required to be present in sample
                                     for region to be selected, must be within [0, 1]
-        :param bool flatfield_correct: whether or not to flatfield correct
         :param str data_dimensionality: whether to collapse the first channel of 3d data,
                                     one of {2D, 2.5D}
         :param int batch_size: number of samples per batch
@@ -270,11 +254,9 @@ class TorchDataset(Dataset):
         self.augmentation_nodes = augmentation_nodes
         self.data_keys = data_keys
         self.mask_key = mask_key
-        self.flatfield_key = flatfield_key
         self.normalization_scheme = normalization_scheme
         self.normalization_type = normalization_type
         self.min_foreground_fraction = min_foreground_fraction
-        self.flatfield_correct = flatfield_correct
         self.data_dimensionality = data_dimensionality
         self.batch_size = batch_size
         self.epoch_length = epoch_length
@@ -290,8 +272,8 @@ class TorchDataset(Dataset):
         # safety checks: iterate through keys and data sources to ensure that they match
         voxel_size = None
         for key in self.data_keys:
-            # check that all data voxel sizes are the same, exclude masks and flatfields
-            if not ("flatfield" in key.identifier or "mask" in key.identifier):
+            # check that all data voxel sizes are the same, exclude masks
+            if not "mask" in key.identifier:
                 for i, source in enumerate(self.data_source):
                     try:
                         array_spec = source.array_specs[key]
@@ -378,14 +360,9 @@ class TorchDataset(Dataset):
         for key in self.data_keys:
             batch_request[key] = gp.Roi(window_offset, window_size)
             # NOTE: the keymapping we are performing here makes it so that if
-            # we DO end up generating multiple arrays at the position/well level
-            # (for example one with and without flatfield correction), we can
-            # access all of them by requesting that key. The index we request
+            # we DO end up generating multiple arrays at the position/well level,
+            # we can access all of them by requesting that key. The index we request
             # in __getitem__ ends up being the index of our key.
-        if self.flatfield_key:
-            batch_request[self.flatfield_key] = gp.Roi(
-                (0,) * len(window_offset), tuple([1] + list(window_size[1:]))
-            )
         if self.mask_key:
             batch_request[self.mask_key] = gp.Roi(window_offset, window_size)
 
@@ -544,12 +521,6 @@ class TorchDataset(Dataset):
         :return list preprocessing_nodes: see name
         """
         preprocessing_nodes = []
-
-        if self.flatfield_key and self.flatfield_correct:
-            flatfield_correct = custom_nodes.FlatFieldCorrect(
-                array=self.data_keys, flatfield=self.flatfield_key
-            )
-            preprocessing_nodes.append(flatfield_correct)
 
         if self.normalization_scheme and self.normalization_type:
             normalize = custom_nodes.Normalize(

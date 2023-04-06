@@ -105,7 +105,6 @@ class TestDataset(unittest.TestCase):
                 "type": "median_and_iqr",
             },
             "min_foreground_fraction": 0.2,
-            "flatfield_correct": True,
             "batch_size": 16,
             "split_ratio": {
                 "test": 0.15,
@@ -123,7 +122,6 @@ class TestDataset(unittest.TestCase):
                 "type": "median_and_iqr",
             },
             "min_foreground_fraction": 0.2,
-            "flatfield_correct": True,
             "batch_size": 1,
             "split_ratio": {
                 "test": 0.15,
@@ -135,11 +133,6 @@ class TestDataset(unittest.TestCase):
         self.preprocessing_config = {
             "zarr_dir": self.temp,
             "preprocessing": {
-                "flatfield": {
-                    "channel_ids": -1,
-                    "slice_ids": -1,
-                    "block_size": 32,
-                },
                 "normalize": {
                     "channel_ids": -1,
                     "block_size": 32,

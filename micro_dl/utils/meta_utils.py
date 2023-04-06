@@ -3,13 +3,43 @@ import os
 import numpy as np
 import pandas as pd
 import sys
-import zarr.hierarchy
 
-import micro_dl.utils.aux_utils as aux_utils
-import micro_dl.utils.image_utils as im_utils
-import micro_dl.utils.io_utils as io_utils
 import micro_dl.utils.mp_utils as mp_utils
 from micro_dl.utils.cli_utils import show_progress_bar
+
+
+def write_meta_field(position: ngff.Position, metadata, field_name, subfield_name):
+    """
+    Writes 'metadata' to position's plate-level or FOV level .zattrs metadata by either
+    creating a new field (field_name) according to 'metadata', or updating the metadata
+    to an existing field if found, or concatenating the metadata from different channels.
+
+    Assumes that the zarr store group given follows the OMG-NGFF HCS
+    format as specified here:
+            https://ngff.openmicroscopy.org/latest/#hcs-layout
+
+    Warning: Dangerous. Writing metadata fields above the image-level of
+            an HCS hierarchy can break HCS compatibility
+
+    :param Position zarr_dir: NGFF position node object
+    :param dict metadata: metadata dictionary to write to JSON .zattrs
+    :param str subfield_name: name of subfield inside the the main field (values for different channels)
+    """
+    if field_name in position.zattrs:
+        if subfield_name in position.zattrs[field_name]:
+            position.zattrs[field_name][subfield_name].update(metadata)
+        else:
+            D1 = position.zattrs[field_name]
+            field_metadata = {
+                subfield_name: metadata,
+            }
+            # position.zattrs[field_name][subfield_name] = metadata
+            position.zattrs[field_name] = {**D1, **field_metadata}
+    else:
+        field_metadata = {
+            subfield_name: metadata,
+        }
+        position.zattrs[field_name] = field_metadata
 
 
 def generate_normalization_metadata(
@@ -42,7 +72,7 @@ def generate_normalization_metadata(
                                     by default calculates all
     :param int grid_spacing: distance between points in sampling grid
     """
-    plate = ngff.open_ome_zarr(zarr_dir, mode='r+')
+    plate = ngff.open_ome_zarr(zarr_dir, mode="r+")
     position_map = list(plate.positions())
 
     if channel_ids == -1:
@@ -53,7 +83,7 @@ def generate_normalization_metadata(
     # get arguments for multiprocessed grid sampling
     mp_grid_sampler_args = []
     for _, position in position_map:
-        mp_grid_sampler_args.append([position, True, grid_spacing])
+        mp_grid_sampler_args.append([position, grid_spacing])
 
     # sample values and use them to get normalization statistics
     for i, channel in enumerate(channel_ids):
@@ -62,6 +92,7 @@ def generate_normalization_metadata(
             current=i,
             process="sampling channel values",
         )
+
         channel_name = plate.channel_names[channel]
         this_channels_args = tuple([args + [channel] for args in mp_grid_sampler_args])
 
@@ -75,6 +106,17 @@ def generate_normalization_metadata(
         fov_level_statistics = mp_utils.mp_get_val_stats(fov_sample_values, num_workers)
         dataset_level_statistics = mp_utils.get_val_stats(dataset_sample_values)
 
+        dataset_statistics = {
+            "dataset_statistics": dataset_level_statistics,
+        }
+
+        write_meta_field(
+            position=plate,
+            metadata=dataset_statistics,
+            field_name="normalization",
+            subfield_name=channel_name,
+        )
+
         for j, pos in enumerate(positions):
             show_progress_bar(
                 dataloader=position_map,
@@ -83,16 +125,13 @@ def generate_normalization_metadata(
             )
             position_statistics = {
                 "fov_statistics": fov_level_statistics[j],
-                "dataset_statistics": dataset_level_statistics,
-            }
-            channel_position_statistics = {
-                channel_name: position_statistics,
             }
 
-            io_utils.write_meta_field(
+            write_meta_field(
                 position=pos,
-                metadata=channel_position_statistics,
+                metadata=position_statistics,
                 field_name="normalization",
+                subfield_name=channel_name,
             )
     plate.close()
 

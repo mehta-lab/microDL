@@ -55,7 +55,6 @@ class ImagePredictor:
              (default = test)
             dict images:
              str image_format: 'zyx' or 'xyz'
-             str/None flat_field_dir: flatfield directory
              str im_ext: For writing predictions e.g. '.png' or '.npy' or '.tiff'
              FOR 3D IMAGES USE NPY AS PNG AND TIFF ARE CURRENTLY NOT SUPPORTED.
              list crop_shape: center crop the image to a specified shape before
@@ -161,11 +160,6 @@ class ImagePredictor:
         self.input_depth = 1
         if "depth" in self.config["network"]:
             self.input_depth = self.config["network"]["depth"]
-        flat_field_dir = None
-        images_dict = inference_config["images"]
-        if "flat_field_dir" in images_dict:
-            flat_field_dir = images_dict["flat_field_dir"]
-
         # Set defaults
         # TODO remove some of these parameters from config
         self.image_format = "zyx"
@@ -263,7 +257,6 @@ class ImagePredictor:
             split_col_ids=split_col_ids,
             image_format=images_dict["image_format"],
             mask_dir=mask_dir,
-            flat_field_dir=flat_field_dir,
             crop2base=crop2base,
         )
 

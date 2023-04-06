@@ -143,82 +143,6 @@ def crop2base(im, base=2):
     return im
 
 
-def resize_mask(input_image, target_size):
-    """Resample label/bool images"""
-    raise NotImplementedError
-
-
-def apply_flat_field_correction(input_image, **kwargs):
-    """Apply flat field correction. Input image and flatfield must be
-    provided as 2d images.
-
-    :param np.array input_image: image to be corrected
-    Kwargs, either:
-        flatfield_image (np.float): flatfield_image for correction
-        flatfield_path (str): Full path to flatfield image
-    :return: np.array (float) corrected image
-    """
-
-    corrected_image = input_image.astype("float")
-    if "flatfield_image" in kwargs:
-        flat_field_im = kwargs["flatfield_image"]
-        flat_field_im += sys.float_info.epsilon  # prevent divide by zero
-        if flat_field_im is not None:
-            corrected_image = input_image.astype("float") / flat_field_im
-    elif "flatfield_path" in kwargs:
-        flatfield_path = kwargs["flatfield_path"]
-        if flatfield_path is not None:
-            flatfield_image = np.load(flatfield_path)
-            flatfield_image += sys.float_info.epsilon  # prevent divide by zero
-            corrected_image = input_image.astype("float") / flatfield_image
-    else:
-        print("Incorrect kwargs: {}, returning input image".format(kwargs))
-    return corrected_image
-
-
-def fit_polynomial_surface_2D(
-    sample_coords, sample_values, im_shape, order=2, normalize=True
-):
-    """
-    Given coordinates and corresponding values, this function will fit a
-    2D polynomial of given order, then create a surface of given shape.
-
-    :param np.array sample_coords: 2D sample coords (nbr of points, 2)
-    :param np.array sample_values: Corresponding intensity values (nbr points,)
-    :param tuple im_shape:         Shape of desired output surface (height, width)
-    :param int order:              Order of polynomial (default 2)
-    :param bool normalize:         Normalize surface by dividing by its mean
-                                   for flatfield correction (default True)
-
-    :return np.array poly_surface: 2D surface of shape im_shape
-    """
-    assert (order + 1) ** 2 <= len(
-        sample_values
-    ), "Can't fit a higher degree polynomial than there are sampled values"
-    # Number of coefficients in determined by order + 1 squared
-    orders = np.arange(order + 1)
-    variable_matrix = np.zeros((sample_coords.shape[0], (order + 1) ** 2))
-    variable_iterator = itertools.product(orders, orders)
-    for idx, (m, n) in enumerate(variable_iterator):
-        variable_matrix[:, idx] = sample_coords[:, 0] ** n * sample_coords[:, 1] ** m
-    # Least squares fit of the points to the polynomial
-    coeffs, _, _, _ = np.linalg.lstsq(variable_matrix, sample_values, rcond=-1)
-    # Create a grid of image (x, y) coordinates
-    x_mesh, y_mesh = np.meshgrid(
-        np.linspace(0, im_shape[1] - 1, im_shape[1]),
-        np.linspace(0, im_shape[0] - 1, im_shape[0]),
-    )
-    # Reconstruct the surface from the coefficients
-    poly_surface = np.zeros(im_shape, np.float)
-    variable_iterator = itertools.product(orders, orders)
-    for coeff, (m, n) in zip(coeffs, variable_iterator):
-        poly_surface += coeff * x_mesh**m * y_mesh**n
-
-    if normalize:
-        poly_surface /= np.mean(poly_surface)
-    return poly_surface
-
-
 def center_crop_to_shape(input_image, output_shape, image_format="zyx"):
     """Center crop the image to a given shape
 
@@ -383,7 +307,6 @@ def preprocess_image(
 def read_imstack_from_meta(
     frames_meta_sub,
     dir_name=None,
-    flat_field_fnames=None,
     hist_clip_limits=None,
     is_mask=False,
     normalize_im=None,
@@ -396,47 +319,23 @@ def read_imstack_from_meta(
 
     :param pd.DataFrame frames_meta_sub: Selected subvolume to be read
     :param str/None dir_name: Directory path (none if using dir in frames_meta)
-    :param str/list flat_field_fnames: Path(s) to flat field image(s)
     :param tuple hist_clip_limits: Percentile limits for histogram clipping
     :param bool is_mask: Indicator for if files contain masks
     :param bool/None normalize_im: Whether to zscore normalize im stack
     :param float zscore_mean: mean for z-scoring the image
     :param float zscore_std: std for z-scoring the image
-    :return np.array: input stack flat_field correct and z-scored if regular
-        images, booleans if they're masks
     """
     im_stack = []
     meta_shape = frames_meta_sub.shape
     nbr_images = meta_shape[0] if len(meta_shape) > 1 else 1
-    if isinstance(flat_field_fnames, list):
-        assert (
-            len(flat_field_fnames) == nbr_images
-        ), "Number of flatfields don't match number of input images"
-    else:
-        flat_field_fnames = nbr_images * [flat_field_fnames]
-
     if nbr_images > 1:
         for idx in range(meta_shape[0]):
             meta_row = frames_meta_sub.iloc[idx]
             im = read_image_from_row(meta_row, dir_name)
-            flat_field_fname = flat_field_fnames[idx]
-            if flat_field_fname is not None:
-                if not is_mask and not normalize_im:
-                    im = apply_flat_field_correction(
-                        im,
-                        flat_field_path=flat_field_fname,
-                    )
             im_stack.append(im)
     else:
         # In case of series
         im = read_image_from_row(frames_meta_sub, dir_name)
-        flat_field_fname = flat_field_fnames[0]
-        if flat_field_fname is not None:
-            if not is_mask and not normalize_im:
-                im = apply_flat_field_correction(
-                    im,
-                    flat_field_path=flat_field_fname,
-                )
         im_stack = [im]
 
     input_image = np.stack(im_stack, axis=-1)
@@ -454,7 +353,6 @@ def read_imstack_from_meta(
 
 def read_imstack(
     input_fnames,
-    flat_field_fnames=None,
     hist_clip_limits=None,
     is_mask=False,
     normalize_im=None,
@@ -466,34 +364,13 @@ def read_imstack(
     If images are masks, make sure they're boolean by setting >0 to True
 
     :param tuple/list input_fnames: Paths to input files
-    :param str/list flat_field_fnames: Path(s) to flat field image(s)
     :param tuple hist_clip_limits: limits for histogram clipping
     :param bool is_mask: Indicator for if files contain masks
     :param bool/None normalize_im: Whether to zscore normalize im stack
     :param float zscore_mean: mean for z-scoring the image
     :param float zscore_std: std for z-scoring the image
-    :return np.array: input stack flat_field correct and z-scored if regular
-        images, booleans if they're masks
     """
     im_stack = []
-    if isinstance(flat_field_fnames, list):
-        assert len(flat_field_fnames) == len(
-            input_fnames
-        ), "Number of flatfields don't match number of input images"
-    else:
-        flat_field_fnames = len(input_fnames) * [flat_field_fnames]
-
-    for idx, fname in enumerate(input_fnames):
-        im = read_image(fname)
-        flat_field_fname = flat_field_fnames[idx]
-        if flat_field_fname is not None:
-            if not is_mask and not normalize_im:
-                im = apply_flat_field_correction(
-                    im,
-                    flat_field_path=flat_field_fname,
-                )
-        im_stack.append(im)
-
     input_image = np.stack(im_stack, axis=-1)
     # Norm, hist clip, binarize for mask
     input_image = preprocess_image(
@@ -515,13 +392,12 @@ def preprocess_imstack(
     slice_idx,
     pos_idx,
     dir_name=None,
-    flat_field_path=None,
     hist_clip_limits=None,
     normalize_im="stack",
 ):
     """
-    Preprocess image given by indices: flatfield correction, histogram
-    clipping and z-score normalization is performed.
+    Preprocess image given by indices:
+    histogram clipping and z-score normalization is performed.
 
     :param pd.DataFrame frames_metadata: DF with meta info for all images
     :param int depth: num of slices in stack if 2.5D or depth for 3D
@@ -530,7 +406,6 @@ def preprocess_imstack(
     :param int slice_idx: Slice (z) index
     :param int pos_idx: Position (FOV) index
     :param str/None dir_name: Image directory (none if using the frames_meta dir_name)
-    :param np.array flat_field_path: Path to flat field image for channel
     :param list hist_clip_limits: Limits for histogram clipping (size 2)
     :param str or None normalize_im: options to z-score the image
     :return np.array im: 3D preprocessed image
@@ -560,16 +435,6 @@ def preprocess_imstack(
         )
         meta_row = frames_metadata.loc[meta_idx]
         im = read_image_from_row(meta_row, dir_name)
-        # Only flatfield correct images that won't be normalized
-        if flat_field_path is not None:
-            assert normalize_im in [None, "stack"], (
-                "flat field correction currently only supports "
-                "None or 'stack' option for 'normalize_im'"
-            )
-            im = apply_flat_field_correction(
-                im,
-                flat_field_path=flat_field_path,
-            )
 
         zscore_median = None
         zscore_iqr = None
