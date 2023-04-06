@@ -33,8 +33,11 @@ def _pad_input(x: Tensor, num_blocks: int):
     return x, pads
 
 
+
+
 class TorchPredictor:
     """
+    TorchPredictor class 
     TorchPredictor object handles all procedures involved with model inference.
     Utilizes an InferenceDataset object for reading data in from the given zarr store
 
@@ -47,10 +50,8 @@ class TorchPredictor:
 
         self.zarr_dir = self.torch_config["zarr_dir"]
         self.network_config = self.torch_config["model"]
-        self.training_config = self.torch_config["training"]
         self.dataset_config = self.torch_config["dataset"]
         self.inference_config = self.torch_config["inference"]
-        self.preprocessing_config = self.torch_config["preprocessing"]
 
         self.inference_metrics = {}
         self.model = None
