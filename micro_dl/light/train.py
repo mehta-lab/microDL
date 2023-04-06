@@ -20,7 +20,7 @@ class VSLightningCLI(LightningCLI):
             {
                 "trainer.logger": lazy_instance(
                     TensorBoardLogger,
-                    save_dir= os.path.expanduser('~'),  # link_arguments("trainer.default_root_dir","trainer.logger.save_dir") didn't work.
+                    save_dir= os.path.expanduser('/hpc/mydata/~'),  # link_arguments("trainer.default_root_dir","trainer.logger.save_dir") didn't work.
                     version=datetime.now().strftime(r"%Y%m%d-%H%M%S"),
                     log_graph=True,
                 )
