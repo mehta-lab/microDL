@@ -7,13 +7,13 @@ import numpy as np
 import torch
 import torchvision.transforms.functional as TF
 from torch import Tensor
+from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
 
-import micro_dl.input.dataset as ds
 import micro_dl.input.inference_dataset as inference_dataset
 import micro_dl.torch_unet.utils.model as model_utils
 import micro_dl.utils.aux_utils as aux_utils
-import micro_dl.utils.cli_utils as cli_utils
 
 
 def _pad_input(x: Tensor, num_blocks: int):
@@ -53,7 +53,6 @@ class TorchPredictor:
         self.dataset_config = self.torch_config["dataset"]
         self.inference_config = self.torch_config["inference"]
 
-        self.inference_metrics = {}
         self.model = None
         if device:
             self.device = device
@@ -78,14 +77,10 @@ class TorchPredictor:
 
         :param str init_dir: directory containing model weights and biases (should be true)
         """
-        debug_mode = False
-        if "debug_mode" in self.network_config:
-            debug_mode = self.network_config["debug_mode"]
-
         model = model_utils.model_init(
             self.network_config,
             device=self.device,
-            debug_mode=debug_mode,
+            debug_mode=False,
         )
 
         if init_dir:
@@ -105,6 +100,7 @@ class TorchPredictor:
         :param str model_dir: global path to model directory in which 'model_metadata.yml'
                         is stored. If not specified, infers from inference config.
         """
+        #FIXME update to new inference 
         if not model_dir:
             model_dir = os.path.dirname(self.inference_config["model_dir"])
 
@@ -122,9 +118,6 @@ class TorchPredictor:
         This is to encourage saving model inference with training models.
 
         """
-        # TODO Change the functionality of saving to put inference in the actual
-        # train directory the model comes from. Not a big fan
-
         model_dir = os.path.dirname(self.inference_config["model_dir"])
         save_to_train_save_dir = self.inference_config["save_preds_to_model_dir"]
 
@@ -177,7 +170,7 @@ class TorchPredictor:
                     f"2.5D unet must take 5D input data. Received {len(input_image.shape)}."
                     " Check preprocessing config."
                 )
-            img_tensor = ds.ToTensor(device=self.device)(input_image)
+            img_tensor = aux_utils.ToTensor(device=self.device)(input_image)
 
         elif self.network_config["architecture"] == "2D":
             # Torch Unet 2D takes 2 spatial dims, handle lingering 1 in z dim
@@ -186,7 +179,7 @@ class TorchPredictor:
                     f"2D unet must take 4D input data. Received {len(input_image.shape)}."
                     " Check preprocessing config."
                 )
-            img_tensor = ds.ToTensor(device=self.device)(input_image)
+            img_tensor = aux_utils.ToTensor(device=self.device)(input_image)
 
         img_tensor, pads = _pad_input(img_tensor, num_blocks=model.num_blocks)
         pred = model(img_tensor, validate_input = False)
@@ -215,16 +208,7 @@ class TorchPredictor:
         extracts the positions from the directory of the inference model. 
 
         :return dict positions: Returns dictionary tree specifying all the positions 
-                            in the format:
-                            positions = {
-                                row #:
-                                    {
-                                        col #: [pos #, pos #, ...],
-                                        col #: [pos #, pos #, ...],
-                                        ...
-                                    },
-                                ...
-                            }
+                            in the format written above
         """
         # Positions are specified
         if isinstance(self.inference_config["positions"], dict):
@@ -278,7 +262,6 @@ class TorchPredictor:
                 channel_names=self.inference_config["input_channels"],
             )
         self.model.eval()
-
         # generate list of position tuples from dictionary for iteration
         positions_dict = self._get_positions()
         position_paths = []
@@ -288,60 +271,27 @@ class TorchPredictor:
                 position_paths.extend(fov_path_tuples)
         
         # run inference on each position
+        self.dataset.channels = self.inference_config["input_channels"]
         print("Running inference: \n")
         i = 0
-        depth = self.dataset_config["window_size"][0]
-        for row_name, col_name, fov_name in position_paths:
-            timepoint_preds = []
-            #TODO This currently holds the *entire* position in memory, 
-            # which is a problem for very large positions.
-            # Should be able to be fixed with api exposed by
-            # merging of https://github.com/czbiohub/iohub/pull/87
-            for time_idx in self.inference_config["time_indices"]:
-                process_string = "predicting " + str((row_name, col_name, fov_name, time_idx))
-                cli_utils.show_progress_bar(
-                    position_paths, i, process=process_string
-                )
-                
-                pred_slices = []
-                for center_slice in self.inference_config["center_slice_indices"]:
-                    # load and predict data by slice
-                    start, end = center_slice - depth//2, center_slice + depth//2 + 1
-                    input_, norm_statistics = self.dataset.__getitem__(
-                        row_idx=row_name,
-                        col_idx=col_name,
-                        fov_idx=fov_name,
-                        time_idx=time_idx,
-                        channel_ids=self.inference_config["input_channels"],
-                        slice_range=(start, end),
-                        return_norm_statistics=True
-                    )
-                    # FIXME: use dataloader to do batch predictions
-                    prediction = self.predict_image(input_.unsqueeze_(0))
-                    
-                    # visualization logging
-                    if self.inference_config["log_tensorboard"]:
-                        denormed_prediction = self.dataset._normalize_multichan(
-                            prediction, norm_statistics
-                        )
-                        channels = " + ".join(self.dataset.item_chan_names)
-                        for i in range(denormed_prediction.shape[-4]):
-                            self.log_writer.add_images(
-                                tag=f"{row_name}.{col_name}.{fov_name}.{time_idx}"\
-                                    f"/prediction channel {i} | input {channels}"\
-                                    " | z{start}-{end}",
-                                img_tensor=torch.tensor(denormed_prediction[0,i]),
-                                dataformats="hw",
-                            )
-                    
-                    pred_slices.append(prediction)
-                timepoint_preds.append(np.stack(pred_slices, axis=0))
-                
-            #write position to an output zarr store
-            position_preds = np.stack(timepoint_preds, axis=0)
+        for row_name, col_name, fov_name in tqdm(position_paths, position=0):
+            shape, dtype = self.dataset.set_source_array(row_name, col_name, fov_name)
             output_position = self.output_writer.create_position(row_name, col_name, fov_name)
-            output_position["0"] = position_preds.squeeze(axis=(0, 1))
+            output_array = output_position.create_zeros(
+                name=["0"],
+                shape = shape,
+                dtype = dtype,
+                chunks=(1,) * len(shape) - 2 + shape[-2:]
+            )
+
+            batch_size = shape[0] - (self.dataset_config["window_size"] - 1)
+            dataloader = iter(DataLoader(self.dataset, batch_size=batch_size))
             
+            description = "predicting " + str((row_name, col_name, fov_name, time_idx))
+            for time_idx in tqdm(self.inference_config["time_indices"], desc=description, position=1, leave=False):
+                    batch = next(dataloader)
+                    batch_prediction = torch.squeeze(torch.swapaxes(self.predict_image(batch), 0, -3))
+                    output_array[time_idx] = batch_prediction
             i += 1
         
         self.output_writer.close()
