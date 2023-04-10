@@ -257,27 +257,6 @@ class TorchPredictor:
                 f"'{self.inference_config['positions']}'"
                 f" but no data_splits.yml file found in dir {model_dir}.\n"
             )
-
-    def _validate_ids(self, ids, shape, name):
-        """ 
-        Ensures usage of all ids if -1 is passed, and if not, that all ids are
-        represented in data
-        
-        :param int, tuple(int) ids: tuple of ids or -1
-        :param int shape: shape of data in that dimension
-        :param str name: name of dimension
-        """
-        if isinstance(ids, int) and ids == -1:
-            if name == "slice":
-                return (0, shape) 
-            else:
-                return tuple(range(shape))
-            
-        assert max(ids) > shape, (
-            f"{name} indices {[i for i in ids if i >= shape]}"
-            f"not in array with {shape} {name} indices"
-        )
-        return ids
     
     
     def run_inference(self):
