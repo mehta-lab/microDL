@@ -6,7 +6,6 @@ import zarr
 
 import micro_dl.utils.normalize as normalize
 import micro_dl.utils.aux_utils as aux_utils
-import micro_dl.input.dataset as dataset
 
 class TorchInferenceDataset(Dataset):
     """
@@ -116,7 +115,7 @@ class TorchInferenceDataset(Dataset):
             
         data = np.stack(data, axis=0)
         
-        convert = dataset.ToTensor(self.inference_config["device"])(data)
+        convert = aux_utils.ToTensor(self.inference_config["device"])(data)
         if return_norm_statistics:
             return convert, channel_norm_statistics
         else:
@@ -161,6 +160,10 @@ class TorchInferenceDataset(Dataset):
 
         :return np.ndarray normalized_data: denormed data of input data's shape and type
         """
+        #TODO Update FOV statistics location to work with new scheme:
+        # Dataset statistics located in plate attrs file
+        
+        
         norm_type = self.dataset_config["normalization"]["type"]
         norm_scheme = self.dataset_config["normalization"]["scheme"]
         norm_function = normalize.unzscore if denorm else normalize.zscore
@@ -206,8 +209,6 @@ class TorchInferenceDataset(Dataset):
         
         performs normalization on the entire stack as dictated by parameters in
         dataset_config.
-        
-        Note the channel indices are expected to match the 
 
         :param np.ndarray data: 4d numpy array (c, z, y, x)
         :param list normalization_meta: list of channel norm statistics for array 

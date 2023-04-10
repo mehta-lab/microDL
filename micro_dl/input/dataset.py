@@ -7,6 +7,7 @@ import zarr
 
 import micro_dl.input.gunpowder_nodes as custom_nodes
 import micro_dl.utils.gunpowder_utils as gp_utils
+from micro_dl.utils.aux_utils import ToTensor
 
 class TorchDatasetContainer(object):
     """
@@ -585,28 +586,3 @@ class DatasetEnsemble(TorchDataset):
 
     def __len__(self):
         return len(self.datasets)
-
-
-class ToTensor(object):
-    """
-    Transformation. Converts input to torch.Tensor and returns. By default also places tensor
-    on gpu.
-
-    :param torch.device device: device transport tensor to
-    """
-
-    def __init__(self, device=torch.device("cuda")):
-        self.device = device
-
-    def __call__(self, sample):
-        """
-        Perform transformation.
-
-        :param torch.tensor or numpy.ndarray sample: data to convert to tensor and place on device
-        :return torch.tensor sample: converted data on device
-        """
-        if isinstance(sample, torch.Tensor):
-            sample = sample.to(self.device)
-        else:
-            sample = torch.tensor(sample, dtype=torch.float32).to(self.device)
-        return sample
