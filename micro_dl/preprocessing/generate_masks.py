@@ -1,4 +1,5 @@
 """Generate masks from sum of flurophore channels"""
+import iohub.ngff as ngff
 import os
 import pandas as pd
 
@@ -23,7 +24,7 @@ class MaskProcessor:
         pos_ids=-1,
         num_workers=4,
         mask_type="otsu",
-        output_channel_index=None,
+        overwrite_ok=False,
     ):
         """
         :param str zarr_dir: directory of HCS zarr store to pull data from.
@@ -39,8 +40,6 @@ class MaskProcessor:
         :param str mask_type: method to use for generating mask. Needed for
             mapping to the masking function. One of:
                 {'otsu', 'unimodal', 'borders_weight_loss_map'}
-        :param int/None output_channel_index: specific channel to write to,
-                overwriting the existing data and metadata in this channel
         """
         self.zarr_dir = zarr_dir
         self.num_workers = num_workers
@@ -59,48 +58,27 @@ class MaskProcessor:
         assert mask_type in [
             "otsu",
             "unimodal",
-            "edge_detection",
+            "mem_detection",
             "borders_weight_loss_map",
-        ], "Masking method invalid, 'otsu', 'unimodal', 'edge_detection', 'borders_weight_loss_map'\
+        ], "Masking method invalid, 'otsu', 'unimodal', 'mem_detection', 'borders_weight_loss_map'\
              are currently supported"
         self.mask_type = mask_type
         self.ints_metadata = None
         self.channel_thr_df = None
 
-        self.modifier = io_utils.HCSZarrModifier(zarr_file=zarr_dir)
-
+        plate = ngff.open_ome_zarr(store_path=zarr_dir, mode='r')
+        
         # deal with output channel selection/overwriting messages
-        if isinstance(output_channel_index, int):
-            if output_channel_index > self.modifier.channels:
-                print("Mask output channel beyond channel range, appending instead")
-                output_channel_index = None
-            elif output_channel_index < self.modifier.channels:
-                channel_name = self.modifier.channel_names[output_channel_index]
-                if channel_name in {
-                    "mask_unimodal",
-                    "mask_otsu",
-                    "mask_edge_detection",
-                    "mask_borders_weight_loss_map",
-                    "flatfield",
-                }:
-                    print(
-                        f"WARNING:\n"
-                        f"Received mask output_channel_index is {output_channel_index}. "
-                        f"This channel is currently populated by {channel_name}."
-                        " Overwriting after mask computation completes."
-                    )
-                else:
-                    raise PermissionError(
-                        f"ERROR:\n"
-                        f"Trying to overwrite data channel {channel_name}"
-                        f" at index {output_channel_index}, only generated channel "
-                        "overwriting is permitted in mask creation."
-                    )
-        self.output_channel_index = output_channel_index
+        if overwrite_ok:
+            mask_name = "_".join(["mask", self.mask_type])
+            if mask_name in plate.channel_names:
+                print(
+                    f"Mask found in channel {mask_name}. Overwriting with this mask."
+                )
+        plate.close()
 
     def generate_masks(self, structure_elem_radius=5):
         """
-        Generate masks from flat-field corrected flurophore images.
         The sum of flurophore channels is thresholded to generate a foreground
         mask.
 
@@ -114,25 +92,24 @@ class MaskProcessor:
         :param int structure_elem_radius: Radius of structuring element for
                                 morphological operations
         """
-
+        
         # Gather function arguments for each index pair at each position
-        all_positions = list(self.modifier.position_map)
+        plate = ngff.open_ome_zarr(store_path=self.zarr_dir, mode='r+')
+        
         mp_mask_creator_args = []
 
-        for position in all_positions:
+        for i, (_, position) in enumerate(plate.positions()):
             # TODO: make a better progress bar for mask generation
-            verbose = position % 4 == 0
+            verbose = i % 4 == 0
             mp_mask_creator_args.append(
                 tuple(
                     [
-                        self.zarr_dir,
                         position,
                         self.time_ids,
                         self.channel_ids,
                         structure_elem_radius,
                         self.mask_type,
                         "_".join(["mask", self.mask_type]),
-                        self.output_channel_index,
                         verbose,
                     ]
                 )
@@ -140,3 +117,5 @@ class MaskProcessor:
 
         # create and write masks and metadata using multiprocessing
         mp_create_and_write_mask(mp_mask_creator_args, workers=self.num_workers)
+
+        plate.close()

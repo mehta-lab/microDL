@@ -1,5 +1,6 @@
 import cv2
 import gunpowder as gp
+import iohub.ngff as ngff
 import numpy as np
 import os
 import pathlib
@@ -124,9 +125,9 @@ class Normalize(gp.BatchFilter):
 
             # get indices of channels to be normalized
             self.normalize_channels = []
-            normalization_meta = self._get_normalization_meta()
+            normalization_meta = self._get_normalization_meta() #opens self.plate
             for channel_name in normalization_meta:
-                channel_index_in_data = self.modifier.channel_names.index(channel_name)
+                channel_index_in_data = self.plate.channel_names.index(channel_name)
                 self.normalize_channels.append(channel_index_in_data)
 
             # prepare out array
@@ -141,7 +142,7 @@ class Normalize(gp.BatchFilter):
                 for channel_idx in range(batch_data.shape[1]):
                     data = batch_data[batch_idx, channel_idx]
                     if channel_idx in self.normalize_channels:
-                        channel_name = self.modifier.channel_names[channel_idx]
+                        channel_name = self.plate.channel_names[channel_idx]
                         data = self._normalize(data, normalization_meta[channel_name])
 
                     normalized_data[batch_idx, channel_idx] = data.astype(
@@ -150,6 +151,8 @@ class Normalize(gp.BatchFilter):
 
             batch[key] = batch[key].crop(request[key].roi)
             batch[key].data = normalized_data
+            
+            self.plate.close()
 
     def _normalize(self, data, channel_statistics):
         """
@@ -195,14 +198,14 @@ class Normalize(gp.BatchFilter):
         Traces the upstream calls back to the zarr-source providing the batch to this node.
         Scrapes the position from that zarr source's metadata and returns
         """
-        # trace current provider and set modifier
+        # trace current provider and set reader
         provider = self.upstream_providers[0]
         while not isinstance(provider, gp.ZarrSource):
             try:
                 provider = provider.upstream_providers[0]
             except Exception as e:
                 print(f"Ran out of upstream providers at provider: {provider}")
-        self.modifier = io_utils.HCSZarrModifier(zarr_file=provider.filename)
+        self.plate = ngff.open_ome_zarr(store_path=provider.filename)
 
         # open the position metadata
         datasets_key = list(provider.datasets)[0]
@@ -217,153 +220,6 @@ class Normalize(gp.BatchFilter):
         # extract the normalization metadata
         normalization_meta = position_group.attrs.asdict()["normalization"]
         return normalization_meta
-
-
-class FlatFieldCorrect(gp.BatchFilter):
-    def __init__(self, array, flatfield, zarr_dir=None):
-        """
-        Custom gunpowder transformation node for applying flat field correction calculated
-        in preprocessing.
-
-        Reads in flatfields from the provided flatfield key's corresponding array and corrects
-        data with them.
-        If no zarr_dir is specified, infers from the current active source.
-
-        :param gp.ArrayKey/list array: key or list of keys to data array(s) to flatfield correct
-        :param gp.ArrayKey flatfield: key to flatfield image's array
-        :param str zarr_dir: path to HCS compatible zarr directory containing the input data
-        """
-        self.array_keys = array
-        self.flatfield_key = flatfield
-
-        self.infer_zarr_dir = False
-        self.flatfield_channels = None
-        if zarr_dir:
-            self.modifier = io_utils.HCSZarrModifier(zarr_file=zarr_dir)
-            position_meta = self.modifier.get_position_meta(0)
-            self.flatfield_channels = position_meta["flatfield"]["channel_ids"]
-        else:
-            self.infer_zarr_dir = True
-
-    def prepare(self, request):
-        """
-        Prepare the request heading upstream. We need to expand the ROI of the flatfield key
-        to fit the ROI of the data.
-
-        The number of dims of the flatfield ROI is assumed to be the same as the data's ROI.
-
-        :param gp.BatchRequest request: current gp downstream request
-        :return gp.BatchRequest request: modified or request with expanded flatfield ROI
-        """
-        if self.array_keys == None:
-            keys = [pair[0] for pair in request.items()]
-        else:
-            keys = self.array_keys
-            if not isinstance(self.array_keys, list):
-                keys = [self.array_keys]
-
-        # calculate additional context to match flatfield roi to the key roi
-        data_roi = request[keys[0]].roi
-        flatfield_roi = request[self.flatfield_key].roi
-
-        new_offset = [0] + list(data_roi.get_offset()[-2:])
-        new_shape = [1] + list(data_roi.get_shape()[-2:])
-
-        flatfield_roi.set_offset(new_offset)
-        flatfield_roi.set_shape(new_shape)
-
-        request[self.flatfield_key] = flatfield_roi
-
-        return request
-
-    def process(self, batch, request):
-        """
-        Flatfield correct the batch going downstream.
-
-        Note that the flatfield requested by gunpowder only has 1 z-slice. For
-        this reason we index it at [0], as the correction is the same across all
-        slices.
-
-        Flatfield correction is applied by dividing the image by its flatfield.
-        Because of this, flatfielding should be applied *UPSTREAM* of any other
-        data-altering augmentations (excluding random cropping), to safeguard
-        agains the accidental augmentation of the flatfield array.
-
-        :param gp.BatchRequest request: current gp downstream request
-        :param gp.Batch batch: current batch traveling downstream
-        """
-        if self.array_keys == None:
-            keys = [pair[0] for pair in request.items()]
-        else:
-            keys = self.array_keys
-            if not isinstance(self.array_keys, list):
-                keys = [self.array_keys]
-
-        for key in keys:
-            batch_data = batch[key].data
-            roi = request[key].roi
-            channel_dim = -(request[key].roi.dims()) - 1
-
-            # if no zarr_dir specified
-            if self.infer_zarr_dir:
-                self.modifier = io_utils.HCSZarrModifier(zarr_file=self._get_zarr_dir())
-                position_meta = self.modifier.get_position_meta(0)
-                self.flatfield_channels = position_meta["flatfield"]["channel_ids"]
-
-            if self.flatfield_channels == None:
-                self.flatfield_channels = tuple(range(batch_data.shape[channel_dim]))
-
-            output_shape = list(batch_data.shape[:-3]) + list(
-                request[key].roi.get_shape()
-            )
-            flatfielded_data = np.empty(output_shape, dtype=batch_data.dtype)
-
-            # TODO: datasets with an additional index beyond channel and batch may
-            #      break in loops. Can be safely implemented with dynamic recursion.
-            for batch_idx in range(batch_data.shape[0]):
-                for channel_idx in range(batch_data.shape[1]):
-                    data = batch_data[batch_idx, channel_idx]
-                    if channel_idx in self.flatfield_channels:
-                        # get flatfield slice corresponding to channel
-                        ff_channel_idx = self.flatfield_channels.index(channel_idx)
-                        flatfield = batch[self.flatfield_key].data[0, ff_channel_idx, 0]
-
-                        if len(data.shape) == 2:
-                            # if 2d apply directly
-                            data = im_utils.apply_flat_field_correction(
-                                input_image=data,
-                                flatfield_image=flatfield,
-                            )
-                        else:
-                            # if 3d apply flatfield to every slice in stack
-                            for slice in range(flatfielded_data.shape[0]):
-                                data[slice] = im_utils.apply_flat_field_correction(
-                                    input_image=data[slice],
-                                    flatfield_image=flatfield,
-                                )
-                    flatfielded_data[batch_idx, channel_idx] = data.astype(
-                        batch_data.dtype
-                    )
-            batch[key] = batch[key].crop(request[key].roi)
-            batch[key].data = flatfielded_data
-
-    def _get_zarr_dir(self):
-        """
-        Traces the upstream calls back to the zarr-source providing the batch to this node
-        and returns the zarr_dir that source references
-        """
-        provider = self.upstream_providers[0]
-        while not isinstance(provider, gp.ZarrSource):
-            try:
-                provider = provider.upstream_providers[0]
-            except Exception as e:
-                print(f"Ran out of upstream providers at provider: {provider}")
-
-        assert isinstance(provider, gp.ZarrSource), (
-            "Provider not a zarr source..."
-            "Provider must be a zarr source to get zarr dir for flatfielding"
-        )
-        return provider.filename
 
 
 class ShearAugment(gp.BatchFilter):

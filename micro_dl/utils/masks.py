@@ -1,55 +1,63 @@
 import numpy as np
 import scipy.ndimage as ndimage
-import cv2
-import skimage
+from skimage.filters import threshold_otsu, gaussian, laplace
 from scipy.ndimage import binary_fill_holes
-from skimage.filters import threshold_otsu
-from skimage.feature import peak_local_max
-from skimage.morphology import disk, ball, binary_opening, binary_erosion
-from skimage.segmentation import watershed
+from skimage.morphology import (
+    ball,
+    disk,
+    binary_opening,
+    remove_small_objects,
+    binary_dilation,
+)
 from micro_dl.utils.image_utils import im_adjust
 
 
-def create_otsu_mask(input_image, kernel_size=3):
-    """Create a binary mask using morphological operations
+def create_otsu_mask(input_image, sigma=0.6):
 
-    :param np.array input_image: generate masks from this image
-    :param int str_elem_size: size of the structuring element. typically 3, 5
-    :return: mask of input_image, np.array
+    """Create a binary mask using morphological operations
+    :param np.array input_image: generate masks from this 3D image
+    :param float sigma: Gaussian blur standard deviation, increase in value increases blur
+    :return: volume mask of input_image, 3D np.array
     """
 
-    input_image = im_adjust(
-        cv2.GaussianBlur(input_image, (kernel_size, kernel_size), 0)
-    )
-    _, mask = cv2.threshold(input_image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    input_image_blur = gaussian(input_image, sigma=sigma)
+
+    input_sz = input_image.shape
+    mid_slice_id = input_sz[0] // 2
+
+    thresh = threshold_otsu(input_image[mid_slice_id,:,:])
+    mask = input_image >= thresh
+
     return mask
 
 
-def create_edge_detection_mask(input_image, str_elem_size=25, msize=80, kernel_size=3):
-    """Create a binary mask using edge detection
+def create_membrane_mask(input_image, str_elem_size=23, sigma=0.4, k_size=3, msize=120):
+    """Create a binary mask using Laplacian of Gaussian (LOG) feature detection
 
     :param np.array input_image: generate masks from this image
-    :param int str_elem_size: size of the laplacian filter used for edge detection.
-                    typically 21 (odd number). Increase in value increases
-                    sensitivity of edge
+    :param int str_elem_size: size of the laplacian filter used for contarst enhancement, odd number.
+        Increase in value increases sensitivity of contrast enhancement
+    :param float sigma: Gaussian blur standard deviation
+    :param int k_size: disk/ball size for mask dilation, ball for 3D and disk for 2D data
+    :param int msize: size of small objects removed to clean segmentation
     :return: mask of input_image, np.array
     """
 
-    input_image = cv2.GaussianBlur(
-        input_image, (kernel_size, kernel_size), 0
-    )  # Gaussian blurring with specified kernel size
-    input_image_adjusted = im_adjust(input_image)  # stretch image contrast
-    input_Lapl = cv2.Laplacian(
-        input_image_adjusted, ddepth=cv2.CV_32F, ksize=str_elem_size
-    )  # Laplace filter image with kernel size of ksize
-    sz_Lapl = im_adjust(input_Lapl)  # stretch image contrast
-    sz_Lapl = 255 - sz_Lapl  # invert foreground to background for enabling thresholding
-    _, mask_bin = cv2.threshold(
-        sz_Lapl, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
-    )  # binary threshold enhanced edge
-    mask = skimage.morphology.remove_small_objects(
-        mask_bin.astype(bool), min_size=msize
-    )  # remove objects from mask smaller than msize pixels
+    input_image_blur = gaussian(input_image, sigma=sigma)
+
+    input_Lapl = laplace(input_image_blur, ksize=str_elem_size)
+
+    thresh = threshold_otsu(input_Lapl)
+    mask_bin = input_Lapl >= thresh
+
+    if len(input_image.shape) == 2:
+        str_elem = disk(k_size)
+    else:
+        str_elem = ball(k_size)
+
+    mask_dilated = binary_dilation(mask_bin, str_elem)
+
+    mask = remove_small_objects(mask_dilated, min_size=msize)
 
     return mask
 
@@ -98,19 +106,19 @@ def get_unimodal_threshold(input_image):
     return best_threshold
 
 
-def create_unimodal_mask(input_image, str_elem_size=3, kernel_size=3):
+def create_unimodal_mask(input_image, str_elem_size=3, sigma = 0.6):
     """
     Create a mask with unimodal thresholding and morphological operations.
     Unimodal thresholding seems to oversegment, erode it by a fraction
 
     :param np.array input_image: generate masks from this image
     :param int str_elem_size: size of the structuring element. typically 3, 5
+    :param float sigma: gaussian blur standard deviation
     :return mask of input_image, np.array
     """
 
-    input_image = im_adjust(
-        cv2.GaussianBlur(input_image, (kernel_size, kernel_size), 0)
-    )
+    input_image = gaussian(input_image, sigma=sigma)
+    
     if np.min(input_image) == np.max(input_image):
         thr = np.unique(input_image)
     else:
@@ -120,7 +128,7 @@ def create_unimodal_mask(input_image, str_elem_size=3, kernel_size=3):
     else:
         str_elem = ball(str_elem_size)
     # remove small objects in mask
-    mask = input_image > thr
+    mask = input_image >= thr
     mask = binary_opening(mask, str_elem)
     mask = binary_fill_holes(mask)
     return mask

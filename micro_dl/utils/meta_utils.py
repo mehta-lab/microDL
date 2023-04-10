@@ -1,16 +1,45 @@
-import glob
-import itertools
+import iohub.ngff as ngff
 import os
 import numpy as np
 import pandas as pd
 import sys
-import zarr.hierarchy
 
-import micro_dl.utils.aux_utils as aux_utils
-import micro_dl.utils.image_utils as im_utils
-import micro_dl.utils.io_utils as io_utils
 import micro_dl.utils.mp_utils as mp_utils
 from micro_dl.utils.cli_utils import show_progress_bar
+
+
+def write_meta_field(position: ngff.Position, metadata, field_name, subfield_name):
+    """
+    Writes 'metadata' to position's plate-level or FOV level .zattrs metadata by either
+    creating a new field (field_name) according to 'metadata', or updating the metadata
+    to an existing field if found, or concatenating the metadata from different channels.
+
+    Assumes that the zarr store group given follows the OMG-NGFF HCS
+    format as specified here:
+            https://ngff.openmicroscopy.org/latest/#hcs-layout
+
+    Warning: Dangerous. Writing metadata fields above the image-level of
+            an HCS hierarchy can break HCS compatibility
+
+    :param Position zarr_dir: NGFF position node object
+    :param dict metadata: metadata dictionary to write to JSON .zattrs
+    :param str subfield_name: name of subfield inside the the main field (values for different channels)
+    """
+    if field_name in position.zattrs:
+        if subfield_name in position.zattrs[field_name]:
+            position.zattrs[field_name][subfield_name].update(metadata)
+        else:
+            D1 = position.zattrs[field_name]
+            field_metadata = {
+                subfield_name: metadata,
+            }
+            # position.zattrs[field_name][subfield_name] = metadata
+            position.zattrs[field_name] = {**D1, **field_metadata}
+    else:
+        field_metadata = {
+            subfield_name: metadata,
+        }
+        position.zattrs[field_name] = field_metadata
 
 
 def generate_normalization_metadata(
@@ -43,35 +72,33 @@ def generate_normalization_metadata(
                                     by default calculates all
     :param int grid_spacing: distance between points in sampling grid
     """
-    modifier = io_utils.HCSZarrModifier(
-        zarr_file=zarr_dir,
-        enable_creation=True,
-        overwrite_ok=True,
-    )
+    plate = ngff.open_ome_zarr(zarr_dir, mode="r+")
+    position_map = list(plate.positions())
 
     if channel_ids == -1:
-        channel_ids = range(modifier.channels)
+        channel_ids = range(len(plate.channel_names))
     elif isinstance(channel_ids, int):
         channel_ids = [channel_ids]
 
     # get arguments for multiprocessed grid sampling
     mp_grid_sampler_args = []
-    for position in modifier.position_map:
-        mp_grid_sampler_args.append([position, True, zarr_dir, grid_spacing])
+    for _, position in position_map:
+        mp_grid_sampler_args.append([position, grid_spacing])
 
     # sample values and use them to get normalization statistics
-    for channel in channel_ids:
+    for i, channel in enumerate(channel_ids):
         show_progress_bar(
             dataloader=channel_ids,
-            current=channel,
+            current=i,
             process="sampling channel values",
         )
-        channel_name = modifier.channel_names[channel]
+
+        channel_name = plate.channel_names[channel]
         this_channels_args = tuple([args + [channel] for args in mp_grid_sampler_args])
 
         # NOTE: Doing sequential mp with pool execution creates synchronization
         #      points between each step. This could be detrimental to performance
-        fov_sample_values = mp_utils.mp_sample_im_pixels(
+        positions, fov_sample_values = mp_utils.mp_sample_im_pixels(
             this_channels_args, num_workers
         )
         dataset_sample_values = np.stack(fov_sample_values, 0)
@@ -79,25 +106,34 @@ def generate_normalization_metadata(
         fov_level_statistics = mp_utils.mp_get_val_stats(fov_sample_values, num_workers)
         dataset_level_statistics = mp_utils.get_val_stats(dataset_sample_values)
 
-        for position in modifier.position_map:
+        dataset_statistics = {
+            "dataset_statistics": dataset_level_statistics,
+        }
+
+        write_meta_field(
+            position=plate,
+            metadata=dataset_statistics,
+            field_name="normalization",
+            subfield_name=channel_name,
+        )
+
+        for j, pos in enumerate(positions):
             show_progress_bar(
-                dataloader=modifier.position_map,
-                current=position,
-                process=f"calculating statistics channel {channel}/{list(channel_ids)}",
+                dataloader=position_map,
+                current=j,
+                process=f"calculating channel statistics {channel}/{list(channel_ids)}",
             )
             position_statistics = {
-                "fov_statistics": fov_level_statistics[position],
-                "dataset_statistics": dataset_level_statistics,
-            }
-            channel_position_statistics = {
-                channel_name: position_statistics,
+                "fov_statistics": fov_level_statistics[j],
             }
 
-            modifier.write_meta_field(
-                position=position,
-                metadata=channel_position_statistics,
+            write_meta_field(
+                position=pos,
+                metadata=position_statistics,
                 field_name="normalization",
+                subfield_name=channel_name,
             )
+    plate.close()
 
 
 def compute_zscore_params(

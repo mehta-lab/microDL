@@ -12,12 +12,11 @@ Preprocessing is done normally -- It does not depend on pytorch or tensorflow-gp
 You can get started with training and inference by pulling the repository and running these commands in the microDL directory:
 
 * ```export PYTHONPATH="${PYTHONPATH}:$(pwd)"```
+* ```python /home/christian.foley/virtual_staining/microDL/micro_dl/cli/preprocess_script.py --config /hpc/projects/CompMicro/projects/virtualstaining/torch_microDL/config_files/2019_02_15_KidneyTissue_DLMBL_subset/torch_config.yml```
 * ```python /home/christian.foley/virtual_staining/microDL/micro_dl/cli/torch_train_script.py --config /hpc/projects/CompMicro/projects/virtualstaining/torch_microDL/config_files/2019_02_15_KidneyTissue_DLMBL_subset/torch_config.yml```
 * ```python /home/christian.foley/virtual_staining/microDL/micro_dl/cli/torch_inference_script.py --config /hpc/projects/CompMicro/projects/virtualstaining/torch_microDL/config_files/2019_02_15_KidneyTissue_DLMBL_subset/torch_config.yml```
 
 You will have to replace 'christian.foley' with the user directory you are running microDL from.
-
-The code works by making the PyTorch usage as modular as possible, and as a result the ```torch_config.yml``` read by the torch [training](../cli/torch_train_script.py) and [inference](../cli/torch_inference_script.py) scripts necessarily must access valid preprocessing, training, and inference scripts that would work if used in succession in the tensorflow version of microDL.
 <br><br>
 
 ## Structure of ```torch_config.yml```

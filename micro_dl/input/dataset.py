@@ -1,21 +1,12 @@
-import glob
-from typing import Union
-import cv2
-import collections
-import copy
+
 import gunpowder as gp
 import numpy as np
-import os
-import pandas as pd
 import torch
 from torch.utils.data import Dataset
 import zarr
 
-import micro_dl.utils.normalize as norm_utils
 import micro_dl.input.gunpowder_nodes as custom_nodes
 import micro_dl.utils.gunpowder_utils as gp_utils
-import micro_dl.utils.aux_utils as aux_utils
-
 
 class TorchDatasetContainer(object):
     """
@@ -87,15 +78,6 @@ class TorchDatasetContainer(object):
                 f"All datasets must have at least one source node / zarr store,"
                 f" not enough source arrays found.\n {e.args}"
             )
-
-        # extract special keytypes
-        self.flatfield_key = None
-        for key in self.dataset_keys.copy():
-            if key.identifier == "flatfield":
-                self.flatfield_key = key
-                self.dataset_keys.remove(self.flatfield_key)
-                break
-
         self.mask_key = None
         mask_key_identifier = ""
         if "mask_type" in dataset_config:
@@ -169,11 +151,9 @@ class TorchDatasetContainer(object):
             data_keys=self.dataset_keys,
             # preprocessing node params
             mask_key=self.mask_key,
-            flatfield_key=self.flatfield_key,
             normalization_scheme=self.dataset_config["normalization"]["scheme"],
             normalization_type=self.dataset_config["normalization"]["type"],
             min_foreground_fraction=self.dataset_config["min_foreground_fraction"],
-            flatfield_correct=self.dataset_config["flatfield_correct"],
             # dataloading params
             data_dimensionality=self.network_config["architecture"],
             batch_size=self.dataset_config["batch_size"],
@@ -207,222 +187,6 @@ class TorchDatasetContainer(object):
             return [self.train_dataset, self.test_dataset, self.val_dataset][idx]
 
 
-class InferenceDatasetContainer(object):
-    """
-    Dataset container object which initalizes multiple TorchDatasets depending upon the
-    parametersgiven in the training, inference and network config files during initialization.
-
-    Unlike the TorchDatasetObject meant for training, this object does not initialize any
-    random sampling. This means that instead of initializing one dataset which randomly
-    accesses many positions, it returns a labeled list of datasets: one for each source
-    at each z-slice.
-
-    Dataset objects are relatively light-weight until they are called, so having a large number
-    should not affect performance drastically.
-
-    Requires use of a recorded data split to determine train, test, and validation positions
-    """
-
-    def __init__(
-        self,
-        zarr_dir,
-        network_config,
-        dataset_config,
-        inference_config,
-        data_split,
-        device=None,
-        workers=0,
-    ):
-        """
-        Inits an object which rebuilds a previously recorded testing, training, and
-        validation dataset from .zarr data files using gunpowder pipelines
-
-        :param str zarr_dir: path to OME-Zarr HCS compatible zarr directory contraining
-                    training data
-        :param dict network_config: dict object of network_config
-        :param dict dataset_config: dict object of dataset_config
-        :param dict inference_config: dict object of inference_config
-        :param dict data_split: dictionary of data split containing integer list of positions
-                            OR decimal fractions indicating split under {'train', 'test', 'val'}
-                            keys
-        :param str device: device on which to place tensors in child datasets,
-                            by default, places on 'cuda'
-        :param int workers: number of cpu workers for simultaneous data fetching
-        """
-        self.zarr_dir = zarr_dir
-        self.network_config = network_config
-        self.dataset_config = dataset_config
-        self.inference_config = inference_config
-        self.data_split = data_split
-        self.device = device
-        self.workers = workers
-
-        # acquire sources from the zarr directory
-        array_spec = gp_utils.generate_array_spec(network_config)
-        z_offset_range = self.calculate_z_offset_range()
-        (
-            self.train_sources,
-            self.test_sources,
-            self.val_sources,
-            self.dataset_keys,
-            self.data_split,
-        ) = gp_utils.multi_zarr_source(
-            zarr_dir=self.zarr_dir,
-            array_spec=array_spec,
-            use_recorded_split=True,
-            data_split=data_split,
-            copies=len(z_offset_range),
-        )
-        try:
-            assert len(self.test_sources) > 0
-            assert len(self.train_sources) > 0
-            assert len(self.val_sources) > 0
-        except Exception as e:
-            raise AssertionError(
-                f"All datasets must have at least one source node / zarr store,"
-                f" not enough source arrays found.\n {e.args}"
-            )
-
-        # extract special keytypes
-        self.flatfield_key = None
-        for key in self.dataset_keys.copy():
-            if key.identifier == "flatfield":
-                self.flatfield_key = key
-                self.dataset_keys.remove(self.flatfield_key)
-                break
-
-        self.mask_key = None
-        mask_key_identifier = ""
-        if "mask_type" in dataset_config:
-            mask_key_identifier = "_".join(["mask", dataset_config["mask_type"]])
-
-        for key in self.dataset_keys.copy():
-            if key.identifier == mask_key_identifier:
-                self.mask_key = key
-                self.dataset_keys.remove(self.mask_key)
-            elif "mask" in key.identifier:
-                self.dataset_keys.remove(key)
-        if "mask_type" in dataset_config and self.mask_key == None:
-            raise ValueError(f"Specified mask type's corresponding array not found")
-
-        # assign each source subset to a child dataset object
-        self.train_dataset_list = self.generate_dataset_list(
-            self.train_sources,
-            z_offset_range,
-        )
-        self.test_dataset_list = self.generate_dataset_list(
-            self.test_sources,
-            z_offset_range,
-        )
-        self.val_dataset_list = self.generate_dataset_list(
-            self.val_sources,
-            z_offset_range,
-        )
-
-    def calculate_z_offset_range(self):
-        """
-        Gets the range of z-offsets for this data position to requested by the config setup.
-
-        :return list[range] z_offset_ranges: list of ranges containing z-slice offset ranges
-        """
-        z_slice_range = self.inference_config["z_slice_range"]
-        spatial_window_size = self.inference_config["window_size"]
-        spatial_window_z_depth = spatial_window_size[0]
-        z_offset_ranges = list(
-            range(z_slice_range[0], z_slice_range[1] - spatial_window_z_depth)
-        )
-        return z_offset_ranges
-
-    def generate_dataset_list(self, sources, z_offset_range):
-        """
-        Generate a list of datasets, one for each source at each z-slice in the specified
-        window range.
-
-        :param tuple(gp.ZarrSource) sources: multi-zarr-source (tuple of sources)
-        :param list[int] z_offset_range: z-offsets corresponding to each source
-
-        :return list datasets: returns a list of datasets each servicing one z-offset window
-                        in one source position
-        """
-        spatial_window_size = self.inference_config["window_size"]
-
-        datasets = []
-        for source in sources:
-            for i, z_offset in enumerate(z_offset_range):
-                source_copy = source[i]
-                spatial_window_offset = (z_offset,) + (0,) * len(
-                    spatial_window_size[1:]
-                )
-                dataset = self.init_inference_dataset(
-                    (source_copy,),
-                    spatial_window_size,
-                    spatial_window_offset,
-                )
-                datasets.append(dataset)
-
-        return datasets
-
-    def init_inference_dataset(self, source, window_size, window_offset):
-        """
-        Initializes a torch dataset to sample 'source' tuple.
-
-        :param tuple(gp.ZarrSource) source: tuple of source nodes representing the
-                                            dataset sample space
-        :param tuple(int) window_size: dataset sample size
-        :param tuple(int) window_offset: dataset sample window offset in data array
-        """
-        # NOTE: not passing the whole dataset config is a design choice here. The
-        # elements of the config are a black box until theyre indexed. I do this
-        # to make them more readable. This can change with PyDantic later
-        dataset = TorchDataset(
-            # gunpowder params
-            data_source=source,
-            augmentation_nodes=[],
-            data_keys=self.dataset_keys,
-            # preprocessing node params
-            mask_key=self.mask_key,
-            flatfield_key=self.flatfield_key,
-            normalization_scheme=self.dataset_config["normalization"]["scheme"],
-            normalization_type=self.dataset_config["normalization"]["type"],
-            min_foreground_fraction=0,
-            flatfield_correct=self.dataset_config["flatfield_correct"],
-            # dataloading params
-            data_dimensionality=self.network_config["architecture"],
-            batch_size=1,
-            epoch_length=1,
-            target_channel_idx=tuple(self.dataset_config["target_channels"]),
-            input_channel_idx=tuple(self.dataset_config["input_channels"]),
-            spatial_window_size=window_size,
-            spatial_window_offset=window_offset,
-            device=self.device,
-            workers=self.workers,
-            random_sampling=False,
-        )
-        return dataset
-
-    def __getitem__(self, idx):
-        """
-        Provides indexing capabilities to reference train, test, and val datasets
-
-        :param int or str idx: index/key of dataset to retrieve:
-                                train -> 0 or 'train'
-                                test -> 1 or 'test'
-                                val -> 2 or 'val'
-        """
-        if isinstance(idx, str):
-            return {
-                "train": self.train_dataset_list,
-                "test": self.test_dataset_list,
-                "val": self.val_dataset_list,
-            }[idx]
-        else:
-            return [
-                self.train_dataset_list,
-                self.test_dataset_list,
-                self.val_dataset_list,
-            ][idx]
-
-
 class TorchDataset(Dataset):
     """
     Based off of torch.utils.data.Dataset:
@@ -445,11 +209,9 @@ class TorchDataset(Dataset):
         augmentation_nodes,
         data_keys,
         mask_key,
-        flatfield_key,
         normalization_scheme,
         normalization_type,
         min_foreground_fraction,
-        flatfield_correct,
         data_dimensionality,
         batch_size,
         epoch_length,
@@ -470,13 +232,10 @@ class TorchDataset(Dataset):
         :param tuple data_source: tuple of gp.Source nodes which the given pipeline draws samples
         :param list data_keys: list of gp.ArrayKey objects which access the given source
         :param gp.ArrayKey mask_key: key to untracked mask array in source node, if applicable
-        :param gp.ArrayKey flatfield_key: key to untracked flatfield array in source note, if
-                                    applicable
         :param str normalization_scheme: see name, one of {"dataset", "FOV", "tile"}
         :param str normalization_type: see name, one of {"median_and_iqr", "mean_and_std"}
         :param float min_foreground_fraction: minimum foreground required to be present in sample
                                     for region to be selected, must be within [0, 1]
-        :param bool flatfield_correct: whether or not to flatfield correct
         :param str data_dimensionality: whether to collapse the first channel of 3d data,
                                     one of {2D, 2.5D}
         :param int batch_size: number of samples per batch
@@ -495,11 +254,9 @@ class TorchDataset(Dataset):
         self.augmentation_nodes = augmentation_nodes
         self.data_keys = data_keys
         self.mask_key = mask_key
-        self.flatfield_key = flatfield_key
         self.normalization_scheme = normalization_scheme
         self.normalization_type = normalization_type
         self.min_foreground_fraction = min_foreground_fraction
-        self.flatfield_correct = flatfield_correct
         self.data_dimensionality = data_dimensionality
         self.batch_size = batch_size
         self.epoch_length = epoch_length
@@ -515,8 +272,8 @@ class TorchDataset(Dataset):
         # safety checks: iterate through keys and data sources to ensure that they match
         voxel_size = None
         for key in self.data_keys:
-            # check that all data voxel sizes are the same, exclude masks and flatfields
-            if not ("flatfield" in key.identifier or "mask" in key.identifier):
+            # check that all data voxel sizes are the same, exclude masks
+            if not "mask" in key.identifier:
                 for i, source in enumerate(self.data_source):
                     try:
                         array_spec = source.array_specs[key]
@@ -605,14 +362,9 @@ class TorchDataset(Dataset):
         for key in self.data_keys:
             batch_request[key] = gp.Roi(window_offset, window_size)
             # NOTE: the keymapping we are performing here makes it so that if
-            # we DO end up generating multiple arrays at the position/well level
-            # (for example one with and without flatfield correction), we can
-            # access all of them by requesting that key. The index we request
+            # we DO end up generating multiple arrays at the position/well level,
+            # we can access all of them by requesting that key. The index we request
             # in __getitem__ ends up being the index of our key.
-        if self.flatfield_key:
-            batch_request[self.flatfield_key] = gp.Roi(
-                (0,) * len(window_offset), tuple([1] + list(window_size[1:]))
-            )
         if self.mask_key:
             batch_request[self.mask_key] = gp.Roi(window_offset, window_size)
 
@@ -729,12 +481,12 @@ class TorchDataset(Dataset):
 
         # ---- Batch Creation Nodes ----#
         batch_creation = []
-        # batch_creation.append(
-        #     gp.PreCache(
-        #         cache_size=self.epoch_length // 10,
-        #         num_workers=max(1, self.workers),
-        #     )
-        # )
+        batch_creation.append(
+            gp.PreCache(
+                cache_size=self.epoch_length // 10,
+                num_workers=max(1, self.workers),
+            )
+        )
         batch_creation.append(gp.Stack(self.batch_size))
 
         # attach additional nodes, if any, and sum
@@ -771,12 +523,6 @@ class TorchDataset(Dataset):
         :return list preprocessing_nodes: see name
         """
         preprocessing_nodes = []
-
-        if self.flatfield_key and self.flatfield_correct:
-            flatfield_correct = custom_nodes.FlatFieldCorrect(
-                array=self.data_keys, flatfield=self.flatfield_key
-            )
-            preprocessing_nodes.append(flatfield_correct)
 
         if self.normalization_scheme and self.normalization_type:
             normalize = custom_nodes.Normalize(

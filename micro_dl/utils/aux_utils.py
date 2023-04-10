@@ -1,8 +1,9 @@
 """Auxiliary utility functions"""
 import glob
 import datetime
-import inspect
 import importlib
+import inspect
+import iohub.ngff as ngff
 import json
 import logging
 import natsort
@@ -11,8 +12,6 @@ import os
 import re
 import pandas as pd
 import yaml
-
-import micro_dl.utils.io_utils as io_utils
 
 DF_NAMES = [
     "channel_idx",
@@ -334,18 +333,19 @@ def validate_metadata_indices(
         )
         return unique_subset
 
-    reader = io_utils.ZarrReader(zarr_dir)
-
+    plate = ngff.open_ome_zarr(zarr_dir, layout='hcs', mode='r')
+    position_path, position = next(plate.positions())
+    
     # read available channel indices from zarr store
-    available_time_ids = range(reader.shape[0])
+    available_time_ids = range(position.data.shape[0])
     if isinstance(channel_ids, int):
-        available_channel_ids = range(reader.channels)
+        available_channel_ids = range(len(plate.channel_names))
     elif isinstance(channel_ids[0], int):
-        available_channel_ids = range(reader.channels)
+        available_channel_ids = range(len(plate.channel_names))
     else:
-        available_channel_ids = reader.channel_names
-    available_slice_ids = range(reader.slices)
-    available_pos_ids = list(reader.position_map)
+        available_channel_ids = len(plate.channel_names)
+    available_slice_ids = range(position.data.shape[-3])
+    available_pos_ids = [x[0] for x in list(plate.positions())]
 
     # enforce that requested indices are subsets of available indices
     time_ids = assert_unique_subset(time_ids, available_time_ids, "slices")
@@ -359,6 +359,7 @@ def validate_metadata_indices(
         "slice_ids": list(slice_ids),
         "pos_ids": list(pos_ids),
     }
+    plate.close()
     return indices_metadata
 
 

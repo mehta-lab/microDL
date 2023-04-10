@@ -47,7 +47,7 @@ class TestMpUtilsBaseClass(unittest.TestCase):
         return im_name
 
     def setUp(self):
-        """Set up a directory for mask generation, no flatfield"""
+        """Set up a directory for mask generation"""
 
         self.tempdir = TempDirectory()
         self.temp_path = self.tempdir.path
@@ -109,7 +109,6 @@ class TestMpUtilsOtsu(TestMpUtilsBaseClass):
             )
             cur_meta = mp_utils.create_save_mask(
                 channels_meta_sub=channels_meta_sub,
-                flat_field_fnames=None,
                 str_elem_radius=1,
                 mask_dir=self.output_dir,
                 mask_channel_idx=3,
@@ -145,31 +144,6 @@ class TestMpUtilsOtsu(TestMpUtilsBaseClass):
                 mask_image,
                 mask_exp,
             )
-
-    def test_rescale_vol_and_save(self):
-        """test rescale_vol_and_save"""
-        self.write_mask_data()
-        for ch_idx in self.channel_ids:
-            op_fname = os.path.join(
-                self.temp_path,
-                'im_c{}_z0_t0_p0_sc4.1-1.0-1.0.npy'.format(ch_idx)
-            )
-            mp_utils.rescale_vol_and_save(
-                time_idx=self.time_ids,
-                pos_idx=self.pos_ids,
-                channel_idx=ch_idx,
-                slice_start_idx=0,
-                slice_end_idx=8,
-                frames_metadata=self.frames_meta,
-                dir_name=self.temp_path,
-                output_fname=op_fname,
-                scale_factor=[4.1, 1.0, 1.0],
-                ff_path=None,
-            )
-            resc_vol = np.load(op_fname)
-            nose.tools.assert_tuple_equal(resc_vol.shape,
-                                          (131, 32, 8))
-            # Used to be (33, 32, 32)
 
 
 class TestMpUtilsBorderWeightMap(TestMpUtilsBaseClass):
@@ -211,7 +185,6 @@ class TestMpUtilsBorderWeightMap(TestMpUtilsBaseClass):
             )
             cur_meta = mp_utils.create_save_mask(
                 channels_meta_sub=channels_meta_sub,
-                flat_field_fnames=None,
                 str_elem_radius=1,
                 mask_dir=self.output_dir,
                 mask_channel_idx=2,
@@ -243,45 +216,3 @@ class TestMpUtilsBorderWeightMap(TestMpUtilsBaseClass):
                 distance_near_intersection = weight_map[x_coord, y_coord]
                 nose.tools.assert_equal(max_weight_map, distance_near_intersection)
 
-
-def test_mp_sample_im_pixels():
-    with TempDirectory() as tempdir:
-        temp_path = tempdir.path
-        im = np.zeros((20, 30), np.uint8) + 50
-        im1_path = os.path.join(temp_path, 'im1.tif')
-        im2_path = os.path.join(temp_path, 'im2.tif')
-        ff_path = os.path.join(temp_path, 'ff.npy')
-        cv2.imwrite(im1_path, im)
-        cv2.imwrite(im2_path, im + 100)
-        np.save(ff_path, im / 2, allow_pickle=True, fix_imports=True)
-        meta_row = pd.DataFrame(
-            [[2, 1, 0, 3]],
-            columns=['time_idx', 'channel_idx', 'pos_idx', 'slice_idx'],
-        )
-        meta_row['dir_name'] = temp_path
-        meta_row['file_name'] = 'im1.tif'
-        meta_row2 = meta_row.copy()
-        meta_row2['file_name'] = 'im2.tif'
-        fn_args = [
-            (meta_row, ff_path, 10, temp_path),
-            (meta_row2, ff_path, 10, temp_path),
-        ]
-        res = mp_utils.mp_sample_im_pixels(fn_args, 1)
-        nose.tools.assert_equal(len(res), 2)
-        # There should be row_idx=10 and col_idx=10, 20 for both images
-        # and intensity for flatfield corrected images for im1 and im2
-        # should be 50/25=2 and 150/25=6
-        im1_res = res[0]
-        nose.tools.assert_equal(im1_res[0]['row_idx'], 10)
-        nose.tools.assert_equal(im1_res[0]['col_idx'], 10)
-        nose.tools.assert_equal(im1_res[0]['intensity'], 2.0)
-        nose.tools.assert_equal(im1_res[1]['row_idx'], 10)
-        nose.tools.assert_equal(im1_res[1]['col_idx'], 20)
-        nose.tools.assert_equal(im1_res[1]['intensity'], 2.0)
-        im2_res = res[1]
-        nose.tools.assert_equal(im2_res[0]['row_idx'], 10)
-        nose.tools.assert_equal(im2_res[0]['col_idx'], 10)
-        nose.tools.assert_equal(im2_res[0]['intensity'], 6.0)
-        nose.tools.assert_equal(im2_res[1]['row_idx'], 10)
-        nose.tools.assert_equal(im2_res[1]['col_idx'], 20)
-        nose.tools.assert_equal(im2_res[1]['intensity'], 6.0)
