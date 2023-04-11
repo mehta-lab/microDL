@@ -22,24 +22,35 @@ class TorchInferenceDataset(Dataset):
         self,
         zarr_dir,
         dataset_config,
-        inference_config,
+        batch_pred_num,
+        sample_depth,
+        normalize_inputs,
+        device
     ):
         """
         Initiate object for selecting and passing data to model for inference.
 
         :param str zarr_dir: path to zarr store
         :param dict dataset_config: dict object of dataset_config   
-        :param dict inference_config: dict object of inference_config       
+        :param int batch_pred_num: number of predictions to do simultaneously if doing
+                            batch prediction 
+        :param int sample_depth: depth in z of the stack for a single sample,
+                            likely equivalent to z depth of network these samples feed
+        :param bool normalize_inputs: whether to normalize samples returned
+        :param torch.device device: device to send samples to before returning      
         """
         self.zarr_dir = zarr_dir
         self.dataset_config = dataset_config
-        self.inference_config = inference_config
+        self.normalize_inputs = normalize_inputs
+        self.device = device
         
-        self.sample_depth, self.y_window_size, self.x_window_size = inference_config["window_size"]
+        self.batch_pred_num = batch_pred_num
+        self.batch_stack_size = batch_pred_num + sample_depth - 1
+        self.sample_depth = sample_depth
         self.channels = None
         self.timesteps = None
         
-        self.source_array = None
+        self.source_position = None
         self.data_plate = ngff.open_ome_zarr(
             store_path=zarr_dir,
             layout='hcs',
@@ -48,7 +59,8 @@ class TorchInferenceDataset(Dataset):
     
     def __len__(self):
         """Returns the number of valid center slices in position * number of timesteps"""
-        return len(self.timesteps) * (self.source.data.shape[-3] - (self.sample_depth - 1))
+        output_stack_slices = (self.source_position.data.shape[-3] - (self.sample_depth - 1))
+        return (output_stack_slices // self.batch_pred_num) + 1
     
     def __getitem__(self, idx):
         """
@@ -66,28 +78,25 @@ class TorchInferenceDataset(Dataset):
                         dicts for each channel in the returned array
         """
         # idx -> time & center idx mapping
-        shape = self.source_position.data.shape
-        timestep, center_idx = idx // shape[-3], (idx % shape[-3]) + self.sample_depth // 2
-        
-        # slice range depend on center slice and depth
-        start_slice = center_idx - self.sample_depth // 2, 
-        end_slice = center_idx + 1 + self.sample_depth // 2
+        start_z = idx * self.batch_pred_num
+        end_z = start_z + self.batch_stack_size
         if isinstance(self.channels, int):
             self.channels = [self.channels]
         
         # retrieve data from selected channels
-        channel_indices = [self.source_position.channel_names.index(c) for c in self.channels]
-        data = self.source_position.data[timestep, channel_indices, start_slice : end_slice, ...]
-        norm_statistics = [self._get_normalization_statistics(c) for c in self.channels]
-        
+        chan_inds = [self.source_position.channel_names.index(c) for c in self.channels]
+        data = [self.source_position.data[self.timestep, c, start_z : end_z, ...] for c in chan_inds]
+        data = np.stack(data, 0)
+
         #normalize and convert
-        if self.inference_config.get("normalize_inputs"):
+        norm_statistics = [self._get_normalization_statistics(c) for c in self.channels if "mask" not in c]
+        if self.normalize_inputs:
                 data = self._normalize_multichan(data, norm_statistics)
-        data = aux_utils.ToTensor(self.inference_config["device"])(data)
+        data = aux_utils.ToTensor(self.device)(data)
         
         return data, norm_statistics
     
-    def set_source_array(self, row, col, fov, timesteps = None, channels = None):
+    def set_source_array(self, row, col, fov, timestep = None, channels = None):
         """
         Sets the source array in the zarr store at zarr_dir that this 
         dataset should pull from when __getitem__ is called.
@@ -95,8 +104,8 @@ class TorchInferenceDataset(Dataset):
         :param str/int row_name: row_index of position
         :param str/int col_name: colum index of position
         :param str/int fov_name: field of view index
-        :param tuple(int) time_id: (optional) timestep indices to retrieve
-        :param tuple(str) channels: (optional) channel indices to retrieve
+        :param int timestep: (optional) timestep index to retrieve
+        :param tuple(str) channels: (optional) channels to retrieve
         
         :return tuple shape: shape of expected output from this source
         :return type dtype: dtype of expected output from this source
@@ -104,16 +113,18 @@ class TorchInferenceDataset(Dataset):
         row, col, fov = map(str, [row, col, fov])
         self.source_position = self.data_plate[row][col][fov]
         
-        self.timesteps = tuple(range(self.source.data.shape[0]))
-        if timesteps:
-            self.timesteps = timesteps
         
-        channel_ids = tuple(range(self.source.data.shape[1]))
-        self.channels = self.data_plate.channel_names(channel_ids)
+        self.timestep = 0
+        if timestep:
+            self.timesteps = timestep
+        
+        channel_ids = tuple(range(self.source_position.data.shape[1]))
+        self.channels = [self.data_plate.channel_names[id] for id in channel_ids]
         if channels:
             self.channels = channels
         
-        return (len(self.timesteps), len(self.channels)) + self.source_position.data.shape[-3:], self.source_position.dtype
+        shape, dtype = self.source_position.data.shape, self.source_position.data.dtype
+        return (1, len(self.channels),) + shape[-3:], dtype
     
     def _get_normalization_statistics(self, channel_name):
         """

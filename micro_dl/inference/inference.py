@@ -33,8 +33,6 @@ def _pad_input(x: Tensor, num_blocks: int):
     return x, pads
 
 
-
-
 class TorchPredictor:
     """
     TorchPredictor class 
@@ -45,27 +43,31 @@ class TorchPredictor:
     :param dict torch_config: master config file
     """
 
-    def __init__(self, torch_config, device=None) -> None:
+    def __init__(self, torch_config, device) -> None:
         self.torch_config = torch_config
 
         self.zarr_dir = self.torch_config["zarr_dir"]
         self.network_config = self.torch_config["model"]
-        self.dataset_config = self.torch_config["dataset"]
         self.inference_config = self.torch_config["inference"]
 
+        self.positions = self.inference_config["positions"]
+        self.input_channels = self.inference_config["input_channels"]
+        self.time_indices = self.inference_config["time_indices"]
+        self.network_z_depth = self.network_config["in_stack_depth"]
+
         self.model = None
-        if device:
-            self.device = device
-        else:
-            self.device = self.inference_config["device"]
+        self.device = device
 
         # init dataset
         self.dataset = inference_dataset.TorchInferenceDataset(
             zarr_dir=self.zarr_dir,
-            dataset_config=self.dataset_config,
-            inference_config=self.inference_config,
+            dataset_config=self.torch_config["dataset"],
+            batch_pred_num=self.inference_config["batch_size"],
+            normalize_inputs=self.inference_config.get("normalize_inputs"),
+            sample_depth=self.network_z_depth,
+            device=self.device,
         )
-        
+
         # get directory for inference figure saving
         self.get_save_location()
         self.read_model_meta()
@@ -211,19 +213,19 @@ class TorchPredictor:
                             in the format written above
         """
         # Positions are specified
-        if isinstance(self.inference_config["positions"], dict):
+        if isinstance(self.positions, dict):
             print("Predicting on positions specified in inference config.")
-            return self.inference_config["positions"]
-        elif not isinstance(self.inference_config["positions"], str):
+            return self.positions
+        elif not isinstance(self.positions, str):
             raise AttributeError(
                 "Invalid 'positions'. Expected one of {str, dict}"
-                f" but got {self.inference_config['positions']}"
+                f" but got {self.positions}"
             )
 
         #Positions are unspecified and need to be read
         model_dir = os.path.dirname(self.inference_config["model_dir"])
         data_split_file = os.path.join(model_dir, "data_splits.yml")
-        split_section = self.inference_config["positions"]
+        split_section = self.positions
 
         if os.path.exists(data_split_file):
             print(f"Predicting on {split_section} data split found in "
@@ -238,20 +240,35 @@ class TorchPredictor:
         else:
             raise ValueError(
                 f"Specified prediction on data split "
-                f"'{self.inference_config['positions']}'"
+                f"'{self.positions}'"
                 f" but no data_splits.yml file found in dir {model_dir}.\n"
             )
     
+    def new_empty_array(self, row_name, col_name, fov_name, shape, dtype):
+        """
+        Subroutine: builds an empty array for outputs in the specified position
+        of the specified shape and datatype
+        """
+        # get time indices, channels, z-depth of output
+        z_slices_output = shape[-3] - (self.network_z_depth - 1)
+        output_tcz = (len(self.time_indices), len(self.input_channels), z_slices_output)
+        
+        output_position = self.output_writer.create_position(row_name, col_name, fov_name)
+        output_array = output_position.create_zeros(
+            name = "0",
+            shape = output_tcz + shape[-2:],
+            dtype = dtype,
+            chunks = (1,) * (len(shape) - 2) + shape[-2:]
+        )
+        return output_array
     
     def run_inference(self):
         """
         Performs inference on the entire validation dataset.
 
-        Model inputs are normalized before predictions are generated. Normalized and denormalized
-        copies are saved, the latter being for visual evaluation, the former for metrics in 
-        evaluation.
+        Model inputs are normalized before predictions are generated. Predictions are saved in an
+        HCS-compatible zarr store in the specified output location.
         """
-
         # init io and saving
         start = time.time()
         self.log_writer = SummaryWriter(log_dir=self.save_folder)
@@ -259,41 +276,38 @@ class TorchPredictor:
                 os.path.join(self.save_folder, "preds.zarr"),
                 layout="hcs",
                 mode="w-",
-                channel_names=self.inference_config["input_channels"],
+                channel_names=self.input_channels,
             )
         self.model.eval()
+        
         # generate list of position tuples from dictionary for iteration
         positions_dict = self._get_positions()
         position_paths = []
         for row_k, row_v in positions_dict.items():
             for well_k, well_v in row_v.items():
                 fov_path_tuples = [(row_k, well_k, pos_k) for pos_k in well_v]
-                position_paths.extend(fov_path_tuples)
+                position_paths.extend(fov_path_tuples) 
         
         # run inference on each position
-        self.dataset.channels = self.inference_config["input_channels"]
         print("Running inference: \n")
-        i = 0
-        for row_name, col_name, fov_name in tqdm(position_paths, position=0):
-            shape, dtype = self.dataset.set_source_array(row_name, col_name, fov_name)
-            output_position = self.output_writer.create_position(row_name, col_name, fov_name)
-            output_array = output_position.create_zeros(
-                name=["0"],
-                shape = shape,
-                dtype = dtype,
-                chunks=(1,) * len(shape) - 2 + shape[-2:]
-            )
-
-            batch_size = shape[0] - (self.dataset_config["window_size"] - 1)
-            dataloader = iter(DataLoader(self.dataset, batch_size=batch_size))
-            
-            description = "predicting " + str((row_name, col_name, fov_name, time_idx))
-            for time_idx in tqdm(self.inference_config["time_indices"], desc=description, position=1, leave=False):
-                    batch = next(dataloader)
-                    batch_prediction = torch.squeeze(torch.swapaxes(self.predict_image(batch), 0, -3))
-                    output_array[time_idx] = batch_prediction
-            i += 1
+        
+        for row_name, col_name, fov_name in tqdm(position_paths, position=0, desc = "positions "):
+            for time_idx in tqdm(self.inference_config["time_indices"], desc="timepoints ", position=1, leave=False):
+                    # split up prediction generation by time idx for very large arrays
+                    shape, dtype = self.dataset.set_source_array(row_name, col_name, fov_name, time_idx, self.input_channels)
+                    output_array = self.new_empty_array(row_name, col_name, fov_name, shape, dtype)
+                    dataloader = iter(DataLoader(self.dataset))
+                    
+                    batch_predictions = []
+                    for batch, _ in dataloader:
+                        batch_predictions.append(self.predict_image(batch))
+                        
+                    batch_predictions = np.squeeze(np.concatenate(batch_predictions, -3), axis=0)
+                    output_array[time_idx] = batch_predictions
         
         self.output_writer.close()
         print(f"Done! Time taken: {time.time() - start:.2f}s")
-        print(f"Predictions and visualizations saved to {self.save_folder}")
+        print(f"Predictions saved to {self.save_folder}")
+
+    
+        
