@@ -9,9 +9,9 @@ import pandas as pd
 import sys
 from scipy.ndimage.interpolation import zoom
 from skimage.transform import resize
+import iohub.ngff as ngff
 
 import micro_dl.utils.aux_utils as aux_utils
-import micro_dl.utils.io_utils as io_utils
 import micro_dl.utils.normalize as normalize
 
 
@@ -253,13 +253,15 @@ def read_image_from_row(meta_row, dir_name=None):
     if file_path[-3:] == "npy":
         im = np.load(file_path)
     elif "zarr" in file_path[-5:]:
-        zarr_reader = io_utils.ZarrReader(file_path)
-        im = zarr_reader.get_image(
-            p=meta_row["pos_idx"],
-            t=meta_row["time_idx"],
-            c=meta_row["channel_idx"],
-            z=meta_row["slice_idx"],
-        )
+        plate = ngff.open_ome_zarr(store_path=file_path, mode='r+')
+        # zarr_reader = io_utils.ZarrReader(file_path)
+        im = plate.data
+        # im = zarr_reader.get_image(
+        #     p=meta_row["pos_idx"],
+        #     t=meta_row["time_idx"],
+        #     c=meta_row["channel_idx"],
+        #     z=meta_row["slice_idx"],
+        # )
     else:
         # Assumes files are tiff or png
         im = cv2.imread(file_path, cv2.IMREAD_ANYDEPTH)

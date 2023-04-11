@@ -4,11 +4,7 @@ import os
 import pandas as pd
 
 import micro_dl.utils.aux_utils as aux_utils
-import micro_dl.utils.image_utils as im_utils
-import micro_dl.utils.io_utils as io_utils
 from micro_dl.utils.mp_utils import mp_create_and_write_mask
-from skimage.filters import threshold_otsu
-from micro_dl.utils.cli_utils import MultiProcessProgressBar
 
 
 class MaskProcessor:
