@@ -21,10 +21,11 @@ class TorchInferenceDataset(Dataset):
     def __init__(
         self,
         zarr_dir,
-        dataset_config,
         batch_pred_num,
         sample_depth,
         normalize_inputs,
+        norm_type,
+        norm_scheme,
         device
     ):
         """
@@ -37,11 +38,14 @@ class TorchInferenceDataset(Dataset):
         :param int sample_depth: depth in z of the stack for a single sample,
                             likely equivalent to z depth of network these samples feed
         :param bool normalize_inputs: whether to normalize samples returned
+        :param str norm_type: type of normalization that was used on data in training
+        :param str norm_scheme: scheme (breadth) of normalization used in training
         :param torch.device device: device to send samples to before returning      
         """
         self.zarr_dir = zarr_dir
-        self.dataset_config = dataset_config
         self.normalize_inputs = normalize_inputs
+        self.norm_type = norm_type
+        self.norm_scheme = norm_scheme
         self.device = device
         
         self.batch_pred_num = batch_pred_num
@@ -133,11 +137,13 @@ class TorchInferenceDataset(Dataset):
         
         :param str channel_name: name of channel
         """
-        if self.dataset_config["normalization"]["scheme"] == "dataset":
+        if self.norm_scheme == "dataset":
             normalization_metadata = self.data_plate.zattrs["normalization"]
+            key = "dataset_statistics"
         else:
             normalization_metadata = self.source_position.zattrs["normalization"]
-        return normalization_metadata[channel_name]
+            key = "fov_statistics"
+        return normalization_metadata[channel_name][key]
     
     def _normalize_multichan(self, data, normalization_meta, denorm=False):
         """
@@ -183,20 +189,20 @@ class TorchInferenceDataset(Dataset):
 
         :return np.ndarray normalized_data: denormed data of input data's shape and type
         """
-        norm_type = self.dataset_config["normalization"]["type"]
+        norm_type = self.norm_type
         norm_function = normalize.unzscore if denorm else normalize.zscore
 
         if norm_type == "median_and_iqr":
             normalized_data = norm_function(
                 data,
-                zscore_median=normalization_meta["median"],
-                zscore_iqr=normalization_meta["iqr"],
+                normalization_meta["median"],
+                normalization_meta["iqr"],
             )
         elif norm_type == "mean_and_std":
             normalized_data = norm_function(
                 data,
-                zscore_median=normalization_meta["mean"],
-                zscore_iqr=normalization_meta["std"],
+                normalization_meta["mean"],
+                normalization_meta["std"],
             )
 
         return normalized_data

@@ -7,7 +7,6 @@ import sys
 import zarr
 
 import micro_dl.utils.aux_utils as aux_utils
-import micro_dl.inference.image_inference as image_inf
 import micro_dl.inference.inference as torch_inference_utils
 import micro_dl.utils.train_utils as train_utils
 
@@ -75,7 +74,7 @@ def check_save_folder(inference_config, preprocess_config):
 
 
 def main(config, gpu, gpu_mem_frac):
-    torch_config = aux_utils.read_config(config)
+    config = aux_utils.read_config(config)
 
     if gpu is not None:
         # Get GPU ID and memory fraction
@@ -85,11 +84,11 @@ def main(config, gpu, gpu_mem_frac):
         )
         device = torch.device(gpu_id)
     else:
-        device = torch.device(torch_config["inference"].get("device"))
+        device = torch.device(config["inference"].get("device"))
 
     # Initialize and run a predictor
     torch_predictor = torch_inference_utils.TorchPredictor(
-        torch_config=torch_config,
+        config=config,
         device=device,
     )
 

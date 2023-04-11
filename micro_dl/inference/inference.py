@@ -40,39 +40,40 @@ class TorchPredictor:
     Utilizes an InferenceDataset object for reading data in from the given zarr store
 
     Params:
-    :param dict torch_config: master config file
+    :param dict config: inference config file
     """
 
-    def __init__(self, torch_config, device) -> None:
-        self.torch_config = torch_config
-
-        self.zarr_dir = self.torch_config["zarr_dir"]
-        self.network_config = self.torch_config["model"]
-        self.inference_config = self.torch_config["inference"]
-
-        self.positions = self.inference_config["positions"]
-        self.input_channels = self.inference_config["input_channels"]
-        self.time_indices = self.inference_config["time_indices"]
-        self.network_z_depth = self.network_config["in_stack_depth"]
+    def __init__(self, config, device) -> None:
+        self.config = config
+        self.positions = self.config["positions"]
+        self.input_channels = self.config["input_channels"]
+        self.time_indices = self.config["time_indices"]
+        
 
         self.model = None
         self.device = device
 
-        # init dataset
+        # use params logged from training to set up model and dataset
+        self.read_model_params()
+
+        
+        self.network_config = self.model_meta["model"]["model_config"]
+        self.network_z_depth = self.network_config["in_stack_depth"]
+        
         self.dataset = inference_dataset.TorchInferenceDataset(
-            zarr_dir=self.zarr_dir,
-            dataset_config=self.torch_config["dataset"],
-            batch_pred_num=self.inference_config["batch_size"],
-            normalize_inputs=self.inference_config.get("normalize_inputs"),
+            zarr_dir=self.config["zarr_dir"],
+            batch_pred_num=self.config["batch_size"],
+            normalize_inputs=self.config["normalize_inputs"],
+            norm_type = self.config["norm_type"],
+            norm_scheme = self.config["norm_scheme"],
             sample_depth=self.network_z_depth,
             device=self.device,
         )
 
-        # get directory for inference figure saving
+        # set output location
         self.get_save_location()
-        self.read_model_meta()
 
-    def load_model(self, init_dir=True) -> None:
+    def load_model(self) -> None:
         """
         Initializes a model according to the network configuration dictionary used
         to train it, and loads the parameters saved in model_dir into the model's state dict.
@@ -85,28 +86,40 @@ class TorchPredictor:
             debug_mode=False,
         )
 
-        if init_dir:
-            model_dir = self.inference_config["model_dir"]
-            readout = model.load_state_dict(
-                torch.load(model_dir, map_location=self.device)
-            )
-            print(f"PyTorch model load status: {readout}")
+        model_dir = self.config["model_dir"]
+        model_name = self.config["model_name"]
+        light_state_dict = torch.load(
+            os.path.join(model_dir, "checkpoints", model_name),
+            map_location=self.device
+        )["state_dict"]
+        
+        #clean lightning state dict
+        clean_state_dict = {}
+        for key, val in light_state_dict.items():
+            if isinstance(key, str):
+                if "model." in key:
+                    newkey = key[6:]
+                    clean_state_dict[newkey] = light_state_dict[key]
+                else:
+                    clean_state_dict[key] = light_state_dict[key]
+        
+        readout = model.load_state_dict(clean_state_dict)
+        print(f"PyTorch model load status: {readout}")
         self.model = model
 
-    def read_model_meta(self, model_dir=None):
+    def read_model_params(self, model_dir=None):
         """
-        Reads the model metadata from the given model dir and stores it as an attribute.
+        Reads the model parameters from the given model dir and stores it as an attribute.
         Use here is to allow for inference to 'intelligently' infer it's configuration
         parameters from a model directory to reduce hassle on user.
 
         :param str model_dir: global path to model directory in which 'model_metadata.yml'
                         is stored. If not specified, infers from inference config.
         """
-        #FIXME update to new inference 
         if not model_dir:
-            model_dir = os.path.dirname(self.inference_config["model_dir"])
+            model_dir = self.config["model_dir"]
 
-        model_meta_filename = os.path.join(model_dir, "model_metadata.yml")
+        model_meta_filename = os.path.join(model_dir, "config.yaml")
         self.model_meta = aux_utils.read_config(model_meta_filename)
 
     def get_save_location(self):
@@ -120,13 +133,10 @@ class TorchPredictor:
         This is to encourage saving model inference with training models.
 
         """
-        model_dir = os.path.dirname(self.inference_config["model_dir"])
-        save_to_train_save_dir = self.inference_config["save_preds_to_model_dir"]
-
-        if save_to_train_save_dir:
-            save_dir = model_dir
-        elif "custom_save_preds_dir" in self.inference_config:
-            custom_save_dir = self.inference_config["custom_save_preds_dir"]
+        if self.config["save_preds_to_model_dir"]:
+            save_dir = self.config["model_dir"]
+        elif "custom_save_preds_dir" in self.config:
+            custom_save_dir = self.config["custom_save_preds_dir"]
             save_dir = custom_save_dir
         else:
             raise ValueError(
@@ -135,7 +145,7 @@ class TorchPredictor:
             )
 
         now = aux_utils.get_timestamp()
-        self.save_folder = os.path.join(save_dir, f"inference_results_{now}")
+        self.save_folder = os.path.join(save_dir, "inference_predictions", f"{now}")
         if not os.path.exists(self.save_folder):
             os.makedirs(self.save_folder)
 
@@ -189,25 +199,14 @@ class TorchPredictor:
 
     def _get_positions(self):
         """
-        Logic function for determining the paths to positions requested for inference
-        
         Positions should be specified in config in format:
             positions:
                 row #:
                     col #: [pos #, pos #, ...]
-                    col #: [pos #, pos #, ...]
-                        .
-                        .
-                        .
-                    .
-                    .
-                    .
+                        ...
+                    ...
         where row # and col # together indicate the well on the plate, and pos # indicates
         the number of the position in the well.
-        
-        If position paths are not specified in the config, requires that some portion of
-        the data split generated during training is specified. If data portion is specified, 
-        extracts the positions from the directory of the inference model. 
 
         :return dict positions: Returns dictionary tree specifying all the positions 
                             in the format written above
@@ -216,32 +215,10 @@ class TorchPredictor:
         if isinstance(self.positions, dict):
             print("Predicting on positions specified in inference config.")
             return self.positions
-        elif not isinstance(self.positions, str):
-            raise AttributeError(
-                "Invalid 'positions'. Expected one of {str, dict}"
-                f" but got {self.positions}"
-            )
-
-        #Positions are unspecified and need to be read
-        model_dir = os.path.dirname(self.inference_config["model_dir"])
-        data_split_file = os.path.join(model_dir, "data_splits.yml")
-        split_section = self.positions
-
-        if os.path.exists(data_split_file):
-            print(f"Predicting on {split_section} data split found in "
-                  "model directory.")
-            data_splits = aux_utils.read_config(data_split_file)
-            timestamps = list(data_splits.keys())
-            timestamps.sort(reverse=True)
-            most_recent_split = timestamps[0]
-
-            positions = data_splits[most_recent_split][split_section]
-            return positions
         else:
-            raise ValueError(
-                f"Specified prediction on data split "
-                f"'{self.positions}'"
-                f" but no data_splits.yml file found in dir {model_dir}.\n"
+            raise AttributeError(
+                "Invalid 'positions'. Expected dict of positions by rows and cols"
+                f" but got {self.positions}"
             )
     
     def new_empty_array(self, row_name, col_name, fov_name, shape, dtype):
@@ -292,7 +269,7 @@ class TorchPredictor:
         print("Running inference: \n")
         
         for row_name, col_name, fov_name in tqdm(position_paths, position=0, desc = "positions "):
-            for time_idx in tqdm(self.inference_config["time_indices"], desc="timepoints ", position=1, leave=False):
+            for time_idx in tqdm(self.config["time_indices"], desc="timepoints ", position=1, leave=False):
                     # split up prediction generation by time idx for very large arrays
                     shape, dtype = self.dataset.set_source_array(row_name, col_name, fov_name, time_idx, self.input_channels)
                     output_array = self.new_empty_array(row_name, col_name, fov_name, shape, dtype)
@@ -305,6 +282,10 @@ class TorchPredictor:
                     batch_predictions = np.squeeze(np.concatenate(batch_predictions, -3), axis=0)
                     output_array[time_idx] = batch_predictions
         
+        
+        
+        #write config to save dir
+        aux_utils.write_yaml(self.config, os.path.join(self.save_folder, "config.yaml"))
         self.output_writer.close()
         print(f"Done! Time taken: {time.time() - start:.2f}s")
         print(f"Predictions saved to {self.save_folder}")
