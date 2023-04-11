@@ -9,8 +9,9 @@ import logging
 import natsort
 import numpy as np
 import os
-import re
 import pandas as pd
+import re
+import torch
 import yaml
 
 DF_NAMES = [
@@ -670,3 +671,27 @@ def parse_sms_name(im_name, df_names=DF_NAMES, dir_name=None, channel_names=[]):
         elif s.find("z") == 0 and len(s) == 4:
             meta_row["slice_idx"] = int(s[1:])
     return meta_row
+
+class ToTensor(object):
+    """
+    Transformation. Converts input to torch.Tensor and returns. By default also places tensor
+    on gpu.
+
+    :param torch.device device: device transport tensor to
+    """
+
+    def __init__(self, device=torch.device("cuda")):
+        self.device = device
+
+    def __call__(self, sample):
+        """
+        Perform transformation.
+
+        :param torch.tensor or numpy.ndarray sample: data to convert to tensor and place on device
+        :return torch.tensor sample: converted data on device
+        """
+        if isinstance(sample, torch.Tensor):
+            sample = sample.to(self.device)
+        else:
+            sample = torch.tensor(sample, dtype=torch.float32).to(self.device)
+        return sample

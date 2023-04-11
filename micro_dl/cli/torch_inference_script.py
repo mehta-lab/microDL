@@ -83,14 +83,15 @@ def main(config, gpu, gpu_mem_frac):
             gpu,
             gpu_mem_frac,
         )
-        torch_config["inference"]["device"] = torch.device(gpu_id)
+        device = torch.device(gpu_id)
     else:
-        torch_config["inference"]["device"] = torch.device(
-            torch_config["inference"]["device"]
-        )
+        device = torch.device(torch_config["inference"].get("device"))
 
     # Initialize and run a predictor
-    torch_predictor = torch_inference_utils.TorchPredictor(torch_config=torch_config)
+    torch_predictor = torch_inference_utils.TorchPredictor(
+        torch_config=torch_config,
+        device=device,
+    )
 
     torch_predictor.load_model()
     torch_predictor.run_inference()

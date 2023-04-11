@@ -1,6 +1,6 @@
 import warnings
 from datetime import datetime
-import getpass
+import os
 import torch
 from jsonargparse import lazy_instance
 from lightning.pytorch.cli import LightningCLI
@@ -20,7 +20,7 @@ class VSLightningCLI(LightningCLI):
             {
                 "trainer.logger": lazy_instance(
                     TensorBoardLogger,
-                    save_dir="/hpc/mydata/"+getpass.getuser(),  # link_arguments("trainer.default_root_dir","trainer.logger.save_dir") didn't work.
+                    save_dir=os.path.expanduser('~'),  # link_arguments("trainer.default_root_dir","trainer.logger.save_dir") didn't work.
                     version=datetime.now().strftime(r"%Y%m%d-%H%M%S"),
                     log_graph=True,
                 )
