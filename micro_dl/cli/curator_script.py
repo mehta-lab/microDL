@@ -7,11 +7,11 @@ import os
 from PIL import Image
 import imagio
 import iohub.ngff as ngff
-import micro_dl.inference.evaluation_metrics as metrics
 import cellpose
 import math
 import argparse
 
+import micro_dl.inference.evaluation_metrics as metrics
 import micro_dl.utils.aux_utils as aux_utils
 
 # %% read the below details from the config file
@@ -55,7 +55,7 @@ def main(config):
     labelFree_chan = torch_config["data"]["source_channel"]
     PosList = torch_config["evaluation_metrics"]["PosList"]
     cp_model = torch_config["evaluation_metrics"]["cp_model"]
-    
+
     ground_truth_subdir = "ground_truth"
     path_split_head_tail = os.path.split(zarr_dir)
     target_zarr_dir = path_split_head_tail[0]

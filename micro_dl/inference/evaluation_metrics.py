@@ -261,9 +261,11 @@ def POD_metric(target_bin, prediction):
     b = 0
     lab_targ = []  # enumerate the labels from labelled ground truth mask
     lab_pred = []  # enumerate the labels from labelled predicted image mask
+    lab_targ_major_axis = []  # store the major axis of target masks
     for props_t in props_targ:
         y_t, x_t = props_t.centroid
         lab_targ.append(props_t.label)
+        lab_targ_major_axis.append(props_t.axis_major_length)
         for props_p in props_pred:
             y_p, x_p = props_p.centroid
             lab_pred.append(props_p.label)
@@ -273,19 +275,30 @@ def POD_metric(target_bin, prediction):
         a = a + 1
         b = 0
 
-    # LAPsolver for minimizing cost matrix of objects
+    distance_threshold = np.mean(lab_targ_major_axis) / 2
+
+    # an uneven number of targ and pred yields zero entry row / column to make the unbalanced assignment problem balanced. The zero entries (=no realobjects) are set to nan to prevent them of being matched.
+    cost_matrix[cost_matrix==0.0] = np.nan
+    
+    #LAPsolver for minimizing cost matrix of objects
     rids, cids = solve_dense(cost_matrix)
 
-    # compute percent of objects detected omitting newly introduced objects and dropped objects
-    boolarr_pred = np.isin(cids, lab_pred)
-    boolarr_targ = np.isin(rids, lab_targ)
-    deaths = np.absolute(n_targObj - boolarr_targ.sum())
-    births = np.absolute(boolarr_targ.sum() - boolarr_pred.sum())
-    objects_detected = n_targObj - births - deaths
-    percent_detected = objects_detected / n_targObj
-    percent_false_detected = births
+    # filter out rid and cid pairs that exceed distance threshold
+    matching_targ = []
+    matching_pred = []
+    for rid, cid in zip(rids, cids):
+        if cost_matrix[rid, cid] <= distance_threshold:
+                matching_targ.append(rid)
+                matching_pred.append(cid)
 
-    return percent_detected.astype(np.uint8), percent_false_detected.astype(np.uint8)
+    true_positives = len(matching_pred)
+    false_positives = n_predObj - len(matching_pred)
+    false_negatives = n_targObj - len(matching_targ)
+    precision = true_positives / (true_positives + false_positives)
+    recall = true_positives / (true_positives + false_negatives)
+    f1_score = 2 * (precision * recall / (precision + recall))
+
+    return true_positives, false_positives, false_negatives, precision, recall, f1_score, distance_threshold
 
 
 def binarize_array(im):
