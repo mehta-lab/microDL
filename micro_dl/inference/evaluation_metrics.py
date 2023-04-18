@@ -278,9 +278,9 @@ def POD_metric(target_bin, prediction):
     distance_threshold = np.mean(lab_targ_major_axis) / 2
 
     # an uneven number of targ and pred yields zero entry row / column to make the unbalanced assignment problem balanced. The zero entries (=no realobjects) are set to nan to prevent them of being matched.
-    cost_matrix[cost_matrix==0.0] = np.nan
-    
-    #LAPsolver for minimizing cost matrix of objects
+    cost_matrix[cost_matrix == 0.0] = np.nan
+
+    # LAPsolver for minimizing cost matrix of objects
     rids, cids = solve_dense(cost_matrix)
 
     # filter out rid and cid pairs that exceed distance threshold
@@ -288,8 +288,8 @@ def POD_metric(target_bin, prediction):
     matching_pred = []
     for rid, cid in zip(rids, cids):
         if cost_matrix[rid, cid] <= distance_threshold:
-                matching_targ.append(rid)
-                matching_pred.append(cid)
+            matching_targ.append(rid)
+            matching_pred.append(cid)
 
     true_positives = len(matching_pred)
     false_positives = n_predObj - len(matching_pred)
@@ -298,7 +298,15 @@ def POD_metric(target_bin, prediction):
     recall = true_positives / (true_positives + false_negatives)
     f1_score = 2 * (precision * recall / (precision + recall))
 
-    return true_positives, false_positives, false_negatives, precision, recall, f1_score, distance_threshold
+    return (
+        true_positives,
+        false_positives,
+        false_negatives,
+        precision,
+        recall,
+        f1_score,
+        distance_threshold,
+    )
 
 
 def binarize_array(im):

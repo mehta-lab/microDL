@@ -2,19 +2,15 @@
 # After inference, the predictions generated are stored as zarr store.
 # Evaluation metrics can be computed by comparison of prediction to human proof read ground truth.
 #
-import numpy as np
 import os
-from PIL import Image
 import imagio as iio
 import iohub.ngff as ngff
-import math
 import argparse
 import glob
 import pandas as pd
 
 import micro_dl.inference.evaluation_metrics as metrics
 import micro_dl.utils.aux_utils as aux_utils
-from micro_dl.utils.mp_utils import add_channel
 
 # %% read the below details from the config file
 
@@ -38,15 +34,13 @@ def parse_args():
 
 
 def main(config):
-
     """
-    pick the focus slice from n_pos number of positions, segment, and save as tifs
-    Also store the infomartion as csv file, where you can add the evaluation metrics results.
-    Info to be stored: 
-        1. position no, 
-        2. focus slice number (it will be the center slice as the images are aligned)
-        3. time point
-        4. chan name for evaluation (DAPI if nucleus)
+    pick focus slice mask from pred_zarr from slice number stored on png mask name
+    input pred mask & corrected ground truth mask to metrics computation
+    store the metrics values as csv file to corresponding positions in list
+    Info to be stored:
+        1. position no,
+        2. eval metrics values
     """
 
     torch_config = aux_utils.read_config(config)
@@ -70,6 +64,15 @@ def main(config):
         "VI",
         "POD",
     ]
+    d_pod = [
+        "OD_true_positives",
+        "OD_false_positives",
+        "OD_false_negatives",
+        "OD_precision",
+        "OD_recall",
+        "OD_f1_score",
+    ]
+
     metric_map = {
         "mae_metric": metrics.mae_metric,
         "mse_metric": metrics.mse_metric,
@@ -82,34 +85,34 @@ def main(config):
         "VI_metric": metrics.VOI_metric,
         "POD_metric": metrics.POD_metric,
     }
-    d_pod = [
-        'OD_true_positives',
-        'OD_false_positives', 
-        'OD_false_negatives', 
-        'OD_precision', 
-        'OD_recall', 
-        'OD_f1_score', 
-    ]
 
     pred_plate = ngff.open_ome_zarr(store_path=pred_dir, mode="r+")
     im_pred = pred_plate.data
 
-    metric_chan_mask = metric_channel + '_cp_mask'
+    metric_chan_mask = metric_channel + "_cp_mask"
     path_split_head_tail = os.path.split(pred_dir)
     target_zarr_dir = path_split_head_tail[0]
-    ground_truth_dir = os.path.join(target_zarr_dir,ground_truth_subdir)
+    ground_truth_dir = os.path.join(target_zarr_dir, ground_truth_subdir)
 
-    df_metrics = pd.DataFrame(columns=available_metrics[:-1]+d_pod[:-1])
+    df_metrics = pd.DataFrame(columns=available_metrics[:-1] + d_pod[:-1])
 
     for i, (_, position) in enumerate(pred_plate.positions()):
         raw_data = im_pred[position]
-        target_data = raw_data[
-            0, metric_chan_mask.index, ...
-        ]
+        target_data = raw_data[0, metric_chan_mask.index, ...]
 
-        gt_mask_save_name = '^' + metric_channel + '_p' + str(format(PosList(i), "03d")) + '_z'
-        z_slice_no = int(glob.glob(ground_truth_dir + '/' + gt_mask_save_name + '*_cp_mask.png'))
-        gt_mask = iio.imread(ground_truth_dir + '/' + gt_mask_save_name + str(z_slice_no) + '_cp_mask.png')
+        gt_mask_save_name = (
+            "^" + metric_channel + "_p" + str(format(PosList(i), "03d")) + "_z"
+        )
+        z_slice_no = int(
+            glob.glob(ground_truth_dir + "/" + gt_mask_save_name + "*_cp_mask.png")
+        )
+        gt_mask = iio.imread(
+            ground_truth_dir
+            + "/"
+            + gt_mask_save_name
+            + str(z_slice_no)
+            + "_cp_mask.png"
+        )
         pred_mask = target_data[z_slice_no]
 
         pos_metric_list = [z_slice_no]
@@ -123,7 +126,7 @@ def main(config):
 
         df_metrics.loc[len(df_metrics.index)] = pos_metric_list
 
-    csv_filename = os.path.join(ground_truth_dir, 'GT_metrics.csv')
+    csv_filename = os.path.join(ground_truth_dir, "GT_metrics.csv")
     df_metrics.to_csv(csv_filename)
 
 

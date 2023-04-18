@@ -7,7 +7,6 @@ import os
 from PIL import Image
 import imagio as iio
 import iohub.ngff as ngff
-import math
 import argparse
 
 import micro_dl.inference.evaluation_metrics as metrics
@@ -37,15 +36,10 @@ def parse_args():
 
 
 def main(config):
-
     """
-    pick the focus slice from n_pos number of positions, segment, and save as tifs
-    Also store the infomartion as csv file, where you can add the evaluation metrics results.
-    Info to be stored: 
-        1. position no, 
-        2. focus slice number (it will be the center slice as the images are aligned)
-        3. time point
-        4. chan name for evaluation (DAPI if nucleus)
+    pick the focus slice from n_pos number of positions, cellpose segment, and save as tifs
+    also save segmentation input and label-free image as tifs for ground truth curation
+    segment fluorescence predictions and store mask as new channel
     """
 
     torch_config = aux_utils.read_config(config)
@@ -56,7 +50,7 @@ def main(config):
     labelFree_chan = torch_config["data"]["source_channel"]
     PosList = torch_config["evaluation_metrics"]["PosList"]
     cp_model = torch_config["evaluation_metrics"]["cp_model"]
-    
+
     if torch_config["evaluation_metrics"]["NA_det"] is None:
         NA_det = 1.2
         lambda_illu = 0.532
@@ -89,19 +83,19 @@ def main(config):
     for gt_chan in ground_truth_chans:
         for pos in range(PosList):
             raw_data = im[pos]
-            target_data = raw_data[
-                0, gt_chan.index, ...
-            ]
+            target_data = raw_data[0, gt_chan.index, ...]
             Z, Y, X = np.ndarray.shape(target_data)
-            focus_idx_target = focus_from_transverse_band(target_data,NA_det,lambda_illu,pxl_sz)
-            target_focus_slice = target_data[focus_idx_target, :, :]  # FL focus slice image
+            focus_idx_target = focus_from_transverse_band(
+                target_data, NA_det, lambda_illu, pxl_sz
+            )
+            target_focus_slice = target_data[
+                focus_idx_target, :, :
+            ]  # FL focus slice image
 
             im_target = Image.fromarray(
                 target_focus_slice.astype(np.uint8)
             )  # save focus slice as single page tif
-            save_name = (
-                "_p" + str(format(pos, "03d")) + "_z" + str(target_focus_slice)
-            )
+            save_name = "_p" + str(format(pos, "03d")) + "_z" + str(target_focus_slice)
             im_target.save(
                 os.path.join(
                     target_zarr_dir,
@@ -136,7 +130,6 @@ def main(config):
                 cp_mask,
             )  # save binary mask as numpy or png
 
-
     # segment prediction and add mask as channel to pred_dir
     pred_plate = ngff.open_ome_zarr(store_path=pred_dir, mode="r+")
     im_pred = pred_plate.data
@@ -145,17 +138,13 @@ def main(config):
     for channel_name in chan_names:
         for i, (_, position) in enumerate(pred_plate.positions()):
             raw_data = im_pred[position]
-            target_data = raw_data[
-                0, channel_name.index, ...
-            ]
-            
+            target_data = raw_data[0, channel_name.index, ...]
+
             Z, Y, X = np.ndarray.shape(target_data)
-            new_channel_array = np.zeros(Z,Y,X)
+            new_channel_array = np.zeros(Z, Y, X)
             for z_slice in range(Z):
                 target_slice = target_data[z_slice]
-                cp_mask = metrics.cpmask_array(
-                    target_slice, cp_model
-                ) 
+                cp_mask = metrics.cpmask_array(target_slice, cp_model)
                 new_channel_array[z_slice] = cp_mask
 
             new_channel_name = channel_name + "_cp_mask"
@@ -164,7 +153,6 @@ def main(config):
                 new_channel_array,
                 new_channel_name,
             )
-
 
 
 if __name__ == "__main__":
