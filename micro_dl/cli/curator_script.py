@@ -5,7 +5,7 @@
 import numpy as np
 import os
 from PIL import Image
-import imagio
+import imagio as iio
 import iohub.ngff as ngff
 import math
 import argparse
@@ -67,7 +67,7 @@ def main(config):
         pxl_sz = torch_config["evaluation_metrics"]["pxl_sz"]
 
     ground_truth_subdir = "ground_truth"
-    path_split_head_tail = os.path.split(zarr_dir)
+    path_split_head_tail = os.path.split(pred_dir)
     target_zarr_dir = path_split_head_tail[0]
     zarr_name = path_split_head_tail[1]
 
@@ -100,7 +100,7 @@ def main(config):
                 target_focus_slice.astype(np.uint8)
             )  # save focus slice as single page tif
             save_name = (
-                "_p" + str(format(pos, "03d")) + "_z" + str(format(target_focus_slice, "03d"))
+                "_p" + str(format(pos, "03d")) + "_z" + str(target_focus_slice)
             )
             im_target.save(
                 os.path.join(
@@ -127,11 +127,11 @@ def main(config):
             cp_mask = metrics.cpmask_array(
                 target_focus_slice, cp_model
             )  # cellpose segmnetation for binary mask
-            imagio.imwrite(
+            iio.imwrite(
                 os.path.join(
                     target_zarr_dir,
                     ground_truth_subdir,
-                    labelFree_chan + save_name + "_cp_mask.png",
+                    gt_chan + save_name + "_cp_mask.png",
                 ),
                 cp_mask,
             )  # save binary mask as numpy or png
