@@ -5,7 +5,7 @@
 import numpy as np
 import os
 from PIL import Image
-import imagio as iio
+import imageio as iio
 import iohub.ngff as ngff
 import argparse
 
