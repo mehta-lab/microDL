@@ -141,36 +141,6 @@ The ```torch_config.yml``` config file contains the parameters for model initiat
 >
 > &nbsp;&nbsp; **augmentations** TODO (for now see example and [docstrings](../input/gunpowder_nodes.py))
 
->
->**inference:**
->
->&nbsp;&nbsp; **model_dir:** <span style="color:cyan"> absolute path </span> (Path to _pre-trained_ model to use for inference)
->
->&nbsp;&nbsp; **window_size:** <span style="color:cyan"> (5,2048,2048) </span> (Data windows to infer on, in (z,y,x). Must be square in y and x, and z must be the stack depth of network specified in model_dir)
->
->&nbsp;&nbsp; **z_slice_range:** <span style="color:cyan"> (3,21) </span> (Range of center slices over which to infer. Note that these are _center slices_, meaning for 2.5D networks, the lower and upper ranges must allow room for slices below and above, respectively)
->
->&nbsp;&nbsp; **save_preds_to_model_dir:** <span style="color:cyan"> True </span> (Whether or not to save predictions to model directory)
->
->&nbsp;&nbsp; <span style="color:yellow"> **custom_save_preds_dir:** </span> <span style="color:cyan"> absolute path </span> (Path to custom save directory. Generally try to avoid using this, since it delocates model predictions from the models)
->
->&nbsp;&nbsp; **data_partition_to_predict:** <span style="color:cyan"> val </span> (Partition to run predictions on. Will predict all positions in partition)
->
->&nbsp;&nbsp; **device:** <span style="color:cyan"> 'gpu', 'cpu', or int </span> (Device to use for inference)
->
->&nbsp;&nbsp; **metrics:** (Metrics computed directly at inference time. May not include all evaluation metrics)
->
->&nbsp;&nbsp;&nbsp;&nbsp; **metrics:** <span style="color:cyan"> ['mae', 'r2', 'cossim', 'ssim'] </span> (list of evaluation metrics to compute over each prediction)
->
->&nbsp;&nbsp;&nbsp;&nbsp; **orientations:** <span style="color:cyan"> ['xy', 'xyz', 'yz', 'xz'] </span> (list of orientations to compute each metric across)
->
->&nbsp;&nbsp;<span style="color:yellow">  **custom_data_split:** </span> (list of split positions upon which to run inference. Note: this will override the split positions recorded during training in the model_dir, and should be used cautiously.)
->
->&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:yellow">  **train:** </span> <span style="color:cyan"> [0,1,2,3,4,5,6]</span> 
->
->&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:yellow">  **val:** </span> <span style="color:cyan"> [7,8]</span> 
->
->&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:yellow">  **test:** </span> <span style="color:cyan"> [9,10]</span> 
 
 ## Example Config files
 
