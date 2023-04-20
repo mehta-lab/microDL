@@ -87,7 +87,7 @@ def main(config):
     }
 
     pred_plate = ngff.open_ome_zarr(store_path=pred_dir, mode="r+")
-    im_pred = pred_plate.data
+    chan_names = pred_plate.channel_names
 
     metric_chan_mask = metric_channel + "_cp_mask"
     path_split_head_tail = os.path.split(pred_dir)
@@ -96,35 +96,38 @@ def main(config):
 
     df_metrics = pd.DataFrame(columns=available_metrics[:-1] + d_pod[:-1])
 
-    for i, (_, position) in enumerate(pred_plate.positions()):
-        raw_data = im_pred[position]
-        target_data = raw_data[0, metric_chan_mask.index, ...]
+    for i, (position, pos_data) in enumerate(pred_plate.positions()):
+        pos = int(position.split("/")[2])
 
-        gt_mask_save_name = (
-            "^" + metric_channel + "_p" + str(format(PosList(i), "03d")) + "_z"
-        )
-        z_slice_no = int(
-            glob.glob(ground_truth_dir + "/" + gt_mask_save_name + "*_cp_mask.png")
-        )
-        gt_mask = iio.imread(
-            ground_truth_dir
-            + "/"
-            + gt_mask_save_name
-            + str(z_slice_no)
-            + "_cp_mask.png"
-        )
-        pred_mask = target_data[z_slice_no]
+        if pos in PosList:
+            raw_data = pos_data.data
+            target_data = raw_data[0, chan_names.index(metric_chan_mask), ...]
 
-        pos_metric_list = [z_slice_no]
-        for metric_name in metrics_list:
-            metric_fn = metric_map[metric_name]
-            cur_metric_list = metric_fn(
-                target=gt_mask,
-                prediction=pred_mask,
+            gt_mask_save_name = (
+                "^" + metric_channel + "_p" + str(format(pos, "03d")) + "_z"
             )
-            pos_metric_list.append(cur_metric_list)
+            z_slice_no = int(
+                glob.glob(ground_truth_dir + "/" + gt_mask_save_name + "*_cp_mask.png")
+            )
+            gt_mask = iio.imread(
+                ground_truth_dir
+                + "/"
+                + gt_mask_save_name
+                + str(z_slice_no)
+                + "_cp_mask.png"
+            )
+            pred_mask = target_data[z_slice_no]
 
-        df_metrics.loc[len(df_metrics.index)] = pos_metric_list
+            pos_metric_list = [z_slice_no]
+            for metric_name in metrics_list:
+                metric_fn = metric_map[metric_name]
+                cur_metric_list = metric_fn(
+                    target=gt_mask,
+                    prediction=pred_mask,
+                )
+                pos_metric_list.append(cur_metric_list)
+
+            df_metrics.loc[len(df_metrics.index)] = pos_metric_list
 
     csv_filename = os.path.join(ground_truth_dir, "GT_metrics.csv")
     df_metrics.to_csv(csv_filename)

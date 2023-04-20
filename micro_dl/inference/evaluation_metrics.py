@@ -329,6 +329,7 @@ def cpmask_array(im, model_name):
     model = models.CellposeModel(model_type=model_name)
     channels = [0, 0]
     masks = model.eval(im, channels=channels, diameter=None)[0]
+    return masks
 
 
 class MetricsEstimator:
