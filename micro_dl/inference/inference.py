@@ -176,6 +176,7 @@ class TorchPredictor:
         )
         if model == None:
             model = self.model
+        model.eval()
 
         if self.network_config["architecture"] == "2.5D":
             if len(input_image.shape) != 5:
