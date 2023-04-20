@@ -3,7 +3,7 @@
 # Evaluation metrics can be computed by comparison of prediction to human proof read ground truth.
 #
 import os
-import imagio as iio
+import imageio as iio
 import iohub.ngff as ngff
 import argparse
 import glob
