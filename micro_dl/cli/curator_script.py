@@ -73,7 +73,7 @@ def main(config):
         plate = ngff.open_ome_zarr(store_path=zarr_dir, mode="r+")
         chan_names = plate.channel_names
 
-        for i, (position, pos_data) in enumerate(plate.positions()):
+        for position, pos_data in plate.positions():
             im = pos_data.data
             # im = plate.data
             out_shape = im.shape
@@ -142,8 +142,9 @@ def main(config):
     # im_pred = pred_plate.data
     chan_names = pred_plate.channel_names
 
-    for channel_name in chan_names:
-        for i, (position, pos_data) in enumerate(pred_plate.positions()):
+    
+    for position, pos_data in pred_plate.positions():
+        for channel_name in chan_names:
             raw_data = pos_data.data
             target_data = raw_data[0, chan_names.index(channel_name), ...]
 
