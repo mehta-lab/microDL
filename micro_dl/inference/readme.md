@@ -16,31 +16,31 @@ be allocated for you.
 
 # Config
 
-> **zarr_dir**: <span style="color:cyan"> absolute path </span> (absolute path to HCS-compatible zarr store containing data)
+> **zarr_dir**: `absolute path` (absolute path to HCS-compatible zarr store containing data)
 >
-> **model_dir:** <span style="color:cyan"> absolute path </span> (Path to parent directory of _pre-trained_ model to use for inference)
+> **model_dir:** `absolute path` (Path to parent directory of _pre-trained_ model to use for inference)
 >
-> **model_name:** <span style="color:cyan"> str </span> (name of model state dict "*.ckpt")
+> **model_name:** `str` (name of model state dict "*.ckpt")
 >
-> **batch_size:** <span style="color:cyan"> int </span> (size of batch for batch prediction: needs to be small enough to fit on GPU, but larger is faster)
+> **batch_size:** `int` (size of batch for batch prediction: needs to be small enough to fit on GPU, but larger is faster)
 >
-> **time_indices:** <span style="color:cyan"> list[int] </span> (list of time indices to predict)
+> **time_indices:** `list[int]` (list of time indices to predict)
 >
-> **device:** <span style="color:cyan"> str </span> ("cpu", "cuda", or "i" i=int of gpu to use)
+> **device:** `str` ("cpu", "cuda", or "i" i=int of gpu to use)
 >
-> **positions:** <span style="color:cyan"> nested dict </span> (nested dict of positions to run inference on inside your zarr store, see examples for format)
+> **positions:** `nested dict` (nested dict of positions to run inference on inside your zarr store, see examples for format)
 >
-> **normalize_inputs:** <span style="color:cyan"> {true, false} </span> (whether to normalize inputs; (should reflect whether this was done when training the model))
+> **normalize_inputs:** `{true, false}` (whether to normalize inputs; (should reflect whether this was done when training the model))
 >
-> <span style="color:yellow"> **norm_type:** </span> <span style="color:cyan"> {"median_and_iqr","mean_and_std"} </span> (normalization type used for training (Only used if normalize_inputs is true))
+> ***norm_type:*** `{"median_and_iqr","mean_and_std"}` (normalization type used for training (Only used if normalize_inputs is true))
 >
-> <span style="color:yellow"> **norm_scheme:** </span> <span style="color:cyan"> {"dataset","FOV"} </span> (normalization scheme used for training (Only used if normalize_inputs is true))
+> ***norm_scheme:*** `{"dataset","FOV"}` (normalization scheme used for training (Only used if normalize_inputs is true))
 >
-> **input_channels:** <span style="color:cyan"> list[str] </span> (list of input channels by name)
+> **input_channels:** `list[str]` (list of input channels by name)
 >
-> **save_preds_to_model_dir:** <span style="color:cyan"> True </span> (Whether or not to save predictions to model directory)
+> **save_preds_to_model_dir:** `True` (Whether or not to save predictions to model directory)
 >
-> <span style="color:yellow"> **custom_save_preds_dir:** </span> <span style="color:cyan"> absolute path </span> (Path to custom save directory. Generally try to avoid using this, since it delocates model predictions from the models)
+> ***custom_save_preds_dir:*** `absolute path` (Path to custom save directory. Generally try to avoid using this, since it delocates model predictions from the models)
 
 # Config Example
 Some working config examples can be found at:
