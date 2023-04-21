@@ -45,7 +45,7 @@ def mask_decorator(metric_function):
     return wrapper_metric_function
 
 
-@mask_decorator
+# @mask_decorator
 def mse_metric(target, prediction):
     """MSE of target and prediction
 
@@ -53,10 +53,11 @@ def mse_metric(target, prediction):
     :param np.array prediction: model prediction
     :return float mean squared error
     """
-    return np.mean((target - prediction) ** 2)
+    mse = np.mean((target - prediction) ** 2)
+    return [mse]
 
 
-@mask_decorator
+# @mask_decorator
 def mae_metric(target, prediction):
     """MAE of target and prediction
 
@@ -64,10 +65,11 @@ def mae_metric(target, prediction):
     :param np.array prediction: model prediction
     :return float mean absolute error
     """
-    return np.mean(np.abs(target - prediction))
+    mae = np.mean(np.abs(target - prediction))
+    return [mae]
 
 
-@mask_decorator
+# @mask_decorator
 def r2_metric(target, prediction):
     """Coefficient of determination of target and prediction
 
@@ -78,10 +80,10 @@ def r2_metric(target, prediction):
     ss_res = np.sum((target - prediction) ** 2)
     ss_tot = np.sum((target - np.mean(target)) ** 2)
     cur_r2 = 1 - (ss_res / (ss_tot + 1e-8))
-    return cur_r2
+    return [cur_r2]
 
 
-@mask_decorator
+# @mask_decorator
 def corr_metric(target, prediction):
     """Pearson correlation of target and prediction
 
@@ -93,7 +95,7 @@ def corr_metric(target, prediction):
     return cur_corr
 
 
-def ssim_metric(target, prediction, mask=None, win_size=21):
+def ssim_metric(target, prediction, win_size=21):
     """
     Structural similarity indiex (SSIM) of target and prediction.
     Window size is not passed into function so make sure tiles
@@ -112,28 +114,16 @@ def ssim_metric(target, prediction, mask=None, win_size=21):
     )
 
     multichannel = win_size > target.shape[-1]
-    if mask is None:
-        cur_ssim = ssim(
-            target,
-            prediction,
-            win_size=win_size,
-            data_range=target.max() - target.min(),
-            multichannel=multichannel,
-        )
-        return cur_ssim
-    else:
-        cur_ssim, cur_ssim_img = ssim(
-            target,
-            prediction,
-            data_range=target.max() - target.min(),
-            full=True,
-            multichannel=multichannel,
-        )
-        cur_ssim_masked = np.mean(cur_ssim_img[mask])
-        return [cur_ssim, cur_ssim_masked]
+    cur_ssim = ssim(
+        target,
+        prediction,
+        win_size=win_size,
+        data_range=target.max() - target.min(),
+        multichannel=multichannel,
+    )
+    return [cur_ssim]
 
-
-def accuracy_metric(target_bin, prediction):
+def accuracy_metric(target_bin, pred_bin):
     """Accuracy of binary target and prediction.
     Not using mask decorator for binary data evaluation.
 
@@ -142,11 +132,12 @@ def accuracy_metric(target_bin, prediction):
     :return float Accuracy: Accuracy for binarized data
     """
     # target_bin = binarize_array(target)
-    pred_bin = cpmask_array(prediction)
-    return sklearn.metrics.accuracy_score(target_bin, pred_bin)
+    # pred_bin = cpmask_array(prediction)
+    acc = sklearn.metrics.accuracy_score(target_bin, pred_bin)
+    return [acc]
 
 
-def dice_metric(target_bin, prediction):
+def dice_metric(target_bin, pred_bin):
     """Dice similarity coefficient (F1 score) of binary target and prediction.
     Reports global metric.
     Not using mask decorator for binary data evaluation.
@@ -157,11 +148,12 @@ def dice_metric(target_bin, prediction):
     """
     # target_bin = binarize_array(target)
     # change to reading existing ground truth masks
-    pred_bin = cpmask_array(prediction)
-    return sklearn.metrics.f1_score(target_bin, pred_bin, average="micro")
+    # pred_bin = cpmask_array(prediction)
+    dice = sklearn.metrics.f1_score(target_bin, pred_bin, average="micro")
+    return [dice]
 
 
-def IOU_metric(target_bin, prediction):
+def IOU_metric(target_bin, pred_bin):
     """Intersection over union metric is same as dice metric
     Reports overlap between predicted and ground truth mask
     : param np.array target_bin: ground truth mask
@@ -169,7 +161,7 @@ def IOU_metric(target_bin, prediction):
     : return float IOU: IOU for image masks
     """
     # predicted image cellpose segmentation: output labelled mask
-    pred_bin = cpmask_array(prediction)
+    # pred_bin = cpmask_array(prediction)
 
     # convert label to binary mask
     im_targ_mask = target_bin > 0
@@ -205,12 +197,12 @@ def IOU_metric(target_bin, prediction):
 
     IOU = max(IOU_ksize)
 
-    return IOU.astype(np.uint8)
+    return [IOU.astype(np.uint8)]
 
 
-def VOI_metric(target_bin, prediction):
+def VOI_metric(target_bin, pred_bin):
     # cellpose segmentation of predicted image: outputs labl mask
-    pred_bin = cpmask_array(prediction)
+    # pred_bin = cpmask_array(prediction)
 
     # convert to binary mask
     im_targ_mask = target_bin > 0
@@ -240,11 +232,11 @@ def VOI_metric(target_bin, prediction):
     # variation of entropy/information
     VI = entropy_pred + entropy_targ - (2 * entropy_intr)
 
-    return VI.astype(np.uint8)
+    return [VI.astype(np.uint8)]
 
 
-def POD_metric(target_bin, prediction):
-    pred_bin = cpmask_array(prediction)
+def POD_metric(target_bin, pred_bin):
+    # pred_bin = cpmask_array(prediction)
 
     # relabel mask for ordered labelling across images for efficient LAP mapping
     props_pred = regionprops(label(pred_bin))
@@ -298,15 +290,14 @@ def POD_metric(target_bin, prediction):
     recall = true_positives / (true_positives + false_negatives)
     f1_score = 2 * (precision * recall / (precision + recall))
 
-    return (
+    return [
         true_positives,
         false_positives,
         false_negatives,
         precision,
         recall,
         f1_score,
-        distance_threshold,
-    )
+    ]
 
 
 def binarize_array(im):

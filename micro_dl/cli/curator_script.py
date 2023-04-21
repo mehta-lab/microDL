@@ -51,6 +51,7 @@ def main(config):
     PosList = torch_config["evaluation_metrics"]["PosList"]
     z_list = torch_config["evaluation_metrics"]["z_list"]
     cp_model = torch_config["evaluation_metrics"]["cp_model"]
+    metric_channel = torch_config["evaluation_metrics"]["metric_channel"]
 
     # if torch_config["evaluation_metrics"]["NA_det"] is None:
     #     NA_det = 1.3
@@ -84,12 +85,13 @@ def main(config):
                 print(
                     "number of positions listed in config exceeds number of positions in dataset"
                 )
-            pos = int(position.split("/")[2])
+            pos = int(position.split("/")[-1])
             for gt_chan in ground_truth_chans:
                 if pos in PosList:
+                    idx = PosList.index(pos)
                     target_data = im[0, chan_names.index(gt_chan), ...]
                     Z, Y, X = target_data.shape
-                    focus_idx_target = z_list[pos]
+                    focus_idx_target = z_list[idx]
                     # focus_idx_target = focus_from_transverse_band(
                     #     target_data, NA_det, lambda_illu, pxl_sz
                     # )
@@ -142,25 +144,36 @@ def main(config):
     # im_pred = pred_plate.data
     chan_names = pred_plate.channel_names
 
-    
+    predseg_data = ngff.open_ome_zarr(
+        os.path.join(target_zarr_dir, metric_channel+'_pred.zarr'),
+        layout="hcs",
+        mode="w-",
+        channel_names=chan_names,
+    )
     for position, pos_data in pred_plate.positions():
-        for channel_name in chan_names:
+        row,col,fov = position.split("/")
+        new_pos = predseg_data.create_position(row,col,fov)
+        
+        if int(fov) in PosList:
+            idx = PosList.index(int(fov))
             raw_data = pos_data.data
-            target_data = raw_data[0, chan_names.index(channel_name), ...]
+            target_data = raw_data[:, :, z_list[idx]]
+            _, _, Y, X = target_data.shape
+            new_pos.create_image("0", target_data[np.newaxis, :])
+            
+    
+    chan_no = len(chan_names)
+    with ngff.open_ome_zarr(os.path.join(target_zarr_dir, metric_channel + '_pred.zarr'),mode='r+') as dataset:
+            for _,position in dataset.positions():
+                data = position.data
+                new_channel_array = np.zeros((1, 1, Y, X))
+                
+                cp_mask = metrics.cpmask_array(data[0,chan_names.index(metric_channel),0,:,:], cp_model)
+                new_channel_array[0, 0, :, :] = cp_mask
 
-            Z, Y, X = target_data.shape
-            new_channel_array = np.zeros((1, Z, Y, X))
-            for z_slice in range(Z):
-                target_slice = target_data[z_slice]
-                cp_mask = metrics.cpmask_array(target_slice, cp_model)
-                new_channel_array[0, z_slice] = cp_mask
-
-            new_channel_name = channel_name + "_cp_mask"
-            add_channel(
-                pos_data,
-                new_channel_array,
-                new_channel_name,
-            )
+                new_channel_name = metric_channel + "_cp_mask"
+                position.append_channel(new_channel_name, resize_arrays=True)
+                position["0"][:,chan_no] = new_channel_array
 
 
 if __name__ == "__main__":
