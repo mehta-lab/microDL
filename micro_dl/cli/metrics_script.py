@@ -6,7 +6,6 @@ import os
 import imageio as iio
 import iohub.ngff as ngff
 import argparse
-import glob
 import pandas as pd
 
 import micro_dl.inference.evaluation_metrics as metrics
@@ -51,20 +50,8 @@ def main(config):
     z_list = torch_config["evaluation_metrics"]["z_list"]
     metrics_list = torch_config["evaluation_metrics"]["metrics"]
     ground_truth_chans = torch_config["data"]["target_channel"]
-
     ground_truth_subdir = "ground_truth"
 
-    # available_metrics = [
-    #     "ssim",
-    #     "corr",
-    #     "r2",
-    #     "mse",
-    #     "mae",
-    #     "dice",
-    #     "IoU",
-    #     "VI",
-    #     "POD",
-    # ]
     d_pod = [
         "OD_true_positives",
         "OD_false_positives",
@@ -88,16 +75,19 @@ def main(config):
 
     path_split_head_tail = os.path.split(pred_dir)
     target_zarr_dir = path_split_head_tail[0]
-    pred_plate = ngff.open_ome_zarr(store_path=os.path.join(target_zarr_dir, metric_channel + '_pred.zarr'), mode="r+")
+    pred_plate = ngff.open_ome_zarr(
+        store_path=os.path.join(target_zarr_dir, metric_channel + "_pred.zarr"),
+        mode="r+",
+    )
     chan_names = pred_plate.channel_names
     metric_chan_mask = metric_channel + "_cp_mask"
     ground_truth_dir = os.path.join(target_zarr_dir, ground_truth_subdir)
 
     col_val = metrics_list[:]
-    if 'POD' in col_val:
-        col_val.remove('POD')
+    if "POD" in col_val:
+        col_val.remove("POD")
         for i in range(len(d_pod)):
-            col_val.insert(i + metrics_list.index('POD'), d_pod[i])
+            col_val.insert(i + metrics_list.index("POD"), d_pod[i])
     df_metrics = pd.DataFrame(columns=col_val, index=PosList)
 
     for position, pos_data in pred_plate.positions():
@@ -110,12 +100,15 @@ def main(config):
 
             z_slice_no = z_list[idx]
             gt_mask_save_name = (
-                ground_truth_chans[0] + "_p" + str(format(pos, "03d")) + "_z" + str(z_slice_no) + '_cp_mask.png'
+                ground_truth_chans[0]
+                + "_p"
+                + str(format(pos, "03d"))
+                + "_z"
+                + str(z_slice_no)
+                + "_cp_mask.png"
             )
-            
-            gt_mask = iio.imread(
-                os.path.join(ground_truth_dir, gt_mask_save_name)
-            )
+
+            gt_mask = iio.imread(os.path.join(ground_truth_dir, gt_mask_save_name))
 
             pos_metric_list = []
             for metric_name in metrics_list:

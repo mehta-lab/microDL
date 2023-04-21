@@ -11,8 +11,7 @@ import argparse
 
 import micro_dl.inference.evaluation_metrics as metrics
 import micro_dl.utils.aux_utils as aux_utils
-from micro_dl.utils.mp_utils import add_channel
-from waveorder.focus import focus_from_transverse_band
+# from waveorder.focus import focus_from_transverse_band
 
 # %% read the below details from the config file
 
@@ -145,35 +144,38 @@ def main(config):
     chan_names = pred_plate.channel_names
 
     predseg_data = ngff.open_ome_zarr(
-        os.path.join(target_zarr_dir, metric_channel+'_pred.zarr'),
+        os.path.join(target_zarr_dir, metric_channel + "_pred.zarr"),
         layout="hcs",
         mode="w-",
         channel_names=chan_names,
     )
     for position, pos_data in pred_plate.positions():
-        row,col,fov = position.split("/")
-        new_pos = predseg_data.create_position(row,col,fov)
-        
+        row, col, fov = position.split("/")
+        new_pos = predseg_data.create_position(row, col, fov)
+
         if int(fov) in PosList:
             idx = PosList.index(int(fov))
             raw_data = pos_data.data
             target_data = raw_data[:, :, z_list[idx]]
             _, _, Y, X = target_data.shape
             new_pos.create_image("0", target_data[np.newaxis, :])
-            
-    
-    chan_no = len(chan_names)
-    with ngff.open_ome_zarr(os.path.join(target_zarr_dir, metric_channel + '_pred.zarr'),mode='r+') as dataset:
-            for _,position in dataset.positions():
-                data = position.data
-                new_channel_array = np.zeros((1, 1, Y, X))
-                
-                cp_mask = metrics.cpmask_array(data[0,chan_names.index(metric_channel),0,:,:], cp_model)
-                new_channel_array[0, 0, :, :] = cp_mask
 
-                new_channel_name = metric_channel + "_cp_mask"
-                position.append_channel(new_channel_name, resize_arrays=True)
-                position["0"][:,chan_no] = new_channel_array
+    chan_no = len(chan_names)
+    with ngff.open_ome_zarr(
+        os.path.join(target_zarr_dir, metric_channel + "_pred.zarr"), mode="r+"
+    ) as dataset:
+        for _, position in dataset.positions():
+            data = position.data
+            new_channel_array = np.zeros((1, 1, Y, X))
+
+            cp_mask = metrics.cpmask_array(
+                data[0, chan_names.index(metric_channel), 0, :, :], cp_model
+            )
+            new_channel_array[0, 0, :, :] = cp_mask
+
+            new_channel_name = metric_channel + "_cp_mask"
+            position.append_channel(new_channel_name, resize_arrays=True)
+            position["0"][:, chan_no] = new_channel_array
 
 
 if __name__ == "__main__":

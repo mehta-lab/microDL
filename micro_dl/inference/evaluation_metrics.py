@@ -123,6 +123,7 @@ def ssim_metric(target, prediction, win_size=21):
     )
     return [cur_ssim]
 
+
 def accuracy_metric(target_bin, pred_bin):
     """Accuracy of binary target and prediction.
     Not using mask decorator for binary data evaluation.
@@ -153,15 +154,16 @@ def dice_metric(target_bin, pred_bin):
     return [dice]
 
 
-def IOU_metric(target_bin, pred_bin):
+def IOU_metric(target, prediction):
     """Intersection over union metric is same as dice metric
     Reports overlap between predicted and ground truth mask
-    : param np.array target_bin: ground truth mask
-    : param np.array prediction: model infered FL image
+    : param np.array target: ground truth mask
+    : param np.array prediction: model infered FL image cellpose mask
     : return float IOU: IOU for image masks
     """
     # predicted image cellpose segmentation: output labelled mask
-    # pred_bin = cpmask_array(prediction)
+    pred_bin = prediction > 0
+    target_bin = target > 0
 
     # convert label to binary mask
     im_targ_mask = target_bin > 0
@@ -197,12 +199,19 @@ def IOU_metric(target_bin, pred_bin):
 
     IOU = max(IOU_ksize)
 
-    return [IOU.astype(np.uint8)]
+    return [IOU]
 
 
-def VOI_metric(target_bin, pred_bin):
+def VOI_metric(target, prediction):
+    """variation of information metric
+    Reports overlap between predicted and ground truth mask
+    : param np.array target: ground truth mask
+    : param np.array prediction: model infered FL image cellpose mask
+    : return float VI: VI for image masks
+    """
     # cellpose segmentation of predicted image: outputs labl mask
-    # pred_bin = cpmask_array(prediction)
+    pred_bin = prediction > 0
+    target_bin = target > 0
 
     # convert to binary mask
     im_targ_mask = target_bin > 0
@@ -232,7 +241,7 @@ def VOI_metric(target_bin, pred_bin):
     # variation of entropy/information
     VI = entropy_pred + entropy_targ - (2 * entropy_intr)
 
-    return [VI.astype(np.uint8)]
+    return [VI]
 
 
 def POD_metric(target_bin, pred_bin):
