@@ -1,8 +1,7 @@
 import iohub.ngff as ngff
 import numpy as np
-import os
+import cv2
 from torch.utils.data import Dataset
-import zarr
 
 import micro_dl.utils.normalize as normalize
 import micro_dl.utils.aux_utils as aux_utils
@@ -30,6 +29,7 @@ class TorchInferenceDataset(Dataset):
         norm_scheme,
         device,
         batched_view=True,
+        scale_factor=1.0,
     ):
         """
         Initiate object for selecting and passing data to model for inference.
@@ -44,13 +44,17 @@ class TorchInferenceDataset(Dataset):
         :param str norm_type: type of normalization that was used on data in training
         :param str norm_scheme: scheme (breadth) of normalization used in training
         :param torch.device device: device to send samples to before returning
-        :param bool strided_view: whether to return a strided view of z-stack as a
+        :param bool batched: whether to return a strided view of z-stack as a
                             batch of inputs, defaults to True
+        :param float scale_factor: factor by which to upscale or downscale images in x
+                            and y.
+                            WARNING: less accurate
         """
         self.zarr_dir = zarr_dir
         self.normalize_inputs = normalize_inputs
         self.norm_type = norm_type
         self.norm_scheme = norm_scheme
+        self.scale_factor = scale_factor
         self.device = device
 
         self.batch_pred_num = batch_pred_num
@@ -115,6 +119,12 @@ class TorchInferenceDataset(Dataset):
                 if "mask" not in c
             ]
             data = self._normalize_multichan(data, norm_statistics)
+
+        # scale shape in xy
+        self._cached_shape = data.shape
+        if self.scale_factor != 1:
+            data = self._scale(data)
+
         # build batched view.
         # NOTE: This can be done with ".as_strided()", but is more
         #       readable this way for minimal cost
@@ -233,3 +243,36 @@ class TorchInferenceDataset(Dataset):
             )
 
         return normalized_data
+
+    def _get_scaled_shape(self, shape):
+        width = int(shape[-2] * self.scale_factor)
+        height = int(shape[-1] * self.scale_factor)
+        return shape[:-2] + (width, height)
+
+    def _scale(self, data, unscale=False):
+        """
+        Size the input up and down depending on object scale factor. For use in prediction
+        across magnification
+
+        :param np.ndarray data: stack of data to scale in x and y, 4D (czyx)
+        :param bool unscale: whether to invert scaling
+        """
+        c, z, y, x = self._get_scaled_shape(data.shape)
+        if unscale:
+            c, _, y, x = self._cached_shape
+            z = 1
+        else:
+            self._cached_shape = data.shape
+
+        data_scaled = np.zeros((c, y, x, z))
+        for i, chan_data in enumerate(data):
+            out = cv2.resize(
+                np.transpose(chan_data, (1, 2, 0)),
+                (x, y),  # opencv likes width, height
+                interpolation=cv2.INTER_LINEAR,
+            )
+            if len(out.shape) < 3:
+                out = np.expand_dims(out, -1)
+            data_scaled[i] = out
+
+        return np.transpose(data_scaled, (0, 3, 1, 2))
