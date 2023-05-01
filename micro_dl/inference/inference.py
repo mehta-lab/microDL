@@ -165,7 +165,7 @@ class TorchPredictor:
             img_tensor = aux_utils.ToTensor(device=self.device)(input_image)
 
         img_tensor, pads = _pad_input(img_tensor, num_blocks=model.num_blocks)
-        pred = model(img_tensor, validate_input=False)
+        pred = model(img_tensor)
         return TF.crop(
             pred.detach().cpu(), *(pads[1], pads[0]) + input_image.shape[-2:]
         ).numpy()
