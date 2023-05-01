@@ -55,18 +55,18 @@ torch_onnx.export(
     },
 )
 # %%
-onnx_model = onnx.load(
-    "/home/christian.foley/virtual_staining/workspaces/microDL/micro_dl/scripts/test_export_uninitialized.onnx"
-)
-onnx.checker.check_model(onnx_model)
+# ------ Code for running inference session. Needs full node ---#
+# onnx_model = onnx.load(
+#     "/home/christian.foley/virtual_staining/workspaces/microDL/micro_dl/scripts/test_export_uninitialized.onnx"
+# )
+# onnx.checker.check_model(onnx_model)
 
-# %%
-options = ort.SessionOptions()
-options.intra_op_num_threads = 1
-options.inter_op_num_threads = 1
+# options = ort.SessionOptions()
+# options.intra_op_num_threads = 1
+# options.inter_op_num_threads = 1
 
-ort_sess = ort.InferenceSession(
-    "/home/christian.foley/virtual_staining/workspaces/microDL/micro_dl/scripts/test_export_uninitialized.onnx"
-)
-outputs = ort_sess.run(None, {"input": sample_input.numpy()})
+# ort_sess = ort.InferenceSession(
+#     "/home/christian.foley/virtual_staining/workspaces/microDL/micro_dl/scripts/test_export_uninitialized.onnx"
+# )
+# outputs = ort_sess.run(None, {"input": sample_input.numpy()})
 # %%
