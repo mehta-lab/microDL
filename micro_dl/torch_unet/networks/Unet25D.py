@@ -170,7 +170,6 @@ class Unet25d(nn.Module):
                     downsampling_filters[i + 1],
                     downsampling_filters[i + 1],
                     kernel_size=(1 + in_stack_depth - out_stack_depth, 1, 1),
-                    padding="valid",
                 )
             )
         self.register_modules(self.skip_conv_layers, "skip_conv_layer")
