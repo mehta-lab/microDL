@@ -10,7 +10,7 @@ import sys
 
 sys.path.insert(0, "/home/christian.foley/virtual_staining/workspaces/microDL")
 
-import micro_dl.input.inference_dataset as inference_dataset
+import micro_dl.inference.inference_dataset as inference_dataset
 import micro_dl.utils.io_utils as io
 from micro_dl.cli.preprocess_script import pre_process
 import micro_dl.training.training as train
