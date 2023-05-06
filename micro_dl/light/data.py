@@ -50,14 +50,15 @@ class SlidingWindowDataset(Dataset):
 
     def _get_normalizer(self, source_channel: str, target_channel: str):
         norm_meta = self.plate.zattrs["normalization"]
-        self.source_normalizer = NormalizeIntensity(
-            subtrahend=norm_meta[source_channel]["dataset_statistics"]["median"],
-            divisor=norm_meta[source_channel]["dataset_statistics"]["iqr"],
-        )
-        self.target_normalizer = NormalizeIntensity(
-            subtrahend=norm_meta[target_channel]["dataset_statistics"]["median"],
-            divisor=norm_meta[target_channel]["dataset_statistics"]["iqr"],
-        )
+
+        def _normalizer(channel: str) -> Callable:
+            return (
+                lambda x: x / norm_meta[channel]["dataset_statistics"]["iqr"]
+                - norm_meta[channel]["dataset_statistics"]["median"],
+            )
+
+        self.source_normalizer = _normalizer(source_channel)
+        self.target_normalizer = _normalizer(target_channel)
 
     def _find_window(self, index: int) -> tuple[int, int]:
         window_keys = list(self.windows.keys())
