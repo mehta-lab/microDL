@@ -1,4 +1,4 @@
-from typing import Callable, Literal, Union
+from typing import Callable, Literal
 
 import numpy as np
 import torch
@@ -7,7 +7,6 @@ from lightning.pytorch import LightningDataModule
 from monai.transforms import (
     CenterSpatialCropd,
     Compose,
-    NormalizeIntensity,
     RandAdjustContrastd,
     RandAffined,
     RandGaussianSmoothd,
