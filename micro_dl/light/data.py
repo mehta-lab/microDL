@@ -1,4 +1,4 @@
-from typing import Callable, Literal
+from typing import Callable, Literal, Union
 
 import numpy as np
 import torch
@@ -7,6 +7,7 @@ from lightning.pytorch import LightningDataModule
 from monai.transforms import (
     CenterSpatialCropd,
     Compose,
+    NormalizeIntensity,
     RandAdjustContrastd,
     RandAffined,
     RandGaussianSmoothd,
@@ -131,7 +132,6 @@ class HCSDataModule(LightningDataModule):
             # set training stage transforms
             fit_transform = self._fit_transform()
             train_transform = self._train_transform() + fit_transform
-            self._set_augmentation()
             plate = open_ome_zarr(self.data_path, mode="r")
             whole_train_dataset = SlidingWindowDataset(
                 plate,
@@ -174,24 +174,20 @@ class HCSDataModule(LightningDataModule):
             persistent_workers=True,
         )
 
-    def on_after_batch_transfer(
-        self, batch: dict[torch.Tensor], dataloader_idx: int
-    ) -> None:
-        if self.trainer.training:
-            self.augmentation(batch)
-
-    def _fit_transform(self) -> list[Callable]:
+    def _fit_transform(self):
         return [
             CenterSpatialCropd(
                 keys=["source", "target"],
                 roi_size=(
                     -1,
-                ) + self.yx_patch_size,
+                    self.yx_patch_size[0],
+                    self.yx_patch_size[1],
+                ),
             )
         ]
 
     def _train_transform(self) -> list[Callable]:
-        return [
+        transforms = [
             RandWeightedCropd(
                 keys=["source", "target"],
                 w_key="target",
@@ -199,24 +195,24 @@ class HCSDataModule(LightningDataModule):
                 num_samples=1,
             )
         ]
-
-    def _set_augmentation(self):
-        self.augmentation = Compose(
-            [
-                RandAffined(
-                    keys=["source", "target"],
-                    prob=0.5,
-                    rotate_range=(np.pi, 0, 0),
-                    shear_range=(0, (0.05), (0.05)),
-                    scale_range=(0, 0.2, 0.2),
-                ),
-                RandAdjustContrastd(keys=["source"], prob=0.1, gamma=(0.75, 1.5)),
-                RandGaussianSmoothd(
-                    keys=["source"],
-                    prob=0.2,
-                    sigma_x=(0.05, 0.25),
-                    sigma_y=(0.05, 0.25),
-                    sigma_z=((0.05, 0.25)),
-                ),
-            ]
-    ) if self.augment else lambda x:x
+        if self.augment:
+            transforms.extend(
+                [
+                    RandAffined(
+                        keys=["source", "target"],
+                        prob=0.5,
+                        rotate_range=(np.pi, 0, 0),
+                        shear_range=(0, (0.05), (0.05)),
+                        scale_range=(0, 0.2, 0.2),
+                    ),
+                    RandAdjustContrastd(keys=["source"], prob=0.1, gamma=(0.75, 1.5)),
+                    RandGaussianSmoothd(
+                        keys=["source"],
+                        prob=0.2,
+                        sigma_x=(0.05, 0.25),
+                        sigma_y=(0.05, 0.25),
+                        sigma_z=((0.05, 0.25)),
+                    ),
+                ]
+            )
+        return transforms
