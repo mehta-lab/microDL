@@ -30,8 +30,6 @@ class VSLightningCLI(LightningCLI):
 
 
 def main():
-    # https://zarr.readthedocs.io/en/stable/tutorial.html#configuring-blosc
-    blosc.use_threads = False
     torch.set_float32_matmul_precision("high")
     # TODO: remove this after MONAI 1.2 release
     # https://github.com/Project-MONAI/MONAI/pull/6105
