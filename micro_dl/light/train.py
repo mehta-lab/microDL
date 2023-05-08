@@ -1,12 +1,9 @@
 import warnings
 from datetime import datetime
-import os
 import torch
 from jsonargparse import lazy_instance
 from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.loggers import TensorBoardLogger
-from numcodecs import blosc
-
 from micro_dl.light.data import HCSDataModule
 from micro_dl.light.engine import PhaseToNuc25D
 
