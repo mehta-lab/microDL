@@ -112,6 +112,7 @@ class HCSDataModule(LightningDataModule):
         num_workers: int = 8,
         yx_patch_size: tuple[int, int] = (256, 256),
         augment: bool = True,
+        caching: bool = False,
     ):
         super().__init__()
         self.data_path = data_path
@@ -123,6 +124,7 @@ class HCSDataModule(LightningDataModule):
         self.split_ratio = split_ratio
         self.yx_patch_size = yx_patch_size
         self.augment = augment
+        self.caching = caching
 
     def setup(self, stage: Literal["fit", "validate", "test", "predict"]):
         # train/val split
