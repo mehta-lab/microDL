@@ -46,7 +46,8 @@ class PhaseToNuc25D(LightningModule):
         self.schedule = schedule
         self.training_step_outputs = []
         self.validation_step_outputs = []
-        self.example_input_array = torch.rand(1, 1, 5, 256, 256)  # required to log the graph
+        # required to log the graph
+        self.example_input_array = torch.rand(1, 1, 5, 256, 256)
 
     def forward(self, x):
         return self.model(x)
