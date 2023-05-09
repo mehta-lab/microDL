@@ -90,26 +90,14 @@ class SlidingWindowDataset(Dataset):
         source = self._read_img_window(img, self.source_ch_idx, tz)
         target = self._read_img_window(img, self.target_ch_idx, tz)
         sample = {"source": source, "target": target}
+        if self.transform:
+            sample = self.transform(sample)
+        if isinstance(sample, list):
+            return sample[0]
         return sample
 
     def __del__(self):
         self.positions[0].zgroup.store.close()
-
-
-class TransformSubset(Dataset):
-    def __init__(self, subset: Subset, transform: Callable):
-        super().__init__()
-        self.dataset = subset
-        self.transform = transform
-
-    def __len__(self):
-        return len(self.dataset)
-
-    def __getitem__(self, index) -> dict[str, torch.Tensor]:
-        item = self.transform(self.dataset[index])
-        if isinstance(item, list):
-            return item[0]
-        return item
 
 
 class HCSDataModule(LightningDataModule):
@@ -161,36 +149,42 @@ class HCSDataModule(LightningDataModule):
         return Plate(group=zarr.open(mem_store, mode="r"))
 
     def setup(self, stage: Literal["fit", "validate", "test", "predict"]):
-        # train/val split
         if stage in (None, "fit", "validate"):
             plate = open_ome_zarr(self.data_path, mode="r")
             if self.caching:
                 plate = self._cache(plate)
-            positions = [pos for _, pos in plate.positions()]
             # disable metadata tracking in MONAI for performance
             set_track_meta(False)
-            # set training stage transforms
+            # define training stage transforms
             normalize_transform = [
                 NormalizeTargetd("target", plate, self.target_channel)
             ]
             fit_transform = self._fit_transform()
-            self.val_transform = Compose(normalize_transform + fit_transform)
-            self.train_transform = Compose(
+            train_transform = Compose(
                 normalize_transform + self._train_transform() + fit_transform
             )
-            dataset = SlidingWindowDataset(
-                positions,
+            val_transform = Compose(normalize_transform + fit_transform)
+            # shuffle positions, randomness is handled globally
+            positions = np.array([pos for _, pos in plate.positions()])
+            shuffled_indices = torch.randperm(len(positions)).numpy()
+            positions = positions[shuffled_indices]
+            num_train_fovs = int(len(positions) * self.split_ratio)
+            # train/val split
+            dataset_settings = dict(
                 source_channel=self.source_channel,
                 target_channel=self.target_channel,
                 z_window_size=self.z_window_size,
             )
-            num_train_samples = int(len(dataset) * self.split_ratio)
-            # randomness is handled globally
-            train_subset, val_subset = random_split(
-                dataset, lengths=[num_train_samples, len(dataset) - num_train_samples]
+            self.train_dataset = SlidingWindowDataset(
+                positions[:num_train_fovs],
+                transform=train_transform,
+                **dataset_settings,
             )
-            self.train_dataset = TransformSubset(train_subset, self.train_transform)
-            self.val_dataset = TransformSubset(val_subset, self.val_transform)
+            self.val_dataset = SlidingWindowDataset(
+                positions[num_train_fovs:],
+                transform=val_transform,
+                **dataset_settings,
+            )
         # test/predict stage
         else:
             raise NotImplementedError(f"{stage} stage")
