@@ -1,78 +1,100 @@
 import logging
-from typing import Callable, Literal
+import os
+import tempfile
+from typing import Any, Callable, Literal, Union
 
 import numpy as np
 import torch
 import zarr
-from iohub.ngff import ImageArray, Plate, open_ome_zarr
+from iohub.ngff import ImageArray, Plate, Position, open_ome_zarr
 from lightning.pytorch import LightningDataModule
+from monai.data import set_track_meta
 from monai.transforms import (
     CenterSpatialCropd,
     Compose,
+    MapTransform,
     RandAdjustContrastd,
     RandAffined,
     RandGaussianSmoothd,
     RandWeightedCropd,
 )
-from monai.data import set_track_meta
-from numcodecs import Blosc
-from torch.utils.data import DataLoader, Dataset, Subset
+from numpy.typing import NDArray
+from torch.utils.data import DataLoader, Dataset, Subset, random_split
+from tqdm import tqdm
+
+
+class NormalizeTargetd(MapTransform):
+    def __init__(self, keys, plate: Plate, target_channel: str) -> None:
+        super().__init__(keys, allow_missing_keys=False)
+        norm_meta = plate.zattrs["normalization"]
+        self.iqr = norm_meta[target_channel]["dataset_statistics"]["iqr"]
+        self.median = norm_meta[target_channel]["dataset_statistics"]["median"]
+
+    def __call__(self, data):
+        d = dict(data)
+        for key in self.keys:
+            d[key] = (d[key] - self.median) / self.iqr
+        return d
 
 
 class SlidingWindowDataset(Dataset):
     def __init__(
         self,
-        plate: Plate,
+        positions: list[Position],
         source_channel: str,
         target_channel: str,
         z_window_size: int,
         transform: Callable = None,
-        target_center_slice_only: bool = True,
-        normalize_intensity: bool = True,
         preload: bool = False,
     ) -> None:
         super().__init__()
-        self.plate = plate
-        self.source_ch_idx = plate.get_channel_index(source_channel)
-        self.target_ch_idx = plate.get_channel_index(target_channel)
+        self.positions = positions
+        self.source_ch_idx = positions[0].get_channel_index(source_channel)
+        self.target_ch_idx = positions[0].get_channel_index(target_channel)
         self.z_window_size = z_window_size
         self.transform = transform
-        self.target_center_slice_only = target_center_slice_only
-        self.normalize_intensity = normalize_intensity
-        self._count_windows()
-        self._get_normalizer(source_channel, target_channel)
+        self._get_windows(preload)
 
-    def _count_windows(self) -> None:
+    def _get_windows(self, preload: bool) -> None:
         w = 0
-        self.windows = {}
-        for _, fov in self.plate.positions():
-            ts = fov["0"].frames
-            zs = fov["0"].slices - self.z_window_size + 1
+        self.window_keys = []
+        self.window_arrays = []
+        for fov in self.positions:
+            img_arr = fov["0"]
+            ts = img_arr.frames
+            zs = img_arr.slices - self.z_window_size + 1
             w += ts * zs
-            self.windows[w] = fov
+            self.window_keys.append(w)
+            self.window_arrays.append(img_arr)
         self._max_window = w
+        if preload:
+            self._preload(img_arr)
 
-    def _get_normalizer(self, source_channel: str, target_channel: str):
-        norm_meta = self.plate.zattrs["normalization"]
-
-        def _normalizer(channel: str) -> Callable:
-            return (
-                lambda x: x / norm_meta[channel]["dataset_statistics"]["iqr"]
-                - norm_meta[channel]["dataset_statistics"]["median"]
-            )
-
-        self.source_normalizer = _normalizer(source_channel)
-        self.target_normalizer = _normalizer(target_channel)
+    def _preload(self, example: ImageArray):
+        shape = list((len(self.window_keys),) + example.shape)
+        shape[-4] = 2
+        all_images = np.zeros(tuple(shape), example.dtype)
+        for i, img_arr in tqdm(
+            enumerate(self.window_arrays),
+            desc="Preloading images",
+            total=len(self.window_arrays),
+        ):
+            sel = [slice(None)] * 4
+            sel.insert(1, [self.source_ch_idx, self.target_ch_idx])
+            all_images[i] = img_arr.get_orthogonal_selection(tuple(sel))
+        self.window_arrays = np.stack(self.window_arrays, axis=0)
+        self.source_ch_idx, self.target_ch_idx = (0, 1)
 
     def _find_window(self, index: int) -> tuple[int, int]:
-        window_keys = list(self.windows.keys())
-        window_idx = sorted(window_keys + [index + 1]).index(index + 1)
-        w = window_keys[window_idx]
-        tz = index - window_keys[window_idx - 1] if window_idx > 0 else index
-        return w, tz
+        window_idx = sorted(self.window_keys + [index + 1]).index(index + 1)
+        w = self.window_keys[window_idx]
+        tz = index - self.window_keys[window_idx - 1] if window_idx > 0 else index
+        return self.window_arrays[self.window_keys.index(w)], tz
 
-    def _read_img_window(self, img: ImageArray, ch_idx: int, tz: int) -> torch.Tensor:
-        zs = img.slices - self.z_window_size + 1
+    def _read_img_window(
+        self, img: Union[ImageArray, NDArray], ch_idx: int, tz: int
+    ) -> torch.Tensor:
+        zs = img.shape[-3] - self.z_window_size + 1
         t = (tz + zs) // zs - 1
         z = tz - t * zs
         selection = (int(t), int(ch_idx), slice(z, z + self.z_window_size))
@@ -83,25 +105,30 @@ class SlidingWindowDataset(Dataset):
         return self._max_window
 
     def __getitem__(self, index: int) -> dict[str, torch.Tensor]:
-        w, tz = self._find_window(index)
-        img = self.windows[w]["0"]
-        source = self.source_normalizer(
-            self._read_img_window(img, self.source_ch_idx, tz)
-        )
-        target = self.target_normalizer(
-            self._read_img_window(img, self.target_ch_idx, tz)
-        )
+        img, tz = self._find_window(index)
+        source = self._read_img_window(img, self.source_ch_idx, tz)
+        target = self._read_img_window(img, self.target_ch_idx, tz)
         sample = {"source": source, "target": target}
-        if self.transform:
-            sample = self.transform(sample)
-        if isinstance(sample, list):
-            sample = sample[0]
-        if self.target_center_slice_only:
-            sample["target"] = sample["target"][:, self.z_window_size // 2][:, None]
         return sample
 
     def __del__(self):
-        self.plate.close()
+        self.positions[0].zgroup.store.close()
+
+
+class TransformSubset(Dataset):
+    def __init__(self, subset: Subset, transform: Callable):
+        super().__init__()
+        self.dataset = subset
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, index) -> dict[str, torch.Tensor]:
+        item = self.transform(self.dataset[index])
+        if isinstance(item, list):
+            return item[0]
+        return item
 
 
 class HCSDataModule(LightningDataModule):
@@ -114,6 +141,7 @@ class HCSDataModule(LightningDataModule):
         split_ratio: float,
         batch_size: int = 16,
         num_workers: int = 8,
+        architecture: Literal["2.5D", "2D", "3D"] = "2.5D",
         yx_patch_size: tuple[int, int] = (256, 256),
         augment: bool = True,
         caching: bool = False,
@@ -124,6 +152,7 @@ class HCSDataModule(LightningDataModule):
         self.target_channel = target_channel
         self.batch_size = batch_size
         self.num_workers = num_workers
+        self.target_2d = True if architecture == "2.5D" else False
         self.z_window_size = z_window_size
         self.split_ratio = split_ratio
         self.yx_patch_size = yx_patch_size
@@ -131,9 +160,19 @@ class HCSDataModule(LightningDataModule):
         self.caching = caching
 
     def _cache(self, lazy_plate: Plate) -> Plate:
-        logging.info("Loading Zarr store into memory.")
-        mem_store = zarr.MemoryStore(dimension_separator="/")
-        _, skipped, _ = zarr.copy_store(lazy_plate, mem_store, log=logging.debug)
+        self.tmp_zarr = os.path.join(
+            tempfile.gettempdir(), os.path.basename(self.data_path)
+        )
+        logging.info(f"Caching dataset at {self.tmp_zarr}.")
+        mem_store = zarr.NestedDirectoryStore(self.tmp_zarr)
+        _, skipped, _ = zarr.copy(
+            lazy_plate.zgroup,
+            zarr.open(mem_store, mode="a"),
+            name="/",
+            log=logging.debug,
+            if_exists="skip_initialized",
+            compressor=None,
+        )
         if skipped > 0:
             logging.warning(
                 f"Skipped {skipped} items when caching. Check debug log for details."
@@ -143,36 +182,42 @@ class HCSDataModule(LightningDataModule):
     def setup(self, stage: Literal["fit", "validate", "test", "predict"]):
         # train/val split
         if stage in (None, "fit", "validate"):
-            # disable metadata tracking in MONAI for performance
-            set_track_meta(False)
-            # set training stage transforms
-            fit_transform = self._fit_transform()
-            train_transform = self._train_transform() + fit_transform
             plate = open_ome_zarr(self.data_path, mode="r")
             if self.caching:
                 plate = self._cache(plate)
-            whole_train_dataset = SlidingWindowDataset(
-                plate,
+            positions = [pos for _, pos in plate.positions()]
+            # disable metadata tracking in MONAI for performance
+            set_track_meta(False)
+            # set training stage transforms
+            normalize_transform = [
+                NormalizeTargetd("target", plate, self.target_channel)
+            ]
+            fit_transform = self._fit_transform()
+            self.val_transform = Compose(normalize_transform + fit_transform)
+            self.train_transform = Compose(
+                normalize_transform + self._train_transform() + fit_transform
+            )
+            dataset = SlidingWindowDataset(
+                positions,
                 source_channel=self.source_channel,
                 target_channel=self.target_channel,
                 z_window_size=self.z_window_size,
-                transform=Compose(train_transform),
             )
-            whole_val_dataset = SlidingWindowDataset(
-                plate,
-                source_channel=self.source_channel,
-                target_channel=self.target_channel,
-                z_window_size=self.z_window_size,
-                transform=Compose(fit_transform),
-            )
+            num_train_samples = int(len(dataset) * self.split_ratio)
             # randomness is handled globally
-            indices = torch.randperm(len(whole_train_dataset))
-            self.sep = int(len(indices) * self.split_ratio)
-            self.train_dataset = Subset(whole_train_dataset, indices[: self.sep])
-            self.val_dataset = Subset(whole_val_dataset, indices[self.sep :])
+            train_subset, val_subset = random_split(
+                dataset, lengths=[num_train_samples, len(dataset) - num_train_samples]
+            )
+            self.train_dataset = TransformSubset(train_subset, self.train_transform)
+            self.val_dataset = TransformSubset(val_subset, self.val_transform)
         # test/predict stage
         else:
             raise NotImplementedError(f"{stage} stage")
+
+    def on_before_batch_transfer(self, batch: Any, dataloader_idx: int) -> Any:
+        if self.target_2d and not isinstance(batch, torch.Tensor):
+            batch["target"] = batch["target"][:, :, self.z_window_size // 2][:, :, None]
+        return batch
 
     def train_dataloader(self):
         return DataLoader(
@@ -180,7 +225,7 @@ class HCSDataModule(LightningDataModule):
             batch_size=self.batch_size,
             num_workers=self.num_workers,
             shuffle=True,
-            persistent_workers=False,
+            persistent_workers=True,
         )
 
     def val_dataloader(self):

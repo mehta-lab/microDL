@@ -56,4 +56,5 @@ data:
   - 256
   - 256
   augment: true
+  caching: false
 ckpt_path: null
