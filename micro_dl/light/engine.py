@@ -22,6 +22,7 @@ class PhaseToNuc25D(LightningModule):
         loss_function: nn.Module = None,
         lr: float = 1e-3,
         schedule: Literal["WarmupCosine", "Constant"] = "Constant",
+        log_num_samples: int = 8
     ) -> None:
         """Regression U-Net module for virtual staining.
 
@@ -44,6 +45,7 @@ class PhaseToNuc25D(LightningModule):
         self.loss_function = loss_function if loss_function else F.mse_loss
         self.lr = lr
         self.schedule = schedule
+        self.log_num_samples = log_num_samples
         self.training_step_outputs = []
         self.validation_step_outputs = []
         # required to log the graph
@@ -66,7 +68,7 @@ class PhaseToNuc25D(LightningModule):
             logger=True,
             batch_size=self.batch_size,
         )
-        if batch_idx % 16 == 0:
+        if batch_idx < self.log_num_samples:
             self.training_step_outputs.append(
                 self._detach_sample((source, target, pred))
             )
@@ -78,7 +80,7 @@ class PhaseToNuc25D(LightningModule):
         pred = self.forward(source)
         loss = self.loss_function(pred, target)
         self.log("val_loss", loss, batch_size=self.batch_size)
-        if batch_idx % 4 == 0:
+        if batch_idx < self.log_num_samples:
             self.validation_step_outputs.append(
                 self._detach_sample((source, target, pred))
             )
