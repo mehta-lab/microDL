@@ -45,7 +45,6 @@ class SlidingWindowDataset(Dataset):
         target_channel: str,
         z_window_size: int,
         transform: Callable = None,
-        preload: bool = False,
     ) -> None:
         super().__init__()
         self.positions = positions
@@ -53,7 +52,7 @@ class SlidingWindowDataset(Dataset):
         self.target_ch_idx = positions[0].get_channel_index(target_channel)
         self.z_window_size = z_window_size
         self.transform = transform
-        self._get_windows(preload)
+        self._get_windows()
 
     def _get_windows(self, preload: bool) -> None:
         w = 0
@@ -67,23 +66,6 @@ class SlidingWindowDataset(Dataset):
             self.window_keys.append(w)
             self.window_arrays.append(img_arr)
         self._max_window = w
-        if preload:
-            self._preload(img_arr)
-
-    def _preload(self, example: ImageArray):
-        shape = list((len(self.window_keys),) + example.shape)
-        shape[-4] = 2
-        all_images = np.zeros(tuple(shape), example.dtype)
-        for i, img_arr in tqdm(
-            enumerate(self.window_arrays),
-            desc="Preloading images",
-            total=len(self.window_arrays),
-        ):
-            sel = [slice(None)] * 4
-            sel.insert(1, [self.source_ch_idx, self.target_ch_idx])
-            all_images[i] = img_arr.get_orthogonal_selection(tuple(sel))
-        self.window_arrays = np.stack(self.window_arrays, axis=0)
-        self.source_ch_idx, self.target_ch_idx = (0, 1)
 
     def _find_window(self, index: int) -> tuple[int, int]:
         window_idx = sorted(self.window_keys + [index + 1]).index(index + 1)
