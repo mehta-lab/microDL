@@ -1,7 +1,9 @@
+import logging
 from typing import Callable, Literal
 
 import numpy as np
 import torch
+import zarr
 from iohub.ngff import ImageArray, Plate, open_ome_zarr
 from lightning.pytorch import LightningDataModule
 from monai.transforms import (
@@ -12,6 +14,8 @@ from monai.transforms import (
     RandGaussianSmoothd,
     RandWeightedCropd,
 )
+from monai.data import set_track_meta
+from numcodecs import Blosc
 from torch.utils.data import DataLoader, Dataset, Subset
 
 
@@ -25,6 +29,7 @@ class SlidingWindowDataset(Dataset):
         transform: Callable = None,
         target_center_slice_only: bool = True,
         normalize_intensity: bool = True,
+        preload: bool = False,
     ) -> None:
         super().__init__()
         self.plate = plate
@@ -53,7 +58,7 @@ class SlidingWindowDataset(Dataset):
         def _normalizer(channel: str) -> Callable:
             return (
                 lambda x: x / norm_meta[channel]["dataset_statistics"]["iqr"]
-                - norm_meta[channel]["dataset_statistics"]["median"],
+                - norm_meta[channel]["dataset_statistics"]["median"]
             )
 
         self.source_normalizer = _normalizer(source_channel)
@@ -125,13 +130,27 @@ class HCSDataModule(LightningDataModule):
         self.augment = augment
         self.caching = caching
 
+    def _cache(self, lazy_plate: Plate) -> Plate:
+        logging.info("Loading Zarr store into memory.")
+        mem_store = zarr.MemoryStore(dimension_separator="/")
+        _, skipped, _ = zarr.copy_store(lazy_plate, mem_store, log=logging.debug)
+        if skipped > 0:
+            logging.warning(
+                f"Skipped {skipped} items when caching. Check debug log for details."
+            )
+        return Plate(group=zarr.open(mem_store, mode="r"))
+
     def setup(self, stage: Literal["fit", "validate", "test", "predict"]):
         # train/val split
         if stage in (None, "fit", "validate"):
+            # disable metadata tracking in MONAI for performance
+            set_track_meta(False)
             # set training stage transforms
             fit_transform = self._fit_transform()
             train_transform = self._train_transform() + fit_transform
             plate = open_ome_zarr(self.data_path, mode="r")
+            if self.caching:
+                plate = self._cache(plate)
             whole_train_dataset = SlidingWindowDataset(
                 plate,
                 source_channel=self.source_channel,
@@ -161,7 +180,7 @@ class HCSDataModule(LightningDataModule):
             batch_size=self.batch_size,
             num_workers=self.num_workers,
             shuffle=True,
-            persistent_workers=True,
+            persistent_workers=False,
         )
 
     def val_dataloader(self):
