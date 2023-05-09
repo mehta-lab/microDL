@@ -20,7 +20,6 @@ from monai.transforms import (
 )
 from numpy.typing import NDArray
 from torch.utils.data import DataLoader, Dataset, Subset, random_split
-from tqdm import tqdm
 
 
 class NormalizeTargetd(MapTransform):
