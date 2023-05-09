@@ -19,7 +19,7 @@ from monai.transforms import (
     RandWeightedCropd,
 )
 from numpy.typing import NDArray
-from torch.utils.data import DataLoader, Dataset, Subset, random_split
+from torch.utils.data import DataLoader, Dataset
 
 
 class NormalizeTargetd(MapTransform):
@@ -53,7 +53,7 @@ class SlidingWindowDataset(Dataset):
         self.transform = transform
         self._get_windows()
 
-    def _get_windows(self, preload: bool) -> None:
+    def _get_windows(self) -> None:
         w = 0
         self.window_keys = []
         self.window_arrays = []
@@ -165,9 +165,9 @@ class HCSDataModule(LightningDataModule):
             )
             val_transform = Compose(normalize_transform + fit_transform)
             # shuffle positions, randomness is handled globally
-            positions = np.array([pos for _, pos in plate.positions()])
-            shuffled_indices = torch.randperm(len(positions)).numpy()
-            positions = positions[shuffled_indices]
+            positions = [pos for _, pos in plate.positions()]
+            shuffled_indices = torch.randperm(len(positions))
+            positions = list(positions[i] for i in shuffled_indices)
             num_train_fovs = int(len(positions) * self.split_ratio)
             # train/val split
             dataset_settings = dict(
