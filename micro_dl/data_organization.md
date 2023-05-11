@@ -88,12 +88,24 @@ virtual_staining:
                         ...
                     # autosaved full config
                     config.yaml
-                    # inference output on test dataset
-                    prediction.zarr
-                    # evaluation metrics
-                    metrics.csv
                 yyyymmdd-hhmmss:
                     ...
+            # evaluation of select models
+            evaluation: 
+                # configs for evaluation: checkpoint path, test data path, ground turth path, and choice of metrics.
+                evaluation_01.yaml
+                evaluation_02.yaml
+                ...
+                # inference output on test dataset, may include copies of input and ground truth to facilitate visualization of model performance. 
+                prediction_01.zarr
+                prediction_02.zarr
+                ...
+                # evaluation metrics
+                metrics_01.csv
+                metrics_02.csv
+                ...
+                # (optional) tensorboard logs generated to visualize distribution of metrics or specific samples of input, prediction, ground truth.
+                evaluation_logs: 
             # (optional) exported models for deployment
             deployment:
                 <task>_<input_shape>.onnx
