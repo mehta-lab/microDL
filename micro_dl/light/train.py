@@ -12,6 +12,7 @@ class VSLightningCLI(LightningCLI):
     def add_arguments_to_parser(self, parser):
         # https://pytorch-lightning.readthedocs.io/en/1.6.0/api/pytorch_lightning.utilities.cli.html#pytorch_lightning.utilities.cli.LightningCLI.add_arguments_to_parser
         parser.link_arguments("data.batch_size", "model.batch_size")
+        parser.link_arguments("data.yx_patch_size", "model.example_input_yx_shape")
         parser.link_arguments(
             "trainer.default_root_dir", "trainer.logger.init_args.save_dir"
         )
