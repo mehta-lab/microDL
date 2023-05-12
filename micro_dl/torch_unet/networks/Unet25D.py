@@ -179,7 +179,7 @@ class Unet25d(nn.Module):
             self.terminal_block = ConvBlock3D(
                 downsampling_filters[1],
                 out_channels,
-                dropout=self.dropout,
+                dropout=False,
                 residual=False,
                 activation="linear",
                 kernel_size=(1, 3, 3),
