@@ -1,7 +1,7 @@
 import logging
 import os
 import tempfile
-from typing import Any, Callable, Literal, Union, Iterable
+from typing import Any, Callable, Iterable, Literal, Union
 
 import numpy as np
 import torch
@@ -20,7 +20,6 @@ from monai.transforms import (
 )
 from numpy.typing import NDArray
 from torch.utils.data import DataLoader, Dataset
-
 
 Sample = dict[str, torch.Tensor]
 
