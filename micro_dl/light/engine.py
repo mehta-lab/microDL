@@ -22,7 +22,8 @@ class PhaseToNuc25D(LightningModule):
         loss_function: nn.Module = None,
         lr: float = 1e-3,
         schedule: Literal["WarmupCosine", "Constant"] = "Constant",
-        log_num_samples: int = 8
+        log_num_samples: int = 8,
+        example_input_yx_shape: Sequence[int] = (256, 256),
     ) -> None:
         """Regression U-Net module for virtual staining.
 
@@ -49,7 +50,9 @@ class PhaseToNuc25D(LightningModule):
         self.training_step_outputs = []
         self.validation_step_outputs = []
         # required to log the graph
-        self.example_input_array = torch.rand(1, 1, 5, 256, 256)
+        self.example_input_array = torch.rand(
+            1, 1, (model_config.get("in_stack_depth") or 5), *example_input_yx_shape
+        )
 
     def forward(self, x):
         return self.model(x)
@@ -60,7 +63,7 @@ class PhaseToNuc25D(LightningModule):
         pred = self.forward(source)
         loss = self.loss_function(pred, target)
         self.log(
-            "train_loss",
+            "loss/train",
             loss,
             on_step=True,
             on_epoch=True,
