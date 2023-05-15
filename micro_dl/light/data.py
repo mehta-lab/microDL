@@ -1,10 +1,7 @@
 import logging
 import os
 import tempfile
-import logging
-import os
-import tempfile
-from typing import Any, Any, Callable, Literal, Union, Iterable
+from typing import Any, Callable, Literal, Union, Iterable
 
 import numpy as np
 import torch
