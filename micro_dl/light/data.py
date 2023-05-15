@@ -1,7 +1,7 @@
 import logging
 import os
 import tempfile
-from typing import Any, Callable, Literal, Union
+from typing import Any, Callable, Literal, Union, Iterable
 
 import numpy as np
 import torch
@@ -22,14 +22,26 @@ from numpy.typing import NDArray
 from torch.utils.data import DataLoader, Dataset
 
 
+Sample = dict[str, torch.Tensor]
+
+
 class NormalizeTargetd(MapTransform):
-    def __init__(self, keys, plate: Plate, target_channel: str) -> None:
+    """Dictionary transform to only normalize target (fluorescence) channel.
+
+    :param Union[str, Iterable[str]] keys: keys to normalize
+    :param Plate plate: NGFF HCS plate object
+    :param str target_channel: name of the target channel
+    """
+
+    def __init__(
+        self, keys: Union[str, Iterable[str]], plate: Plate, target_channel: str
+    ) -> None:
         super().__init__(keys, allow_missing_keys=False)
         norm_meta = plate.zattrs["normalization"]
         self.iqr = norm_meta[target_channel]["dataset_statistics"]["iqr"]
         self.median = norm_meta[target_channel]["dataset_statistics"]["median"]
 
-    def __call__(self, data):
+    def __call__(self, data: Sample):
         d = dict(data)
         for key in self.keys:
             d[key] = (d[key] - self.median) / self.iqr
@@ -37,13 +49,24 @@ class NormalizeTargetd(MapTransform):
 
 
 class SlidingWindowDataset(Dataset):
+    """Torch dataset where each element is a window of
+    (C, Z, Y, X) where C=2 (source and target) and Z is ``z_window_size``.
+
+    :param list[Position] positions: FOVs to include in dataset
+    :param str source_channel: name of the source channel, e.g. 'Phase'
+    :param str target_channel: name of the target channel, e.g. 'Nuclei'
+    :param int z_window_size: Z window size of the 2.5D U-Net, 1 for 2D
+    :param Callable[[Sample], Sample] transform: a callable that transforms data,
+        defaults to None
+    """
+
     def __init__(
         self,
         positions: list[Position],
         source_channel: str,
         target_channel: str,
         z_window_size: int,
-        transform: Callable = None,
+        transform: Callable[[Sample], Sample] = None,
     ) -> None:
         super().__init__()
         self.positions = positions
@@ -85,7 +108,7 @@ class SlidingWindowDataset(Dataset):
     def __len__(self) -> int:
         return self._max_window
 
-    def __getitem__(self, index: int) -> dict[str, torch.Tensor]:
+    def __getitem__(self, index: int) -> Sample:
         img, tz = self._find_window(index)
         source = self._read_img_window(img, self.source_ch_idx, tz)
         target = self._read_img_window(img, self.target_ch_idx, tz)
@@ -101,6 +124,26 @@ class SlidingWindowDataset(Dataset):
 
 
 class HCSDataModule(LightningDataModule):
+    """Lightning data module for a preprocessed HCS NGFF Store.
+
+    :param str data_path: path to the data store
+    :param str source_channel: name of the source channel, e.g. 'Phase'
+    :param str target_channel: name of the target channel, e.g. 'Nuclei'
+    :param int z_window_size: Z window size of the 2.5D U-Net, 1 for 2D
+    :param float split_ratio: split ratio of the training subset in the fit stage,
+        e.g. 0.8 means a 80/20 split between training/validation
+    :param int batch_size: batch size, defaults to 16
+    :param int num_workers: number of data-loading workers, defaults to 8
+    :param Literal["2.5D", "2D", "3D"] architecture: U-Net architecture,
+        defaults to "2.5D"
+    :param tuple[int, int] yx_patch_size: patch size in (Y, X),
+        defaults to (256, 256)
+    :param bool augment: whether to apply augmentation in training,
+        defaults to True
+    :param bool caching: whether to decompress all the images and cache the result,
+        defaults to False
+    """
+
     def __init__(
         self,
         data_path: str,
@@ -129,6 +172,7 @@ class HCSDataModule(LightningDataModule):
         self.caching = caching
 
     def _cache(self, lazy_plate: Plate) -> Plate:
+        """Decompress and store the images on local tempdir."""
         # setup logger
         logger = logging.getLogger(__name__)
         os.mkdir(self.trainer.logger.log_dir)
