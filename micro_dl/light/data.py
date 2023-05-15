@@ -129,21 +129,30 @@ class HCSDataModule(LightningDataModule):
         self.caching = caching
 
     def _cache(self, lazy_plate: Plate) -> Plate:
+        # setup logger
+        logger = logging.getLogger(__name__)
+        os.mkdir(self.trainer.logger.log_dir)
+        file_handler = logging.FileHandler(
+            os.path.join(self.trainer.logger.log_dir, "data.log")
+        )
+        file_handler.setLevel(logging.DEBUG)
+        logger.addHandler(file_handler)
+        # cache in temporary directory
         self.tmp_zarr = os.path.join(
             tempfile.gettempdir(), os.path.basename(self.data_path)
         )
-        logging.info(f"Caching dataset at {self.tmp_zarr}.")
+        logger.info(f"Caching dataset at {self.tmp_zarr}.")
         mem_store = zarr.NestedDirectoryStore(self.tmp_zarr)
         _, skipped, _ = zarr.copy(
             lazy_plate.zgroup,
             zarr.open(mem_store, mode="a"),
             name="/",
-            log=logging.debug,
+            log=logger.debug,
             if_exists="skip_initialized",
             compressor=None,
         )
         if skipped > 0:
-            logging.warning(
+            logger.warning(
                 f"Skipped {skipped} items when caching. Check debug log for details."
             )
         return Plate(group=zarr.open(mem_store, mode="r"))
