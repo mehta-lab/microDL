@@ -9,6 +9,8 @@ from micro_dl.light.engine import PhaseToNuc25D
 
 
 class VSLightningCLI(LightningCLI):
+    """Extending lightning CLI arguments and defualts."""
+
     def add_arguments_to_parser(self, parser):
         # https://pytorch-lightning.readthedocs.io/en/1.6.0/api/pytorch_lightning.utilities.cli.html#pytorch_lightning.utilities.cli.LightningCLI.add_arguments_to_parser
         parser.link_arguments("data.batch_size", "model.batch_size")
