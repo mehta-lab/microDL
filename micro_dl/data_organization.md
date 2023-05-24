@@ -90,19 +90,21 @@ virtual_staining:
                     config.yaml
                 yyyymmdd-hhmmss:
                     ...
-            # evaluation of select models
-            evaluation: 
-                # configs for evaluation: checkpoint path, test data path, ground turth path, and choice of metrics.
-                evaluation_01.yaml
-                evaluation_02.yaml
-                ...
+            # test select models
+            test: 
+                # config for prediction with test dataset.
+                test_<suffix>.yml # follow the lightning CLI/config.
+
                 # inference output on test dataset, may include copies of input and ground truth to facilitate visualization of model performance. 
-                prediction_01.zarr
-                prediction_02.zarr
+                test_<suffix>.zarr # Not all test datasets need to have human curated ground truth.
                 ...
+
+                # configs for evaluation: checkpoint path, test data path that have ground turth included, and choice of metrics.
+                evaluation_<suffix>.yaml
+                ...
+
                 # evaluation metrics
-                metrics_01.csv
-                metrics_02.csv
+                evaluation_metrics_<suffix>.csv
                 ...
                 # (optional) tensorboard logs generated to visualize distribution of metrics or specific samples of input, prediction, ground truth.
                 evaluation_logs: 
