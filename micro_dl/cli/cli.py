@@ -26,7 +26,12 @@ class VSLightningCLI(LightningCLI):
                     save_dir="",
                     version=datetime.now().strftime(r"%Y%m%d-%H%M%S"),
                     log_graph=True,
-                )
+                ),
+                "trainer.callbacks": [
+                    {
+                        "class_path": "micro_dl.light.prediction_writer.HCSPredictionWriter",
+                    }
+                ],
             }
         )
 

@@ -12,6 +12,7 @@ from monai.data import set_track_meta
 from monai.transforms import (
     CenterSpatialCropd,
     Compose,
+    InvertibleTransform,
     MapTransform,
     RandAdjustContrastd,
     RandAffined,
@@ -29,12 +30,13 @@ class ChannelMap(TypedDict, total=False):
 
 
 class Sample(TypedDict, total=False):
+    index: tuple[str, int, int]
     source: torch.Tensor
     # optional
     target: torch.Tensor
 
 
-class NormalizeSampled(MapTransform):
+class NormalizeSampled(MapTransform, InvertibleTransform):
     """Dictionary transform to only normalize target (fluorescence) channel.
 
     :param Union[str, Iterable[str]] keys: keys to normalize
@@ -43,12 +45,15 @@ class NormalizeSampled(MapTransform):
     """
 
     def __init__(
-        self, keys: Union[str, Iterable[str]], plate: Plate, channels: ChannelMap
+        self,
+        keys: Union[str, Iterable[str]],
+        norm_meta: dict[str, str],
+        channels: ChannelMap,
     ) -> None:
         if set(keys) > channels.keys():
             raise KeyError(f"Keys to transform ({keys}) not in {channels.keys()}")
         super().__init__(keys, allow_missing_keys=False)
-        self.norm_meta = plate.zattrs["normalization"]
+        self.norm_meta = norm_meta
         self.channels = channels
 
     def _stat(self, key: str) -> dict:
@@ -59,6 +64,11 @@ class NormalizeSampled(MapTransform):
         for key in self.keys:
             d[key] = (d[key] - self._stat(key)["median"]) / self._stat(key)["iqr"]
         return d
+
+    def inverse(self, data: Sample) -> Sample:
+        d = dict(data)
+        for key in self.keys:
+            d[key] = (d[key] * self._stat(key)["iqr"]) + self._stat(key)["median"]
 
 
 class SlidingWindowDataset(Dataset):
@@ -119,14 +129,15 @@ class SlidingWindowDataset(Dataset):
         z = tz - t * zs
         selection = (int(t), int(ch_idx), slice(z, z + self.z_window_size))
         data = img[selection][np.newaxis]
-        return torch.from_numpy(data)
+        return torch.from_numpy(data), (img.name, t, z)
 
     def __len__(self) -> int:
         return self._max_window
 
     def __getitem__(self, index: int) -> Sample:
         img, tz = self._find_window(index)
-        sample = {"source": self._read_img_window(img, self.source_ch_idx, tz)}
+        source, sample_index = self._read_img_window(img, self.source_ch_idx, tz)
+        sample = {"source": source, "index": sample_index}
         if self.target_ch_idx is not None:
             sample["target"] = self._read_img_window(img, self.target_ch_idx, tz)
         if self.transform:
@@ -234,7 +245,7 @@ class HCSDataModule(LightningDataModule):
             if self.normalize_source:
                 norm_keys.append("source")
             normalize_transform = [
-                NormalizeSampled(norm_keys, plate, self.target_channel)
+                NormalizeSampled(norm_keys, plate.zattrs["normalization"], channels)
             ]
             fit_transform = self._fit_transform()
             train_transform = Compose(
@@ -256,11 +267,13 @@ class HCSDataModule(LightningDataModule):
                 positions[num_train_fovs:], transform=val_transform, **dataset_settings
             )
         elif stage == "predict":
+            # track metadata for inverting transform
+            set_track_meta(True)
             if self.caching:
                 logging.warning("Ignoring caching config in 'predict' stage.")
             plate = open_ome_zarr(self.data_path, mode="r")
             predict_transform = (
-                NormalizeSampled("source", plate, channels=channels)
+                NormalizeSampled(norm_keys, plate.zattrs["normalization"], channels)
                 if self.normalize_source
                 else None
             )
