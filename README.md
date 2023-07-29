@@ -1,11 +1,16 @@
 # microDL
 
-## robust and efficient virtual staining of label-free microscopy data
+
+## virtual staining of label-free microscopy data
 
 ![Build Status](https://github.com/czbiohub/microDL/workflows/build/badge.svg)
 [![codecov](https://codecov.io/gh/mehta-lab/microDL/branch/main/graph/badge.svg?token=md0h4z6Rmk)](https://codecov.io/gh/mehta-lab/microDL)
 
+###  This repository is now a public archive.
 
+After multiple years of use, we have now moved our virtual staining pipeline to `pytorch-lightning` and `ome-zarr` data format to improve the speed of experimentation and deployment. We will be integrating our virtual staining models with other models for segmentation and phenotyping. Check out the new pipeline at [viscy](https://github.com/mehta-lab/viscy).
+
+-------
 microDL is a deep learning pipeline for efficient 2D and 3D image translation. We commonly use it to virtually stain label-free images, i.e., to predict fluorescence-like images. Label-free imaging  visualizes many structures simultaneously. Virtual staining enables identification of diverse structures without extensive human annotation - the annotations are provided by the molecular markers of the structure. This pipeline was originally developed for 3D virutal staining of tissue and cell structures from label-free images of their density and anisotropy: <https://doi.org/10.7554/eLife.55502>. We are currently extending it to enable generalizable virtual staining of nuclei and membrane in diverse imaging conditions and across multiple cell types. We provide a computationally and memory efficient variant of U-Net (2.5D U-Net) for 3D virtual staining.
 
 You can train a microDL model using label-free images and corresponding fluorescence channels you want to predict. Once the model is trained using the dataset provided you can use the model to predict the same fluorescence channels or segmneted masks in other datasets using the label-free images.
